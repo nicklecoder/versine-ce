@@ -51,7 +51,19 @@ function placeValue(rng) {
   };
 }
 
-/** Compare by place, not by digit count. */
+/**
+ * Compare by place, not by digit count.
+ *
+ * The pair is drawn in a random order and then named in that order all the
+ * way through -- prompt, text and buttons. The buttons used to be shuffled
+ * separately, which put the question and the answers in different orders
+ * about half the time. It bought nothing, since the draw above already
+ * decides which of the two comes first, and it cost the only thing that
+ * mattered: that a student reads "0.9 or 0.85?" and finds those two, in that
+ * order, under it. The fraction comparison had the same fault, where a bar
+ * model made it visible; here there is no picture and it was merely quietly
+ * confusing.
+ */
 function compare(rng) {
   // Deliberately weight toward the trap: more digits looking bigger.
   const a = dec(rng.int(1, 9) * 10, 2);
@@ -64,7 +76,7 @@ function compare(rng) {
     text: `bigger: ${show(x)} or ${show(y)}`,
     answer: {
       type: 'choice', value: bigger,
-      options: rng.shuffle([show(x), show(y)].map((s) => ({ id: s, label: s }))),
+      options: [show(x), show(y)].map((s) => ({ id: s, label: s })),
     },
     visual: null,
     explain: `Line the places up: ${show(a)} is ${a.n} hundredths and ${show(b)} is `
