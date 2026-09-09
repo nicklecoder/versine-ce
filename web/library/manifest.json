@@ -1,5 +1,5 @@
 {
-  "built": 143,
+  "built": 144,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -33,6 +33,7 @@
       "one-fits-the-other",
       "unlike-denominators",
       "which-is-bigger",
+      "without-the-picture",
       "taking-away",
       "crossing-zero",
       "simplify-the-answer",
@@ -185,7 +186,7 @@
       "all-together"
     ]
   },
-  "sources": "9b7e21926082cd1f11891f0fcd3fbd344519644f9f899d64caa66bd78ecce1b3",
+  "sources": "e473a25e57df7da9af247a0a8c5dd836abba3f765e347bef050683e4bbacb5f7",
   "levels": [
     {
       "skill": "int-addsub",
@@ -440,8 +441,8 @@
     {
       "skill": "frac-addsub",
       "level": 4,
-      "slug": "taking-away",
-      "name": "Taking Away",
+      "slug": "without-the-picture",
+      "name": "Without the Picture",
       "count": 312,
       "exhaustive": true,
       "signed": false,
@@ -450,32 +451,42 @@
     {
       "skill": "frac-addsub",
       "level": 5,
-      "slug": "crossing-zero",
-      "name": "Crossing Zero",
-      "count": 156,
+      "slug": "taking-away",
+      "name": "Taking Away",
+      "count": 312,
       "exhaustive": true,
-      "signed": true,
+      "signed": false,
       "file": "frac-addsub-5.json"
     },
     {
       "skill": "frac-addsub",
       "level": 6,
-      "slug": "simplify-the-answer",
-      "name": "Simplify the Answer",
-      "count": 312,
+      "slug": "crossing-zero",
+      "name": "Crossing Zero",
+      "count": 156,
       "exhaustive": true,
-      "signed": false,
+      "signed": true,
       "file": "frac-addsub-6.json"
     },
     {
       "skill": "frac-addsub",
       "level": 7,
+      "slug": "simplify-the-answer",
+      "name": "Simplify the Answer",
+      "count": 312,
+      "exhaustive": true,
+      "signed": false,
+      "file": "frac-addsub-7.json"
+    },
+    {
+      "skill": "frac-addsub",
+      "level": 8,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "frac-addsub-7.json"
+      "file": "frac-addsub-8.json"
     },
     {
       "skill": "frac-muldiv",

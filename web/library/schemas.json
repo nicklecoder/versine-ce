@@ -188,6 +188,9 @@
       "right": {
         "type": "frac",
         "phase": "answer"
+      },
+      "hold": {
+        "type": "bool"
       }
     },
     "quantitymodel": {

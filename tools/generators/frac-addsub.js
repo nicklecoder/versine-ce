@@ -86,7 +86,8 @@ function draw(rng, level) {
 }
 /** Level indices `build` does not handle, because they are not sums. */
 const COMPARE = 3;
-const CROSSING = 5;
+const COMPARE_BARE = 4;
+const CROSSING = 6;
 
 /**
  * Which of two fractions is bigger.
@@ -103,8 +104,10 @@ const CROSSING = 5;
  * thing that has to hold -- that the picture, the sentence and the buttons
  * all say "this one or that one" in the same order. They did not, and a
  * student reading the bars left to right was picking the wrong button.
+ *
+ * @param {boolean} hold  draw no bars until the answer is committed
  */
-function compare(rng) {
+function compare(rng, hold) {
   const [d1, d2] = rng.pick(rng.chance(0.75) ? UNLIKE : NESTED);
   const a = frac(coprimeNumerator(rng, d1, d1 - 1), d1);
   const b = frac(coprimeNumerator(rng, d2, d2 - 1), d2);
@@ -123,7 +126,7 @@ function compare(rng) {
       value: format(bigger),
       options: [a, b].map((f) => ({ id: format(f), label: format(f) })),
     },
-    visual: { kind: 'comparemodel', a, b, common, left, right },
+    visual: { kind: 'comparemodel', a, b, common, left, right, ...(hold ? { hold } : {}) },
     explain: `Rewrite both in ${nths(common)}: ${format(a)} is ${format(left)} and `
       + `${format(b)} is ${format(right)}. Now the pieces are the same size, so it is `
       + `only a question of how many — ${format(bigger)} is bigger. `
@@ -227,7 +230,12 @@ function explain(a, b, opSign, work, requireSimplest) {
   /** @param {import('../engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
   const at = level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level;
-  const problem = at === COMPARE ? compare(rng)
+  // In the mixed review the comparison always comes without its bars,
+  // whichever of the two levels the draw landed on: the scaffolding has been
+  // taken away by then, and the two forms share their `text` anyway, so
+  // letting both in would keep whichever happened to be drawn first.
+  const bare = at === COMPARE_BARE || level >= LAST_LEVEL;
+  const problem = at === COMPARE || at === COMPARE_BARE ? compare(rng, bare)
     : at === CROSSING ? crossingZero(rng)
     : build(rng, at, level >= LAST_LEVEL || !!LEVELS[level].requireSimplest);
   problem.parSeconds = PAR_SECONDS[level];

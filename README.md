@@ -258,6 +258,16 @@ export function generate(rng, level) {
 Then `node scripts/build-library.mjs` writes the library and warns about levels
 too small to be worth drilling. Nothing else in the codebase needs to change.
 
+Eight levels is the guide length. A skill much longer than that is usually two
+skills that were never separated, and the split to make is by depth — the
+foundations stay, the harder work becomes a skill that depends on them — so a
+student finishes something rather than grinding down a list that never ends.
+It is a guide and not a law: a skill may run longer if it declares
+`longerBecause: '…'`, and `check-catalogue.mjs` then prints the reason on
+success instead of failing. Without a reason it still fails. The point is that
+the exception is written where the next person reads it, since a rule that can
+be broken silently is decoration.
+
 ### Where a new skill goes on the map
 
 Two layers. A **subject** is the broad territory — Arithmetic, Algebra,
@@ -732,6 +742,14 @@ Twelve exist so far:
   wholes are the same length. Recutting both into the common denominator *is*
   the answer — once the pieces match you only have to count them — so the
   recut bars arrive with the reveal.
+
+  With `hold` it draws nothing at all until an answer is in. Two bars of the
+  same length are too good a picture of this question: you can see which one
+  reaches further without ever finding a common denominator, which is what
+  the level with the picture is *for* and useless as a check that the method
+  took. So the comparison is asked twice, with the bars and then without
+  them, and in the held version the recut bars arrive afterwards as the
+  explanation rather than as the method.
 - **`barmodel`** — adding and subtracting fractions. Two bars of *identical*
   length, divided by their own denominators. That alignment is the point: it
   makes visible that a half and a third are different-sized pieces, which is

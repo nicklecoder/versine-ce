@@ -122,6 +122,12 @@ export const VISUALS = {
   // Two fractions to be compared. Recutting both into the common
   // denominator is the answer -- once the pieces match you can just count
   // them -- so the recut bars are withheld.
+  //
+  // `hold` withholds the given pair as well, drawing nothing until an answer
+  // is committed. Not an answer-bearing field, so not `phase: 'answer'`: two
+  // equal-length bars do not state which fraction is bigger, they just make
+  // it plain to look at, and a level that wants the comparison done in
+  // numbers has to do without the picture until it is over.
   comparemodel: {
     schema: {
       a: { ...FRAC, required: true },
@@ -129,6 +135,7 @@ export const VISUALS = {
       common: { type: 'int', min: 1, max: 64, phase: 'answer' },
       left: { ...FRAC, phase: 'answer' },
       right: { ...FRAC, phase: 'answer' },
+      hold: { type: 'bool' },
     },
   },
   // A fraction of a quantity, which is the ratio bar in fraction notation.

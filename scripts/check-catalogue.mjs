@@ -2,6 +2,11 @@
  * Validate the catalogue's structure: the learning graph, and the rules that
  * govern where a strategy level may sit.
  *
+ * Most of what follows is law -- a catalogue that breaks it is broken. A
+ * couple of rules are guidance instead, and those may be broken by a skill
+ * that declares its reason; they are reported on success rather than
+ * enforced, so the exception is visible in the deploy log.
+ *
  * Complements scripts/check-library.py, which validates the problems
  * themselves. This one checks the shape of the catalogue around them, and
  * deliberately loads only what the browser loads -- if this passes but the app
@@ -22,6 +27,10 @@ const { SKILLS, CATEGORIES, SUBJECTS, validateGraph, lockedBy, skillCompleted } 
   await import(join(ROOT, 'web/engine/registry.js'));
 
 const fail = [];
+// Rules that are guidance rather than law: a skill may break one, but it has
+// to say so in the catalogue rather than in someone's memory. Reported on
+// success so a deliberate exception stays visible instead of going quiet.
+const note = [];
 
 for (const p of validateGraph()) fail.push(`graph: ${JSON.stringify(p)}`);
 
@@ -51,13 +60,28 @@ for (const c of CATEGORIES) {
     fail.push(`category "${c.id}": subject "${c.subject}" is not declared, so its skills would not appear on the map`);
   }
 }
-// A skill long enough to be two skills is a sign the split was not made.
-// Split it by depth rather than by size: the foundational levels stay, the
-// harder ones become a skill that depends on them. A student then finishes
-// something, rather than grinding down a list that never ends.
+// A skill long enough to be two skills is usually a sign the split was not
+// made. Split it by depth rather than by size: the foundational levels stay,
+// the harder ones become a skill that depends on them. A student then
+// finishes something, rather than grinding down a list that never ends.
+//
+// Eight is a guide, though, not a law. Some skills have a genuine reason to
+// run longer -- an idea taught twice, once with a scaffold and once without,
+// is two levels that only make sense side by side, and splitting the skill
+// to obey a number would put them in different places on the map for nothing.
+// So a longer skill is allowed, on the one condition that it says why:
+// `longerBecause` on the skill, in words, where the next person reads it.
+// A rule that can be broken silently is not guidance, it is decoration.
+const GUIDE_LEVELS = 8;
 for (const s of SKILLS) {
-  if (s.levels.length > 8) {
-    fail.push(`${s.id} has ${s.levels.length} levels; split it — foundations in one skill, the harder work in another that depends on it`);
+  if (s.levels.length <= GUIDE_LEVELS) continue;
+  const why = typeof s.longerBecause === 'string' ? s.longerBecause.trim() : '';
+  if (!why) {
+    fail.push(`${s.id} has ${s.levels.length} levels, past the guide of ${GUIDE_LEVELS}; `
+      + 'either split it — foundations in one skill, the harder work in another that '
+      + 'depends on it — or declare longerBecause: "<why this one earns the extra length>"');
+  } else {
+    note.push(`${s.id} runs to ${s.levels.length} levels, past the guide of ${GUIDE_LEVELS}: ${why}`);
   }
 }
 
@@ -154,3 +178,4 @@ if (fail.length) {
 console.log(`${SKILLS.length} skills, ${levels} levels (${strategy} strategy), `
   + `${filled}/${CATEGORIES.length} categories in ${subjectsUsed}/${SUBJECTS.length} subjects, `
   + `all reachable in ${gateInfo} — catalogue valid`);
+for (const n of note) console.log(`  by exception: ${n}`);
