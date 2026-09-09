@@ -80,7 +80,20 @@ function fingerprint() {
   return h.digest('hex');
 }
 
-const { SKILLS } = await import(join(ROOT, 'web/engine/registry.js'));
+const { SKILLS, validateGraph } = await import(join(ROOT, 'web/engine/registry.js'));
+
+// The catalogue's own rules come first, and a cycle in the dependency graph is
+// the one fault that makes everything downstream meaningless: there is no
+// order to lay the skills out in and no way for a student to open any of them.
+// Refuse here rather than write 52 MB of libraries for a catalogue that cannot
+// be rendered. The deploy gate checks this too, but a fault should be caught
+// by the tool that could have introduced it, not only by the one that ships.
+const graphProblems = validateGraph();
+if (graphProblems.length) {
+  console.error(`${graphProblems.length} problem(s) in the catalogue graph; nothing was built:`);
+  for (const p of graphProblems) console.error('  ' + p);
+  process.exit(1);
+}
 
 /**
  * Generators live outside web/ because they are not part of the application.

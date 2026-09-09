@@ -23,8 +23,8 @@ const stub = () => ({
 globalThis.document = { createElement: stub, createTextNode: (t) => ({ t }), activeElement: null };
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const { SKILLS, CATEGORIES, SUBJECTS, validateGraph, lockedBy, skillCompleted, mapOrder } =
-  await import(join(ROOT, 'web/engine/registry.js'));
+const { SKILLS, CATEGORIES, SUBJECTS, validateGraph, lockedBy, skillCompleted, mapOrder,
+  levelDependencies } = await import(join(ROOT, 'web/engine/registry.js'));
 
 const fail = [];
 // Rules that are guidance rather than law: a skill may break one, but it has
@@ -32,7 +32,9 @@ const fail = [];
 // success so a deliberate exception stays visible instead of going quiet.
 const note = [];
 
-for (const p of validateGraph()) fail.push(`graph: ${JSON.stringify(p)}`);
+// Plain, not JSON.stringify'd: these read as sentences that say how to fix
+// the fault, and quoting them turns the advice into escaped noise.
+for (const p of validateGraph()) fail.push(`graph: ${p}`);
 
 // Generation belongs to tools/generators. A skill that still carries it would
 // ship generation logic to students and invite a silent second source of
@@ -83,6 +85,54 @@ for (const s of SKILLS) {
   } else {
     note.push(`${s.id} runs to ${s.levels.length} levels, past the guide of ${GUIDE_LEVELS}: ${why}`);
   }
+}
+
+// The same acyclicity, one layer down: Levels, not Skills.
+//
+// This is derivable rather than independent. A Level may only depend on Skills
+// its parent Skill declares, so every fine edge lies over a coarse one, and a
+// coarse graph with no cycle cannot carry a fine one. It is checked anyway,
+// for two reasons. The argument leans entirely on that "may only depend on
+// declared skills" rule, and a derived guarantee is exactly the kind that
+// stops holding silently when the rule it rests on is relaxed. And the fine
+// graph has edges the coarse one does not: levels unlock in order, so each
+// level waits on the one before it, and nothing above checks those at all.
+//
+// Kahn's algorithm rather than the depth-first walk validateGraph uses.
+// Peeling every node off in dependency order proves the same property by a
+// different route, which is worth more here than running one method twice.
+let edgeInfo = '';
+{
+  const node = (skillId, i) => `${skillId}[${i}]`;
+  const out = new Map();
+  let edges = 0;
+  for (const s of SKILLS) {
+    s.levels.forEach((_, i) => {
+      const to = [];
+      if (i > 0) to.push(node(s.id, i - 1));      // levels unlock in order
+      for (const d of levelDependencies(s, i)) to.push(node(d.skill, d.level));
+      out.set(node(s.id, i), to);
+      edges += to.length;
+    });
+  }
+  const left = new Set(out.keys());
+  for (;;) {
+    // A level is ready when everything it waits on has already been peeled.
+    // An edge pointing outside the catalogue is a dangling reference, which
+    // validateGraph reports by name; it must not also read as a cycle here.
+    const ready = [...left].filter((n) =>
+      out.get(n).every((d) => !left.has(d)));
+    if (!ready.length) break;
+    for (const n of ready) left.delete(n);
+  }
+  if (left.size) {
+    // Peeling says which levels never came free, not which of them form the
+    // loop itself -- the rest are downstream of it. Worded so it does not
+    // claim otherwise; the loop is among the ones named.
+    fail.push(`${left.size} level(s) can never open, waiting directly or through others `
+      + `on a loop among them: ${[...left].slice(0, 8).join(', ')}${left.size > 8 ? ', …' : ''}`);
+  }
+  edgeInfo = `${edges} level edges acyclic`;
 }
 
 // The Map reads top to bottom, so it must never reach a skill before the
@@ -198,5 +248,5 @@ if (fail.length) {
 }
 console.log(`${SKILLS.length} skills, ${levels} levels (${strategy} strategy), `
   + `${filled}/${CATEGORIES.length} categories in ${subjectsUsed}/${SUBJECTS.length} subjects, `
-  + `all reachable in ${gateInfo} — catalogue valid`);
+  + `all reachable in ${gateInfo}, ${edgeInfo} — catalogue valid`);
 for (const n of note) console.log(`  by exception: ${n}`);

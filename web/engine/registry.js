@@ -296,13 +296,58 @@ export function validateGraph() {
     problems.push('no skill has zero dependencies, so nothing is open on day one');
   }
 
-  // No cycles: a skill must not, through any chain, depend on itself.
-  const seen = new Set();
+  // No cycles. A hard requirement, not a preference, and the one rule here
+  // that constrains how skills may be *shaped* rather than how they are
+  // written down.
+  //
+  // Three things walk these edges and all three need an acyclic graph. The
+  // Map lays skills out in dependency order, so a cycle is a set of skills
+  // with no honest place to draw any of them. The unlock gate opens a skill
+  // when what it builds on is finished, so a cycle is a set of skills each
+  // waiting on the others, which no student can ever open. And depthOf
+  // weights advanced work above the basics by measuring the chain beneath a
+  // skill, which a loop makes meaningless.
+  //
+  // The fix is never to delete whichever edge happened to close the loop --
+  // that edge is usually true, and deleting it leaves the catalogue lying
+  // about what rests on what. The fix is to split. A cycle says two skills
+  // each need the whole of the other, and that is almost always a sign that
+  // one of them is two skills: the part needed early becomes its own skill,
+  // and the rest depends on it. So a skill cannot grow past the point where
+  // something it contains is needed by something it needs. That is a
+  // mechanical ceiling on skill size, arrived at from a different direction
+  // than the eight-level guide, and it is a feature rather than an obstacle
+  // to route around.
+  //
+  // A proper three-colour walk: grey is on the current path, black is
+  // finished. Marking a node finished only once its own dependencies are
+  // explored is what keeps a cycle reachable by two routes from being
+  // skipped on the second.
+  const GREY = 1, BLACK = 2;
+  const mark = new Map();
+  const reported = new Set();
   const walk = (id, path) => {
-    if (path.includes(id)) { problems.push(`cycle: ${[...path, id].join(' -> ')}`); return; }
-    if (seen.has(id)) return;
-    seen.add(id);
+    if (mark.get(id) === BLACK) return;
+    if (mark.get(id) === GREY) {
+      const loop = [...path.slice(path.indexOf(id)), id];
+      // A skill depending on itself is reported above, precisely and by that
+      // name. Saying "split one of them" about a loop of one would be advice
+      // for a fault this is not.
+      if (loop.length < 3) return;
+      // One report per cycle however many routes reach it: the same loop
+      // named five times reads like five faults.
+      const key = [...new Set(loop)].sort().join(',');
+      if (!reported.has(key)) {
+        reported.add(key);
+        problems.push(`cycle: ${loop.join(' -> ')} — these skills each wait on the others, `
+          + 'so none can ever open and the map has nowhere to draw them. Split one of them: '
+          + 'the part needed earlier becomes its own skill, and the rest depends on it');
+      }
+      return;
+    }
+    mark.set(id, GREY);
     for (const dep of dependenciesOf(byId.get(id) ?? {})) walk(dep, [...path, id]);
+    mark.set(id, BLACK);
   };
   for (const s of SKILLS) walk(s.id, []);
 

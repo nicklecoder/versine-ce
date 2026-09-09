@@ -392,6 +392,36 @@ nothing is open on day one and the catalogue is unplayable. `check-catalogue`
 then drives the real gate from an empty account and fails if any Skill can
 never be reached.
 
+**The graph must be acyclic. This one is a requirement, not a guide.** Three
+separate things walk these edges and none of them means anything on a looped
+graph: the map lays skills out in dependency order, so a cycle is a set of
+skills with no honest place to draw any of them; the gate opens a skill when
+what it builds on is finished, so a cycle is a set of skills each waiting on
+the others, which nobody can ever open; and `depthOf` weights advanced work
+above the basics by measuring the chain beneath a skill, which a loop makes
+meaningless. `validateGraph()` reports a cycle by name, `check-catalogue.mjs`
+fails on it, and `build-library.mjs` refuses to write anything at all — a
+fault should be caught by the tool that could have introduced it, not only by
+the one that ships.
+
+`check-catalogue` checks the same property one layer down, over Levels rather
+than Skills, by peeling every level off in dependency order. That one is
+derivable — a level may only depend on skills its own skill declares, so every
+fine edge lies over a coarse one — but it is checked anyway, because a derived
+guarantee stops holding silently the moment the rule beneath it is relaxed,
+and because the fine graph carries edges the coarse one does not: levels
+unlock in order, so each waits on the one before it.
+
+The fix is **never** to delete whichever edge closed the loop. That edge is
+usually true, and deleting it leaves the catalogue lying about what rests on
+what. The fix is to split: a cycle says two skills each need the whole of the
+other, which is nearly always a sign that one of them is two skills. The part
+that is genuinely needed earlier becomes its own skill, and the rest depends
+on it. A skill therefore cannot grow past the point where something inside it
+is needed by something it needs — a mechanical ceiling on how large a skill
+can get, arrived at from a completely different direction than the eight-level
+guide, and one to work *with* rather than around.
+
 Since an edge now costs access, a connective edge is no longer free. Coordinates
 had one to Ratio — a gradient is a unit rate, which is true and worth saying —
 and it put reading a point off a grid behind eight skills. The edge went; the
