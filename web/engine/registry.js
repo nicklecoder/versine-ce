@@ -142,6 +142,58 @@ export const dependentsOf = (skillId) =>
   SKILLS.filter((s) => dependenciesOf(s).includes(skillId));
 
 /**
+ * The order the Map lays skills out in: nothing before what it builds on.
+ *
+ * Grouping alone got this wrong, and quietly. The Map walks subjects, then
+ * categories, then the skills in each -- which put Factors & Multiples, where
+ * lowest common multiple and greatest common factor are actually taught,
+ * *after* the eight fraction skills that stand on it, and Ratio & Rate after
+ * the Percents level that needs it. A student scrolling for the thing they
+ * are missing passed everything that needs it first and reasonably concluded
+ * it was not in the catalogue.
+ *
+ * So the walk is the same, with one rule added: a skill's dependencies are
+ * laid out before it, recursively, and then the category it interrupted
+ * carries on. Nothing is pushed back -- a skill only ever moves earlier, to
+ * the first point where something needs it -- so the curated order survives
+ * everywhere it was not actually wrong. In this catalogue two skills move.
+ *
+ * The cost is that a category is no longer guaranteed to be contiguous:
+ * pulling Ratio & Rate forward to sit before Percents splits Decimals &
+ * Percents into two runs. That is the right trade here, because the grid has
+ * no headings -- every card names its own subject and category, so a split
+ * category costs a student nothing, while a prerequisite filed after its
+ * dependents costs them the skill.
+ *
+ * @returns {Array<{skill: any, cat: any}>}
+ */
+export function mapOrder() {
+  const seed = SUBJECTS.flatMap((sub) =>
+    CATEGORIES.filter((c) => c.subject === sub.id).flatMap((cat) =>
+      SKILLS.filter((s) => s.category === cat.id).map((skill) => ({ skill, cat }))));
+  const byId = new Map(seed.map((e) => [e.skill.id, e]));
+
+  const out = [];
+  const placed = new Set();
+  const visit = (entry, trail) => {
+    // `trail` guards a cycle. validateGraph fails the build over one, so this
+    // cannot happen -- but a Map that hung would be a miserable way to find
+    // out, and a skill drawn in a slightly odd place is not.
+    if (placed.has(entry.skill.id) || trail.has(entry.skill.id)) return;
+    trail.add(entry.skill.id);
+    for (const id of dependenciesOf(entry.skill)) {
+      const dep = byId.get(id);
+      if (dep) visit(dep, trail);
+    }
+    trail.delete(entry.skill.id);
+    placed.add(entry.skill.id);
+    out.push(entry);
+  };
+  for (const entry of seed) visit(entry, new Set());
+  return out;
+}
+
+/**
  * How deep a skill sits in the graph: the longest chain of dependencies
  * beneath it. Foundational skills are 0. Used to weight advanced work more
  * heavily than the basics it rests on.

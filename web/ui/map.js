@@ -1,6 +1,6 @@
 import { api } from '../engine/api.js';
-import { SKILLS, CATEGORIES, SUBJECTS, subjectOf, getSkill, dependenciesOf, levelDependencies,
-  lockedBy, skillCompleted } from '../engine/registry.js';
+import { SKILLS, subjectOf, getSkill, dependenciesOf, levelDependencies,
+  lockedBy, skillCompleted, mapOrder } from '../engine/registry.js';
 import { MODES, MODE_ORDER, trialSettings, formatDuration } from '../engine/modes.js';
 import { computeRating, biggestGain, needsReview, staleDependencies }
   from '../engine/rating.js';
@@ -180,9 +180,11 @@ export function mapScreen() {
   // two cards and left a track empty. Grouping still keeps a subject's skills
   // together and its categories in order -- it just travels on the card
   // instead of above it.
-  const ordered = SUBJECTS.flatMap((sub) =>
-    CATEGORIES.filter((c) => c.subject === sub.id).flatMap((cat) =>
-      SKILLS.filter((s) => s.category === cat.id).map((skill) => ({ skill, cat }))));
+  //
+  // The order is the catalogue's, and it is a dependency order rather than a
+  // filing order: see mapOrder(). Reading down the grid never reaches a skill
+  // before the skills it builds on.
+  const ordered = mapOrder();
 
   return el('div.shell', {},
     topbar(),

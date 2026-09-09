@@ -63,7 +63,11 @@ export default {
   name: 'Factors & Multiples',
   category: 'factors',
   glyph: '2×3',
-  blurb: 'Taking numbers apart, and finding what two of them share.',
+  // Names both things outright, because they are what a student scanning
+  // the map is looking for. "Taking numbers apart, and finding what two of
+  // them share" was true, in voice, and matched nothing anybody searches
+  // for -- the skill read as absent from a catalogue it is the floor of.
+  blurb: 'Primes, greatest common factor, lowest common multiple — what fractions run on.',
   answerInput: 'int',
   dependsOn: ['int-muldiv'],
   levels: LEVELS,

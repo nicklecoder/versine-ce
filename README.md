@@ -298,6 +298,25 @@ The subject and category travel on the card rather than as headings above the
 grid: a heading per group forces a row break, and with two skills in a group
 every row would leave a track empty.
 
+**The grid is ordered by dependency, not by filing.** Walking subjects, then
+categories, then skills is how the catalogue is *filed*, and reading it out in
+that order put Factors & Multiples — where lowest common multiple and greatest
+common factor are taught — after all eight fraction skills that stand on it,
+and Ratio & Rate after the Percents level that needs it. A student scrolling
+for the thing they are missing passed everything that needs it first and could
+reasonably conclude it was not in the catalogue at all.
+
+`mapOrder()` in the registry walks the same filing order with one rule added:
+a skill's dependencies are laid out before it, recursively, and then the
+category it interrupted carries on. Nothing is ever pushed back — a skill only
+moves earlier, to the first point where something needs it — so the curated
+order survives everywhere it was not actually wrong. The cost is that a
+category may no longer be contiguous, which is affordable precisely because
+the grid has no headings: every card names its own subject and category, so a
+split category costs a student nothing while a prerequisite filed after its
+dependents costs them the skill. `check-catalogue.mjs` fails a map order that
+draws a skill before something it builds on.
+
 Categories and subjects with no skills yet are declared anyway. They cost a
 line, they say what the catalogue is for, and they stop the next skill being
 filed under whichever existing name is least wrong. Empty ones do not render.

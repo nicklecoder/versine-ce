@@ -23,7 +23,7 @@ const stub = () => ({
 globalThis.document = { createElement: stub, createTextNode: (t) => ({ t }), activeElement: null };
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const { SKILLS, CATEGORIES, SUBJECTS, validateGraph, lockedBy, skillCompleted } =
+const { SKILLS, CATEGORIES, SUBJECTS, validateGraph, lockedBy, skillCompleted, mapOrder } =
   await import(join(ROOT, 'web/engine/registry.js'));
 
 const fail = [];
@@ -82,6 +82,27 @@ for (const s of SKILLS) {
       + 'depends on it — or declare longerBecause: "<why this one earns the extra length>"');
   } else {
     note.push(`${s.id} runs to ${s.levels.length} levels, past the guide of ${GUIDE_LEVELS}: ${why}`);
+  }
+}
+
+// The Map reads top to bottom, so it must never reach a skill before the
+// skills it builds on. That is what mapOrder() is for, and it is checked
+// rather than trusted: the failure it prevents is silent -- Factors &
+// Multiples sat below every fraction skill that needs it for as long as the
+// grid was ordered by where things are filed, and nothing anywhere said so.
+{
+  const order = mapOrder();
+  if (order.length !== SKILLS.length) {
+    fail.push(`the map lays out ${order.length} skills but the catalogue holds ${SKILLS.length}`);
+  }
+  const at = new Map(order.map((e, i) => [e.skill.id, i]));
+  for (const { skill } of order) {
+    for (const dep of skill.dependsOn ?? []) {
+      if (!at.has(dep)) continue;             // an undeclared id is validateGraph's to report
+      if (at.get(dep) > at.get(skill.id)) {
+        fail.push(`the map draws ${skill.id} before ${dep}, which it builds on`);
+      }
+    }
   }
 }
 
