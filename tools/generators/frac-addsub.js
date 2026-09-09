@@ -96,6 +96,13 @@ const CROSSING = 5;
  * and "more" come apart. 3/8 against 1/3 is the shape -- eight is the biggest
  * number on screen and 3/8 is the bigger fraction, but 5/12 against 1/2 has
  * twelve on the losing side.
+ *
+ * The two buttons are offered in the order the question names them, and are
+ * deliberately not shuffled: the draw already puts the bigger fraction first
+ * half the time, so shuffling bought no unpredictability and cost the one
+ * thing that has to hold -- that the picture, the sentence and the buttons
+ * all say "this one or that one" in the same order. They did not, and a
+ * student reading the bars left to right was picking the wrong button.
  */
 function compare(rng) {
   const [d1, d2] = rng.pick(rng.chance(0.75) ? UNLIKE : NESTED);
@@ -114,7 +121,7 @@ function compare(rng) {
     answer: {
       type: 'choice',
       value: format(bigger),
-      options: rng.shuffle([a, b].map((f) => ({ id: format(f), label: format(f) }))),
+      options: [a, b].map((f) => ({ id: format(f), label: format(f) })),
     },
     visual: { kind: 'comparemodel', a, b, common, left, right },
     explain: `Rewrite both in ${nths(common)}: ${format(a)} is ${format(left)} and `
