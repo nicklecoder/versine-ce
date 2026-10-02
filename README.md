@@ -33,7 +33,7 @@ If a word appears here, it does not have a synonym anywhere else.
 | **Problem** | A single generated question. |
 | **Map** | The screen listing every Skill. |
 | **Student / Teacher** | The two roles. Teachers see the console. |
-| **depends_on** | A soft "builds on" link. Never a gate. |
+| **depends_on** | A "builds on" link between Skills. It is the gate: a Skill opens once everything it depends on is finished. |
 
 There is no *tier*. It was renamed to Level everywhere — including the database
 columns — precisely so that no one has to translate between what the code says
@@ -154,7 +154,7 @@ The repository needs a remote to pull from, and at least one commit:
 ```
 git add -A && git commit -m "Initial commit"
 git remote add origin <url>
-git push -u origin master
+git push -u origin main
 ```
 
 Until then the timer installs and runs happily, finds no remote, and leaves the
@@ -162,7 +162,7 @@ checkout alone.
 
 ## Backing up
 
-Everything — accounts, XP, unlocked tiers, every attempt ever answered — is in
+Everything — accounts, XP, unlocked levels, every attempt ever answered — is in
 the single file `data/progress.db`. It is gitignored, so it exists in exactly
 one place unless you copy it.
 
@@ -185,24 +185,33 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Two skills are built: **Integer Add & Subtract** and **Integer Multiply &
-Divide**, six tiers each.
+Twenty skills are built so far, from integer arithmetic through fractions,
+decimals, ratio, powers and roots to equations and inequalities.
 
 ```
 server/           FastAPI + SQLite. No ORM; the queries are the interesting part.
-  app.py          routes, auth gating, run recording
+  app.py          routes, auth gating, run recording, the adaptive clock
   db.py           schema and progress queries
   auth.py         PIN hashing, session tokens, lockout
 web/
   engine/         mode-agnostic game machinery
+    registry.js   the catalogue: skills, the learning graph, the gate, map order
     session.js    one run: serving, scoring, retry queue, end conditions
-    modes.js      Practice / Sprint / Survival / Mastery as policy objects
+    modes.js      Practice / Time Trial as policy objects
+    library.js    loads a level's library and deals from it
+    clock.js      the Time Trial clock, per student per level
+    rating.js     the student's Level, computed from present ability
+    lesson.js     worked-example lessons derived from each level's explanation
     scoring.js    points, XP, level curve
     rng.js        seeded RNG, so a run can be replayed from its seed
   math/answer.js  answer *types* — parsing, comparison, formatting
   ui/             screens and the shared visual widgets
     visuals.js    registry: skill names a visual kind, this dispatches it
   skills/         one module per skill  ← this is where new content goes
+  library/        the problem libraries students are actually served
+tools/generators/ build-time generators that write a library's first draft
+scripts/          deploy-gate checks, library build, auto-update
+contract/         the API contract suite any server must pass, over HTTP
 ```
 
 The engine knows nothing about any particular skill. A skill module is
@@ -628,8 +637,9 @@ That state never touches the Level. It drives two suggestions:
 - opening a skill whose **direct dependency** has gone stale offers a one-tap
   warm-up on that specific level.
 
-Both are prompts, never locks — `depends_on` is soft, so a student who wants
-to press on may. Targeting the warm-up at direct dependencies keeps the
+Both are prompts, never locks. Staleness never closes anything: a skill that
+has been finished stays finished, so everything that depends on it stays open
+and a student who wants to press on may. Targeting the warm-up at direct dependencies keeps the
 suggestion small and relevant, rather than blocking everything behind a chore
 list of everything that has aged.
 
@@ -650,9 +660,9 @@ the answer is being explained rather than merely shown.
      ↓      [bars re-divide, result fills] "Now the pieces match: 9/10."
 ```
 
-Because of that, every level has a lesson today — 36 of them, averaging three
-steps — with no per-level authoring. A skill can override with its own
-`lesson(problem, level)` when the derived version isn't good enough.
+Because of that, every level has a lesson today with no per-level authoring.
+A skill can override with its own `lesson(problem, level)` when the derived
+version isn't good enough.
 
 That also imposes a rule on the prose: **an explanation must end on its
 conclusion**, since the last sentence is the one the reveal lands on. Two
@@ -691,7 +701,7 @@ and the maths.
 | Mode | Shape |
 |---|---|
 | **Practice** | Untimed, unlimited, explanations on tap. Wrong answers just come back around. The place to learn something. |
-| **Time Trial** | Solve the target before the clock runs out and the next tier unlocks. Mistakes cost seconds, not lives. The place to prove it. |
+| **Time Trial** | Solve the target before the clock runs out and the next level unlocks. Mistakes cost seconds, not lives. The place to prove it. |
 
 Time Trial is the gate — there's no separate mastery test to sit. A wrong
 answer is never fatal in either mode: you get another go, and in a Trial the
@@ -715,7 +725,7 @@ That single rule is what the streak counts: consecutive days *finished*, not
 days merely touched. The day strip shows both — solid gold for a finished day,
 faded for a day practised without finishing.
 
-The skill's tier count travels with each submitted run, so the server knows
+The skill's level count travels with each submitted run, so the server knows
 which level is last without hardcoding anything per skill. Add a seventh level
 to a skill and it becomes the new finish line automatically.
 
@@ -978,7 +988,9 @@ fingerable.
 The answer field keeps focus for the whole run: buttons suppress mousedown so
 they can't steal it, clicking the card returns it, and any stray keystroke puts
 it back. `Enter` submits, `Enter` again skips the reveal, `?` explains, `Esc`
-quits. On the summary, `Enter` runs it again and `Esc` steps back.
+quits. On the summary, `Enter` or `Esc` steps back to the skill (`Enter` is
+ignored for the first 700ms, so the keystroke that answered the last problem
+cannot skip the score), and after a failed Time Trial `R` tries it again.
 
 ## Measuring ability
 
