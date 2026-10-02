@@ -46,6 +46,31 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Versine", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 
+# requiem: server/day-is-local
+# The browser names its IANA time zone on every request; every day the server
+# works out during that request is a day in that zone. A missing or unknown
+# name falls back to the server's own zone rather than failing the request.
+ZONE_HEADER = b"x-versine-time-zone"
+
+
+class DayZoneMiddleware:
+    def __init__(self, inner):
+        self.inner = inner
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.inner(scope, receive, send)
+        name = dict(scope["headers"]).get(ZONE_HEADER, b"").decode("latin-1")
+        token = db.DAY_ZONE.set(db.zone_named(name))
+        try:
+            await self.inner(scope, receive, send)
+        finally:
+            db.DAY_ZONE.reset(token)
+
+
+app.add_middleware(DayZoneMiddleware)
+
+
 # ── Auth plumbing ────────────────────────────────────────────────────────────
 def current_user(vs_session: str | None = Cookie(default=None)):
     with db.cursor() as conn:
@@ -457,7 +482,7 @@ def streak_from_days(days: list[str]) -> tuple[int, int]:
         run = run + 1 if (cur - prev).days == 1 else 1
         best = max(best, run)
 
-    today = date.today()
+    today = db.today()
     if (today - dates[-1]).days > 1:
         return 0, best
 
@@ -484,29 +509,30 @@ def activity(skill_id: str, user=Depends(current_user)):
             (user["id"], skill_id),
         ).fetchone()
         level_count = row["level_count"] if row else 0
+        cutoff = (db.today() - timedelta(days=27)).isoformat()
 
         recent = [dict(r) for r in conn.execute(
-            """SELECT date(at) day, COUNT(*) attempts, SUM(correct) correct
+            """SELECT local_day(at) day, COUNT(*) attempts, SUM(correct) correct
                FROM attempts
-               WHERE user_id = ? AND skill_id = ? AND at >= date('now', '-27 days')
+               WHERE user_id = ? AND skill_id = ? AND local_day(at) >= ?
                GROUP BY day ORDER BY day""",
-            (user["id"], skill_id),
+            (user["id"], skill_id, cutoff),
         )]
 
         completed = [r["day"] for r in conn.execute(
-            """SELECT DISTINCT date(ended_at) day FROM runs
+            """SELECT DISTINCT local_day(ended_at) day FROM runs
                WHERE user_id = ? AND skill_id = ? AND mode_id = 'trial'
                  AND passed = 1 AND ? > 0 AND level = ? - 1""",
             (user["id"], skill_id, level_count, level_count),
         )]
 
         practised = [r["day"] for r in conn.execute(
-            "SELECT DISTINCT date(at) day FROM attempts WHERE user_id = ? AND skill_id = ?",
+            "SELECT DISTINCT local_day(at) day FROM attempts WHERE user_id = ? AND skill_id = ?",
             (user["id"], skill_id),
         )]
 
         levels_cleared = [dict(r) for r in conn.execute(
-            """SELECT date(ended_at) day, MAX(level) level FROM runs
+            """SELECT local_day(ended_at) day, MAX(level) level FROM runs
                WHERE user_id = ? AND skill_id = ? AND passed = 1
                GROUP BY day ORDER BY day DESC LIMIT 5""",
             (user["id"], skill_id),
@@ -520,14 +546,13 @@ def activity(skill_id: str, user=Depends(current_user)):
     # come from different tables, and the strip should never contradict the
     # streak count sitting right above it.
     seen = {d["day"] for d in recent}
-    cutoff = (date.today() - timedelta(days=27)).isoformat()
     for day in sorted(done - seen):
         if day >= cutoff:
             recent.append({"day": day, "attempts": 0, "correct": 0, "completed": True})
     recent.sort(key=lambda d: d["day"])
 
     current, best = streak_from_days(completed)
-    today = date.today().isoformat()
+    today = db.today().isoformat()
     return {
         "days": recent,
         "currentStreak": current,
@@ -622,7 +647,7 @@ def level_stats(conn, user_id: int) -> list[dict]:
     # and then a long clean one could have their headline accuracy computed
     # from the bad half. The id is insertion order and settles it exactly.
     rows = conn.execute(
-        """SELECT skill_id, level, correct, ms, date(at) day
+        """SELECT skill_id, level, correct, ms, local_day(at) day
            FROM attempts WHERE user_id = ?
            ORDER BY at DESC, id DESC LIMIT 20000""",
         (user_id,),
@@ -718,7 +743,7 @@ def teacher_student(student_id: int, _=Depends(current_teacher)):
 
 
         daily = [dict(r) for r in conn.execute(
-            """SELECT date(at) day, COUNT(*) attempts, SUM(correct) correct
+            """SELECT local_day(at) day, COUNT(*) attempts, SUM(correct) correct
                FROM attempts WHERE user_id = ? AND at >= datetime('now', '-30 days')
                GROUP BY day ORDER BY day""",
             (student_id,),

@@ -1,9 +1,16 @@
 /** Thin wrapper over the JSON API. Cookies carry the session. */
 
+// requiem: server/day-is-local
+// Every request names the browser's time zone, so the server counts the
+// student's own calendar days rather than UTC ones.
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 async function request(method, path, body) {
+  const headers = { 'X-Versine-Time-Zone': TIME_ZONE };
+  if (body) headers['Content-Type'] = 'application/json';
   const res = await fetch(path, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
     credentials: 'same-origin',
   });

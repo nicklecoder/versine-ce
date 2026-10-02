@@ -752,6 +752,64 @@ def _():
     check(act["doneToday"], "finished, but not reported done")
 
 
+# requiem: server/day-is-local
+@test("an evening run counts on the student's own day, not the UTC one")
+def _():
+    from datetime import datetime, time, timezone
+    from zoneinfo import ZoneInfo
+
+    fresh({"alpha": ["one", "two"]})
+    user = make_user()
+    run(user, level=1, slug="two", levels=2, passed=True,
+        attempts=[api.AttemptIn(prompt="q", expected="a", correct=True, ms=1000)])
+
+    # Move that run to 19:30 tonight in Denver -- already tomorrow in UTC.
+    denver = ZoneInfo("America/Denver")
+    tonight = datetime.combine(datetime.now(denver).date(), time(19, 30), denver)
+    stamp = tonight.astimezone(timezone.utc).isoformat(timespec="seconds")
+    with db.cursor(commit=True) as conn:
+        conn.execute("UPDATE runs SET ended_at = ? WHERE user_id = ?", (stamp, user["id"]))
+        conn.execute("UPDATE attempts SET at = ? WHERE user_id = ?", (stamp, user["id"]))
+
+    local = tonight.date().isoformat()
+    token = db.DAY_ZONE.set(denver)
+    try:
+        act = api.activity(skill_id="alpha", user=user)
+        equal([d["day"] for d in act["days"]], [local], "the strip's day")
+        check(act["doneToday"], "cleared this evening, but not reported done today")
+        equal(act["currentStreak"], 1, "streak after clearing this evening")
+        with db.cursor() as conn:
+            equal(db.done_today(conn, user["id"]), {"alpha"}, "done_today this evening")
+    finally:
+        db.DAY_ZONE.reset(token)
+
+    token = db.DAY_ZONE.set(timezone.utc)
+    try:
+        utc_day = api.activity(skill_id="alpha", user=user)["days"][0]["day"]
+        check(utc_day != local, "the zone made no difference, so this check proves nothing")
+    finally:
+        db.DAY_ZONE.reset(token)
+
+
+# requiem: server/day-is-local
+@test("the browser's time zone header sets the day zone; a bad one is ignored")
+def _():
+    import asyncio
+
+    seen = []
+
+    async def inner(scope, receive, send):
+        seen.append(db.DAY_ZONE.get())
+
+    middleware = api.DayZoneMiddleware(inner)
+    for name in (b"America/Denver", b"Not/AZone", b""):
+        scope = {"type": "http", "headers": [(b"x-versine-time-zone", name)]}
+        asyncio.run(middleware(scope, None, None))
+    equal([str(z) if z else None for z in seen], ["America/Denver", None, None],
+          "zones seen by the endpoint")
+    equal(db.DAY_ZONE.get(), None, "day zone after the request")
+
+
 @test("a percentile of a small sample picks a real value, not an average")
 def _():
     fresh()

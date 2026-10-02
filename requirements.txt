@@ -1,3 +1,6 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
+# Time zones for server/day-is-local: zoneinfo needs a tz database and the
+# slim image need not ship one.
+tzdata==2026.4

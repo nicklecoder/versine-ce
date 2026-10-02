@@ -252,7 +252,9 @@ function streakCard(skillId) {
     for (let i = 27; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
+      // requiem: server/day-is-local -- the server keys days locally, so must this.
+      const key = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
+        String(d.getDate()).padStart(2, '0')].join('-');
       const hit = byDay.get(key);
       const accuracy = hit?.attempts ? hit.correct / hit.attempts : 0;
       const done = hit?.completed;

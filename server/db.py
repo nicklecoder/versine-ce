@@ -10,8 +10,10 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from contextvars import ContextVar
+from datetime import date, datetime, timezone, tzinfo
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DB_PATH = Path(os.environ.get("VERSINE_DB", "data/progress.db"))
 
@@ -114,11 +116,52 @@ def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+# ── Days ─────────────────────────────────────────────────────────────────────
+# requiem: server/day-is-local
+# Timestamps are stored in UTC, but a "day" is the student's own calendar day:
+# done for the day, streaks and the streak strip all count local days. The
+# browser names its time zone on every request (app.py sets it here); without
+# one -- the checks, a script -- the server's own zone stands in.
+#
+# Every day computed anywhere goes through local_day(), registered into SQL as
+# well, so a query and the Python around it can never disagree about the date.
+DAY_ZONE: ContextVar[tzinfo | None] = ContextVar("day_zone", default=None)
+
+
+def zone_named(name: str | None) -> tzinfo | None:
+    """The zone an IANA name refers to, or None if it is missing or unknown."""
+    if not name:
+        return None
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+
+
+def day_zone() -> tzinfo:
+    return DAY_ZONE.get() or datetime.now().astimezone().tzinfo
+
+
+def local_day(ts: str | None) -> str | None:
+    """The local calendar day ('YYYY-MM-DD') a stored UTC timestamp falls on."""
+    if ts is None:
+        return None
+    moment = datetime.fromisoformat(ts)
+    if moment.tzinfo is None:            # every row is written UTC by now()
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone(day_zone()).date().isoformat()
+
+
+def today() -> date:
+    return datetime.now(day_zone()).date()
+
+
 def connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.create_function("local_day", 1, local_day)
     return conn
 
 
@@ -240,8 +283,8 @@ def done_today(conn: sqlite3.Connection, user_id: int) -> set[str]:
              ON p.user_id = r.user_id AND p.skill_id = r.skill_id
            WHERE r.user_id = ? AND r.mode_id = 'trial' AND r.passed = 1
              AND p.level_count > 0 AND r.level = p.level_count - 1
-             AND date(r.ended_at) = date('now')""",
-        (user_id,),
+             AND local_day(r.ended_at) = ?""",
+        (user_id, today().isoformat()),
     )
     return {r["skill_id"] for r in rows}
 
