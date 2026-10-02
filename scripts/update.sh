@@ -118,8 +118,10 @@ libraries_valid() {
   # The catalogue's shape as well as its contents -- but only if node is here.
   # A server without a JavaScript runtime still gets the library check above,
   # which is the one that catches a broken problem reaching a student.
+  # check-imports goes first: every browser module parses and every import it
+  # makes resolves, the one fault that otherwise shows only as a blank page.
   if command -v node >/dev/null 2>&1; then
-    for check in check-catalogue.mjs check-reveal.mjs check-parser.mjs check-session.mjs; do
+    for check in check-imports.mjs check-catalogue.mjs check-reveal.mjs check-parser.mjs check-session.mjs; do
       [ -f "$ROOT/scripts/$check" ] || continue
       node "$ROOT/scripts/$check" 2>&1 | while IFS= read -r line; do log "  $line"; done
       [ "${PIPESTATUS[0]}" = "0" ] || return 1
