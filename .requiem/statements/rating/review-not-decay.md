@@ -2,7 +2,7 @@
 id: review-not-decay
 namespace: rating
 kind: design
-status: active
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-01T16:48:04.492898411Z

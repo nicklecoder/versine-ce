@@ -112,21 +112,22 @@ def raises(status, fn, *a, **kw):
     raise Failed(f"expected HTTP {status}, but the call succeeded")
 
 
-def catalogue(order: dict[str, list[str]]) -> None:
-    """Publish a level order, the way the library build does."""
+def catalogue(order: dict[str, list[str]], graph: dict | None = None) -> None:
+    """Publish a level order (and what builds on what), as the library build does."""
     with open(WORK / "library" / "manifest.json", "w", encoding="utf-8") as fh:
-        json.dump({"order": order}, fh)
+        json.dump({"order": order, "graph": graph or {}}, fh)
 
 
-def fresh(order: dict[str, list[str]] | None = None):
+def fresh(order: dict[str, list[str]] | None = None, graph: dict | None = None):
     """A brand-new database, and a catalogue to read it against."""
     path = WORK / "test.db"
     for suffix in ("", "-wal", "-shm"):
         Path(str(path) + suffix).unlink(missing_ok=True)
     db.DB_PATH = path
+    catalogue(order if order is not None else {}, graph)
     db.init_db()
-    catalogue(order if order is not None else {})
     auth._failures.clear()
+    db.DAY_ZONE.set(None)                          # review tests pin it to UTC
 
 
 def make_user(name="kid", pin="1234", role="student"):
@@ -859,6 +860,213 @@ def _():
     db.DB_PATH = Path("/nonexistent/nowhere/progress.db")
     raises(503, api.health)
     db.DB_PATH = WORK / "test.db"
+
+
+# ── Review ───────────────────────────────────────────────────────────────────
+# Review is about time passing, which a test cannot wait for. age() moves a
+# student's whole history into the past instead, so a test plays out a
+# timeline in order -- finish, age three days, pass something, age four --
+# and then reads the schedule as of now. Days are read in UTC here, so a
+# daylight-saving change can never move a day boundary under a test.
+
+REVIEW_ORDER = {"base": ["b1", "b2"], "next": ["n1", "n2"],
+                "other": ["o1", "o2"], "third": ["t1", "t2"]}
+# `next` builds on `base`, and its second level names `base` outright.
+REVIEW_GRAPH = {"base": {"dependsOn": [], "levels": {}},
+                "next": {"dependsOn": ["base"], "levels": {"n2": ["base"]}},
+                "other": {"dependsOn": [], "levels": {}},
+                "third": {"dependsOn": [], "levels": {}}}
+
+
+def review_world():
+    from datetime import timezone
+    fresh(REVIEW_ORDER, REVIEW_GRAPH)
+    db.DAY_ZONE.set(timezone.utc)
+    return make_user()
+
+
+def age(user, days):
+    """Move every timestamp of this student's `days` into the past."""
+    from datetime import datetime
+    with db.cursor(commit=True) as conn:
+        for table, col in (("runs", "ended_at"), ("attempts", "at"),
+                           ("review_clocks", "started_at")):
+            for r in conn.execute(f"SELECT rowid AS rid, {col} v FROM {table} WHERE user_id = ?",
+                                  (user["id"],)).fetchall():
+                moved = datetime.fromisoformat(r["v"]) - timedelta(days=days)
+                conn.execute(f"UPDATE {table} SET {col} = ? WHERE rowid = ?",
+                             (moved.isoformat(timespec="seconds"), r["rid"]))
+
+
+def finish(user, skill):
+    slugs = REVIEW_ORDER[skill]
+    for i, slug in enumerate(slugs):
+        run(user, skill=skill, level=i, slug=slug, levels=len(slugs), passed=True)
+
+
+def review(user, skill="base"):
+    return record(user, skill).get("review")
+
+
+def offered(user):
+    with db.cursor() as conn:
+        return db.get_progress(conn, user["id"])["reviewOffer"]
+
+
+def in_days(n):
+    return (db.today() + timedelta(days=n)).isoformat()
+
+
+# requiem: review/skill-review-schedule
+@test("finishing a skill starts its review clock, due in 7 days")
+def _():
+    user = review_world()
+    run(user, skill="next", level=0, slug="n1", levels=2, passed=True)
+    finish(user, "base")
+    equal(review(user), {"dueOn": in_days(7), "intervalDays": 7, "lastReviewedOn": None,
+                         "due": False, "overdueDays": 0, "tagged": False}, "base's review")
+    equal(review(user, "next"), None, "review of a skill not finished")
+    equal(offered(user), None, "offer with nothing due")
+
+
+# requiem: review/review-opens-the-day
+@test("a finished skill comes due after its interval, is tagged, and is offered")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 8)
+    r = review(user)
+    equal((r["due"], r["overdueDays"], r["tagged"]), (True, 1, True), "base, a day overdue")
+    equal(offered(user), "base", "the offer")
+
+
+# requiem: review/pass-restarts-review-clock
+@test("any last-level pass restarts the clock, but the interval grows once per interval")
+def _():
+    # Twenty days of passing the last level every day: never once due, and
+    # the interval steps up once (at 7 days), not twenty times.
+    user = review_world()
+    finish(user, "base")
+    for day in range(1, 21):
+        age(user, 1)
+        run(user, skill="base", level=1, slug="b2", levels=2, passed=True)
+        check(not review(user)["due"], f"due on day {day} of daily review")
+    r = review(user)
+    equal((r["intervalDays"], r["dueOn"], r["lastReviewedOn"]),
+          (14, in_days(14), in_days(0)), "after twenty days of daily review")
+
+
+@test("a review passed once the interval has run steps the interval up")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 9)
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=True)
+    r = review(user)
+    equal((r["due"], r["intervalDays"], r["dueOn"], r["tagged"]),
+          (False, 14, in_days(14), False), "after the first review")
+    equal(offered(user), None, "the offer after reviewing")
+
+
+# requiem: review/failed-review-leaves-due
+@test("a failed or quit review leaves the skill due and the interval as it was")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 10)
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=False, endReason="time")
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=False, endReason="quit")
+    r = review(user)
+    equal((r["due"], r["overdueDays"], r["intervalDays"]), (True, 3, 7), "after failing")
+
+
+# requiem: review/dependent-work-credit
+@test("a pass in a skill built on this one postpones its review")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 1)
+    run(user, skill="next", level=0, slug="n1", levels=2, passed=True)   # 0.25 x 7
+    equal(review(user)["dueOn"], in_days(6 + 1), "due after a skill-level credit")
+
+    user = review_world()
+    finish(user, "base")
+    age(user, 1)
+    run(user, skill="next", level=1, slug="n2", levels=2, passed=True)   # 0.5 x 7
+    equal(review(user)["dueOn"], in_days(6 + 3), "due after a level-precise credit")
+
+
+@test("dependent credit is capped at one interval, and only passed trials earn it")
+def _():
+    user = review_world()
+    finish(user, "base")
+    for _ in range(6):
+        age(user, 1)
+        run(user, skill="next", level=1, slug="n2", levels=2, passed=True)
+        run(user, skill="next", level=1, slug="n2", levels=2, passed=False)
+        run(user, skill="next", level=1, slug="n2", levels=2, mode="practice", passed=True)
+    # Six credited days of 3.5 would be 21 days; the cap is the interval, 7.
+    equal(review(user)["dueOn"], in_days(-6 + 7 + 7), "due after six days of credit")
+
+    user = review_world()
+    finish(user, "base")
+    age(user, 1)
+    run(user, skill="next", level=1, slug="n2", levels=2, passed=False)
+    run(user, skill="next", level=1, slug="n2", levels=2, mode="practice", passed=True)
+    run(user, skill="other", level=0, slug="o1", levels=2, passed=True)  # unrelated
+    equal(review(user)["dueOn"], in_days(6), "due after work that earns nothing")
+
+
+# requiem: review/review-tags-capped
+@test("at most two skills are tagged, most overdue first, and the most overdue is offered")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 2)
+    finish(user, "other")
+    age(user, 2)
+    finish(user, "third")
+    age(user, 10)
+    tags = {s: review(user, s)["tagged"] for s in ("base", "other", "third")}
+    equal(tags, {"base": True, "other": True, "third": False}, "tagged")
+    check(review(user, "third")["due"], "third is due, just not tagged")
+    equal(offered(user), "base", "the offer")
+
+
+# requiem: review/migrate-without-loss
+@test("a database from before review gets clocks from the deploy date, oldest finish first")
+def _():
+    user = review_world()
+    finish(user, "other")
+    age(user, 20)
+    finish(user, "base")
+    age(user, 5)
+    before = {s: record(user, s)["mastered"] for s in ("base", "other")}
+    with db.cursor(commit=True) as conn:              # as a pre-review database is
+        conn.execute("DROP TABLE review_clocks")
+    db.init_db()                                     # as the deploy does
+    equal((review(user, "other")["dueOn"], review(user, "base")["dueOn"]),
+          (in_days(7), in_days(8)), "first due dates, oldest finish first")
+    check(not any(review(user, s)["due"] for s in ("base", "other")), "nothing due on deploy")
+    db.init_db()
+    with db.cursor() as conn:
+        equal(conn.execute("SELECT COUNT(*) n FROM review_clocks").fetchone()["n"], 2,
+              "clocks after a second deploy")
+    equal({s: record(user, s)["mastered"] for s in ("base", "other")}, before, "mastered")
+
+
+# requiem: review/migrate-reads-slugs
+@test("finished is read from slugs against today's catalogue, not the integer list")
+def _():
+    user = review_world()
+    finish(user, "base")
+    with db.cursor(commit=True) as conn:              # a stale integer list
+        conn.execute("UPDATE skill_progress SET mastered = '[]' WHERE skill_id = 'base'")
+    check(review(user) is not None, "a skill finished by its slugs has a review")
+
+    # A level inserted into the skill means it is no longer finished.
+    catalogue({**REVIEW_ORDER, "base": ["b1", "bx", "b2"]}, REVIEW_GRAPH)
+    equal(review(user), None, "review after the skill grew a level")
 
 
 # ── Run them ─────────────────────────────────────────────────────────────────

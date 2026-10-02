@@ -41,7 +41,7 @@ if str(ROOT) not in sys.path:
 from contract import harness                                  # noqa: E402
 
 TEST_MODULES = ["basics", "runs", "clock", "activity", "leaderboard", "levels",
-                "teacher", "pin_accounts"]
+                "review", "teacher", "pin_accounts"]
 
 
 def load_edition(spec: str):

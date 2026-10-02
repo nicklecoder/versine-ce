@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 import auth
 import db
+import review
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 COOKIE = "vs_session"
@@ -435,6 +436,10 @@ def submit_run(body: RunIn, user=Depends(current_user)):
                 (level, next_slug, json.dumps(mastered), json.dumps(mastered_slugs),
                  user["id"], body.skill_id),
             )
+
+        # requiem: review/skill-review-schedule
+        # If that run finished the skill, its review clock starts now.
+        review.start_clocks(conn, user["id"])
 
         # Adapt the clock from what just happened, before reading progress back.
         next_clock = None

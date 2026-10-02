@@ -109,6 +109,15 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL
 );
+
+-- When each finished skill's review clock started. The only review state
+-- stored: due dates, intervals and tags are replayed from runs (review.py).
+CREATE TABLE IF NOT EXISTS review_clocks (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    skill_id   TEXT    NOT NULL,
+    started_at TEXT    NOT NULL,
+    PRIMARY KEY (user_id, skill_id)
+);
 """
 
 
@@ -196,9 +205,21 @@ LIBRARY_DIR = Path(os.environ.get("VERSINE_LIBRARY", Path(__file__).parent.paren
 
 def level_order() -> dict[str, list[str]]:
     """{skill_id: [slug, ...]} in catalogue order, or empty if unavailable."""
+    return _manifest().get("order", {})
+
+
+def library_graph() -> dict[str, dict]:
+    """{skill_id: {"dependsOn": [skill_id, ...], "levels": {slug: [skill_id, ...]}}}.
+
+    What builds on what, for review scheduling; empty if unavailable.
+    """
+    return _manifest().get("graph", {})
+
+
+def _manifest() -> dict:
     try:
         with open(LIBRARY_DIR / "manifest.json", encoding="utf-8") as fh:
-            return json.load(fh).get("order", {})
+            return json.load(fh)
     except (OSError, ValueError):
         return {}
 
@@ -241,6 +262,11 @@ def init_db() -> None:
             _backfill_slugs(conn, table)
         ensure_column(conn, "skill_progress", "mastered_slugs", "TEXT NOT NULL DEFAULT '[]'")
         _backfill_mastered(conn)
+
+        # Skills finished before review existed get a clock from today, after
+        # the slugs above are in place, since finished is read from them.
+        import review                                 # review imports db
+        review.start_clocks(conn)
 
 
 def _backfill_mastered(conn: sqlite3.Connection) -> None:
@@ -353,5 +379,12 @@ def get_progress(conn: sqlite3.Connection, user_id: int) -> dict:
              "doneToday": False, "best": {}},
         )["best"][r["mode_id"]] = r["points"]
 
+    # requiem: review/skill-review-schedule
+    # Every finished skill carries its review state; anything else, None.
+    import review                                     # review imports db
+    reviews = review.schedule(conn, user_id)
+    for skill_id, entry in skills.items():
+        entry["review"] = reviews[skill_id].public() if skill_id in reviews else None
+
     xp = conn.execute("SELECT xp FROM users WHERE id = ?", (user_id,)).fetchone()["xp"]
-    return {"xp": xp, "skills": skills}
+    return {"xp": xp, "skills": skills, "reviewOffer": review.offer(reviews)}

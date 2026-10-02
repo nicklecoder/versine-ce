@@ -6,14 +6,14 @@ from .harness import check, equal, has_keys, test
 
 REPLY_KEYS = {"newBest", "unlockedLevel", "points", "clockWas", "clockNext",
               "clockAtFloor", "progress"}
-SKILL_KEYS = {"level", "mastered", "solved", "levelCount", "doneToday", "best"}
+SKILL_KEYS = {"level", "mastered", "solved", "levelCount", "doneToday", "best", "review"}
 
 
 @test("a new student has no progress yet")
 def _():
     student = group().add_student()
     data = progress(student)
-    has_keys(data, {"xp", "skills", "levels", "clocks"}, "progress")
+    has_keys(data, {"xp", "skills", "levels", "clocks", "reviewOffer"}, "progress")
     check(isinstance(data["xp"], int), f"xp is an integer, got {data['xp']!r}")
     equal(data["skills"], {}, "skills")
     equal(data["levels"], [], "levels")

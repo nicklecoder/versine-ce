@@ -248,9 +248,26 @@ if (!existsSync(schemasPath) || readFileSync(schemasPath, 'utf8') !== schemasJso
 const order = {};
 for (const skill of SKILLS) order[skill.id] = skill.levels.map((l) => l.slug);
 
+// requiem: review/dependent-work-credit
+// And what builds on what, for review scheduling: a pass in a skill that
+// depends on a finished one postpones that one's review, by more when the
+// passed level names it with a level-precise edge. Levels are keyed by slug,
+// the identity the server reads progress by; a level-precise edge publishes
+// only the skill it names, which is all the server weighs.
+const graph = {};
+for (const skill of SKILLS) {
+  const levels = {};
+  for (const level of skill.levels) {
+    const named = [...new Set((level.dependsOn ?? []).map((d) => d.skill))].sort();
+    if (named.length) levels[level.slug] = named;
+  }
+  graph[skill.id] = { dependsOn: [...(skill.dependsOn ?? [])].sort(), levels };
+}
+
 const manifestJson = JSON.stringify({
   built: manifest.length,
   order,
+  graph,
   sources: fingerprint(),
   levels: manifest,
 }, null, 2) + '\n';

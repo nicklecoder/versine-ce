@@ -186,7 +186,296 @@
       "all-together"
     ]
   },
-  "sources": "8dd2d0435eefd67dcea55ff10f44accc0a9f1d302b925db3ebe0e4df74b32203",
+  "graph": {
+    "int-addsub": {
+      "dependsOn": [],
+      "levels": {}
+    },
+    "int-muldiv": {
+      "dependsOn": [
+        "int-addsub"
+      ],
+      "levels": {
+        "sign-rules": [
+          "int-addsub"
+        ],
+        "owing-and-falling": [
+          "int-addsub"
+        ],
+        "chains": [
+          "int-addsub"
+        ]
+      }
+    },
+    "factors": {
+      "dependsOn": [
+        "int-muldiv"
+      ],
+      "levels": {
+        "primes": [
+          "int-muldiv"
+        ],
+        "gcf-or-lcm": [
+          "int-muldiv"
+        ]
+      }
+    },
+    "frac-addsub": {
+      "dependsOn": [
+        "factors",
+        "int-addsub"
+      ],
+      "levels": {
+        "unlike-denominators": [
+          "factors"
+        ],
+        "which-is-bigger": [
+          "factors"
+        ],
+        "without-the-picture": [
+          "factors"
+        ],
+        "crossing-zero": [
+          "int-addsub"
+        ]
+      }
+    },
+    "frac-muldiv": {
+      "dependsOn": [
+        "frac-addsub"
+      ],
+      "levels": {}
+    },
+    "frac-mixed": {
+      "dependsOn": [
+        "frac-addsub",
+        "frac-muldiv"
+      ],
+      "levels": {
+        "working-with-them": [
+          "frac-muldiv"
+        ],
+        "which-form": [
+          "frac-muldiv"
+        ]
+      }
+    },
+    "frac-equiv": {
+      "dependsOn": [
+        "factors",
+        "frac-addsub"
+      ],
+      "levels": {
+        "all-the-way-down": [
+          "factors"
+        ],
+        "through-simplest-form": [
+          "factors"
+        ],
+        "straight-up-or-simplify": [
+          "factors"
+        ]
+      }
+    },
+    "frac-signed": {
+      "dependsOn": [
+        "frac-addsub",
+        "frac-muldiv",
+        "int-addsub",
+        "int-muldiv"
+      ],
+      "levels": {
+        "where-the-minus-lives": [
+          "int-muldiv"
+        ],
+        "adding-a-negative": [
+          "int-addsub"
+        ],
+        "subtracting-a-negative": [
+          "int-addsub"
+        ],
+        "one-negative": [
+          "int-muldiv"
+        ],
+        "two-negatives": [
+          "int-muldiv"
+        ],
+        "dividing-with-signs": [
+          "frac-muldiv"
+        ],
+        "what-sign-will-it-be": [
+          "int-muldiv"
+        ]
+      }
+    },
+    "ratio": {
+      "dependsOn": [
+        "factors",
+        "frac-equiv",
+        "frac-muldiv",
+        "int-muldiv"
+      ],
+      "levels": {
+        "equivalent-ratios": [
+          "frac-equiv"
+        ],
+        "simplest-form": [
+          "factors"
+        ],
+        "not-in-simplest-form": [
+          "frac-equiv"
+        ],
+        "part-and-whole": [
+          "frac-muldiv"
+        ],
+        "scale-or-find-one": [
+          "factors"
+        ]
+      }
+    },
+    "order-ops": {
+      "dependsOn": [
+        "int-addsub",
+        "int-muldiv"
+      ],
+      "levels": {}
+    },
+    "exponents": {
+      "dependsOn": [
+        "int-muldiv",
+        "order-ops"
+      ],
+      "levels": {
+        "which-form": [
+          "int-muldiv"
+        ]
+      }
+    },
+    "roots": {
+      "dependsOn": [
+        "exponents",
+        "int-muldiv"
+      ],
+      "levels": {
+        "cubes-and-cube-roots": [
+          "exponents"
+        ],
+        "which-form": [
+          "exponents"
+        ]
+      }
+    },
+    "coords": {
+      "dependsOn": [
+        "int-addsub"
+      ],
+      "levels": {}
+    },
+    "decimals": {
+      "dependsOn": [
+        "frac-equiv",
+        "int-muldiv"
+      ],
+      "levels": {
+        "dividing": [
+          "frac-equiv"
+        ],
+        "which-form": [
+          "frac-equiv"
+        ]
+      }
+    },
+    "rounding": {
+      "dependsOn": [
+        "decimals"
+      ],
+      "levels": {
+        "to-a-decimal-place": [
+          "decimals"
+        ],
+        "exact-or-close-enough": [
+          "decimals"
+        ]
+      }
+    },
+    "percents": {
+      "dependsOn": [
+        "decimals",
+        "frac-equiv",
+        "ratio"
+      ],
+      "levels": {
+        "by-what-percent": [
+          "ratio"
+        ],
+        "working-backwards": [
+          "ratio"
+        ]
+      }
+    },
+    "simplify": {
+      "dependsOn": [
+        "factors",
+        "int-muldiv",
+        "order-ops"
+      ],
+      "levels": {
+        "taking-a-factor-out": [
+          "factors"
+        ],
+        "which-form": [
+          "order-ops"
+        ]
+      }
+    },
+    "equations": {
+      "dependsOn": [
+        "int-muldiv",
+        "order-ops",
+        "simplify"
+      ],
+      "levels": {
+        "answers-below-zero": [
+          "int-muldiv"
+        ],
+        "which-step-first": [
+          "order-ops"
+        ]
+      }
+    },
+    "equations-both": {
+      "dependsOn": [
+        "equations",
+        "simplify"
+      ],
+      "levels": {
+        "which-side": [
+          "equations"
+        ]
+      }
+    },
+    "inequalities": {
+      "dependsOn": [
+        "equations",
+        "int-muldiv"
+      ],
+      "levels": {
+        "undo-by-adding": [
+          "equations"
+        ],
+        "undo-by-multiplying": [
+          "equations"
+        ],
+        "the-flip": [
+          "int-muldiv"
+        ],
+        "does-it-flip": [
+          "int-muldiv"
+        ]
+      }
+    }
+  },
+  "sources": "5c176bf77e54fee06f4b015fdd84ae17eddc63a9873dcf68bf796d269030bb01",
   "levels": [
     {
       "skill": "int-addsub",

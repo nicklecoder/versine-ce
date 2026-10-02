@@ -629,19 +629,36 @@ meaningless. So the gate adapts; the yardstick does not.
 Time still matters — it just asks a different question: *is this worth
 revisiting?* rather than *should this count for less?*
 
-A cleared level is `fresh`, `due` (14 days untouched) or `stale` (35 days).
-That state never touches the Level. It drives two suggestions:
+Review is per **skill**, and a review is the same thing that finishes a skill
+for the day: passing its last level in a Time Trial. A finished skill comes
+due 7 days after that, then 14, 30, 60 and 120. The server works it out by
+replaying what was played (`server/review.py`); the only thing it stores is
+when each skill's clock started.
 
-- the Map flags levels that have gone quiet, and notes that revisiting them
-  re-establishes where the student stands;
-- opening a skill whose **direct dependency** has gone stale offers a one-tap
-  warm-up on that specific level.
+- **Any pass restarts the clock**, due or not, so a student who replays
+  finished skills on their own is never nagged. The interval grows at most
+  once per interval, so replaying daily keeps a skill fresh without pushing
+  its next review months out.
+- **A failed or quit review changes nothing.** The skill stays due until it
+  is passed; a Trial failed on the clock is not evidence of forgetting.
+- **Work that builds on a skill counts towards it.** Each day with a passed
+  Time Trial in a skill that directly depends on this one postpones its
+  review by a quarter of the interval, or half when the level passed names
+  it outright -- capped at one interval, so it still gets a direct review.
+- **At most two cards say "needs review"**, most overdue first, so a week
+  away never greets anyone with a wall of them. The most overdue is also the
+  first card on the Map: one tap into its last level's Time Trial, or *Not
+  today*, which hides it until tomorrow.
+- Opening a level whose skill builds on one that is due offers that review
+  first.
 
-Both are prompts, never locks. Staleness never closes anything: a skill that
-has been finished stays finished, so everything that depends on it stays open
-and a student who wants to press on may. Targeting the warm-up at direct dependencies keeps the
-suggestion small and relevant, rather than blocking everything behind a chore
-list of everything that has aged.
+All of it is a prompt, never a lock, and none of it touches the Level.
+Finished stays finished, so everything that depends on a skill stays open
+and a student who wants to press on may.
+
+Skills finished before review existed got their clocks on the day it was
+deployed, a day apart, oldest first, so they come due one at a time rather
+than all at once.
 
 Full activity history is still recorded for the teacher console; it simply
 isn't what determines the Level.

@@ -757,15 +757,26 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 }
 .contrib__why { font-size: .74rem; color: var(--dim); }
 
-/* Review state — advisory only, never a penalty on the Level. */
-.stale-flag {
-  display: inline-block; margin-left: 8px;
-  font-family: var(--display); font-size: .58rem; font-weight: 600;
-  letter-spacing: .1em; text-transform: uppercase;
-  padding: 2px 7px; border-radius: 99px; border: 1px solid currentColor;
+/* Review — a finished skill due for another pass. Advisory only: it never
+   lowers the Level and never closes anything. Violet, the colour every
+   review prompt already used, so it reads as an invitation, not a warning. */
+.badge-review {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--violet);
+  border: 1px solid currentColor;
 }
-.stale-flag.is-due   { color: var(--gold); }
-.stale-flag.is-stale { color: var(--violet); }
+.review-offer { border-color: rgba(192,132,252,.4); background: rgba(192,132,252,.08); }
+.review-offer .eyebrow { color: var(--violet); }
+.review-offer__name { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
+.review-offer__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 
 /* Where a Time Trial clock came from. */
 .clock-note { font-size: .72rem; color: var(--dim); line-height: 1.45; }

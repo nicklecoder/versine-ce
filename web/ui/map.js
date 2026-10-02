@@ -2,8 +2,7 @@ import { api } from '../engine/api.js';
 import { SKILLS, subjectOf, getSkill, dependenciesOf, levelDependencies,
   lockedBy, skillCompleted, mapOrder } from '../engine/registry.js';
 import { MODES, MODE_ORDER, trialSettings, formatDuration } from '../engine/modes.js';
-import { computeRating, biggestGain, needsReview, staleDependencies }
-  from '../engine/rating.js';
+import { computeRating, biggestGain } from '../engine/rating.js';
 import { clockFor, clockExplanation } from '../engine/clock.js';
 import { soundEnabled, setSoundEnabled } from '../engine/audio.js';
 import { openWalkthrough } from './walkthrough.js';
@@ -131,12 +130,7 @@ function levelBreakdown() {
             ? 'var(--grow)' : share > 0.5 ? 'var(--gold)' : 'var(--hot)' },
         })),
       el('div.contrib__value', {}, `+${r.contribution.toFixed(2)}`),
-      el('div.contrib__why', {},
-        reason,
-        r.staleness !== 'fresh'
-          ? el('span', { class: `stale-flag is-${r.staleness}` },
-              r.staleness === 'stale' ? 'needs review' : 'due soon')
-          : null));
+      el('div.contrib__why', {}, reason));
   };
 
   const list = el('div.contribs');
@@ -152,19 +146,11 @@ function levelBreakdown() {
   paint();
 
   const best = biggestGain(result);
-  const rusty = needsReview(result);
   return el('div.card.stack--sm', {},
     el('div.between', {},
       el('div.eyebrow', {}, 'Why you are this level'),
       el('span.tiny.muted', {},
         'only your latest answers count — nothing drops just from time passing')),
-    rusty.length
-      ? el('div.banner.banner--violet', {},
-          el('span', {}, '↻'),
-          el('span', {},
-            `${rusty.length} level${rusty.length === 1 ? '' : 's'} not practised lately. `
-            + 'Revisiting re-establishes where you stand.'))
-      : null,
     list,
     worthShowing.length > SHOWN ? more : null,
     best && best.headroom > 0.15
@@ -172,6 +158,46 @@ function levelBreakdown() {
           `Biggest gain available: ${best.levelName} in ${best.skillName} `
           + `(+${best.headroom.toFixed(2)} if you nail it).`)
       : null);
+}
+
+// ── The review offer ─────────────────────────────────────────────────────────
+// requiem: review/offer-card-atop-map
+// The first card on the map when a review is due. "Not today" is remembered
+// per student, per device, until their next local day: a convenience, so
+// browser storage is enough, and losing it only means seeing the offer again.
+const notTodayKey = () => `versine.review.notToday.${state.me?.id}`;
+
+function localDay(d = new Date()) {
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0')].join('-');
+}
+
+function dismissedToday() {
+  try {
+    return localStorage.getItem(notTodayKey()) === localDay();
+  } catch {
+    return false;
+  }
+}
+
+function reviewOffer() {
+  const skill = getSkill(state.progress?.reviewOffer);
+  if (!skill || dismissedToday()) return null;
+  const last = skill.levels[skill.levels.length - 1];
+  const card = el('div.card.review-offer.stack--sm', {},
+    el('div.eyebrow', {}, '↻ Start with a review'),
+    el('div.review-offer__name', {}, `${skill.name} · ${last.name}`),
+    el('p.tiny.muted', {},
+      'One Time Trial. Passing it also finishes the skill for today.'),
+    el('div.review-offer__actions', {},
+      el('button.btn', { onclick: () => startReview(skill) }, 'Start'),
+      el('button.btn.btn--ghost', {
+        onclick: () => {
+          try { localStorage.setItem(notTodayKey(), localDay()); } catch { /* private mode */ }
+          card.remove();
+        },
+      }, 'Not today')));
+  return card;
 }
 
 export function mapScreen() {
@@ -188,6 +214,7 @@ export function mapScreen() {
 
   return el('div.shell', {},
     topbar(),
+    reviewOffer(),
     el('div.card.stack--sm', {}, el('div.eyebrow', {}, 'Progress'), levelBar()),
     el('div.eyebrow', {}, 'Skills'),
     el('div.grid.grid--skills', {}, ordered.map(({ skill, cat }) => skillTile(skill, cat))),
@@ -220,7 +247,12 @@ function skillTile(skill, cat) {
       el('div.tile__glyph', {}, locked ? '🔒' : skill.glyph),
       el('div.grow', {},
         el('div.tile__name', {}, skill.name,
-          isNew ? el('span.badge-new', { title: 'Not every level cleared yet' }, 'new') : null),
+          isNew ? el('span.badge-new', { title: 'Not every level cleared yet' }, 'new') : null,
+          // requiem: review/review-tags-capped -- the server tags at most two.
+          rec.review?.tagged
+            ? el('span.badge-review', { title: 'Pass its last level in a Time Trial to review it' },
+                'needs review')
+            : null),
         // Subject then category, so the broad territory is readable without a
         // heading -- headings would force a row break per group and leave the
         // grid full of gaps, which is what the one continuous grid avoids.
@@ -253,8 +285,7 @@ function streakCard(skillId) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
       // requiem: server/day-is-local -- the server keys days locally, so must this.
-      const key = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
-        String(d.getDate()).padStart(2, '0')].join('-');
+      const key = localDay(d);
       const hit = byDay.get(key);
       const accuracy = hit?.attempts ? hit.correct / hit.attempts : 0;
       const done = hit?.completed;
@@ -419,22 +450,27 @@ function buildsOn(skill) {
 }
 
 /**
- * If a skill this one builds on has gone quiet, offer a warm-up. A suggestion
- * with a one-tap route, never a lock: `depends_on` is soft, and a student who
- * wants to press on is allowed to.
+ * If a skill this one builds on is due for review, offer that review first. A
+ * suggestion with a one-tap route, never a lock: a student who wants to press
+ * on is allowed to.
+ *
+ * requiem: review/skill-tags-replace-level-flags
  */
 function warmUpPrompt(skill) {
-  const stale = staleDependencies(skill, currentRating());
-  if (!stale.length) return null;
-  const first = stale[0];
+  const due = dependenciesOf(skill).map(getSkill)
+    .filter((dep) => dep && recordFor(dep.id).review?.due);
+  if (!due.length) return null;
+  const dep = due[0];
   return el('div.banner.banner--violet', {},
     el('span', {}, '↻'),
     el('span.grow', {},
-      `${first.skillName} · ${first.levelName} hasn't been practised in `
-      + `${Math.round(first.daysSince)} days. A quick warm-up there will make this easier.`),
-    el('button.btn.btn--sm.btn--ghost', {
-      onclick: () => go({ name: 'mode', skillId: first.skillId, level: first.level }),
-    }, 'Warm up'));
+      `${dep.name} is due for review. Reviewing it first will make this easier.`),
+    el('button.btn.btn--sm.btn--ghost', { onclick: () => startReview(dep) }, 'Review'));
+}
+
+/** Straight into a finished skill's last level, against the clock. */
+function startReview(skill) {
+  go({ name: 'play', skillId: skill.id, level: skill.levels.length - 1, modeId: 'trial' });
 }
 
 /**

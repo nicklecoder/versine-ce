@@ -2,7 +2,7 @@
 id: level-staleness-vs-skill-review
 namespace: review
 kind: question
-status: proposed
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-02T00:33:04.076080254Z

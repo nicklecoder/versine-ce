@@ -25,8 +25,9 @@ import { trialSettings } from './modes.js';
  * most recent answers, so the Level falls only when a lower standard is
  * genuinely shown — and rises again the moment a better one is.
  *
- * Time still matters, but as a separate question: see `stalenessOf`, which
- * says whether a level is due for review rather than silently discounting it.
+ * Time still matters, but as a separate question, answered per skill by the
+ * server: when a finished skill is due for review (server/review.py). It
+ * changes what the app suggests, never what the Level is.
  */
 
 /** Tuning. Kept together and named so it can be argued with. */
@@ -38,10 +39,6 @@ export const RATING = {
   paceFloor: 1.40,      // this many times over the clock's budget scores nothing
   paceCeil: 0.60,       // this fraction of the budget is full marks
   speedShare: 0.40,     // how much of quality is speed; the rest is accuracy
-  // Review thresholds. These never touch the Level -- they only decide when
-  // a level is worth revisiting.
-  dueDays: 14,          // untouched this long: worth a warm-up
-  staleDays: 35,        // untouched this long: really should be refreshed
 };
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
@@ -66,26 +63,12 @@ export function qualityOf(accuracy, medianSeconds, allowedSeconds) {
 }
 
 /**
- * Is this level due for a refresh? Purely advisory -- it changes what the app
- * *suggests*, never what the Level *is*.
- * @returns {'fresh'|'due'|'stale'}
- */
-export function stalenessOf(daysSince) {
-  if (daysSince == null || daysSince >= RATING.staleDays) return 'stale';
-  return daysSince >= RATING.dueDays ? 'due' : 'fresh';
-}
-
-const daysBetween = (iso, now) =>
-  iso == null ? null : Math.max(0, (now - new Date(`${iso}T00:00:00Z`)) / 86400000);
-
-/**
  * @param {object[]} skills           the skill catalogue
  * @param {object} progress           /api/progress payload
  * @param {object[]} levelStats       per-level accuracy/pace, from the server
- * @param {Date} [now]
  * @returns {{level:number, rating:number, ceiling:number, rows:object[]}}
  */
-export function computeRating(skills, progress, levelStats = [], now = new Date()) {
+export function computeRating(skills, progress, levelStats = []) {
   const stats = new Map(levelStats.map((s) => [`${s.skillId}:${s.level}`, s]));
   const rows = [];
   let rating = 0;
@@ -106,7 +89,6 @@ export function computeRating(skills, progress, levelStats = [], now = new Date(
 
       const accuracy = stat?.accuracy ?? 0;
       const median = stat?.medianSeconds ?? null;
-      const days = daysBetween(stat?.lastSeen, now);
 
       const quality = qualityOf(accuracy, median, allowed);
       const contribution = weight * quality;
@@ -116,7 +98,7 @@ export function computeRating(skills, progress, levelStats = [], now = new Date(
         skillId: skill.id, skillName: skill.name, level: i, levelName: levelDef.name,
         weight, accuracy, medianSeconds: median, allowedSeconds: allowed,
         sampleSize: stat?.sampleSize ?? 0,
-        daysSince: days, staleness: stalenessOf(days), quality, contribution,
+        quality, contribution,
       });
     });
   }
@@ -125,27 +107,6 @@ export function computeRating(skills, progress, levelStats = [], now = new Date(
   // Everyone starts at Level 1. A beginner who has just cleared their first
   // level should not be greeted with "Level 0".
   return { level: Math.floor(rating) + 1, rating, ceiling, rows };
-}
-
-/**
- * Levels that have gone quiet and are worth revisiting, worst first.
- * @returns {object[]}
- */
-export function needsReview(result) {
-  return result.rows
-    .filter((r) => r.staleness !== 'fresh')
-    .sort((a, b) => (b.daysSince ?? 1e9) - (a.daysSince ?? 1e9));
-}
-
-/**
- * Direct dependencies of `skill` that have gone stale — the things worth
- * warming up before starting something that builds on them.
- * @param {object} skill
- * @param {{rows:object[]}} result
- */
-export function staleDependencies(skill, result) {
-  const deps = new Set(skill.dependsOn ?? []);
-  return result.rows.filter((r) => deps.has(r.skillId) && r.staleness === 'stale');
 }
 
 /** The single most effective thing they could do to move the number. */
