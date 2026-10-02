@@ -734,10 +734,13 @@ def teacher_student(student_id: int, _=Depends(current_teacher)):
             (student_id,),
         )]
 
+        # `id DESC` breaks ties for the same reason level_stats needs it:
+        # ended_at is stored to the second, so runs ending together would
+        # otherwise come back in whatever order sqlite likes.
         runs = [dict(r) for r in conn.execute(
             """SELECT skill_id, level, mode_id, points, solved, answered, accuracy,
                       passed, ended_at
-               FROM runs WHERE user_id = ? ORDER BY ended_at DESC LIMIT 20""",
+               FROM runs WHERE user_id = ? ORDER BY ended_at DESC, id DESC LIMIT 20""",
             (student_id,),
         )]
 

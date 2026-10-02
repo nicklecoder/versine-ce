@@ -106,6 +106,15 @@ libraries_valid() {
     [ "${PIPESTATUS[0]}" = "0" ] || return 1
   fi
 
+  # And the API the browser app relies on, spoken to over HTTP the way the
+  # browser speaks to it: real server processes on throwaway databases and
+  # spare ports, never the live one. Skips itself on the same terms.
+  local contract="$ROOT/scripts/check-contract.py"
+  if [ -f "$contract" ]; then
+    python3 "$contract" 2>&1 | while IFS= read -r line; do log "  $line"; done
+    [ "${PIPESTATUS[0]}" = "0" ] || return 1
+  fi
+
   # The catalogue's shape as well as its contents -- but only if node is here.
   # A server without a JavaScript runtime still gets the library check above,
   # which is the one that catches a broken problem reaching a student.
