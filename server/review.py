@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 
 import db
@@ -49,6 +49,9 @@ class Review:
     due: bool
     overdue_days: int
     tagged: bool = False
+    #: Every review since the clock started, as (day, days past due that day);
+    #: negative for a review done before it was due.
+    history: list[tuple[date, int]] = field(default_factory=list)
 
     def public(self) -> dict:
         return {
@@ -157,12 +160,65 @@ def offer(reviews: dict[str, Review]) -> str | None:
                default=None)
 
 
+# requiem: review/prompts-record-origin
+#: Where a run was started from, when it was started from a review prompt.
+#: Recorded so the teacher can see whether the offer is what gets reviews done.
+ORIGINS = ("review-offer", "review-warmup")
+HEALTH_DAYS = 30
+
+
+def health(conn: sqlite3.Connection, user_id: int) -> dict:
+    """How review is going for one student, for the teacher console.
+
+    requiem: review/measure-review-health
+
+    The measure that decides review/turn-on-decay: whether finished skills
+    get reviewed, and whether they are reviewed while due or only by chance.
+    Replayed like everything else here, so it covers the time before this
+    view existed as well as after.
+    """
+    reviews = schedule(conn, user_id)
+    today = db.today()
+    since = today - timedelta(days=HEALTH_DAYS)
+    recent = [(skill_id, day, overdue) for skill_id, r in reviews.items()
+              for day, overdue in r.history if day > since]
+    when_due = sorted(o for _, _, o in recent if o >= 0)
+
+    offer_runs = [dict(r) for r in conn.execute(
+        """SELECT origin, passed, ended_at FROM runs
+           WHERE user_id = ? AND origin IS NOT NULL""", (user_id,))]
+    offer_runs = [r for r in offer_runs
+                  if date.fromisoformat(db.local_day(r["ended_at"])) > since]
+
+    def started(origin):
+        return sum(r["origin"] == origin for r in offer_runs)
+
+    def passed(origin):
+        return sum(r["origin"] == origin and r["passed"] for r in offer_runs)
+
+    return {
+        "days": HEALTH_DAYS,
+        "finished": len(reviews),
+        "due": sum(r.due for r in reviews.values()),
+        "reviews": len(recent),
+        "reviewsWhenDue": len(when_due),
+        "medianOverdueDays": when_due[len(when_due) // 2] if when_due else None,
+        "offerStarted": started("review-offer"),
+        "offerPassed": passed("review-offer"),
+        "warmupStarted": started("review-warmup"),
+        "warmupPassed": passed("review-warmup"),
+        "skills": sorted(({"skillId": s, **r.public()} for s, r in reviews.items()),
+                         key=lambda x: (not x["due"], -x["overdueDays"], x["dueOn"], x["skillId"])),
+    }
+
+
 def _replay(skill_id: str, last_slug: str, start: date, passes, graph, today: date) -> Review:
     step = 0
     anchor = start           # the clock runs from here
     grown = start            # when the interval last stepped up
     credit = 0.0             # days of postponement earned since the anchor
     reviewed = None
+    history: list[tuple[date, int]] = []
 
     by_day: dict[date, list[tuple[str, str]]] = {}
     for s, slug, day in passes:
@@ -173,6 +229,8 @@ def _replay(skill_id: str, last_slug: str, start: date, passes, graph, today: da
         interval = INTERVALS[step]
         runs = by_day[day]
         if (skill_id, last_slug) in runs:
+            due_then = anchor + timedelta(days=interval + int(credit))
+            history.append((day, (day - due_then).days))
             # requiem: review/pass-restarts-review-clock
             if (day - grown).days >= interval:
                 step = min(step + 1, len(INTERVALS) - 1)
@@ -192,4 +250,4 @@ def _replay(skill_id: str, last_slug: str, start: date, passes, graph, today: da
     due_on = anchor + timedelta(days=interval + int(credit))
     overdue = (today - due_on).days
     return Review(due_on=due_on, interval=interval, last_reviewed=reviewed,
-                  due=overdue >= 0, overdue_days=max(overdue, 0))
+                  due=overdue >= 0, overdue_days=max(overdue, 0), history=history)

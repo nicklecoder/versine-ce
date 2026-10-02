@@ -2,6 +2,7 @@ import { api } from '../engine/api.js';
 import { SKILLS, getSkill } from '../engine/registry.js';
 import { trialSettings } from '../engine/modes.js';
 import { computeRating } from '../engine/rating.js';
+import { daysUntil } from '../engine/days.js';
 import { el, mount } from './dom.js';
 import { ICONS, ACCENTS } from './icons.js';
 import { state, go } from './router.js';
@@ -69,6 +70,10 @@ export function teacherScreen() {
         String(s.attempts),
         String(s.attemptsThisWeek),
         s.avgSeconds ? `${s.avgSeconds.toFixed(1)}s` : '—',
+        s.reviewsDue
+          ? el('span', { style: { color: 'var(--violet)' } }, String(s.reviewsDue))
+          : '0',
+        String(s.reviews30d),
         el('span.tiny.muted', {}, s.lastActive?.slice(0, 10) ?? 'never'),
         deleteButton(s),
       ],
@@ -76,7 +81,8 @@ export function teacherScreen() {
 
     mount(body,
       students.length
-        ? table(['Student', 'Accuracy', '#Answered', '#This week', '#Avg time', 'Last active', ''], rows)
+        ? table(['Student', 'Accuracy', '#Answered', '#This week', '#Avg time',
+                 '#Reviews due', '#Reviews, 30 days', 'Last active', ''], rows)
         : el('div.card', {},
             el('p.muted.center', {},
               'No students yet. They sign themselves up from the “New profile” '
@@ -161,12 +167,61 @@ export function studentScreen(id) {
   api.teacherStudent(id).then((d) => {
     mount(body,
       studentHeader(d.student, levelLine(d)),
+      reviewCard(d.reviewHealth),
       paceCard(d.levels, d.clocks),
       activityCard(d.daily),
       runsCard(d.runs));
   }).catch((e) => mount(body, el('p.feedback.is-wrong', {}, e.message)));
 
   return el('div.shell.shell--wide', {}, header(), body);
+}
+
+/**
+ * Whether finished skills are getting reviewed, and whether the prompts are
+ * what does it. This is the measure that decides review/turn-on-decay: a
+ * student who reviews only by chance, or never while a skill is due, is the
+ * case decay was meant for.
+ *
+ * requiem: review/measure-review-health
+ */
+function reviewCard(h) {
+  if (!h?.finished) {
+    return el('div.card.stack--sm', {},
+      el('div.eyebrow', {}, 'Review'),
+      el('p.tiny.muted', {}, 'No finished skills yet, so nothing to review.'));
+  }
+  const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  const prompt = (started, passed) => (started ? `${started} started, ${passed} passed` : 'not used');
+  const facts = [
+    ['Finished', `${h.finished} · ${h.due} due`],
+    [`Reviews, ${h.days} days`, h.reviews
+      ? `${h.reviews} · ${h.reviewsWhenDue} while due`
+        + (h.medianOverdueDays != null
+          ? ` · median ${plural(h.medianOverdueDays, 'day')} overdue` : '')
+      : 'none'],
+    ['Start-of-day offer', prompt(h.offerStarted, h.offerPassed)],
+    ['Warm-up prompt', prompt(h.warmupStarted, h.warmupPassed)],
+  ];
+  const rows = h.skills.map((r) => {
+    const until = daysUntil(r.dueOn);
+    return {
+      cells: [
+        skillName(r.skillId),
+        r.due
+          ? el('span', { style: { color: 'var(--violet)' } },
+              r.overdueDays ? `due, ${plural(r.overdueDays, 'day')} overdue` : 'due today')
+          : el('span.tiny.muted', {}, until === 1 ? 'tomorrow' : `in ${until} days`),
+        `${r.intervalDays} days`,
+        el('span.tiny.muted', {}, r.lastReviewedOn ?? 'not yet'),
+      ],
+    };
+  });
+  return el('div.stack--sm', {},
+    el('div.card.stack--sm', {},
+      el('div.eyebrow', {}, 'Review'),
+      el('div.facts', {}, facts.map(([k, v]) =>
+        el('div.fact', {}, el('div.stat__label', {}, k), el('div.fact__value', {}, v))))),
+    table(['Finished skill', 'Next review', 'Interval', 'Last reviewed'], rows));
 }
 
 /** Their Level, recomputed the same way the student sees it. */

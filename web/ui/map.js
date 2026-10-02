@@ -4,6 +4,7 @@ import { SKILLS, subjectOf, getSkill, dependenciesOf, levelDependencies,
 import { MODES, MODE_ORDER, trialSettings, formatDuration } from '../engine/modes.js';
 import { computeRating, biggestGain } from '../engine/rating.js';
 import { clockFor, clockExplanation } from '../engine/clock.js';
+import { localDay } from '../engine/days.js';
 import { soundEnabled, setSoundEnabled } from '../engine/audio.js';
 import { openWalkthrough } from './walkthrough.js';
 import { el, mount } from './dom.js';
@@ -167,11 +168,6 @@ function levelBreakdown() {
 // browser storage is enough, and losing it only means seeing the offer again.
 const notTodayKey = () => `versine.review.notToday.${state.me?.id}`;
 
-function localDay(d = new Date()) {
-  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
-    String(d.getDate()).padStart(2, '0')].join('-');
-}
-
 function dismissedToday() {
   try {
     return localStorage.getItem(notTodayKey()) === localDay();
@@ -190,7 +186,7 @@ function reviewOffer() {
     el('p.tiny.muted', {},
       'One Time Trial. Passing it also finishes the skill for today.'),
     el('div.review-offer__actions', {},
-      el('button.btn', { onclick: () => startReview(skill) }, 'Start'),
+      el('button.btn', { onclick: () => startReview(skill, 'review-offer') }, 'Start'),
       el('button.btn.btn--ghost', {
         onclick: () => {
           try { localStorage.setItem(notTodayKey(), localDay()); } catch { /* private mode */ }
@@ -465,12 +461,16 @@ function warmUpPrompt(skill) {
     el('span', {}, '↻'),
     el('span.grow', {},
       `${dep.name} is due for review. Reviewing it first will make this easier.`),
-    el('button.btn.btn--sm.btn--ghost', { onclick: () => startReview(dep) }, 'Review'));
+    el('button.btn.btn--sm.btn--ghost', { onclick: () => startReview(dep, 'review-warmup') }, 'Review'));
 }
 
-/** Straight into a finished skill's last level, against the clock. */
-function startReview(skill) {
-  go({ name: 'play', skillId: skill.id, level: skill.levels.length - 1, modeId: 'trial' });
+/**
+ * Straight into a finished skill's last level, against the clock. `origin`
+ * says which prompt it came from, so the teacher can see whether the prompts
+ * are what get reviews done (review/measure-review-health).
+ */
+function startReview(skill, origin) {
+  go({ name: 'play', skillId: skill.id, level: skill.levels.length - 1, modeId: 'trial', origin });
 }
 
 /**

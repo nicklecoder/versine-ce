@@ -179,6 +179,10 @@ class RunIn(BaseModel):
     mode_id: str
     summary: SummaryIn
     attempts: list[AttemptIn] = []
+    # Where the run was started from, if from a review prompt (review.ORIGINS).
+    # Anything else is stored as nothing rather than refused: it is a measure,
+    # and an older or newer client must never lose a run over it.
+    origin: str | None = None
 
 
 # ── Session / identity ───────────────────────────────────────────────────────
@@ -351,11 +355,12 @@ def submit_run(body: RunIn, user=Depends(current_user)):
         cur = conn.execute(
             """INSERT INTO runs (user_id, skill_id, level, level_slug, mode_id, points, solved,
                                  answered, misses, accuracy, best_streak, avg_seconds,
-                                 passed, end_reason, ended_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                 passed, end_reason, ended_at, origin)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (user["id"], body.skill_id, body.level, slug, body.mode_id, points, s.solved,
              s.answered, s.misses, s.accuracy, s.bestStreak, s.avgSeconds,
-             int(s.passed), s.endReason, db.now()),
+             int(s.passed), s.endReason, db.now(),
+             body.origin if body.origin in review.ORIGINS else None),
         )
         run_id = cur.lastrowid
 
@@ -604,7 +609,10 @@ def teacher_overview(_=Depends(current_teacher)):
                 (st["id"],),
             ).fetchone()["c"]
             info = public_user(st)
+            health = review.health(conn, st["id"])
             info |= {
+                "reviewsDue": health["due"],
+                "reviews30d": health["reviews"],
                 "attempts": totals["attempts"] or 0,
                 "correct": totals["correct"] or 0,
                 "accuracy": (totals["correct"] or 0) / (totals["attempts"] or 1),
@@ -760,10 +768,11 @@ def teacher_student(student_id: int, _=Depends(current_teacher)):
         progress = db.get_progress(conn, student_id)
         levels = level_stats(conn, student_id)
         clocks = db.get_clocks(conn, student_id)
+        review_health = review.health(conn, student_id)
 
     return {"student": public_user(user), "bySkill": by_skill, "runs": runs,
             "daily": daily, "progress": progress,
-            "levels": levels, "clocks": clocks}
+            "levels": levels, "clocks": clocks, "reviewHealth": review_health}
 
 
 @app.post("/api/teacher/users")

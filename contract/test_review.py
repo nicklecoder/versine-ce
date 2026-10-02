@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from .context import a_skill, group, progress, submit
+from .context import a_skill, group, progress, summary, submit
 from .harness import equal, has_keys, test
 
 REVIEW_KEYS = {"dueOn", "intervalDays", "lastReviewedOn", "due", "overdueDays", "tagged"}
@@ -61,3 +61,45 @@ def _():
     before = progress(student)["skills"][skill]["review"]
     reply = submit(student, skill, slugs, len(slugs) - 1, passed=True)
     equal(reply["progress"]["skills"][skill]["review"], before, "review in the run's reply")
+
+
+HEALTH_KEYS = {"days", "finished", "due", "reviews", "reviewsWhenDue", "medianOverdueDays",
+               "offerStarted", "offerPassed", "warmupStarted", "warmupPassed", "skills"}
+
+
+def detail(g, student):
+    return g.teacher.get(f"/api/teacher/students/{student.me['id']}").ok("student detail")
+
+
+# requiem: review/measure-review-health
+@test("a teacher sees each student's review health")
+def _():
+    g = group()
+    student = g.add_student()
+    skill, slugs = a_skill(student)
+    finish(student, skill, slugs)
+    h = detail(g, student)["reviewHealth"]
+    has_keys(h, HEALTH_KEYS, "review health")
+    equal((h["days"], h["finished"], h["due"], h["reviews"], h["reviewsWhenDue"],
+           h["medianOverdueDays"]), (30, 1, 0, 0, 0, None), "review health just after finishing")
+    equal([s["skillId"] for s in h["skills"]], [skill], "skills in review health")
+    row = g.teacher.get("/api/teacher/overview").ok("overview")[0]
+    equal((row["reviewsDue"], row["reviews30d"]), (0, 0), "overview review columns")
+
+
+# requiem: review/measure-review-health
+@test("a run says where it was started from; an unknown origin is ignored, never refused")
+def _():
+    g = group()
+    student = g.add_student()
+    skill, slugs = a_skill(student)
+    finish(student, skill, slugs)
+    last = len(slugs) - 1
+    for origin, passed in [("review-offer", True), ("review-warmup", False), ("from-mars", True)]:
+        body = {"skill_id": skill, "level": last, "level_slug": slugs[last],
+                "level_count": len(slugs), "mode_id": "trial", "origin": origin,
+                "summary": summary(passed=passed)}
+        student.post("/api/runs", body).ok(f"a run from {origin}")
+    h = detail(g, student)["reviewHealth"]
+    equal((h["offerStarted"], h["offerPassed"], h["warmupStarted"], h["warmupPassed"]),
+          (1, 1, 1, 0), "starts and passes by origin")

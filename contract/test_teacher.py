@@ -5,8 +5,9 @@ from .context import a_skill, answers, group, submit
 from .harness import check, equal, has_keys, test
 
 OVERVIEW_KEYS = {"id", "name", "role", "accent", "icon", "attempts", "correct", "accuracy",
-                 "avgSeconds", "lastActive", "attemptsThisWeek"}
-DETAIL_KEYS = {"student", "bySkill", "runs", "daily", "progress", "levels", "clocks"}
+                 "avgSeconds", "lastActive", "attemptsThisWeek", "reviewsDue", "reviews30d"}
+DETAIL_KEYS = {"student", "bySkill", "runs", "daily", "progress", "levels", "clocks",
+               "reviewHealth"}
 
 
 def overview(g):

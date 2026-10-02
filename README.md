@@ -663,6 +663,18 @@ Skills finished before review existed got their clocks on the day it was
 deployed, a day apart, oldest first, so they come due one at a time rather
 than all at once.
 
+Passing a finished skill's last level says what it bought on the summary
+screen — *Review done. The next one is in 14 days.* — so a review lands as a
+win rather than a chore paid off.
+
+The teacher console shows each student's **review health**: finished skills
+and how many are due, reviews in the last 30 days and how many were done
+while due (and how late), and how often the start-of-day offer and the
+warm-up were started and passed. A run started from either prompt records
+which. It is the measure for deciding whether ignoring a due review should
+ever cost points: the student who never reviews is the case that would be
+for.
+
 Full activity history is still recorded for the teacher console; it simply
 isn't what determines the Level.
 

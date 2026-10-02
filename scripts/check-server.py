@@ -73,6 +73,7 @@ sys.path.insert(0, str(ROOT / "server"))
 import app as api                                    # noqa: E402
 import auth                                          # noqa: E402
 import db                                            # noqa: E402
+import review as review_mod                          # noqa: E402
 from fastapi import HTTPException, Response          # noqa: E402
 
 
@@ -149,7 +150,8 @@ def run(user, skill="alpha", level=0, slug=None, mode="trial", levels=3, **kw):
     return api.submit_run(
         api.RunIn(skill_id=skill, level=level, level_slug=slug, mode_id=mode,
                   level_count=levels, duration=kw.pop("duration", 0),
-                  attempts=kw.pop("attempts", []), summary=summary(**kw)),
+                  attempts=kw.pop("attempts", []), origin=kw.pop("origin", None),
+                  summary=summary(**kw)),
         user=user)
 
 
@@ -1067,6 +1069,69 @@ def _():
     # A level inserted into the skill means it is no longer finished.
     catalogue({**REVIEW_ORDER, "base": ["b1", "bx", "b2"]}, REVIEW_GRAPH)
     equal(review(user), None, "review after the skill grew a level")
+
+
+def health(user):
+    with db.cursor() as conn:
+        return review_mod.health(conn, user["id"])
+
+
+# requiem: review/measure-review-health
+@test("review health counts the last 30 days of reviews, and how overdue they were")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 9)                                  # due at 7: two days overdue
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=True)
+    age(user, 3)                                  # next due in 14: early
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=True)
+    h = health(user)
+    equal((h["finished"], h["due"], h["reviews"], h["reviewsWhenDue"], h["medianOverdueDays"]),
+          (1, 0, 2, 1, 2), "finished, due, reviews, reviews when due, median overdue")
+    equal([s["skillId"] for s in h["skills"]], ["base"], "skills listed")
+
+    age(user, 40)                                 # both reviews now over 30 days ago
+    h = health(user)
+    equal((h["reviews"], h["reviewsWhenDue"], h["medianOverdueDays"], h["due"]),
+          (0, 0, None, 1), "a month and more later")
+
+
+@test("a review on the very day it falls due counts as done while due")
+def _():
+    user = review_world()
+    finish(user, "base")
+    age(user, 7)
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=True)
+    equal((health(user)["reviewsWhenDue"], health(user)["medianOverdueDays"]), (1, 0),
+          "reviews when due, median overdue")
+
+
+@test("runs started from a review prompt are counted, and an unknown origin is stored as nothing")
+def _():
+    user = review_world()
+    finish(user, "base")
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=True, origin="review-offer")
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=False, origin="review-offer")
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=False, origin="review-warmup")
+    run(user, skill="base", level=1, slug="b2", levels=2, passed=True, origin="nonsense")
+    h = health(user)
+    equal((h["offerStarted"], h["offerPassed"], h["warmupStarted"], h["warmupPassed"]),
+          (2, 1, 1, 0), "offer and warm-up starts and passes")
+    with db.cursor() as conn:
+        origins = [r["origin"] for r in conn.execute("SELECT origin FROM runs ORDER BY id")]
+    equal(origins[-1], None, "an unknown origin as stored")
+
+
+@test("the teacher overview carries each student's reviews due and done")
+def _():
+    user = review_world()
+    teacher = make_user("teach", role="teacher")
+    finish(user, "base")
+    age(user, 8)
+    row = next(r for r in api.teacher_overview(_=teacher) if r["id"] == user["id"])
+    equal((row["reviewsDue"], row["reviews30d"]), (1, 0), "overview review columns")
+    detail = api.teacher_student(student_id=user["id"], _=teacher)
+    equal(detail["reviewHealth"]["due"], 1, "detail review health")
 
 
 # ── Run them ─────────────────────────────────────────────────────────────────

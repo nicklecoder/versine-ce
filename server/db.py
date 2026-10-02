@@ -262,6 +262,7 @@ def init_db() -> None:
             _backfill_slugs(conn, table)
         ensure_column(conn, "skill_progress", "mastered_slugs", "TEXT NOT NULL DEFAULT '[]'")
         _backfill_mastered(conn)
+        ensure_column(conn, "runs", "origin", "TEXT")
 
         # Skills finished before review existed get a clock from today, after
         # the slugs above are in place, since finished is read from them.

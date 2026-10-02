@@ -777,6 +777,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .review-offer .eyebrow { color: var(--violet); }
 .review-offer__name { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
 .review-offer__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+/* The teacher's review summary: label over value, wrapping on a phone. */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px 18px; margin-top: 8px; }
+.fact__value { font-size: .9rem; margin-top: 2px; }
 
 /* Where a Time Trial clock came from. */
 .clock-note { font-size: .72rem; color: var(--dim); line-height: 1.45; }

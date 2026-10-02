@@ -2,6 +2,7 @@ import { api } from '../engine/api.js';
 import { SKILLS } from '../engine/registry.js';
 import { MODES, trialSettings } from '../engine/modes.js';
 import { clockFor } from '../engine/clock.js';
+import { daysUntil } from '../engine/days.js';
 import { play as sound } from '../engine/audio.js';
 import { openWalkthrough } from './walkthrough.js';
 import { Session } from '../engine/session.js';
@@ -332,6 +333,9 @@ export function playScreen(route) {
     teardown();
     if (mode.gate) sound(summary.passed ? 'pass' : 'fail');
     let outcome = null;
+    // The review as it stood before this run, so the summary can say whether
+    // the run was a review that was due, an early one, or the finish itself.
+    const reviewBefore = state.progress?.skills?.[skill.id]?.review ?? null;
     try {
       outcome = await api.submitRun({
         skill_id: skill.id, level: session.baseLevel, mode_id: mode.id,
@@ -342,6 +346,7 @@ export function playScreen(route) {
         duration: mode.duration ? trial.duration : 0,
         summary: { ...summary, endReason: summary.endReason },
         attempts: session.log,
+        origin: route.origin ?? null,
       });
       state.progress = outcome.progress;
     } catch {
@@ -349,7 +354,7 @@ export function playScreen(route) {
     }
     if (exitTo) { go(exitTo); return; }
     go({ name: 'summary', skillId: skill.id, level: session.baseLevel,
-         modeId: mode.id, summary, outcome });
+         modeId: mode.id, summary, outcome, reviewBefore });
   }
 
   /** What the keys do, phrased for whichever input this skill uses. */
@@ -462,6 +467,29 @@ export function playScreen(route) {
 }
 
 /** Post-run screen: what happened, and what it earned. */
+/**
+ * After passing a finished skill's last level against the clock: when the
+ * next review is. A review should land as a win, not a chore paid off
+ * (review/review-opens-the-day), so it says what the pass bought.
+ *
+ * requiem: review/skill-review-schedule
+ */
+function reviewBanner(skill, route) {
+  const { summary, outcome, reviewBefore } = route;
+  const after = outcome?.progress?.skills?.[skill.id]?.review;
+  const isLast = route.level === skill.levels.length - 1;
+  if (!MODES[route.modeId]?.gate || !summary.passed || !isLast || !after) return null;
+
+  const days = daysUntil(after.dueOn);
+  const when = days === 1 ? 'tomorrow' : `in ${days} days`;
+  const text = !reviewBefore
+    ? `Skill finished. Its first review is ${when}.`
+    : reviewBefore.due
+      ? `Review done. The next one is ${when}.`
+      : `Kept fresh. Next review ${when}.`;
+  return el('div.banner.banner--violet', {}, el('span', {}, '↻'), el('span', {}, text));
+}
+
 export function summaryScreen(route) {
   const { summary, outcome } = route;
   const skill = SKILLS.find((s) => s.id === route.skillId);
@@ -511,6 +539,8 @@ export function summaryScreen(route) {
           : `Clock stays at ${fmt(outcome.clockNext)} — that was about right.`)));
     }
   }
+  const reviewed = reviewBanner(skill, route);
+  if (reviewed) banners.push(reviewed);
   if (!outcome) {
     banners.push(el('div.banner.banner--violet', {}, '⚠ Not saved — server unreachable'));
   }
