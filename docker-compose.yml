@@ -1,7 +1,7 @@
 services:
   versine:
     build: .
-    container_name: versine
+    container_name: versine-ce
     restart: unless-stopped
     # Run as the host user so data/ stays writable from outside the container.
     user: "1000:1000"
@@ -10,7 +10,10 @@ services:
       # actually serving -- the thing you want to know when a kid says it broke.
       - VERSINE_VERSION=${VERSINE_VERSION:-dev}
     ports:
-      - "8000:8000"
+      # The host port is a per-machine setting: put VERSINE_PORT=<port> in .env
+      # (git-ignored) when 8000 is taken. scripts/update.sh reads the same file,
+      # so its health check follows.
+      - "${VERSINE_PORT:-8000}:8000"
     volumes:
       # Progress lives on the host, so rebuilds never touch it.
       - ./data:/app/data

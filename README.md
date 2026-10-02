@@ -53,11 +53,13 @@ laptops or phones with a browser — nothing to install on their devices.
 On the server (needs only Docker):
 
 ```bash
-git clone <your-repo> versine && cd versine
+git clone <your-repo> versine-ce && cd versine-ce
 docker compose up -d
 ```
 
-Then open `http://<server-ip>:8000` from any device on the LAN.
+Then open `http://<server-ip>:8000` from any device on the LAN. If 8000 is
+already taken on the server, put `VERSINE_PORT=<port>` in a `.env` file next to
+`docker-compose.yml` (it is git-ignored) and run `docker compose up -d` again.
 
 ## Accounts
 
@@ -138,12 +140,13 @@ genuine failure worth looking at in `systemctl status`.
 
 ### Knobs
 
-Set these in the unit file if the defaults do not suit:
+Set these in `.env` if the defaults do not suit (a value set in the unit
+file's environment takes precedence):
 
 | Variable | Default | |
 |---|---|---|
 | `VERSINE_BRANCH` | current branch | branch to track |
-| `VERSINE_PORT` | `8000` | where to health-check |
+| `VERSINE_PORT` | `8000` | host port to publish and health-check |
 | `VERSINE_HEALTH_TIMEOUT` | `90` | seconds to wait before rolling back |
 | `VERSINE_KEEP_BACKUPS` | `10` | pre-update backups to retain |
 

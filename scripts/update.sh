@@ -20,6 +20,18 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Per-machine settings live in .env, which docker compose reads for the port it
+# publishes. Read the VERSINE_* knobs from the same file so the health check
+# looks where the container actually listens. As with compose, a variable
+# already set in the environment wins over the file.
+if [ -f "$ROOT/.env" ]; then
+  while IFS='=' read -r key value || [ -n "$key" ]; do
+    case "$key" in VERSINE_*) ;; *) continue ;; esac
+    value="${value%$'\r'}"; value="${value%\"}"; value="${value#\"}"
+    [ -n "${!key+x}" ] || export "$key=$value"
+  done < "$ROOT/.env"
+fi
+
 BRANCH="${VERSINE_BRANCH:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo master)}"
 PORT="${VERSINE_PORT:-8000}"
 HEALTH="http://127.0.0.1:${PORT}/api/health"
