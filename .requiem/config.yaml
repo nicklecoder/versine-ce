@@ -1,0 +1,43 @@
+# requiem configuration — committed on purpose.
+#
+# The SQLite index is disposable, but embedding vectors in it cannot be
+# rebuilt by reparsing statement files; they have to be recomputed. Keeping
+# the model here, in git, is what makes "delete the index and rebuild" true
+# for vectors too: any clone can run "requiem reindex --embed" and arrive at
+# the same corpus.
+#
+# Where the model is served from differs per machine, so the endpoint goes in
+# config.local.yaml beside this file — gitignored, and overlaid on this one
+# field by field — or, once for every project on the machine, in the machine
+# config (~/.config/requiem/config.yaml on Linux, ~/Library/Application
+# Support/requiem/config.yaml on macOS). Any OpenAI-compatible /v1/embeddings endpoint works —
+# Ollama, LM Studio, llama.cpp, vLLM, LocalAI, or OpenAI. Uncomment:
+#
+# embedding:
+#   model: nomic-embed-text
+#
+# Uncomment to make the git hooks "requiem init" installed run
+# "reindex --embed" instead of a plain reindex, so a fresh clone rebuilds its
+# vectors without being asked. Off by default: hooks fire on ordinary git
+# operations, and this makes checkout wait on a network call with its output
+# silenced. config.local.yaml can override it either way.
+#
+# hooks:
+#   embed: true
+#
+# "requiem check --diff" reports which recorded decisions cover a patch. Set
+# the gate to make it fail instead of only reporting — and note what it fails
+# on: code labelled with a superseded or rejected decision, and statements
+# whose source range has drifted. Never on "this change touches decisions you
+# did not read", which requiem cannot know. Off, warn, or error.
+#
+# gate:
+#   diff: error
+#
+# Vectors from two models are never compared: cosine similarity across two
+# models is a plausible-looking number that means nothing. The index keeps a separate set of vectors per model, so changing "model"
+# above discards nothing: "requiem reindex --embed" fills the new model's set,
+# and switching back finds the old one intact.
+
+embedding:
+  model: qwen3-embedding:8b
