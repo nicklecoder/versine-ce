@@ -13,7 +13,7 @@ import json
 import traceback
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # ── Tests ────────────────────────────────────────────────────────────────────
@@ -58,6 +58,7 @@ class Reply:
     status: int
     body: Any
     content_type: str = ""
+    headers: dict = field(default_factory=dict)       # lower-cased names
 
     def ok(self, what: str) -> Any:
         """The body of a 200, or a failure naming what was being attempted."""
@@ -76,8 +77,9 @@ class Client:
         self._opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
-    def call(self, method: str, path: str, body: Any = None, zone: str | None = ...) -> Reply:
-        headers = {}
+    def call(self, method: str, path: str, body: Any = None, zone: str | None = ...,
+             headers: dict | None = None) -> Reply:
+        headers = dict(headers or {})
         zone = self.zone if zone is ... else zone
         if zone:
             headers["X-Versine-Time-Zone"] = zone
@@ -89,9 +91,9 @@ class Client:
                                          headers=headers, method=method)
         try:
             with self._opener.open(request, timeout=30) as res:
-                return _reply(res.status, res.read(), res.headers.get("Content-Type", ""))
+                return _reply(res.status, res.read(), res.headers)
         except urllib.error.HTTPError as err:
-            return _reply(err.code, err.read(), err.headers.get("Content-Type", ""))
+            return _reply(err.code, err.read(), err.headers)
 
     def get(self, path: str, **kw) -> Reply:
         return self.call("GET", path, **kw)
@@ -103,13 +105,15 @@ class Client:
         return self.call("DELETE", path, **kw)
 
 
-def _reply(status: int, raw: bytes, content_type: str) -> Reply:
+def _reply(status: int, raw: bytes, message) -> Reply:
+    headers = {k.lower(): v for k, v in message.items()}
+    content_type = headers.get("content-type", "")
     if "json" in content_type:
         try:
-            return Reply(status, json.loads(raw or b"null"), content_type)
+            return Reply(status, json.loads(raw or b"null"), content_type, headers)
         except ValueError:
             pass
-    return Reply(status, raw.decode("utf-8", "replace"), content_type)
+    return Reply(status, raw.decode("utf-8", "replace"), content_type, headers)
 
 
 # ── Running ──────────────────────────────────────────────────────────────────

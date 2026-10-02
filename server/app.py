@@ -797,9 +797,25 @@ def delete_user(user_id: int, teacher=Depends(current_teacher)):
 
 
 # ── Static app (must be mounted last so /api/* wins) ─────────────────────────
+# requiem: server/static-always-revalidated
+# Every file of the app is served "no-cache": the browser keeps its copy but
+# asks before using it, and the ETag makes an unchanged file a 304. Without a
+# Cache-Control header browsers guess how long to reuse a module, and after a
+# deploy one can run a fresh map.js against a stale rating.js -- an import
+# that no longer resolves, and a blank page.
+REVALIDATE = {"Cache-Control": "no-cache"}
+
+
+class RevalidatedFiles(StaticFiles):
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers.update(REVALIDATE)
+        return response
+
+
 @app.get("/")
 def index():
-    return FileResponse(WEB_DIR / "index.html")
+    return FileResponse(WEB_DIR / "index.html", headers=REVALIDATE)
 
 
-app.mount("/", StaticFiles(directory=WEB_DIR), name="web")
+app.mount("/", RevalidatedFiles(directory=WEB_DIR), name="web")

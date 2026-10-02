@@ -26,6 +26,24 @@ def _():
           "manifest order maps each skill to its list of level slugs")
 
 
+# requiem: server/static-always-revalidated
+@test("the app's files are revalidated on every load, cheaply")
+def _():
+    # Reused without asking, a stale module can meet a fresh one after a
+    # deploy and break an import -- a blank page. Asking costs a 304.
+    g = group()
+    browser = Client(g.url)
+    for path in ("/", "/app.js", "/ui/map.js", "/styles.css", "/library/manifest.json"):
+        reply = browser.get(path)
+        equal(reply.status, 200, f"GET {path}")
+        check("no-cache" in reply.headers.get("cache-control", ""),
+              f"{path} Cache-Control: {reply.headers.get('cache-control')!r}")
+    first = browser.get("/ui/map.js")
+    check("etag" in first.headers, "a module carries an ETag to revalidate against")
+    again = browser.get("/ui/map.js", headers={"If-None-Match": first.headers["etag"]})
+    equal(again.status, 304, "revalidating an unchanged module")
+
+
 @test("every student endpoint refuses a caller who is not signed in")
 def _():
     g = group()
