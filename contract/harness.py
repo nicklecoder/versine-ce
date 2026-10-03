@@ -21,6 +21,9 @@ from typing import Any, Callable
 #: edition may legitimately replace -- an edition declares which it serves.
 CORE = "core"
 PIN_ACCOUNTS = "pin-accounts"
+#: Rules that unfold over days, checked by asking the edition to move a
+#: student's history into the past (Edition.age).
+TIME_TRAVEL = "time-travel"
 
 TESTS: list[tuple[str, str, Callable]] = []
 

@@ -17,14 +17,16 @@ import itertools
 import os
 import shutil
 import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import time
 import urllib.request
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from ..harness import CORE, PIN_ACCOUNTS, Client
+from ..harness import CORE, PIN_ACCOUNTS, TIME_TRAVEL, Client
 
 ROOT = Path(__file__).resolve().parents[2]
 PIN = "1234"
@@ -107,7 +109,7 @@ class Group:
 
 class Edition:
     name = "the community edition"
-    suites = {CORE, PIN_ACCOUNTS}
+    suites = {CORE, PIN_ACCOUNTS, TIME_TRAVEL}
 
     # PIN-account details the pin-accounts suite needs to drive sign-up.
     pin = PIN
@@ -135,6 +137,32 @@ class Edition:
         self._top_up()
         server.wait()
         return server.url
+
+    # Every timestamp the server keeps for a student, as (table, column).
+    AGED = (("runs", "ended_at"), ("attempts", "at"), ("review_clocks", "started_at"),
+            ("contribution_bests", "achieved_at"))
+
+    def age(self, student: Client, days: int) -> None:
+        """Move every timestamp of this student `days` into the past.
+
+        The time-travel suite plays a timeline out in order -- finish a
+        skill, age a week, pass something -- and reads the result as of now.
+        Done in the server's own database, which is what only an edition's
+        adapter can reach.
+        """
+        server = next(s for s in self.servers if s.url == student.base_url)
+        conn = sqlite3.connect(server.work / "progress.db", timeout=10)
+        try:
+            for table, col in self.AGED:
+                rows = conn.execute(f"SELECT rowid, {col} FROM {table} WHERE user_id = ?",
+                                    (student.me["id"],)).fetchall()
+                for rowid, stamp in rows:
+                    moved = datetime.fromisoformat(stamp) - timedelta(days=days)
+                    conn.execute(f"UPDATE {table} SET {col} = ? WHERE rowid = ?",
+                                 (moved.isoformat(timespec="seconds"), rowid))
+            conn.commit()
+        finally:
+            conn.close()
 
     def new_group(self) -> Group:
         return Group(self.empty_server())

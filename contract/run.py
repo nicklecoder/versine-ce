@@ -24,7 +24,11 @@ defining `Edition` -- that knows how to get a fresh group and add students:
 
 An edition serving the "pin-accounts" suite also provides `empty_server()`
 returning the URL of a server nobody has set up, and the `pin`, `icon` and
-`accent` its sign-up accepts. See contract/editions/community.py.
+`accent` its sign-up accepts. One serving "time-travel" provides
+`age(student, days)`, moving every timestamp it keeps for that student `days`
+into the past, which lets rules that unfold over days -- review coming due,
+growing, credit from dependent work -- be checked without waiting. See
+contract/editions/community.py.
 """
 from __future__ import annotations
 
@@ -41,7 +45,7 @@ if str(ROOT) not in sys.path:
 from contract import harness                                  # noqa: E402
 
 TEST_MODULES = ["basics", "runs", "clock", "activity", "leaderboard", "levels",
-                "review", "teacher", "pin_accounts"]
+                "review", "review_timeline", "teacher", "pin_accounts"]
 
 
 def load_edition(spec: str):
