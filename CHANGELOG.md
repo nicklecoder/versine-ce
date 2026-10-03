@@ -11,6 +11,15 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
+## 1.1.0 — 2026-10-03
+
+**Extension points.** `web/extensions.json` lists optional browser modules, and ships
+empty: a home install loads nothing and behaves exactly as before. A server that
+implements the same API can serve its own list, and each module can replace the sign-in
+screen, add screens and top-bar links, and set a gate policy that decides which skills
+open. A module that fails to load is skipped, so the app still starts.
+`scripts/check-extensions.mjs` joins the deploy gate.
+
 ## 1.0.0 — 2026-10-03
 
 The first release: everything since the project began, as it stands.
