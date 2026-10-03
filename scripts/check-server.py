@@ -1134,6 +1134,34 @@ def _():
     equal(detail["reviewHealth"]["due"], 1, "detail review health")
 
 
+# ── Contribution bests ───────────────────────────────────────────────────────
+
+def report(user, **values):
+    return api.report_contributions(api.ContributionsIn(contributions=values), user=user)["bests"]
+
+
+# requiem: review/contribution-best-reported
+@test("a skill's best contribution is seeded by the first report and only ever rises")
+def _():
+    fresh({"alpha": ["one", "two"], "beta": ["b1"]})
+    user = make_user()
+    run(user, level=0, slug="one", levels=2, passed=True)
+    equal(record(user)["contributionBest"], None, "best before any report")
+    equal(report(user, alpha=2.5), {"alpha": 2.5}, "after the first report")
+    equal(report(user, alpha=1.0), {"alpha": 2.5}, "after a lower report")
+    equal(report(user, alpha=3.256), {"alpha": 3.26}, "after a higher one, to two places")
+    equal(record(user)["contributionBest"], 3.26, "best in progress")
+
+
+@test("a report for an unknown skill or a nonsense value is ignored, never refused")
+def _():
+    fresh({"alpha": ["one", "two"], "beta": ["b1"]})
+    user = make_user()
+    equal(report(user, nope=1.0, alpha=-1.0, beta=float("nan")), {}, "nothing kept")
+    equal(report(user, alpha=float("inf"), beta=51.0), {}, "past the ceiling")   # 50 per level
+    equal(report(user, beta=50.0), {"beta": 50.0}, "at the ceiling")
+
+
 # ── Run them ─────────────────────────────────────────────────────────────────
 for name, fn in TESTS:
     try:

@@ -2,7 +2,7 @@ import { api } from '../engine/api.js';
 import { SKILLS, subjectOf, getSkill, dependenciesOf, levelDependencies,
   lockedBy, skillCompleted, mapOrder } from '../engine/registry.js';
 import { MODES, MODE_ORDER, trialSettings, formatDuration } from '../engine/modes.js';
-import { computeRating, biggestGain } from '../engine/rating.js';
+import { computeRating, biggestGain, skillValues } from '../engine/rating.js';
 import { clockFor, clockExplanation } from '../engine/clock.js';
 import { localDay } from '../engine/days.js';
 import { soundEnabled, setSoundEnabled } from '../engine/audio.js';
@@ -207,13 +207,16 @@ export function mapScreen() {
   // filing order: see mapOrder(). Reading down the grid never reaches a skill
   // before the skills it builds on.
   const ordered = mapOrder();
+  const values = skillValues(SKILLS, currentRating());
+  recordBests(values);
 
   return el('div.shell', {},
     topbar(),
     reviewOffer(),
     el('div.card.stack--sm', {}, el('div.eyebrow', {}, 'Progress'), levelBar()),
     el('div.eyebrow', {}, 'Skills'),
-    el('div.grid.grid--skills', {}, ordered.map(({ skill, cat }) => skillTile(skill, cat))),
+    el('div.grid.grid--skills', {}, ordered.map(({ skill, cat }) =>
+      skillTile(skill, cat, values.get(skill.id)))),
     levelBreakdown(),
     el('p.tiny.muted.center', {},
       'Finish a skill\u2019s last level to open what depends on it.'));
@@ -226,7 +229,7 @@ export function mapScreen() {
  * that has merely been started. It is shown only on open skills: on a locked
  * one it would be noise, since the thing it invites cannot be done yet.
  */
-function skillTile(skill, cat) {
+function skillTile(skill, cat, value) {
   const rec = recordFor(skill.id);
   const blocking = lockedBy(skill.id, state.progress);
   const locked = blocking.length > 0;
@@ -263,7 +266,54 @@ function skillTile(skill, cat) {
     el('div.pips', {}, skill.levels.map((_, i) =>
       el('div', {
         class: `pip ${rec.mastered.includes(i) ? 'is-mastered' : i <= rec.level ? 'is-open' : ''}`,
-      }))));
+      }))),
+    worthLine(rec, value));
+}
+
+/**
+ * What the skill is worth to the Level, in Level units: "+7.4 of 10.2" once
+ * any level counts, "worth up to +10.2" before -- locked skills included, so
+ * the value of what lies ahead is visible. Not "points": that word means a
+ * run's score.
+ *
+ * requiem: review/card-shows-points
+ */
+function worthLine(rec, value) {
+  if (!value) return null;
+  const n = (x) => x.toFixed(1);
+  if (!rec.mastered.length) {
+    return el('div.tile__worth', {}, 'worth up to ', el('b', {}, `+${n(value.possible)}`), ' Level');
+  }
+  const best = rec.contributionBest;
+  return el('div.tile__worth', {},
+    'Level ', el('b', {}, `+${n(value.contribution)}`), ` of ${n(value.possible)}`,
+    best != null && best >= value.contribution + 0.05
+      ? el('span.tile__best', {}, ` · best +${n(best)}`) : null);
+}
+
+/**
+ * Report any skill now contributing more than its stored best, so the best
+ * is kept by the server. Fire and forget: nothing on screen waits for it,
+ * and a failed report is simply made again on the next visit to the map.
+ *
+ * requiem: review/contribution-best-reported
+ */
+function recordBests(values) {
+  if (state.me?.role === 'teacher' || !state.progress?.skills) return;
+  const better = {};
+  for (const [skillId, v] of values) {
+    const rec = state.progress.skills[skillId];
+    if (!rec || v.contribution <= 0) continue;
+    if (rec.contributionBest == null || v.contribution > rec.contributionBest + 0.005) {
+      better[skillId] = Math.round(v.contribution * 100) / 100;
+    }
+  }
+  if (!Object.keys(better).length) return;
+  api.reportContributions(better).then(({ bests }) => {
+    for (const [skillId, best] of Object.entries(bests)) {
+      if (state.progress.skills[skillId]) state.progress.skills[skillId].contributionBest = best;
+    }
+  }).catch(() => { /* reported again next time */ });
 }
 
 /** Last 28 days of practice on this skill, as a strip. */

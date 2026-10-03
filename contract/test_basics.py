@@ -53,6 +53,7 @@ def _():
            "level_count": len(slugs), "mode_id": "trial", "summary": summary()}
     for method, path, body in [
         ("GET", "/api/progress", None),
+        ("POST", "/api/contributions", {"contributions": {skill: 1.0}}),
         ("POST", "/api/runs", run),
         ("GET", f"/api/activity?skill_id={skill}", None),
         ("GET", f"/api/leaderboard?skill_id={skill}&mode_id=trial", None),

@@ -34,6 +34,8 @@ export const api = {
   logout: () => request('POST', '/api/logout'),
   progress: () => request('GET', '/api/progress'),
   submitRun: (run) => request('POST', '/api/runs', run),
+  reportContributions: (contributions) =>
+    request('POST', '/api/contributions', { contributions }),
   leaderboard: (skillId, modeId = 'trial') =>
     request('GET', `/api/leaderboard?skill_id=${encodeURIComponent(skillId)}&mode_id=${modeId}`),
   activity: (skillId) =>

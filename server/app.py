@@ -6,6 +6,7 @@ logged-in user except the teacher endpoints, which can read every student.
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 import statistics
@@ -475,6 +476,44 @@ def submit_run(body: RunIn, user=Depends(current_user)):
             "clockWas": body.duration or None, "clockNext": next_clock,
             "clockAtFloor": bool(at_floor) if mode_is_trial and body.duration > 0 else False,
             "progress": data}
+
+
+class ContributionsIn(BaseModel):
+    contributions: dict[str, float]
+
+
+#: A generous ceiling per level on a reported contribution. Today no level is
+#: worth more than about 11; this only stops a nonsense value being kept.
+MAX_CONTRIBUTION_PER_LEVEL = 50
+
+
+# requiem: review/contribution-best-reported
+@app.post("/api/contributions")
+def report_contributions(body: ContributionsIn, user=Depends(current_user)):
+    """Keep the best each skill has ever contributed to this student's Level.
+
+    The browser computes contributions -- they rest on reference paces in the
+    JavaScript catalogue the server cannot read -- and reports them here; the
+    server keeps the maximum. A skill the catalogue does not have, or a value
+    that is not a finite, non-negative number under a generous ceiling, is
+    ignored rather than refused, so one bad entry never loses the rest.
+    """
+    order = db.level_order()
+    with db.cursor(commit=True) as conn:
+        for skill_id, value in body.contributions.items():
+            levels = len(order.get(skill_id, []))
+            if not levels or not math.isfinite(value) or not 0 <= value <= levels * MAX_CONTRIBUTION_PER_LEVEL:
+                continue
+            conn.execute(
+                """INSERT INTO contribution_bests (user_id, skill_id, best, achieved_at)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(user_id, skill_id) DO UPDATE SET
+                     best = excluded.best, achieved_at = excluded.achieved_at
+                   WHERE excluded.best > contribution_bests.best""",
+                (user["id"], skill_id, round(value, 2), db.now()))
+        bests = {r["skill_id"]: r["best"] for r in conn.execute(
+            "SELECT skill_id, best FROM contribution_bests WHERE user_id = ?", (user["id"],))}
+    return {"bests": bests}
 
 
 def streak_from_days(days: list[str]) -> tuple[int, int]:

@@ -110,6 +110,16 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
     created_at TEXT NOT NULL
 );
 
+-- The most each skill has ever contributed to the student's Level. Reported by
+-- the browser, which is where contributions are computed; only ever raised.
+CREATE TABLE IF NOT EXISTS contribution_bests (
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    skill_id    TEXT    NOT NULL,
+    best        REAL    NOT NULL,
+    achieved_at TEXT    NOT NULL,
+    PRIMARY KEY (user_id, skill_id)
+);
+
 -- When each finished skill's review clock started. The only review state
 -- stored: due dates, intervals and tags are replayed from runs (review.py).
 CREATE TABLE IF NOT EXISTS review_clocks (
@@ -386,6 +396,12 @@ def get_progress(conn: sqlite3.Connection, user_id: int) -> dict:
     reviews = review.schedule(conn, user_id)
     for skill_id, entry in skills.items():
         entry["review"] = reviews[skill_id].public() if skill_id in reviews else None
+
+    # requiem: review/contribution-best-reported
+    bests = {r["skill_id"]: r["best"] for r in conn.execute(
+        "SELECT skill_id, best FROM contribution_bests WHERE user_id = ?", (user_id,))}
+    for skill_id, entry in skills.items():
+        entry["contributionBest"] = bests.get(skill_id)
 
     xp = conn.execute("SELECT xp FROM users WHERE id = ?", (user_id,)).fetchone()["xp"]
     return {"xp": xp, "skills": skills, "reviewOffer": review.offer(reviews)}

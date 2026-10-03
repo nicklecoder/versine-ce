@@ -590,6 +590,15 @@ Because `quality` is measured over the last *N answers* rather than the last
 *N days*, a level nobody has touched for months keeps its last demonstrated
 standard rather than collapsing to zero.
 
+Every skill card on the Map says what that skill is worth to the Level, in
+Level units: **"Level +7.4 of 10.2"** once any of its levels counts, and
+**"worth up to +16.8 Level"** before that — locked skills too, dimmed, so the
+deeper skills ahead are visibly worth more. When a skill has contributed more
+in the past than it does now, the card says so (*· best +8.1*): what can be
+won back. Level units rather than "points", because points are a run's score.
+The browser computes contributions and reports any new high to the server,
+which keeps each skill's best.
+
 ## The Time Trial clock calibrates itself
 
 Nobody sets a clock by hand — not the teacher, not the student, not the author

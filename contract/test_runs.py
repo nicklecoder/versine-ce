@@ -6,7 +6,8 @@ from .harness import check, equal, has_keys, test
 
 REPLY_KEYS = {"newBest", "unlockedLevel", "points", "clockWas", "clockNext",
               "clockAtFloor", "progress"}
-SKILL_KEYS = {"level", "mastered", "solved", "levelCount", "doneToday", "best", "review"}
+SKILL_KEYS = {"level", "mastered", "solved", "levelCount", "doneToday", "best", "review",
+              "contributionBest"}
 
 
 @test("a new student has no progress yet")
@@ -131,3 +132,28 @@ def _():
     equal(done(), False, "done after failing the last level's Time Trial")
     submit(student, skill, slugs, last, passed=True)
     equal(done(), True, "done after passing the last level's Time Trial")
+
+
+def report(student, contributions):
+    return student.post("/api/contributions", {"contributions": contributions}).ok("report")["bests"]
+
+
+# requiem: review/contribution-best-reported
+@test("a skill's best contribution to the Level only ever rises")
+def _():
+    student = group().add_student()
+    skill, slugs = a_skill(student)
+    submit(student, skill, slugs, 0, passed=True)
+    equal(progress(student)["skills"][skill]["contributionBest"], None, "before any report")
+    equal(report(student, {skill: 2.5}), {skill: 2.5}, "the first report")
+    equal(report(student, {skill: 1.0}), {skill: 2.5}, "a lower report")
+    equal(report(student, {skill: 3.0}), {skill: 3.0}, "a higher report")
+    equal(progress(student)["skills"][skill]["contributionBest"], 3.0, "best in progress")
+
+
+@test("a contribution for an unknown skill, or below zero, or absurdly large, is ignored")
+def _():
+    student = group().add_student()
+    skill, _ = a_skill(student)
+    equal(report(student, {"no-such-skill": 1.0, skill: -1.0}), {}, "unknown and negative")
+    equal(report(student, {skill: 1e9}), {}, "absurdly large")

@@ -116,3 +116,23 @@ export function biggestGain(result) {
     .sort((a, b) => b.headroom - a.headroom);
   return candidates[0] ?? null;
 }
+
+/**
+ * What each skill is worth to the Level: what it contributes now, and the
+ * most it could. `possible` counts every level, cleared or not, so it is
+ * also what an unfinished skill is "worth up to".
+ *
+ * requiem: review/card-shows-points
+ * @returns {Map<string, {contribution:number, possible:number}>}
+ */
+export function skillValues(skills, result) {
+  const values = new Map(skills.map((skill) => [skill.id, {
+    contribution: 0,
+    possible: skill.levels.reduce((sum, _, i) => sum + weightOf(skill, i), 0),
+  }]));
+  for (const row of result.rows) {
+    const v = values.get(row.skillId);
+    if (v) v.contribution += row.contribution;
+  }
+  return values;
+}

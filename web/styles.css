@@ -801,6 +801,10 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   background: var(--gold);
 }
 .tile--locked .tile__cta { color: var(--muted); }
+/* What a skill is worth to the Level, in Level units. */
+.tile__worth { margin-top: 8px; font-size: .74rem; color: var(--dim); font-variant-numeric: tabular-nums; }
+.tile__worth b { color: var(--gold); font-weight: 700; }
+.tile__best { color: var(--muted); }
 
 /* ── Fractions in the problem line ────────────────────────────────────── */
 .frac-term {
