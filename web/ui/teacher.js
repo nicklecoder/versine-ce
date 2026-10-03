@@ -7,6 +7,7 @@ import { el, mount } from './dom.js';
 import { ICONS, ACCENTS } from './icons.js';
 import { state, go } from './router.js';
 import { extensionLinks } from './map.js';
+import { hasCustomSignIn } from '../engine/extensions.js';
 
 const pct = (n) => `${Math.round(n * 100)}%`;
 const skillName = (id) => SKILLS.find((s) => s.id === id)?.name ?? id;
@@ -86,10 +87,11 @@ export function teacherScreen() {
         ? table(['Student', 'Accuracy', '#Answered', '#This week', '#Avg time',
                  '#Reviews due', '#Reviews, 30 days', 'Last active', ''], rows)
         : el('div.card', {},
-            el('p.muted.center', {},
-              'No students yet. They sign themselves up from the “New profile” '
-              + 'tile on the sign-in screen.')),
-      addTeacherCard());
+            el('p.muted.center', {}, hasCustomSignIn()
+              ? 'No students yet.'
+              : 'No students yet. They sign themselves up from the “New profile” '
+                + 'tile on the sign-in screen.')),
+      hasCustomSignIn() ? null : addTeacherCard());
   }).catch((e) => mount(body, el('p.feedback.is-wrong', {}, e.message)));
 
   return el('div.shell.shell--wide', {}, header(), body);

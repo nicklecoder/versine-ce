@@ -55,6 +55,15 @@ export function signInScreen() {
   return sockets.signIn ? sockets.signIn() : null;
 }
 
+/**
+ * Whether an extension replaced sign-in. Screens that belong to this
+ * install's own PIN accounts -- adding a teacher by PIN, the "New profile"
+ * hint -- step aside when it did, since accounts are then the extension's.
+ */
+export function hasCustomSignIn() {
+  return sockets.signIn !== null;
+}
+
 /** An extension's screen for a route name, or undefined. */
 export function screenFor(name) {
   return sockets.screens.get(name);

@@ -11,6 +11,13 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
+## 1.1.1 — 2026-10-03
+
+**The console steps aside for another edition's accounts.** When an extension replaces
+sign-in, the teacher console no longer offers to add a teacher by PIN or tells students
+to make their own profiles — accounts are then the extension's. Home installs, with no
+extension, are unchanged.
+
 ## 1.1.0 — 2026-10-03
 
 **Extension points.** `web/extensions.json` lists optional browser modules, and ships

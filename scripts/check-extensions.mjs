@@ -35,6 +35,7 @@ for (const skill of SKILLS) {
     `with no gate policy, ${skill.id}'s blockers are the gate's`);
 }
 check(ext.signInScreen() === null, 'with no extension, sign-in is the default');
+check(ext.hasCustomSignIn() === false, 'with no extension, the PIN-account screens stay');
 check(ext.screenFor('billing') === undefined, 'with no extension, no extra screens');
 check(ext.linksFor('teacher').length === 0, 'with no extension, no extra links');
 
@@ -56,6 +57,7 @@ check(ext.extensionErrors.length === before + 1 && /boom/.test(ext.extensionErro
 
 // ── Each socket does what it says ───────────────────────────────────────────
 check(ext.signInScreen() === 'family sign-in', 'setSignIn replaces the sign-in screen');
+check(ext.hasCustomSignIn() === true, 'with sign-in replaced, the PIN-account screens step aside');
 check(ext.screenFor('billing')?.() === 'billing screen', 'addScreen adds a screen by route name');
 check(ext.linksFor('teacher').map((l) => l.label).join() === 'Billing', 'a teacher sees the link');
 check(ext.linksFor('student').length === 0, 'a link for teachers is not shown to a student');
