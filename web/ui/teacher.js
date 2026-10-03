@@ -6,6 +6,7 @@ import { daysUntil } from '../engine/days.js';
 import { el, mount } from './dom.js';
 import { ICONS, ACCENTS } from './icons.js';
 import { state, go } from './router.js';
+import { extensionLinks } from './map.js';
 
 const pct = (n) => `${Math.round(n * 100)}%`;
 const skillName = (id) => SKILLS.find((s) => s.id === id)?.name ?? id;
@@ -48,6 +49,7 @@ function header() {
       el('div.row__title', {}, state.me.name)),
     el('div.row-flex', {},
       el('button.btn.btn--sm.btn--ghost', { onclick: () => go({ name: 'map' }) }, 'Practise'),
+      ...extensionLinks(),
       el('button.btn.btn--sm.btn--ghost', {
         onclick: async () => { await api.logout(); location.reload(); },
       }, 'Sign out')));

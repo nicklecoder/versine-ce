@@ -1,6 +1,7 @@
 import { api } from '../engine/api.js';
 import { SKILLS, subjectOf, getSkill, dependenciesOf, levelDependencies,
-  lockedBy, skillCompleted, mapOrder } from '../engine/registry.js';
+  skillCompleted, mapOrder } from '../engine/registry.js';
+import { blockersFor, linksFor } from '../engine/extensions.js';
 import { MODES, MODE_ORDER, trialSettings, formatDuration } from '../engine/modes.js';
 import { computeRating, biggestGain, skillValues } from '../engine/rating.js';
 import { clockFor, clockExplanation } from '../engine/clock.js';
@@ -45,9 +46,16 @@ export function topbar({ wide = false } = {}) {
       soundToggle(),
       state.me.role === 'teacher' &&
         el('button.btn.btn--sm.btn--ghost', { onclick: () => go({ name: 'teacher' }) }, 'Console'),
+      ...extensionLinks(),
       el('button.btn.btn--sm.btn--ghost', {
         onclick: async () => { await api.logout(); location.reload(); },
       }, 'Sign out')));
+}
+
+/** Top-bar links an extension added for this person's role (extension-points). */
+export function extensionLinks() {
+  return linksFor(state.me?.role).map((link) =>
+    el('button.btn.btn--sm.btn--ghost', { onclick: () => go(link.route) }, link.label));
 }
 
 /**
@@ -231,7 +239,7 @@ export function mapScreen() {
  */
 function skillTile(skill, cat, value) {
   const rec = recordFor(skill.id);
-  const blocking = lockedBy(skill.id, state.progress);
+  const blocking = blockersFor(skill.id, state.progress);
   const locked = blocking.length > 0;
   const isNew = !locked && rec.mastered.length < skill.levels.length;
   const names = blocking.map((id) => getSkill(id)?.name ?? id);
@@ -414,7 +422,7 @@ export function skillScreen(skillId) {
   // The map disables a locked tile, but a bookmarked or hand-typed URL routes
   // straight here. The gate has to live where the skill is entered, not only
   // where it is drawn.
-  const blocking = lockedBy(skillId, state.progress);
+  const blocking = blockersFor(skillId, state.progress);
   if (blocking.length) {
     const names = blocking.map((id) => getSkill(id)?.name ?? id);
     return el('div.shell', {},

@@ -2,7 +2,7 @@
 id: extension-points
 namespace: server/extensions
 kind: design
-status: proposed
+status: active
 provenance:
     type: dialogue
 created_at: 2026-10-02T04:10:12.159620267Z
@@ -18,4 +18,4 @@ relationships:
       via: batch
 ---
 
-The browser app exposes a small set of extension points with harmless defaults: an authentication provider (default: household PINs) and a manifest of optional frontend modules it loads. Another server implementing server/api-contract adds screens and sign-in through these, never by forking the app, so every change to play, skills or review is written once. The manifest exists because there is no build step to bundle extras in.
+The browser app has extension points with harmless defaults, loaded from web/extensions.json, which this project ships with no modules: a home install loads nothing and behaves exactly as if the points did not exist. A server implementing server/api-contract can serve its own list, and each module it names gets four sockets: replace the sign-in screen (default: this install's PIN profiles), add a screen reached by route name, add a top-bar link for given roles, and set a gate policy (server/extensions/gate-policy). A module that fails to load is reported on the console and skipped, so the app starts on its defaults rather than not at all. Another edition adds what it needs through these, never by forking the app, so every change to play, skills or review is written once; the list is a file because there is no build step to bundle extras in.

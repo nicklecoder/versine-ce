@@ -4,7 +4,7 @@ namespace: server/extensions
 kind: rule
 modality: must_not
 abstract: true
-status: proposed
+status: active
 provenance:
     type: dialogue
 created_at: 2026-10-02T04:10:12.179253122Z
