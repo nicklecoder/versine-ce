@@ -270,7 +270,7 @@ function skillTile(skill, cat, value) {
             : `${rec.solved} solved`)),
       rec.doneToday ? el('div.done-tick', { title: 'Done for today' }, '✓') : null),
     el('div.tile__blurb', {}, locked
-      ? `Finish ${names.join(' and ')} to open this.`
+      ? (note ?? `Finish ${names.join(' and ')} to open this.`)
       : skill.blurb),
     el('div.pips', {}, skill.levels.map((_, i) =>
       el('div', {

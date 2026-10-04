@@ -11,6 +11,12 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
+## 1.2.1 — 2026-10-04
+
+**A lock note reaches the tile's own text.** 1.2.0 put an extension's lock note in a
+locked tile's tooltip and on the skill screen, but the line on the tile itself still
+read "finish X to open this"; it now shows the note too. Home installs are unchanged.
+
 ## 1.2.0 — 2026-10-04
 
 **Lock notes.** An extension can explain a locked skill in its own words with
