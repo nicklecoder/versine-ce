@@ -1,7 +1,7 @@
 import { api } from '../engine/api.js';
 import { SKILLS, subjectOf, getSkill, dependenciesOf, levelDependencies,
   skillCompleted, mapOrder } from '../engine/registry.js';
-import { blockersFor, linksFor } from '../engine/extensions.js';
+import { blockersFor, linksFor, lockNoteFor } from '../engine/extensions.js';
 import { MODES, MODE_ORDER, trialSettings, formatDuration } from '../engine/modes.js';
 import { computeRating, biggestGain, skillValues } from '../engine/rating.js';
 import { clockFor, clockExplanation } from '../engine/clock.js';
@@ -243,11 +243,12 @@ function skillTile(skill, cat, value) {
   const locked = blocking.length > 0;
   const isNew = !locked && rec.mastered.length < skill.levels.length;
   const names = blocking.map((id) => getSkill(id)?.name ?? id);
+  const note = locked ? lockNoteFor(skill.id, blocking) : null;
 
   return el('button.tile', {
     class: `${rec.doneToday ? 'tile--done ' : ''}${locked ? 'tile--locked ' : ''}cat-${skill.category}`,
     disabled: locked,
-    title: locked ? `Finish ${names.join(' and ')} first` : '',
+    title: locked ? (note ?? `Finish ${names.join(' and ')} first`) : '',
     onclick: () => go({ name: 'skill', skillId: skill.id }),
   },
     el('div.tile__head', {},
@@ -425,6 +426,16 @@ export function skillScreen(skillId) {
   const blocking = blockersFor(skillId, state.progress);
   if (blocking.length) {
     const names = blocking.map((id) => getSkill(id)?.name ?? id);
+    // requiem: server/extensions/lock-note -- an extension that closed this
+    // skill for its own reason says why, and "finish X" would be untrue.
+    const note = lockNoteFor(skillId, blocking);
+    if (note) {
+      return el('div.shell', {},
+        topbar(),
+        crumbs([{ label: 'Map', go: () => go({ name: 'map' }) }, { label: skill.name }]),
+        el('div.card.stack--sm', {},
+          el('div.banner.banner--violet', {}, el('span', {}, '🔒'), el('span', {}, note))));
+    }
     return el('div.shell', {},
       topbar(),
       crumbs([{ label: 'Map', go: () => go({ name: 'map' }) }, { label: skill.name }]),

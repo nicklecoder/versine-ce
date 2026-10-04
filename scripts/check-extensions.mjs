@@ -38,6 +38,7 @@ check(ext.signInScreen() === null, 'with no extension, sign-in is the default');
 check(ext.hasCustomSignIn() === false, 'with no extension, the PIN-account screens stay');
 check(ext.screenFor('billing') === undefined, 'with no extension, no extra screens');
 check(ext.linksFor('teacher').length === 0, 'with no extension, no extra links');
+check(SKILLS.every((s) => ext.lockNoteFor(s.id, ['x']) === null), 'with no extension, locks read as the gate says');
 
 // A missing or unreadable list is no list.
 await ext.loadExtensions({}, async () => ({ ok: false }));
@@ -70,6 +71,13 @@ check(same(ext.blockersFor(locked.id, progress), lockedBy(locked.id, progress)),
   'a policy returning the blockers keeps the gate');
 ext.extensions.setGatePolicy(() => []);
 check(ext.blockersFor(locked.id, progress).length === 0, 'a policy can open a skill the gate keeps closed');
+ext.extensions.setGatePolicy(() => [first.id]);
+check(ext.blockersFor(SKILLS[0].id, progress).length === 1, 'a policy can close a skill the gate leaves open');
+
+// requiem: server/extensions/lock-note
+ext.extensions.setLockNote(({ skillId }) => (skillId === locked.id ? 'Opens in the full version.' : null));
+check(ext.lockNoteFor(locked.id, ['x']) === 'Opens in the full version.', 'a lock note replaces the wording');
+check(ext.lockNoteFor(first.id, ['x']) === null, 'a note returning null keeps the app\'s own wording');
 
 if (fail.length) {
   console.log(`${fail.length} extension check(s) failed:`);

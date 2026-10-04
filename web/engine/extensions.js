@@ -14,6 +14,7 @@
  *   addScreen(name, render)    a screen reached by go({ name })
  *   addLink({ label, route, roles })  a link in the top bar, for those roles
  *   setGatePolicy(policy)      decide which skills a student may open
+ *   setLockNote(note)          say, in the extension's words, why a skill is locked
  *
  * A module is an ES module whose default export receives { extensions, api,
  * state, go, rerender, el, mount }. One that fails to load is reported on the
@@ -26,6 +27,7 @@ const sockets = {
   screens: new Map(),
   links: [],
   gatePolicy: null,
+  lockNote: null,
 };
 
 /** Problems met loading extensions, kept for the console and for checks. */
@@ -39,15 +41,28 @@ export const extensions = {
    * requiem: server/extensions/gate-policy
    * `policy({ skillId, progress, blockers })` returns the skills still
    * blocking this one. `blockers` is what the gate itself says; return it
-   * unchanged to keep the gate, or fewer to open more.
+   * unchanged to keep the gate, fewer to open more, or more to close more.
    */
   setGatePolicy(policy) { sockets.gatePolicy = policy; },
+  /**
+   * requiem: server/extensions/lock-note
+   * `note({ skillId, blockers })` returns a sentence explaining why the skill
+   * is locked, or null for the app's own "finish X first". A policy that
+   * closes skills for a reason of its own needs this: "finish X first" would
+   * then be untrue.
+   */
+  setLockNote(note) { sockets.lockNote = note; },
 };
 
 /** The skills blocking `skillId`: the gate's answer, unless a policy says otherwise. */
 export function blockersFor(skillId, progress) {
   const blockers = lockedBy(skillId, progress);
   return sockets.gatePolicy ? sockets.gatePolicy({ skillId, progress, blockers }) : blockers;
+}
+
+/** An extension's sentence for a locked skill, or null for the app's own. */
+export function lockNoteFor(skillId, blockers) {
+  return sockets.lockNote ? sockets.lockNote({ skillId, blockers }) ?? null : null;
 }
 
 /** An extension's sign-in screen, or null for the default. */

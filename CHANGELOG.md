@@ -11,6 +11,14 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
+## 1.2.0 — 2026-10-04
+
+**Lock notes.** An extension can explain a locked skill in its own words with
+`setLockNote`, for a gate policy that closes skills for a reason other than unfinished
+prerequisites; the tile and the skill screen then show that sentence instead of
+"finish X first". A gate policy may now close skills as well as open them. Home
+installs, with no extension, are unchanged.
+
 ## 1.1.1 — 2026-10-03
 
 **The console steps aside for another edition's accounts.** When an extension replaces
