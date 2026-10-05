@@ -9,7 +9,7 @@
  *
  * Run via: node scripts/build-library.mjs
  */
-import { frac, reduce, multiply, divide, isSimplest, format, lcm, gcd } from '../../web/math/frac.js';
+import { frac, reduce, multiply, divide, isSimplest, format, lcm, gcd, nths } from '../../web/math/frac.js';
 import { LEVELS, LAST_LEVEL, PAR_SECONDS } from '../../web/skills/frac-muldiv.js';
 import * as T from '../terms.js';
 
@@ -128,10 +128,13 @@ function build(rng, level, requireSimplest) {
     visual: op === '×'
       ? { kind: 'areamodel', a, b, product: raw }
       : { kind: 'fitsmodel', a, b, quotient: reduce(raw), fine: lcm(a.d, b.d) },
-    explain: explain(a, b, op, raw, requireSimplest),
+    explain: explain(a, b, op, raw, requireSimplest, level),
   };
 }
-function explain(a, b, op, raw, requireSimplest) {
+/** The index of How Many Fit, whose division is explained by counting. */
+const HOW_MANY_FIT = 3;
+
+function explain(a, b, op, raw, requireSimplest, level) {
   const simplified = reduce(raw);
   const tail = requireSimplest && !isSimplest(raw)
     ? ` Then ${format(raw)} simplifies to ${format(simplified)}.`
@@ -140,8 +143,32 @@ function explain(a, b, op, raw, requireSimplest) {
     return `Multiply straight across: ${a.n} × ${b.n} = ${raw.n} on top, `
       + `${a.d} × ${b.d} = ${raw.d} underneath, giving ${format(raw)}.${tail}`;
   }
-  return `Dividing by ${format(b)} is the same as multiplying by ${format(frac(b.d, b.n))}. `
-    + `So ${format(a)} × ${format(frac(b.d, b.n))} = ${format(simplified)}.`;
+  // requiem: catalogue/content/division-counts-before-flipping
+  if (level === HOW_MANY_FIT) return countCopies(a, b, simplified);
+  // Past How Many Fit the divisor can be anything, and counting copies stops
+  // being something you can do in your head -- so this is where the flip
+  // arrives, as the shortcut for the count rather than a rule on its own.
+  const flipped = frac(b.d, b.n);
+  const product = frac(a.n * flipped.n, a.d * flipped.d);
+  const ending = isSimplest(product)
+    ? `${format(product)}.`
+    : `${format(product)}, which simplifies to ${format(simplified)}.`;
+  return `Flip the second fraction and multiply: dividing by ${format(b)} is the same as `
+    + `multiplying by ${format(flipped)}. So ${format(a)} × ${format(flipped)} = ${ending}`;
+}
+
+/**
+ * How Many Fit is explained the way the picture works: say the dividend in
+ * the divisor's pieces and count them. Saying "flip and multiply" here would
+ * teach the shortcut before the idea it is a shortcut for.
+ */
+function countCopies(a, b, quotient) {
+  const copies = quotient.n;
+  const restated = a.d === b.d
+    ? `${format(a)} is`
+    : `In ${nths(b.d)}, ${format(a)} is ${copies}/${b.d}, which is`;
+  return `How many ${format(b)}s fit into ${format(a)}? ${restated} ${copies} copies of ${format(b)}. `
+    + `So ${copies} fit: ${format(a)} ÷ ${format(b)} = ${copies}.`;
 }
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 
