@@ -946,6 +946,62 @@ PAIR_RULES = (
 )
 
 
+# --- Functions ---------------------------------------------------------------
+
+def one_output(text: str) -> str:
+    outputs = {}
+    for x, y in re.findall(PT, text):
+        outputs.setdefault(x, set()).add(y)
+    return "yes" if all(len(ys) == 1 for ys in outputs.values()) else "no"
+
+
+# Which drawn shapes give some x two y values: the definition, by shape.
+TWO_VALUED = ("circle", "sideways parabola", "vertical line")
+
+
+def solve_linear(k: str, src: str) -> Fraction:
+    b, m = at(src, {"x": 0}), at(src, {"x": 1}) - at(src, {"x": 0})
+    if at(src, {"x": 2}) != b + 2 * m or m == 0:
+        raise ValueError(f"not a line with one solution: {src}")
+    return (Fraction(k) - b) / m
+
+
+def domain_range(ask: str, corners: str) -> int:
+    pts = [(int(x), int(y)) for x, y in re.findall(PT, corners)]
+    xs, ys = [x for x, _ in pts], [y for _, y in pts]
+    return {"domain-low": min(xs), "domain-high": max(xs),
+            "range-low": min(ys), "range-high": max(ys)}[ask]
+
+
+def reading_of(a: str, b: str, in_unit: str, out_unit: str, ids):
+    """The input, with its unit, named before the output with its: f(a) = b read in order."""
+    unit = lambda n, u: rf"(?<![\d.]){n} ?{re.escape(u)}\b" if u[0].isalpha() else rf"(?<![\d.]){n}{re.escape(u)}"
+    fit = [o for o in ids
+           if (i := re.search(unit(a, in_unit), o)) and (j := re.search(unit(b, out_unit), o)) and i.start() < j.start()
+           and "every" not in o]
+    if len(fit) != 1:
+        raise ValueError(f"{len(fit)} readings fit")
+    return fit[0]
+
+
+BY_RULE += (
+    (re.compile(r"^\w\((-?\d+)\) for \w\(x\) = (.+)$"), lambda a, src: at(src, {"x": a})),
+    (re.compile(r"^read f\((-?\d+)\) on y = (.+)$"), lambda a, src: at(src, {"x": a})),
+    (re.compile(r"^solve f\(x\) = (-?\d+) for f\(x\) = (.+)$"), solve_linear),
+    (re.compile(r"^((?:domain|range)-(?:low|high)) of (.+)$"), domain_range),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^function\? (.+)$"), one_output),
+    (re.compile(r"^vertical test: (.+)$"),
+     lambda shape: "no" if shape.startswith(TWO_VALUED) else "yes"),
+)
+
+OPTION_RULES += (
+    (re.compile(r"^means: \w\((\d+)\) = (\d+) \| (.+) \| (.+)$"), reading_of),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue

@@ -22,6 +22,7 @@ import slope from '../skills/slope.js';
 import linearEq from '../skills/linear-eq.js';
 import lineForms from '../skills/line-forms.js';
 import linearModels from '../skills/linear-models.js';
+import functions from '../skills/functions.js';
 import decimals from '../skills/decimals.js';
 import rounding from '../skills/rounding.js';
 import percents from '../skills/percents.js';
@@ -35,7 +36,7 @@ import inequalities from '../skills/inequalities.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, coords, slope, linearEq, lineForms, linearModels, decimals, rounding, percents, simplify, evaluate, equations, equationsBoth, wordEquations, systems, inequalities];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, coords, slope, linearEq, lineForms, linearModels, functions, decimals, rounding, percents, simplify, evaluate, equations, equationsBoth, wordEquations, systems, inequalities];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

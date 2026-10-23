@@ -1,5 +1,5 @@
 {
-  "built": 221,
+  "built": 229,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -188,6 +188,16 @@
       "simple-interest",
       "comparing-two-functions",
       "a-graphs-story",
+      "all-together"
+    ],
+    "functions": [
+      "one-output-each",
+      "the-vertical-line-test",
+      "function-notation",
+      "reading-f-off-a-graph",
+      "solving-f-x-equals-k",
+      "domain-and-range",
+      "what-f-a-equals-b-means",
       "all-together"
     ],
     "decimals": [
@@ -559,6 +569,13 @@
       ],
       "levels": {}
     },
+    "functions": {
+      "dependsOn": [
+        "exponents",
+        "linear-eq"
+      ],
+      "levels": {}
+    },
     "decimals": {
       "dependsOn": [
         "frac-equiv",
@@ -708,7 +725,7 @@
       }
     }
   },
-  "sources": "0c04fac8039c9df8a82af198eb104ab8cfaae3325506db041c1db28ede28b10c",
+  "sources": "1dc013cec936c8724e017835ef740e3634ee6b001facb295f485835d25f3d67b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2199,6 +2216,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "linear-models-7.json"
+    },
+    {
+      "skill": "functions",
+      "level": 0,
+      "slug": "one-output-each",
+      "name": "One Output Each",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "functions-0.json"
+    },
+    {
+      "skill": "functions",
+      "level": 1,
+      "slug": "the-vertical-line-test",
+      "name": "The Vertical Line Test",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "functions-1.json"
+    },
+    {
+      "skill": "functions",
+      "level": 2,
+      "slug": "function-notation",
+      "name": "Function Notation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "functions-2.json"
+    },
+    {
+      "skill": "functions",
+      "level": 3,
+      "slug": "reading-f-off-a-graph",
+      "name": "Reading f off a Graph",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "functions-3.json"
+    },
+    {
+      "skill": "functions",
+      "level": 4,
+      "slug": "solving-f-x-equals-k",
+      "name": "Solving f(x) = k",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "functions-4.json"
+    },
+    {
+      "skill": "functions",
+      "level": 5,
+      "slug": "domain-and-range",
+      "name": "Domain and Range",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "functions-5.json"
+    },
+    {
+      "skill": "functions",
+      "level": 6,
+      "slug": "what-f-a-equals-b-means",
+      "name": "What f(a) = b Means",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "functions-6.json"
+    },
+    {
+      "skill": "functions",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "functions-7.json"
     },
     {
       "skill": "decimals",

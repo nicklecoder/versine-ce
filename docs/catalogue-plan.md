@@ -79,15 +79,15 @@ the row-by-row step on reveal.
 
 ## Phase 1 — functions and linear algebra
 
-**In progress.** Built: `slope`, `linear-eq`, `line-forms` (as Forms of a Line, with a
+**In progress.** Built: `functions` (with What f(a) = b Means added), `slope`, `linear-eq`, `line-forms` (as Forms of a Line, with a
 Parallel, Perpendicular or Neither level added), `linear-models` (with From Two Readings
-added) and `systems`. Still to build: `functions`, `compound-ineq`, `abs-value`,
+added) and `systems`. Still to build: `compound-ineq`, `abs-value`,
 `ineq-graphs`, `sequences`. Engine work done for it: the `linear` and `pair` answer
 types and the `math` prompt term.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
-| `functions` (Functions) | One Output Each · Vertical Line · Function Notation · Reading f off a Graph · Solve f(x) = k · Domain & Range | 8.F.1, F-IF.1–2, F-IF.5, TEKS A.12A,B |
+| `functions` (Functions) | One Output Each · Vertical Line · Function Notation · Reading f off a Graph · Solve f(x) = k · Domain & Range · What f(a) = b Means | 8.F.1, F-IF.1–2, F-IF.5, TEKS A.12A,B |
 | `slope` (Coordinates) | From a Graph · From Two Points · Negative Slope · Zero & Undefined · From a Table · Rate With Units | 8.EE.6, F-IF.6, TEKS A.3A,B |
 | `linear-eq` (Coordinates) | Reading m and b · From a Graph · Slope and a Point · Two Points · Intercepts & Zeros | 8.F.3–4, A-CED.2, TEKS A.3C |
 | `line-forms` (Coordinates) | Point-Slope · Standard Form · Horizontal & Vertical · Parallel · Perpendicular · Which Form (strategy) | TEKS A.2B,E–G, G-GPE.5 |

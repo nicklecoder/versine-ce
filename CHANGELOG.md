@@ -41,8 +41,11 @@ Both Sides** in Inequalities. Progress on the levels after each insertion is kep
 A new `table` visual draws a table of values. On reveal it can add a working
 column, so "is this proportional?" shows y ÷ x for every row.
 
-Phase 1, linear algebra, is half built:
+Phase 1, functions and linear algebra, is half built:
 
+- **Functions** (Functions): one output for each input, the vertical line test, function
+  notation, reading f off a graph, solving f(x) = k, domain and range, and what
+  f(a) = b means in a situation.
 - **Slope** (Coordinates): from a graph, rising and falling, from two points, zero and
   undefined, from a table, and as a rate with units.
 - **Linear Equations** (Coordinates): reading m and b, the equation from a graph, from a
@@ -70,8 +73,8 @@ answer was written 3 − 2x. Signs are now lifted out of products before compari
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.
 A segment on the plane is labelled at its middle, so a run and a rise sharing a corner no
-longer print over each other. `web/dev/lines.html` shows one problem from each line and
-pair level, asking and answered.
+longer print over each other. `web/dev/lines.html` shows one problem from each line, pair
+and graph level, asking and answered.
 
 `check-answers.py` now re-derives every answer in the new skills by its own
 route: exact surd arithmetic for rational or irrational, integer square roots
