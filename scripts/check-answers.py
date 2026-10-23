@@ -1097,13 +1097,20 @@ RULE_RULES = (
 
 SAMPLES_ON_LINE = [Fraction(k, 2) for k in range(-80, 81)]
 OPS = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b,
-       ">": lambda a, b: a > b, ">=": lambda a, b: a >= b}
+       ">": lambda a, b: a > b, ">=": lambda a, b: a >= b, "=": lambda a, b: a == b}
+
+
+def at_any(src: str, x: Fraction) -> Fraction:
+    """src at x, whatever its one letter is, with |...| worked out as distance."""
+    every = {c: x for c in "abcdefghijklmnopqrstuvwxyz"}
+    src = re.sub(r"\|([^|]+)\|", lambda m: f"({abs(at(m[1], every))})", src)
+    return at(src, every)
 
 
 def holds(relation: str, x: Fraction) -> bool:
-    """One chain of comparisons, like -3 < 2x + 1 <= 7, at one value of x."""
-    bits = re.split(r"\s*(<=|>=|<|>)\s*", relation.strip())
-    values = [at(b, {"x": x}) for b in bits[0::2]]
+    """One chain of comparisons, like -3 < 2x + 1 <= 7 or 2|x - 1| = 6, at one value of x."""
+    bits = re.split(r"\s*(<=|>=|<|>|=)\s*", relation.strip())
+    values = [at_any(b, x) for b in bits[0::2]]
     return all(OPS[op](values[i], values[i + 1]) for i, op in enumerate(bits[1::2]))
 
 
@@ -1172,6 +1179,32 @@ def matching_option(given: str, ids):
 
 OPTION_RULES += (
     (re.compile(r"^(?:interval|inequality) for: (.+)$"), matching_option),
+)
+
+
+# --- Absolute Value ----------------------------------------------------------
+#
+# Its equations and inequalities are solved by solve_set above, which reads
+# the bars as a distance; only the shape question needs a rule of its own.
+
+def shape_of(text: str) -> str:
+    found = solve_set(text)
+    if not found:
+        return "none"
+    if found == frozenset(SAMPLES_ON_LINE):
+        return "all"
+    ends = SAMPLES_ON_LINE[0] in found, SAMPLES_ON_LINE[-1] in found
+    if ends == (True, True):
+        return "outside"
+    if ends == (False, False):
+        inside = [x for x in SAMPLES_ON_LINE if min(found) <= x <= max(found)]
+        if set(inside) == found:
+            return "between"
+    raise ValueError(f"no single shape: {text}")
+
+
+CHOICE_RULES += (
+    (re.compile(r"^shape of: (.+)$"), shape_of),
 )
 
 

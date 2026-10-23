@@ -1,5 +1,5 @@
 {
-  "built": 245,
+  "built": 253,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -300,6 +300,16 @@
       "a-negative-in-the-middle",
       "and-or-or",
       "interval-notation",
+      "all-together"
+    ],
+    "abs-value": [
+      "distance-from-zero",
+      "two-cases",
+      "isolate-the-bars-first",
+      "one-two-or-none",
+      "less-than-is-between",
+      "greater-than-is-outside",
+      "between-or-outside",
       "all-together"
     ],
     "sequences": [
@@ -750,6 +760,16 @@
       ],
       "levels": {}
     },
+    "abs-value": {
+      "dependsOn": [
+        "compound-ineq"
+      ],
+      "levels": {
+        "between-or-outside": [
+          "compound-ineq"
+        ]
+      }
+    },
     "sequences": {
       "dependsOn": [
         "exponents",
@@ -762,7 +782,7 @@
       }
     }
   },
-  "sources": "f86adddee28de0f173ad18d68b63597b87fc9a689a386493ab98f5951bad044b",
+  "sources": "1075af2df7889674b44595dfb4023bbe9ec1bdad7c1a7bdcbd15d4cfc8a283ca",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3133,6 +3153,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "compound-ineq-7.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 0,
+      "slug": "distance-from-zero",
+      "name": "Distance From Zero",
+      "count": 410,
+      "exhaustive": true,
+      "signed": true,
+      "file": "abs-value-0.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 1,
+      "slug": "two-cases",
+      "name": "Two Cases",
+      "count": 448,
+      "exhaustive": true,
+      "signed": true,
+      "file": "abs-value-1.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 2,
+      "slug": "isolate-the-bars-first",
+      "name": "Isolate the Bars First",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "abs-value-2.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 3,
+      "slug": "one-two-or-none",
+      "name": "One, Two or None",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "abs-value-3.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 4,
+      "slug": "less-than-is-between",
+      "name": "Less Than Is Between",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "abs-value-4.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 5,
+      "slug": "greater-than-is-outside",
+      "name": "Greater Than Is Outside",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "abs-value-5.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 6,
+      "slug": "between-or-outside",
+      "name": "Between or Outside?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "abs-value-6.json"
+    },
+    {
+      "skill": "abs-value",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "abs-value-7.json"
     },
     {
       "skill": "sequences",

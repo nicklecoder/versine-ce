@@ -83,8 +83,8 @@ the row-by-row step on reveal.
 `line-forms` (as Forms of a Line, with a Parallel, Perpendicular or Neither level added),
 `linear-models` (with From Two Readings added), `systems`, `sequences` (with Writing
 the Rule added; a geometric rule waits for an answer box that takes powers of n), and
-`compound-ineq` (with Solving an Or and A Negative in the Middle added). Still to build:
-`abs-value`, `ineq-graphs`. Engine work done for it: the `linear`, `pair`, `rule` and
+`compound-ineq` (with Solving an Or and A Negative in the Middle added), and `abs-value`
+(with a Between or Outside? strategy level added). Still to build: `ineq-graphs`. Engine work done for it: the `linear`, `pair`, `rule` and
 `solutions` answer types, the `intervals` visual, and the `math` prompt term.
 
 | Skill (category) | Levels | Covers |

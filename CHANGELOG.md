@@ -63,6 +63,9 @@ Phase 1, functions and linear algebra, is half built:
 - **Compound Inequalities** (Inequalities): between two numbers and either side, read off a
   number line or from words, solving a double inequality and an "or", a negative in the
   middle, and or or, and interval notation.
+- **Absolute Value** (Inequalities): distance from zero, two cases, isolating the bars
+  first, one two or no solutions, less than is between, greater than is outside, and a
+  strategy level on the shape of the answer before solving.
 - **Sequences** (Sequences): the common difference, any term and which term a number is,
   writing the nth-term rule, the common ratio, geometric terms, recursive rules, and a
   strategy level on telling arithmetic, geometric and neither apart.
