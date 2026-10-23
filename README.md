@@ -188,8 +188,13 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Twenty skills are built so far, from integer arithmetic through fractions,
-decimals, ratio, powers and roots to equations and inequalities.
+Thirty skills are built so far. They cover pre-algebra -- integer arithmetic
+and absolute value, fractions, decimals, ratio and proportional relationships,
+powers, roots, scientific notation and the real numbers, expressions, and
+equations and inequalities, including writing them from a situation -- and the
+first half of the linear algebra after it: slope, linear equations and their
+forms, linear models, and systems of two equations. What comes next, and which standards it answers to, is in
+`docs/catalogue-plan.md`.
 
 ```
 server/           FastAPI + SQLite. No ORM; the queries are the interesting part.

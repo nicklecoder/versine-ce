@@ -43,6 +43,15 @@ export const LEVELS = [
     dependsOn: [{ skill: 'int-muldiv', level: 1 }],
   },
   {
+    // The equations-both move with a relation in the middle. Gathering on
+    // the side with more letters keeps the coefficient positive and so never
+    // needs the flip -- which is the cleanest argument there is for which
+    // side to gather on.
+    name: 'Unknowns Both Sides', slug: 'unknowns-both-sides',
+    blurb: 'Letters on both sides. Gather where there are more and the sign never turns.',
+    dependsOn: [{ skill: 'equations', level: 2 }],
+  },
+  {
     name: 'Does It Flip?', slug: 'does-it-flip', kind: 'strategy',
     blurb: 'Sometimes the sign turns and sometimes it does not. What decides is not the minus.',
     // Sits after both cases exist, which is the first point at which
@@ -54,7 +63,7 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [14, 18, 18, 22, 16, 22];
+export const PAR_SECONDS = [14, 18, 18, 22, 28, 16, 24];
 
 /**
  * The runtime definition of this skill: what the student sees and how the

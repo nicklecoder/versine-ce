@@ -11,21 +11,31 @@ import fracMixed from '../skills/frac-mixed.js';
 import fracEquiv from '../skills/frac-equiv.js';
 import fracSigned from '../skills/frac-signed.js';
 import ratio from '../skills/ratio.js';
+import proportional from '../skills/proportional.js';
 import orderOps from '../skills/order-ops.js';
 import exponents from '../skills/exponents.js';
 import roots from '../skills/roots.js';
+import sciNotation from '../skills/sci-notation.js';
+import realNumbers from '../skills/real-numbers.js';
 import coords from '../skills/coords.js';
+import slope from '../skills/slope.js';
+import linearEq from '../skills/linear-eq.js';
+import lineForms from '../skills/line-forms.js';
+import linearModels from '../skills/linear-models.js';
 import decimals from '../skills/decimals.js';
 import rounding from '../skills/rounding.js';
 import percents from '../skills/percents.js';
 import simplify from '../skills/simplify.js';
+import evaluate from '../skills/evaluate.js';
 import equations from '../skills/equations.js';
 import equationsBoth from '../skills/equations-both.js';
+import wordEquations from '../skills/word-equations.js';
+import systems from '../skills/systems.js';
 import inequalities from '../skills/inequalities.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, orderOps, exponents, roots, coords, decimals, rounding, percents, simplify, equations, equationsBoth, inequalities];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, coords, slope, linearEq, lineForms, linearModels, decimals, rounding, percents, simplify, evaluate, equations, equationsBoth, wordEquations, systems, inequalities];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

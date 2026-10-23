@@ -172,6 +172,76 @@ function whichSide(rng) {
   };
 }
 
+/**
+ * One answer, none, or every number.
+ *
+ * Each equation is built to look like the other two: a bracket on one side
+ * and a matching-looking expression on the other, differing only where it
+ * decides the outcome. When the letters cancel, what is left is a statement
+ * about numbers alone, and whether it is true is the whole answer.
+ */
+const KINDS = [
+  { id: 'one', label: 'Exactly one number works', note: 'a single value balances it' },
+  { id: 'none', label: 'No number works', note: 'no value balances it' },
+  { id: 'every', label: 'Every number works', note: 'any value balances it' },
+];
+
+const trueMinus = (s) => s.replace(/-/g, '−');
+
+function noneOrEvery(rng) {
+  const v = rng.pick(VARS);
+  const kind = rng.pick(['one', 'none', 'none', 'every', 'every']);
+  const a = rng.int(2, 6);
+  const b = rng.nonZero(-8, 8);
+  const inside = `${v}${tail(b)}`;
+  const constant = a * b;                       // a(v + b) = av + ab
+  let coeff = a, rhsConst = constant, solution = null;
+  if (kind === 'none') rhsConst = constant + rng.nonZero(-6, 6);
+  if (kind === 'one') {
+    coeff = a + rng.pick([-1, 1, 2]);
+    solution = rng.int(-6, 6);
+    rhsConst = constant + (a - coeff) * solution; // so av + ab = cv + k at v = solution
+  }
+  // Half the time the right side has to be collected first, so the
+  // cancelling is not visible until the work is done.
+  const split = rng.chance(0.5) && coeff > 2;
+  const part = split ? rng.int(1, coeff - 1) : 0;
+  const rhs = split
+    ? `${term(part, v)}${tail(rhsConst)} + ${term(coeff - part, v)}`
+    : `${term(coeff, v)}${tail(rhsConst)}`;
+  const src = `${a}(${inside}) = ${rhs}`;
+  const expanded = `${term(a, v)}${tail(constant)} = ${term(coeff, v)}${tail(rhsConst)}`;
+  const lines = [src, expanded];
+  const rules = [split ? `open the bracket and collect the ${v}s` : 'open the bracket'];
+  let explain;
+  if (kind === 'one') {
+    lines.push(`${term(a - coeff, v)} = ${rhsConst - constant}`, `${v} = ${solution}`);
+    rules.push(`take ${term(coeff, v)} and ${constant} off both sides`, 'one value');
+    explain = `Opening the bracket gives ${expanded}. The ${v}s do not match, so they do not `
+      + `cancel: gathering them leaves ${term(a - coeff, v)} = ${rhsConst - constant}, `
+      + `and ${v} = ${solution} is the one number that works.`;
+  } else {
+    lines.push(`${constant} = ${rhsConst}`, kind === 'every' ? 'always true' : 'never true');
+    rules.push(`take ${term(a, v)} off both sides`, 'no letter left to solve for');
+    explain = `Opening the bracket gives ${expanded}. Taking ${term(a, v)} off both sides `
+      + `removes every ${v}, leaving ${constant} = ${rhsConst}`
+      + (kind === 'every'
+        ? `, which is true whatever ${v} was. Every number works.`
+        : `, which is false whatever ${v} was. No number works.`);
+  }
+  return {
+    prompt: [...ask(src, v).slice(0, -4), T.prose(' How many numbers make it true?')],
+    text: `how many solutions: ${src}`,
+    answer: { type: 'choice', value: kind, options: KINDS },
+    // Working is written with a true minus, as the rest of the catalogue's is.
+    visual: {
+      kind: 'evalmodel', lines: lines.map(trueMinus), rules,
+      hint: 'Open it up and gather. What is left?',
+    },
+    explain: trueMinus(explain),
+  };
+}
+
 const CONTENT = [bothSides, gatherThenUndo, brackets, notWhole];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
@@ -180,7 +250,10 @@ export function generate(rng, level) {
   // answers are fractions, and mixing them in would swap the answer widget
   // between one and two boxes according to whether this problem's answer
   // happens to be whole -- which tells a student the answer before they solve.
-  const p = level === 4 ? whichSide(rng)
+  // Nor No Answer or Every Answer, whose answer is a choice: the buttons
+  // would announce that this problem is about whether it has an answer.
+  const p = level === 4 ? noneOrEvery(rng)
+    : level === 5 ? whichSide(rng)
     : level >= LAST_LEVEL ? rng.pick(CONTENT.slice(0, 3))(rng)
     : CONTENT[level](rng);
   p.parSeconds = PAR_SECONDS[level];

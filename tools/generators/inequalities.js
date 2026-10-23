@@ -208,12 +208,65 @@ function doesItFlip(rng) {
   };
 }
 
-const CONTENT = [whichWork, undoAdd, undoMultiply, theFlip];
+/**
+ * ax + p > bx + q. Gathered on the side with more letters, so the division
+ * at the end is always by a positive: when the letters end up on the right,
+ * the answer reads "3 > x", which is the same statement as "x < 3" read from
+ * the other end -- not a flip, and the explanation says so.
+ */
+const coef = (k, v) => (k === 1 ? v : `${k}${v}`);
+const plus = (c) => (c === 0 ? '' : c > 0 ? ` + ${c}` : ` − ${-c}`);
+
+function bothSides(rng) {
+  const v = rng.pick(VARS);
+  const rel = rng.pick(RELATIONS);
+  let a = rng.int(1, 8), b = rng.int(1, 8);
+  while (a === b) b = rng.int(1, 8);
+  const boundary = rng.nonZero(-9, 9);
+  const p = rng.int(-12, 12);
+  const q = p + (a - b) * boundary;
+  const src = `${coef(a, v)}${plus(p)} ${rel.sign} ${coef(b, v)}${plus(q)}`;
+  const left = a > b;
+  const k = Math.abs(a - b);
+  const gathered = left
+    ? `${coef(k, v)} ${rel.sign} ${minus(q - p)}`
+    : `${minus(p - q)} ${rel.sign} ${coef(k, v)}`;
+  const solved = left
+    ? `${v} ${rel.sign} ${minus(boundary)}`
+    : `${minus(boundary)} ${rel.sign} ${v}`;
+  // Read from the letter's end, "3 > x" is "x < 3".
+  const after = left ? rel : RELATIONS.find((r) => r.sign === rel.flipped);
+  const answer = bound(after, boundary);
+  const lines = [src, gathered];
+  const rules = [`gather the ${v}s on the ${left ? 'left' : 'right'}, where there are more`];
+  if (k !== 1) { lines.push(solved); rules.push(`divide both sides by ${k}, a positive`); }
+  if (!left) { lines.push(`${v} ${after.sign} ${minus(boundary)}`); rules.push(`read it from the ${v} end`); }
+  lines.push(minus(answer));
+  rules.push('and the whole number wanted is');
+  return {
+    prompt: [T.prose(`Solve ${src}. ${asks(after)}`)],
+    text: `${src}, ${after.wantsLargest ? 'largest' : 'smallest'}`,
+    answer: { type: 'int', value: answer },
+    visual: {
+      kind: 'evalmodel', lines, rules,
+      hint: 'The letter is on both sides. Which side has more of it?',
+    },
+    explain: `There are more ${v}s on the ${left ? 'left' : 'right'}, so gather them there `
+      + `and the number in front stays positive: ${gathered}`
+      + (k !== 1 ? `, so ${solved}` : '')
+      + (left ? '. '
+        : `. That says the same as ${v} ${after.sign} ${minus(boundary)}, read from the other end — `
+          + 'nothing was divided by a negative, so nothing flipped. ')
+      + `The ${after.wantsLargest ? 'largest' : 'smallest'} whole number that works is ${minus(answer)}.`,
+  };
+}
+
+const CONTENT = [whichWork, undoAdd, undoMultiply, theFlip, bothSides];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
   // The mixed level leaves out the strategy level, whose answer is a choice.
-  const p = level === 4 ? doesItFlip(rng)
+  const p = level === 5 ? doesItFlip(rng)
     : level >= LAST_LEVEL ? rng.pick(CONTENT)(rng)
     : CONTENT[level](rng);
   p.parSeconds = PAR_SECONDS[level];

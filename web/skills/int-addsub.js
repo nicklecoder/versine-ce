@@ -25,6 +25,14 @@ export const LEVELS = [
     blurb: 'Temperatures, floors, balances. The same line, with something on it.',
   },
   {
+    // How far from zero, and how far apart. The second is the one that
+    // matters later: the distance from −4 to 6 is |6 − (−4)|, which is the
+    // subtraction this skill teaches with a reason attached, and it is the
+    // distance formula's first appearance in one dimension.
+    name: 'Absolute Value', slug: 'absolute-value',
+    blurb: 'How far from zero, whichever side. Then how far apart two numbers are.',
+  },
+  {
     name: 'Chains', slug: 'chains',
     blurb: 'Three terms at once, left to right.',
     // Three terms take roughly twice as long to work through as two, so the
@@ -38,7 +46,7 @@ export const LEVELS = [
 /** The last level is always the mixed review: it draws from every level before it. */
 export const LAST_LEVEL = LEVELS.length - 1;
 
-export const PAR_SECONDS = [11, 12, 14, 12, 20, 20, 16];
+export const PAR_SECONDS = [11, 12, 14, 12, 20, 14, 20, 16];
 
 /**
  * The runtime definition of this skill: what the student sees and how the

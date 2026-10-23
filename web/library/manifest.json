@@ -1,5 +1,5 @@
 {
-  "built": 144,
+  "built": 221,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -7,6 +7,7 @@
       "subtracting-negatives",
       "mixed-integers",
       "above-and-below-zero",
+      "absolute-value",
       "chains",
       "all-together"
     ],
@@ -88,6 +89,15 @@
       "scale-or-find-one",
       "all-together"
     ],
+    "proportional": [
+      "is-it-proportional",
+      "the-constant",
+      "using-y-equals-kx",
+      "reading-the-graph",
+      "proportional-or-not-graphs",
+      "converting-units",
+      "all-together"
+    ],
     "order-ops": [
       "times-before-plus",
       "left-to-right",
@@ -114,6 +124,25 @@
       "which-form",
       "all-together"
     ],
+    "sci-notation": [
+      "big-numbers",
+      "small-numbers",
+      "back-to-standard",
+      "tidy-it-up",
+      "which-is-bigger",
+      "multiplying-and-dividing",
+      "adding-and-taking-away",
+      "all-together"
+    ],
+    "real-numbers": [
+      "ends-or-repeats",
+      "repeating-into-fractions",
+      "rational-or-not",
+      "which-is-bigger",
+      "pin-it-down",
+      "sums-and-products",
+      "all-together"
+    ],
     "coords": [
       "reading-across",
       "reading-up",
@@ -121,6 +150,44 @@
       "which-quadrant",
       "distance-along-a-line",
       "steepness",
+      "all-together"
+    ],
+    "slope": [
+      "from-a-graph",
+      "falling-lines",
+      "from-two-points",
+      "zero-and-undefined",
+      "from-a-table",
+      "rate-with-units",
+      "all-together"
+    ],
+    "linear-eq": [
+      "reading-m-and-b",
+      "from-a-graph",
+      "slope-and-a-point",
+      "two-points",
+      "crossing-the-x-axis",
+      "on-the-line",
+      "all-together"
+    ],
+    "line-forms": [
+      "point-slope-form",
+      "standard-form",
+      "horizontal-and-vertical",
+      "parallel-lines",
+      "perpendicular-lines",
+      "parallel-perpendicular-or-neither",
+      "which-form",
+      "all-together"
+    ],
+    "linear-models": [
+      "start-and-rate",
+      "what-m-and-b-mean",
+      "from-two-readings",
+      "linear-or-not",
+      "simple-interest",
+      "comparing-two-functions",
+      "a-graphs-story",
       "all-together"
     ],
     "decimals": [
@@ -160,6 +227,15 @@
       "which-form",
       "all-together"
     ],
+    "evaluate": [
+      "substitute-a-number",
+      "substitute-a-negative",
+      "formulas",
+      "words-into-symbols",
+      "which-expression-fits",
+      "equivalent-or-not",
+      "all-together"
+    ],
     "equations": [
       "undo-by-adding",
       "undo-by-multiplying",
@@ -174,7 +250,27 @@
       "gather-then-undo",
       "brackets-first",
       "answers-that-are-not-whole",
+      "no-answer-or-every-answer",
       "which-side",
+      "all-together"
+    ],
+    "word-equations": [
+      "number-puzzles",
+      "which-equation",
+      "fixed-plus-per-unit",
+      "parts-of-a-whole",
+      "two-things-equal",
+      "at-least-at-most",
+      "all-together"
+    ],
+    "systems": [
+      "where-lines-cross",
+      "substitution",
+      "elimination",
+      "scale-first",
+      "none-or-infinitely-many",
+      "from-words",
+      "which-method",
       "all-together"
     ],
     "inequalities": [
@@ -182,6 +278,7 @@
       "undo-by-adding",
       "undo-by-multiplying",
       "the-flip",
+      "unknowns-both-sides",
       "does-it-flip",
       "all-together"
     ]
@@ -333,6 +430,24 @@
         ]
       }
     },
+    "proportional": {
+      "dependsOn": [
+        "coords",
+        "decimals",
+        "ratio"
+      ],
+      "levels": {
+        "the-constant": [
+          "ratio"
+        ],
+        "reading-the-graph": [
+          "coords"
+        ],
+        "proportional-or-not-graphs": [
+          "coords"
+        ]
+      }
+    },
     "order-ops": {
       "dependsOn": [
         "int-addsub",
@@ -365,9 +480,82 @@
         ]
       }
     },
+    "sci-notation": {
+      "dependsOn": [
+        "decimals",
+        "exponents"
+      ],
+      "levels": {
+        "small-numbers": [
+          "exponents"
+        ],
+        "back-to-standard": [
+          "decimals"
+        ],
+        "multiplying-and-dividing": [
+          "decimals",
+          "exponents"
+        ],
+        "adding-and-taking-away": [
+          "decimals"
+        ]
+      }
+    },
+    "real-numbers": {
+      "dependsOn": [
+        "decimals",
+        "frac-equiv",
+        "roots",
+        "rounding"
+      ],
+      "levels": {
+        "repeating-into-fractions": [
+          "frac-equiv"
+        ],
+        "pin-it-down": [
+          "roots",
+          "rounding"
+        ],
+        "sums-and-products": [
+          "roots"
+        ]
+      }
+    },
     "coords": {
       "dependsOn": [
         "int-addsub"
+      ],
+      "levels": {}
+    },
+    "slope": {
+      "dependsOn": [
+        "coords",
+        "frac-signed"
+      ],
+      "levels": {}
+    },
+    "linear-eq": {
+      "dependsOn": [
+        "equations",
+        "evaluate",
+        "slope"
+      ],
+      "levels": {}
+    },
+    "line-forms": {
+      "dependsOn": [
+        "linear-eq"
+      ],
+      "levels": {
+        "which-form": [
+          "linear-eq"
+        ]
+      }
+    },
+    "linear-models": {
+      "dependsOn": [
+        "linear-eq",
+        "percents"
       ],
       "levels": {}
     },
@@ -428,6 +616,21 @@
         ]
       }
     },
+    "evaluate": {
+      "dependsOn": [
+        "int-muldiv",
+        "order-ops",
+        "simplify"
+      ],
+      "levels": {
+        "substitute-a-negative": [
+          "int-muldiv"
+        ],
+        "equivalent-or-not": [
+          "simplify"
+        ]
+      }
+    },
     "equations": {
       "dependsOn": [
         "int-muldiv",
@@ -454,6 +657,33 @@
         ]
       }
     },
+    "word-equations": {
+      "dependsOn": [
+        "equations-both",
+        "evaluate",
+        "inequalities"
+      ],
+      "levels": {
+        "two-things-equal": [
+          "equations-both"
+        ],
+        "at-least-at-most": [
+          "inequalities"
+        ]
+      }
+    },
+    "systems": {
+      "dependsOn": [
+        "equations-both",
+        "linear-eq",
+        "word-equations"
+      ],
+      "levels": {
+        "which-method": [
+          "equations-both"
+        ]
+      }
+    },
     "inequalities": {
       "dependsOn": [
         "equations",
@@ -469,13 +699,16 @@
         "the-flip": [
           "int-muldiv"
         ],
+        "unknowns-both-sides": [
+          "equations"
+        ],
         "does-it-flip": [
           "int-muldiv"
         ]
       }
     }
   },
-  "sources": "3b2c75aa81d5053b8fdebaf40b2fa1be8bc2c1b290be94d773facf4db45efdbf",
+  "sources": "0c04fac8039c9df8a82af198eb104ab8cfaae3325506db041c1db28ede28b10c",
   "levels": [
     {
       "skill": "int-addsub",
@@ -530,22 +763,32 @@
     {
       "skill": "int-addsub",
       "level": 5,
-      "slug": "chains",
-      "name": "Chains",
+      "slug": "absolute-value",
+      "name": "Absolute Value",
       "count": 1000,
       "exhaustive": false,
-      "signed": true,
+      "signed": false,
       "file": "int-addsub-5.json"
     },
     {
       "skill": "int-addsub",
       "level": 6,
+      "slug": "chains",
+      "name": "Chains",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "int-addsub-6.json"
+    },
+    {
+      "skill": "int-addsub",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "int-addsub-6.json"
+      "file": "int-addsub-7.json"
     },
     {
       "skill": "int-muldiv",
@@ -1168,6 +1411,76 @@
       "file": "ratio-7.json"
     },
     {
+      "skill": "proportional",
+      "level": 0,
+      "slug": "is-it-proportional",
+      "name": "Is It Proportional?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "proportional-0.json"
+    },
+    {
+      "skill": "proportional",
+      "level": 1,
+      "slug": "the-constant",
+      "name": "The Constant",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "proportional-1.json"
+    },
+    {
+      "skill": "proportional",
+      "level": 2,
+      "slug": "using-y-equals-kx",
+      "name": "Using y = kx",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "proportional-2.json"
+    },
+    {
+      "skill": "proportional",
+      "level": 3,
+      "slug": "reading-the-graph",
+      "name": "Reading the Graph",
+      "count": 378,
+      "exhaustive": true,
+      "signed": false,
+      "file": "proportional-3.json"
+    },
+    {
+      "skill": "proportional",
+      "level": 4,
+      "slug": "proportional-or-not-graphs",
+      "name": "Proportional or Not: Graphs",
+      "count": 204,
+      "exhaustive": true,
+      "signed": false,
+      "file": "proportional-4.json"
+    },
+    {
+      "skill": "proportional",
+      "level": 5,
+      "slug": "converting-units",
+      "name": "Converting Units",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "proportional-5.json"
+    },
+    {
+      "skill": "proportional",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "proportional-6.json"
+    },
+    {
       "skill": "order-ops",
       "level": 0,
       "slug": "times-before-plus",
@@ -1368,6 +1681,156 @@
       "file": "roots-6.json"
     },
     {
+      "skill": "sci-notation",
+      "level": 0,
+      "slug": "big-numbers",
+      "name": "Big Numbers",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "sci-notation-0.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 1,
+      "slug": "small-numbers",
+      "name": "Small Numbers",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sci-notation-1.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 2,
+      "slug": "back-to-standard",
+      "name": "Back to Standard",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sci-notation-2.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 3,
+      "slug": "tidy-it-up",
+      "name": "Tidy It Up",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sci-notation-3.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 4,
+      "slug": "which-is-bigger",
+      "name": "Which Is Bigger",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "sci-notation-4.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 5,
+      "slug": "multiplying-and-dividing",
+      "name": "Multiplying and Dividing",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sci-notation-5.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 6,
+      "slug": "adding-and-taking-away",
+      "name": "Adding and Taking Away",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "sci-notation-6.json"
+    },
+    {
+      "skill": "sci-notation",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sci-notation-7.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 0,
+      "slug": "ends-or-repeats",
+      "name": "Ends or Repeats",
+      "count": 914,
+      "exhaustive": true,
+      "signed": false,
+      "file": "real-numbers-0.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 1,
+      "slug": "repeating-into-fractions",
+      "name": "Repeating Into Fractions",
+      "count": 170,
+      "exhaustive": true,
+      "signed": false,
+      "file": "real-numbers-1.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 2,
+      "slug": "rational-or-not",
+      "name": "Rational or Not",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "real-numbers-2.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 3,
+      "slug": "which-is-bigger",
+      "name": "Which Is Bigger",
+      "count": 674,
+      "exhaustive": true,
+      "signed": false,
+      "file": "real-numbers-3.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 4,
+      "slug": "pin-it-down",
+      "name": "Pin It Down",
+      "count": 138,
+      "exhaustive": true,
+      "signed": false,
+      "file": "real-numbers-4.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 5,
+      "slug": "sums-and-products",
+      "name": "Sums and Products",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "real-numbers-5.json"
+    },
+    {
+      "skill": "real-numbers",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "real-numbers-6.json"
+    },
+    {
       "skill": "coords",
       "level": 0,
       "slug": "reading-across",
@@ -1436,6 +1899,306 @@
       "exhaustive": false,
       "signed": true,
       "file": "coords-6.json"
+    },
+    {
+      "skill": "slope",
+      "level": 0,
+      "slug": "from-a-graph",
+      "name": "From a Graph",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "slope-0.json"
+    },
+    {
+      "skill": "slope",
+      "level": 1,
+      "slug": "falling-lines",
+      "name": "Falling Lines",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "slope-1.json"
+    },
+    {
+      "skill": "slope",
+      "level": 2,
+      "slug": "from-two-points",
+      "name": "From Two Points",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "slope-2.json"
+    },
+    {
+      "skill": "slope",
+      "level": 3,
+      "slug": "zero-and-undefined",
+      "name": "Zero and Undefined",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "slope-3.json"
+    },
+    {
+      "skill": "slope",
+      "level": 4,
+      "slug": "from-a-table",
+      "name": "From a Table",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "slope-4.json"
+    },
+    {
+      "skill": "slope",
+      "level": 5,
+      "slug": "rate-with-units",
+      "name": "Rate With Units",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "slope-5.json"
+    },
+    {
+      "skill": "slope",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "slope-6.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 0,
+      "slug": "reading-m-and-b",
+      "name": "Reading m and b",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-eq-0.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 1,
+      "slug": "from-a-graph",
+      "name": "From a Graph",
+      "count": 615,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-eq-1.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 2,
+      "slug": "slope-and-a-point",
+      "name": "Slope and a Point",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-eq-2.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 3,
+      "slug": "two-points",
+      "name": "Two Points",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-eq-3.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 4,
+      "slug": "crossing-the-x-axis",
+      "name": "Crossing the x-Axis",
+      "count": 232,
+      "exhaustive": true,
+      "signed": true,
+      "file": "linear-eq-4.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 5,
+      "slug": "on-the-line",
+      "name": "On the Line?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "linear-eq-5.json"
+    },
+    {
+      "skill": "linear-eq",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-eq-6.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 0,
+      "slug": "point-slope-form",
+      "name": "Point-Slope Form",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "line-forms-0.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 1,
+      "slug": "standard-form",
+      "name": "Standard Form",
+      "count": 780,
+      "exhaustive": true,
+      "signed": true,
+      "file": "line-forms-1.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 2,
+      "slug": "horizontal-and-vertical",
+      "name": "Horizontal and Vertical",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "line-forms-2.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 3,
+      "slug": "parallel-lines",
+      "name": "Parallel Lines",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "line-forms-3.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 4,
+      "slug": "perpendicular-lines",
+      "name": "Perpendicular Lines",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "line-forms-4.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 5,
+      "slug": "parallel-perpendicular-or-neither",
+      "name": "Parallel, Perpendicular or Neither",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "line-forms-5.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 6,
+      "slug": "which-form",
+      "name": "Which Form?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "line-forms-6.json"
+    },
+    {
+      "skill": "line-forms",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "line-forms-7.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 0,
+      "slug": "start-and-rate",
+      "name": "Start and Rate",
+      "count": 416,
+      "exhaustive": true,
+      "signed": true,
+      "file": "linear-models-0.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 1,
+      "slug": "what-m-and-b-mean",
+      "name": "What m and b Mean",
+      "count": 782,
+      "exhaustive": true,
+      "signed": false,
+      "file": "linear-models-1.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 2,
+      "slug": "from-two-readings",
+      "name": "From Two Readings",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-models-2.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 3,
+      "slug": "linear-or-not",
+      "name": "Linear or Not",
+      "count": 558,
+      "exhaustive": true,
+      "signed": false,
+      "file": "linear-models-3.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 4,
+      "slug": "simple-interest",
+      "name": "Simple Interest",
+      "count": 924,
+      "exhaustive": true,
+      "signed": false,
+      "file": "linear-models-4.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 5,
+      "slug": "comparing-two-functions",
+      "name": "Comparing Two Functions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "linear-models-5.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 6,
+      "slug": "a-graphs-story",
+      "name": "A Graph's Story",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "linear-models-6.json"
+    },
+    {
+      "skill": "linear-models",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "linear-models-7.json"
     },
     {
       "skill": "decimals",
@@ -1728,6 +2491,76 @@
       "file": "simplify-6.json"
     },
     {
+      "skill": "evaluate",
+      "level": 0,
+      "slug": "substitute-a-number",
+      "name": "Substitute a Number",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "evaluate-0.json"
+    },
+    {
+      "skill": "evaluate",
+      "level": 1,
+      "slug": "substitute-a-negative",
+      "name": "Substitute a Negative",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "evaluate-1.json"
+    },
+    {
+      "skill": "evaluate",
+      "level": 2,
+      "slug": "formulas",
+      "name": "Formulas",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "evaluate-2.json"
+    },
+    {
+      "skill": "evaluate",
+      "level": 3,
+      "slug": "words-into-symbols",
+      "name": "Words Into Symbols",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "evaluate-3.json"
+    },
+    {
+      "skill": "evaluate",
+      "level": 4,
+      "slug": "which-expression-fits",
+      "name": "Which Expression Fits",
+      "count": 716,
+      "exhaustive": true,
+      "signed": false,
+      "file": "evaluate-4.json"
+    },
+    {
+      "skill": "evaluate",
+      "level": 5,
+      "slug": "equivalent-or-not",
+      "name": "Equivalent or Not",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "evaluate-5.json"
+    },
+    {
+      "skill": "evaluate",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "evaluate-6.json"
+    },
+    {
       "skill": "equations",
       "level": 0,
       "slug": "undo-by-adding",
@@ -1840,8 +2673,8 @@
     {
       "skill": "equations-both",
       "level": 4,
-      "slug": "which-side",
-      "name": "Which Side?",
+      "slug": "no-answer-or-every-answer",
+      "name": "No Answer or Every Answer",
       "count": 1000,
       "exhaustive": false,
       "signed": false,
@@ -1850,12 +2683,172 @@
     {
       "skill": "equations-both",
       "level": 5,
+      "slug": "which-side",
+      "name": "Which Side?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "equations-both-5.json"
+    },
+    {
+      "skill": "equations-both",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "equations-both-5.json"
+      "file": "equations-both-6.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 0,
+      "slug": "number-puzzles",
+      "name": "Number Puzzles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "word-equations-0.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 1,
+      "slug": "which-equation",
+      "name": "Which Equation?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "word-equations-1.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 2,
+      "slug": "fixed-plus-per-unit",
+      "name": "Fixed Plus Per-Unit",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "word-equations-2.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 3,
+      "slug": "parts-of-a-whole",
+      "name": "Parts of a Whole",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "word-equations-3.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 4,
+      "slug": "two-things-equal",
+      "name": "Two Things Equal",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "word-equations-4.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 5,
+      "slug": "at-least-at-most",
+      "name": "At Least, At Most",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "word-equations-5.json"
+    },
+    {
+      "skill": "word-equations",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "word-equations-6.json"
+    },
+    {
+      "skill": "systems",
+      "level": 0,
+      "slug": "where-lines-cross",
+      "name": "Where Lines Cross",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-0.json"
+    },
+    {
+      "skill": "systems",
+      "level": 1,
+      "slug": "substitution",
+      "name": "Substitution",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-1.json"
+    },
+    {
+      "skill": "systems",
+      "level": 2,
+      "slug": "elimination",
+      "name": "Elimination",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2.json"
+    },
+    {
+      "skill": "systems",
+      "level": 3,
+      "slug": "scale-first",
+      "name": "Scale First",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-3.json"
+    },
+    {
+      "skill": "systems",
+      "level": 4,
+      "slug": "none-or-infinitely-many",
+      "name": "None or Infinitely Many",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "systems-4.json"
+    },
+    {
+      "skill": "systems",
+      "level": 5,
+      "slug": "from-words",
+      "name": "From Words",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-5.json"
+    },
+    {
+      "skill": "systems",
+      "level": 6,
+      "slug": "which-method",
+      "name": "Which Method?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "systems-6.json"
+    },
+    {
+      "skill": "systems",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-7.json"
     },
     {
       "skill": "inequalities",
@@ -1900,22 +2893,32 @@
     {
       "skill": "inequalities",
       "level": 4,
-      "slug": "does-it-flip",
-      "name": "Does It Flip?",
+      "slug": "unknowns-both-sides",
+      "name": "Unknowns Both Sides",
       "count": 1000,
       "exhaustive": false,
-      "signed": false,
+      "signed": true,
       "file": "inequalities-4.json"
     },
     {
       "skill": "inequalities",
       "level": 5,
+      "slug": "does-it-flip",
+      "name": "Does It Flip?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "inequalities-5.json"
+    },
+    {
+      "skill": "inequalities",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "inequalities-5.json"
+      "file": "inequalities-6.json"
     }
   ]
 }

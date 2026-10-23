@@ -27,6 +27,14 @@ export const LEVELS = [
   { name: 'Answers That Are Not Whole', slug: 'answers-that-are-not-whole',
     blurb: 'A fraction is an answer, not a mistake. Leave it exact.' },
   {
+    // 3(x + 2) = 3x + 6 is true for every x and 3x + 6 = 3x + 5 for none.
+    // A student who has only met equations with one answer reads the
+    // vanishing letter as a mistake and hunts for it; this is where they
+    // learn it is the answer.
+    name: 'No Answer or Every Answer', slug: 'no-answer-or-every-answer',
+    blurb: 'Sometimes the letters cancel. What is left says whether any number works.',
+  },
+  {
     name: 'Which Side?', slug: 'which-side', kind: 'strategy',
     blurb: 'Collect the unknowns left or right? One choice avoids a negative.',
     dependsOn: [{ skill: 'equations', level: 2 }],
@@ -36,7 +44,7 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [22, 26, 26, 24, 18, 28];
+export const PAR_SECONDS = [22, 26, 26, 24, 22, 18, 28];
 
 /**
  * The runtime definition of this skill: what the student sees and how the

@@ -176,13 +176,73 @@ function situations(rng) {
   };
 }
 
+/**
+ * Absolute value, three ways: of one number, of a difference, and as the
+ * distance between two points on the line.
+ *
+ * The order trap is built in rather than left to chance. −12 is less than
+ * −3, but it is further from zero, and a student who reads |−12| as "small
+ * because negative" has confused size with position -- so one number in
+ * every pair is negative, and the explanation says which is further out.
+ */
+function absoluteValue(rng) {
+  const shape = rng.pick(['one', 'one', 'difference', 'apart', 'apart']);
+  if (shape === 'one') {
+    const a = rng.int(1, 30) * (rng.chance(0.7) ? -1 : 1);
+    const v = Math.abs(a);
+    return {
+      prompt: T.asks(T.num(`|${minus(a)}|`, 1)),
+      text: `|${minus(a)}|`,
+      answer: { type: 'int', value: v },
+      visual: {
+        kind: 'numberline', ...niceBounds([a, 0]), answer: a,
+        steps: [{ from: 0, to: a, label: '?' }],
+      },
+      explain: a < 0
+        ? `${minus(a)} is ${v} steps to the left of zero. Absolute value counts the steps and `
+          + `ignores the direction, so |${minus(a)}| = ${v}.`
+        : `${a} is ${v} steps to the right of zero, so |${a}| = ${v}.`,
+    };
+  }
+  let a = rng.nonZero(-15, 15), b = rng.nonZero(-15, 15);
+  while (a === b || (a > 0 && b > 0)) { a = rng.nonZero(-15, 15); b = rng.nonZero(-15, 15); }
+  const v = Math.abs(a - b);
+  if (shape === 'difference') {
+    return {
+      prompt: T.asks(T.num('|', 1), T.num(minus(a), 1), T.op('−'), T.num(signed(b), 2), T.num('|', 1)),
+      text: `|${minus(a)} − ${signed(b)}|`,
+      answer: { type: 'int', value: v },
+      visual: {
+        kind: 'numberline', ...niceBounds([a, b, 0]), answer: a,
+        steps: [{ from: b, to: a, label: '?' }],
+      },
+      explain: `Work inside the bars first: ${minus(a)} − ${signed(b)} = ${minus(a - b)}. `
+        + `Then take the distance from zero, so |${minus(a - b)}| = ${v}.`,
+    };
+  }
+  return {
+    prompt: [T.prose(`How far apart are ${minus(a)} and ${minus(b)} on the number line?`)],
+    text: `distance from ${minus(a)} to ${minus(b)}`,
+    answer: { type: 'int', value: v },
+    visual: {
+      kind: 'numberline', ...niceBounds([a, b, 0]), answer: b,
+      steps: [{ from: a, to: b, label: '?' }],
+    },
+    explain: `The distance between two numbers is the absolute value of their difference: `
+      + `|${minus(b)} − ${signed(a)}| = |${minus(b - a)}| = ${v}.`
+      + (a * b < 0 ? ` Across zero that is ${Math.abs(a)} on one side and ${Math.abs(b)} on the other, `
+        + `${Math.abs(a)} + ${Math.abs(b)} = ${v}.` : ` Counting along the line gives the same ${v}.`),
+  };
+}
+
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 
   /** @param {import('../engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
-  // Level 4 is Above and Below Zero, level 5 is Chains.
+  // Level 4 is Above and Below Zero, 5 Absolute Value, 6 Chains.
   const build = (lv) => (lv === 4 ? situations(rng)
-    : lv === 5 ? threeTerm(rng)
+    : lv === 5 ? absoluteValue(rng)
+    : lv === 6 ? threeTerm(rng)
     : twoTerm(rng, lv));
   if (level >= LAST_LEVEL) {
     // Mixed review: pick any earlier level at random, so they can't settle
