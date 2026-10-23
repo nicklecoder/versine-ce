@@ -1002,6 +1002,92 @@ OPTION_RULES += (
 )
 
 
+# --- Sequences ---------------------------------------------------------------
+
+def terms_of(text: str):
+    return [Fraction(t) for t in text.split(", ")]
+
+
+def kind_of(text: str) -> str:
+    t = terms_of(text)
+    if len({b - a for a, b in zip(t, t[1:])}) == 1:
+        return "arithmetic"
+    if 0 not in t and len({b / a for a, b in zip(t, t[1:])}) == 1:
+        return "geometric"
+    return "neither"
+
+
+def nth_term(n: str, text: str) -> Fraction:
+    t, k = terms_of(text), int(n)
+    kind = kind_of(text)
+    if kind == "arithmetic":
+        return t[0] + (k - 1) * (t[1] - t[0])
+    if kind == "geometric":
+        return t[0] * (t[1] / t[0]) ** (k - 1)
+    raise ValueError(f"no rule for {text}")
+
+
+def missing_term(text: str) -> Fraction:
+    parts = text.split(", ")
+    gap = parts.index("?")
+    known = [(i, Fraction(v)) for i, v in enumerate(parts) if v != "?"]
+    steps = {(b - a) / (j - i) for (i, a), (j, b) in zip(known, known[1:])}
+    if len(steps) != 1:
+        raise ValueError("not arithmetic")
+    (i, v) = known[0]
+    return v + (gap - i) * steps.pop()
+
+
+def which_term(value: str, text: str) -> Fraction:
+    t = terms_of(text)
+    d = t[1] - t[0]
+    n = (Fraction(value) - t[0]) / d + 1
+    if kind_of(text) != "arithmetic" or n.denominator != 1 or n < 1:
+        raise ValueError("not a term")
+    return n
+
+
+def recursive_term(starts: str, rule: str, n: str) -> Fraction:
+    """Step the rule along: p is the term before, q the one before that."""
+    t = [Fraction(v) for v in starts.split(", ")]
+    while len(t) < int(n):
+        t.append(at(rule, {"p": t[-1], "q": t[-2] if len(t) > 1 else 0}))
+    return t[int(n) - 1]
+
+
+def rule_for(text: str):
+    t = terms_of(text)
+    if kind_of(text) != "arithmetic":
+        raise ValueError("no arithmetic rule")
+    d = t[1] - t[0]
+    return d, t[0] - d
+
+
+BY_RULE += (
+    (re.compile(r"^difference of (.+)$"),
+     lambda text: (t := terms_of(text))[1] - t[0] if kind_of(text) == "arithmetic" else None),
+    (re.compile(r"^missing in (.+)$"), missing_term),
+    (re.compile(r"^which term is (-?\d+) in (.+)$"), which_term),
+    (re.compile(r"^term (\d+) of (.+)$"), nth_term),
+    (re.compile(r"^term (\d+) with a1 = (-?\d+) d = (-?\d+)$"),
+     lambda n, a, d: int(a) + (n - 1) * int(d)),
+    (re.compile(r"^term (\d+) with a1 = (-?\d+) r = (-?\d+)/(\d+)$"),
+     lambda n, a, p, q: int(a) * Fraction(int(p), q) ** (n - 1)),
+    (re.compile(r"^ratio of (.+)$"),
+     lambda text: (t := terms_of(text))[1] / t[0] if kind_of(text) == "geometric" else None),
+    (re.compile(r"^recursive (.+) \| (.+) \| term (\d+)$"),
+     lambda starts, rule, n: recursive_term(str(starts), rule, str(n))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^kind of (.+)$"), kind_of),
+)
+
+RULE_RULES = (
+    (re.compile(r"^rule for (.+)$"), rule_for),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1041,6 +1127,17 @@ for path in sorted(LIB.glob("*.json")):
                 v = answer["value"]
                 got = ("x", as_fraction(v["x"])) if "x" in v else (as_fraction(v["m"]), as_fraction(v["b"]))
                 if got != want:
+                    problems.append(f"{where}: {text} is {want}, not {v}")
+            continue
+
+        # An nth-term rule: rebuilt from the terms, and compared as m·n + b.
+        if answer["type"] == "rule":
+            rule = next((r for r in RULE_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = tuple(Fraction(v) for v in rule[1](*rule[0].match(text).groups()))
+                v = answer["value"]
+                if (as_fraction(v["m"]), as_fraction(v["b"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
             continue
 

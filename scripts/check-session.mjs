@@ -113,6 +113,22 @@ for (const skill of SKILLS) {
   }
 }
 
+// requiem: play/answers/rule-judged-by-value
+// The spellings a student writes for one rule, which the loop above never
+// types: it only submits the stored answer in its own format.
+{
+  const rule = getType('rule');
+  const want = rule.parse('4n - 1').value;
+  for (const raw of ['3 + 4(n - 1)', 'aₙ = 4n − 1', 'a_n = -1 + 4n', '4(n - 1) + 3']) {
+    const got = rule.parse(raw);
+    if (!got.ok || !rule.equals(got.value, want)) fail.push(`rule: "${raw}" was not accepted for 4n − 1`);
+  }
+  for (const raw of ['n^2 + 3', '2^n']) {
+    const got = rule.parse(raw);
+    if (got.ok || !got.hint) fail.push(`rule: "${raw}" was not refused with a hint`);
+  }
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

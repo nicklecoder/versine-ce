@@ -235,9 +235,10 @@ export function answerTerm(type, value) {
     // as a list rather than wrapped: wrapping made the whole answer as tight
     // as a product, so "5a + 4" lost the spacing its question had.
     case 'expr': return exprTerms(value);
-    // A line and a pair are shown in the notation their own type writes,
-    // which the expression preview can draw: y = 3/4x − 2, (3, −2).
-    case 'linear': return exprTerms(getType('linear').format(value).replace(/−/g, '-'));
+    // A line, a rule and a pair are shown in the notation their own type
+    // writes, which the expression preview can draw: y = 3/4x − 2, 4n − 1, (3, −2).
+    case 'linear':
+    case 'rule': return exprTerms(getType(type).format(value).replace(/−/g, '-'));
     case 'pair': return { t: 'num', v: getType('pair').format(value) };
     case 'frac': return { t: 'frac', n: value.n, d: value.d };
     case 'mixed': return value.w !== undefined && value.w !== 0

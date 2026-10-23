@@ -1014,9 +1014,11 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 /* ── Table of values ─────────────────────────────────────────────────── */
 .vtable { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .vtable table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+/* Headers are letters as often as words -- x, y, n, aₙ -- and a capital
+   is a different letter, so they keep the case they were written in. */
 .vtable th {
-  font-family: var(--display); font-size: .62rem; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  font-family: var(--display); font-size: .74rem; font-weight: 600;
+  letter-spacing: .06em; color: var(--dim);
   padding: 6px 18px; border-bottom: 1px solid var(--line);
 }
 .vtable td {
@@ -1027,7 +1029,6 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .vtable tbody tr + tr td { border-top: 1px solid var(--line); }
 .vtable td.is-blank { color: var(--gold); }
 .vtable td.is-answer, .vtable th.is-answer { color: var(--result); }
-.vtable th.is-answer { text-transform: none; }
 .vtable-note { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
 
 /* ── Choice input (judgement questions) ───────────────────────────────── */

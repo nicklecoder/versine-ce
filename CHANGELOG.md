@@ -60,11 +60,15 @@ Phase 1, functions and linear algebra, is half built:
 - **Systems of Equations** (Equations): where two lines cross, substitution, elimination,
   scaling first, none or infinitely many, from words, and a strategy level on which
   method is least work.
+- **Sequences** (Sequences): the common difference, any term and which term a number is,
+  writing the nth-term rule, the common ratio, geometric terms, recursive rules, and a
+  strategy level on telling arithmetic, geometric and neither apart.
 
-Two new answer types. **linear** takes a line typed as y = …, judged as a line: y = x/2 + 3,
+Three new answer types. **linear** takes a line typed as y = …, judged as a line: y = x/2 + 3,
 y = 0.5x + 3 and y = 3 + 1/2x are all accepted, a curve is refused as not a line, and x = c
 gives a vertical one. **pair** takes an ordered pair in two boxes, ( x , y ), each a whole
-number, fraction or decimal. The expression preview now draws an equation, so y = 2x − 3
+number, fraction or decimal. **rule** takes an nth-term rule, judged by the terms it gives:
+3 + 4(n − 1) and 4n − 1 are both accepted for 3, 7, 11, … The expression preview now draws an equation, so y = 2x − 3
 shows as typed.
 
 Fixed: an expression answer with a leading minus, like −2x + 3, was refused when the stored
@@ -72,7 +76,7 @@ answer was written 3 − 2x. Signs are now lifted out of products before compari
 
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.
-A segment on the plane is labelled at its middle, so a run and a rise sharing a corner no
+Table headers keep their case, since x, y and aₙ are letters and a capital is a different one. A segment on the plane is labelled at its middle, so a run and a rise sharing a corner no
 longer print over each other. `web/dev/lines.html` shows one problem from each line, pair
 and graph level, asking and answered.
 

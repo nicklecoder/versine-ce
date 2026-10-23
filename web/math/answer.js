@@ -266,6 +266,34 @@ const fracText = (f) => {
   return r.n < 0 ? `−${body}` : body;
 };
 
+/**
+ * An expression in one letter, read as m·letter + b by evaluating it exactly
+ * at seven values: equal steps mean it is linear, and the first value and
+ * the step are b and m. Anything else is refused with the matching hint.
+ */
+function lineIn(text, letter, hints) {
+  const parsed = parseExpression(text);
+  if (!parsed.ok) return { ok: false, why: parsed.error };
+  if ([...lettersIn(parsed.ast)].some((v) => v !== letter)) return { ok: false, hint: hints.letters };
+  const at = [0, 1, 2, 3, 4, 5, 6].map((k) => valueAt(parsed.ast, { [letter]: { n: k, d: 1 } }));
+  if (at.some((v) => v === null)) return { ok: false, hint: hints.numbers };
+  const step = reduceFrac(at[1].n * at[0].d - at[0].n * at[1].d, at[0].d * at[1].d);
+  for (let i = 2; i < at.length; i++) {
+    const s = reduceFrac(at[i].n * at[i - 1].d - at[i - 1].n * at[i].d, at[i].d * at[i - 1].d);
+    if (!sameFrac(s, step)) return { ok: false, hint: hints.curved };
+  }
+  return { ok: true, value: { m: step, b: reduceFrac(at[0].n, at[0].d) } };
+}
+
+/** m·letter + b as written: 3/4x − 2, −n, 5. */
+function lineText({ m, b }, letter) {
+  if (m.n === 0) return fracText(b);
+  const size = fracText({ n: Math.abs(m.n), d: m.d });
+  const slope = `${m.n < 0 ? '−' : ''}${size === '1' ? '' : size}${letter}`;
+  if (b.n === 0) return slope;
+  return `${slope} ${b.n < 0 ? '−' : '+'} ${fracText({ n: Math.abs(b.n), d: b.d })}`;
+}
+
 // requiem: play/answers/line-judged-as-line
 defineType({
   id: 'linear',
@@ -306,18 +334,11 @@ defineType({
         return { ok: true, value: { x: c } };
       } else return { ok: false, hint: 'Write it with y on its own: y = …' };
     }
-    const parsed = parseExpression(right);
-    if (!parsed.ok) return { ok: false, why: parsed.error };
-    const letters = [...lettersIn(parsed.ast)];
-    if (letters.some((v) => v !== 'x')) return { ok: false, hint: 'Write the line in x and y.' };
-    const at = [0, 1, 2, 3, 4, 5, 6].map((x) => valueAt(parsed.ast, { x: { n: x, d: 1 } }));
-    if (at.some((v) => v === null)) return { ok: false, hint: 'A line needs only numbers and x.' };
-    const step = reduceFrac(at[1].n * at[0].d - at[0].n * at[1].d, at[0].d * at[1].d);
-    for (let i = 2; i < at.length; i++) {
-      const s = reduceFrac(at[i].n * at[i - 1].d - at[i - 1].n * at[i].d, at[i].d * at[i - 1].d);
-      if (!sameFrac(s, step)) return { ok: false, hint: 'That is not a straight line.' };
-    }
-    return { ok: true, value: { m: step, b: reduceFrac(at[0].n, at[0].d) } };
+    return lineIn(right, 'x', {
+      letters: 'Write the line in x and y.',
+      numbers: 'A line needs only numbers and x.',
+      curved: 'That is not a straight line.',
+    });
   },
   equals(a, b) {
     if ('x' in a || 'x' in b) return 'x' in a && 'x' in b && sameFrac(a.x, b.x);
@@ -325,14 +346,49 @@ defineType({
   },
   /** y = 3/4x − 2, y = −x, y = 5, x = −3. */
   format(v) {
-    if ('x' in v) return `x = ${fracText(v.x)}`;
-    const { m, b } = v;
-    if (m.n === 0) return `y = ${fracText(b)}`;
-    const size = fracText({ n: Math.abs(m.n), d: m.d });
-    const slope = `${m.n < 0 ? '−' : ''}${size === '1' ? '' : size}x`;
-    if (b.n === 0) return `y = ${slope}`;
-    return `y = ${slope} ${b.n < 0 ? '−' : '+'} ${fracText({ n: Math.abs(b.n), d: b.d })}`;
+    return 'x' in v ? `x = ${fracText(v.x)}` : `y = ${lineText(v, 'x')}`;
   },
+});
+
+// requiem: play/answers/rule-judged-by-value
+defineType({
+  id: 'rule',
+  input: 'free',
+  hint: 'Type the rule in n, like 4n − 1.',
+  /**
+   * The nth-term rule of an arithmetic sequence, judged by the terms it
+   * gives rather than by its spelling.
+   *
+   * 3 + 4(n − 1) is the form the formula hands a student, and 4n − 1 is
+   * that form tidied; both give 3, 7, 11, …, and a level asking for the
+   * rule is asking whether the student can produce the sequence, not
+   * whether they expanded the bracket. So the rule is evaluated exactly,
+   * the same way a line is, and stored as its m and b. A rule with a
+   * square or a power of n is refused as not an arithmetic rule, with a
+   * hint, rather than marked as a wrong one.
+   *
+   * aₙ = …, a_n = … and an = … are accepted around it, since that is how
+   * the rule is written on paper.
+   *
+   * Value: { m, b } for the rule m·n + b, each a fraction { n, d }.
+   */
+  parse(raw) {
+    const text = String(raw).trim().replace(/[−–—]/g, '-').replace(/ₙ/g, '_n');
+    if (!text) return { ok: false };
+    const sides = text.split('=').map((t) => t.trim());
+    if (sides.length > 2) return { ok: false, hint: 'One equals sign is enough.' };
+    if (sides.length === 2 && !/^[a-z](_?n|\(n\))$/i.test(sides[0])) {
+      return { ok: false, hint: 'Just the rule is enough, like 4n − 1.' };
+    }
+    return lineIn(sides[sides.length - 1], 'n', {
+      letters: 'Write the rule using n, the term number.',
+      numbers: 'The rule needs only numbers and n.',
+      curved: 'An arithmetic rule goes up by the same amount each time: a number times n, plus a number.',
+    });
+  },
+  equals: (a, b) => sameFrac(a.m, b.m) && sameFrac(a.b, b.b),
+  /** 4n − 1, −2n + 10, 5. */
+  format: (v) => lineText(v, 'n'),
 });
 
 defineType({

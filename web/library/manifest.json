@@ -1,5 +1,5 @@
 {
-  "built": 229,
+  "built": 237,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -290,6 +290,16 @@
       "the-flip",
       "unknowns-both-sides",
       "does-it-flip",
+      "all-together"
+    ],
+    "sequences": [
+      "common-difference",
+      "any-term",
+      "writing-the-rule",
+      "common-ratio",
+      "geometric-terms",
+      "recursive-rules",
+      "which-kind",
       "all-together"
     ]
   },
@@ -723,9 +733,20 @@
           "int-muldiv"
         ]
       }
+    },
+    "sequences": {
+      "dependsOn": [
+        "exponents",
+        "linear-models"
+      ],
+      "levels": {
+        "which-kind": [
+          "linear-models"
+        ]
+      }
     }
   },
-  "sources": "1dc013cec936c8724e017835ef740e3634ee6b001facb295f485835d25f3d67b",
+  "sources": "a383cbcf31c4aa0d3488613fc1afa1963b090c817f8f13a8d430dc04426f5bf0",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3016,6 +3037,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "inequalities-6.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 0,
+      "slug": "common-difference",
+      "name": "Common Difference",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sequences-0.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 1,
+      "slug": "any-term",
+      "name": "Any Term",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sequences-1.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 2,
+      "slug": "writing-the-rule",
+      "name": "Writing the Rule",
+      "count": 966,
+      "exhaustive": true,
+      "signed": true,
+      "file": "sequences-2.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 3,
+      "slug": "common-ratio",
+      "name": "Common Ratio",
+      "count": 178,
+      "exhaustive": true,
+      "signed": true,
+      "file": "sequences-3.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 4,
+      "slug": "geometric-terms",
+      "name": "Geometric Terms",
+      "count": 584,
+      "exhaustive": true,
+      "signed": true,
+      "file": "sequences-4.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 5,
+      "slug": "recursive-rules",
+      "name": "Recursive Rules",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sequences-5.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 6,
+      "slug": "which-kind",
+      "name": "Which Kind?",
+      "count": 671,
+      "exhaustive": true,
+      "signed": false,
+      "file": "sequences-6.json"
+    },
+    {
+      "skill": "sequences",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "sequences-7.json"
     }
   ]
 }

@@ -28,7 +28,7 @@
   import { getType } from '../math/answer.js';
   import { el } from '../ui/dom.js';
 
-  const SKILLS = ['slope', 'linear-eq', 'line-forms', 'linear-models', 'systems', 'proportional', 'functions'];
+  const SKILLS = ['slope', 'linear-eq', 'line-forms', 'linear-models', 'systems', 'proportional', 'functions', 'sequences'];
   const manifest = await (await fetch('../library/manifest.json')).json();
   const out = document.getElementById('out');
   for (const entry of manifest.levels.filter((l) => SKILLS.includes(l.skill))) {
