@@ -60,15 +60,21 @@ Phase 1, functions and linear algebra, is half built:
 - **Systems of Equations** (Equations): where two lines cross, substitution, elimination,
   scaling first, none or infinitely many, from words, and a strategy level on which
   method is least work.
+- **Compound Inequalities** (Inequalities): between two numbers and either side, read off a
+  number line or from words, solving a double inequality and an "or", a negative in the
+  middle, and or or, and interval notation.
 - **Sequences** (Sequences): the common difference, any term and which term a number is,
   writing the nth-term rule, the common ratio, geometric terms, recursive rules, and a
   strategy level on telling arithmetic, geometric and neither apart.
 
-Three new answer types. **linear** takes a line typed as y = …, judged as a line: y = x/2 + 3,
+Four new answer types. **linear** takes a line typed as y = …, judged as a line: y = x/2 + 3,
 y = 0.5x + 3 and y = 3 + 1/2x are all accepted, a curve is refused as not a line, and x = c
 gives a vertical one. **pair** takes an ordered pair in two boxes, ( x , y ), each a whole
 number, fraction or decimal. **rule** takes an nth-term rule, judged by the terms it gives:
-3 + 4(n − 1) and 4n − 1 are both accepted for 3, 7, 11, … The expression preview now draws an equation, so y = 2x − 3
+3 + 4(n − 1) and 4n − 1 are both accepted for 3, 7, 11, … **solutions** takes a set of numbers, judged as the set:
+x < 3, 3 > x and (−∞, 3) are one answer, as are x = ±3 and 3, −3, and "no solution" and
+"all real numbers" are answers too. A new `intervals` visual draws sets on a number line,
+with filled and hollow ends and arrows for rays. The expression preview now draws an equation, so y = 2x − 3
 shows as typed.
 
 Fixed: an expression answer with a leading minus, like −2x + 3, was refused when the stored

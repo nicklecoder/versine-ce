@@ -129,6 +129,24 @@ for (const skill of SKILLS) {
   }
 }
 
+// requiem: play/answers/set-judged-as-set
+// One set, every way a student writes it; and the near misses refused.
+{
+  const sets = getType('solutions');
+  const same = (raw, want) => {
+    const a = sets.parse(raw), b = sets.parse(want);
+    return a.ok && b.ok && sets.equals(a.value, b.value);
+  };
+  const SAME = [['5 >= x > -2', '-2 < x <= 5'], ['(-2, 5]', '-2 < x ≤ 5'], ['x > -2 and x <= 5', '-2 < x <= 5'],
+    ['3, -3', 'x = ±3'], ['(-inf, -1) U (3, inf)', 'x < -1 or x > 3'], ['x > -2 or x < 5', 'all real numbers'],
+    ['x < 3 and x > 5', 'no solution']];
+  for (const [raw, want] of SAME) if (!same(raw, want)) fail.push(`solutions: "${raw}" was not read as ${want}`);
+  for (const [raw, want] of [['-2 <= x <= 5', '-2 < x <= 5'], ['x = 3', 'x = ±3'], ['x > 3', 'x >= 3']]) {
+    if (same(raw, want)) fail.push(`solutions: "${raw}" was accepted for ${want}`);
+  }
+  if (sets.parse('[-inf, 2)').ok) fail.push('solutions: a closed bracket at −∞ was accepted');
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

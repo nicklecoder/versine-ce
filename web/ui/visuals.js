@@ -11,6 +11,7 @@ import { drawQuantityModel } from './quantitymodel.js';
 import { drawCompareModel } from './comparemodel.js';
 import { drawPlane } from './plane.js';
 import { drawTable } from './table.js';
+import { drawIntervals } from './intervals.js';
 
 /**
  * Visual registry.
@@ -179,6 +180,17 @@ export const VISUALS = {
   },
   // Cells are strings; the one being asked about reads '?', and `fill` is
   // what goes there once an answer is in.
+  intervals: {
+    schema: {
+      min: { type: 'number', required: true },
+      max: { type: 'number', required: true },
+      rows: { type: 'array', of: { type: 'object' }, required: true },
+      // The set that answers the question, and only its count while asking,
+      // so the picture is its final height before anything is revealed.
+      answer: { type: 'array', of: { type: 'object' }, phase: 'answer' },
+      answerRows: { type: 'int', min: 0, max: 4 },
+    },
+  },
   table: {
     schema: {
       cols: { type: 'array', of: { type: 'string' }, required: true },
@@ -248,6 +260,16 @@ const RENDERERS = {
 
   table(container, spec, opts) {
     drawTable(container, spec, { reveal: opts.showAnswer, verdict: opts.verdict });
+  },
+
+  intervals(container, spec, opts) {
+    let svg = container.querySelector('svg.iv');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'iv');
+      container.replaceChildren(svg);
+    }
+    drawIntervals(svg, spec, { verdict: opts.verdict });
   },
 
   /** The plane owns an <svg> inside the container, as the number line does. */

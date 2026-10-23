@@ -188,10 +188,11 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Thirty-two skills are built so far. They cover pre-algebra -- integer arithmetic
+Thirty-three skills are built so far. They cover pre-algebra -- integer arithmetic
 and absolute value, fractions, decimals, ratio and proportional relationships,
 powers, roots, scientific notation and the real numbers, expressions, and
-equations and inequalities, including writing them from a situation -- and the
+equations and inequalities, including writing them from a situation, and
+compound inequalities -- and the
 first half of the algebra after it: functions, slope, linear equations and
 their forms, linear models, systems of two equations, and sequences. What comes next, and which standards it answers to, is in
 `docs/catalogue-plan.md`.

@@ -33,11 +33,12 @@ import equationsBoth from '../skills/equations-both.js';
 import wordEquations from '../skills/word-equations.js';
 import systems from '../skills/systems.js';
 import inequalities from '../skills/inequalities.js';
+import compoundIneq from '../skills/compound-ineq.js';
 import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, coords, slope, linearEq, lineForms, linearModels, functions, decimals, rounding, percents, simplify, evaluate, equations, equationsBoth, wordEquations, systems, inequalities, sequences];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, coords, slope, linearEq, lineForms, linearModels, functions, decimals, rounding, percents, simplify, evaluate, equations, equationsBoth, wordEquations, systems, inequalities, compoundIneq, sequences];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

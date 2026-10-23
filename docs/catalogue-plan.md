@@ -81,10 +81,11 @@ the row-by-row step on reveal.
 
 **In progress.** Built: `functions` (with What f(a) = b Means added), `slope`, `linear-eq`,
 `line-forms` (as Forms of a Line, with a Parallel, Perpendicular or Neither level added),
-`linear-models` (with From Two Readings added), `systems`, and `sequences` (with Writing
-the Rule added; a geometric rule waits for an answer box that takes powers of n). Still
-to build: `compound-ineq`, `abs-value`, `ineq-graphs`. Engine work done for it: the
-`linear`, `pair` and `rule` answer types and the `math` prompt term.
+`linear-models` (with From Two Readings added), `systems`, `sequences` (with Writing
+the Rule added; a geometric rule waits for an answer box that takes powers of n), and
+`compound-ineq` (with Solving an Or and A Negative in the Middle added). Still to build:
+`abs-value`, `ineq-graphs`. Engine work done for it: the `linear`, `pair`, `rule` and
+`solutions` answer types, the `intervals` visual, and the `math` prompt term.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

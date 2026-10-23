@@ -279,6 +279,35 @@
         "phase": "answer"
       }
     },
+    "intervals": {
+      "min": {
+        "type": "number",
+        "required": true
+      },
+      "max": {
+        "type": "number",
+        "required": true
+      },
+      "rows": {
+        "type": "array",
+        "of": {
+          "type": "object"
+        },
+        "required": true
+      },
+      "answer": {
+        "type": "array",
+        "of": {
+          "type": "object"
+        },
+        "phase": "answer"
+      },
+      "answerRows": {
+        "type": "int",
+        "min": 0,
+        "max": 4
+      }
+    },
     "table": {
       "cols": {
         "type": "array",
@@ -372,6 +401,7 @@
     "choice",
     "linear",
     "rule",
+    "solutions",
     "pair"
   ]
 }

@@ -15,6 +15,7 @@
 
 import { parseExpression, canonical } from './parse.js';
 import { valueAt, lettersIn } from './exact.js';
+import { parseSet, sameSet, formatSet, previewSet } from './solutions.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -389,6 +390,31 @@ defineType({
   equals: (a, b) => sameFrac(a.m, b.m) && sameFrac(a.b, b.b),
   /** 4n − 1, −2n + 10, 5. */
   format: (v) => lineText(v, 'n'),
+});
+
+// requiem: play/answers/set-judged-as-set
+defineType({
+  id: 'solutions',
+  input: 'free',
+  hint: 'Type the solutions, like −2 < x ≤ 5 or x = ±3.',
+  /**
+   * A set of numbers on the number line -- the answer to an inequality, a
+   * compound inequality or an absolute value equation -- judged as the set.
+   * x < 3 and 3 > x, (−2, 5] and −2 < x ≤ 5, x = ±3 and 3, −3 are each one
+   * answer; web/math/solutions.js has every form it reads.
+   *
+   * The preview draws the typed text, not the set it means, for the reason
+   * previewSet gives.
+   *
+   * Value: { letter, parts }, parts a sorted list of intervals.
+   */
+  parse(raw) {
+    const r = parseSet(raw);
+    return r.ok ? r : { ok: false, hint: r.hint ?? 'Write it like −2 < x ≤ 5, or x < −1 or x > 3.' };
+  },
+  preview: previewSet,
+  equals: sameSet,
+  format: formatSet,
 });
 
 defineType({

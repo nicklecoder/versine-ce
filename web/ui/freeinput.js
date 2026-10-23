@@ -1,6 +1,7 @@
 import { el } from './dom.js';
 import { renderPrompt } from './prompt.js';
 import { previewOf } from './express.js';
+import { getType } from '../math/answer.js';
 
 /**
  * A single box, with the input rendered back as notation above it.
@@ -25,6 +26,8 @@ import { previewOf } from './express.js';
  * keyboard on a phone.
  */
 export function freeInput(spec = {}, opts = {}) {
+  // A type that is not an expression -- a set, an inequality -- draws its own.
+  const draw = (spec.type && getType(spec.type).preview) || previewOf;
   const preview = el('div.free__preview');
   const hint = el('div.free__hint');
   const input = el('input.answer.answer--free', {
@@ -44,7 +47,7 @@ export function freeInput(spec = {}, opts = {}) {
       lastGood = null;
       return;
     }
-    const result = previewOf(raw);
+    const result = draw(raw);
     if (result.ok) {
       lastGood = result.terms;
       hint.textContent = '';
@@ -68,7 +71,7 @@ export function freeInput(spec = {}, opts = {}) {
       // Only once an answer is committed does an unreadable input become
       // something worth saying out loud.
       if (state === 'wrong') {
-        const result = previewOf(input.value.trim());
+        const result = draw(input.value.trim());
         hint.textContent = result.ok ? '' : result.error;
       } else {
         hint.textContent = '';

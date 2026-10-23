@@ -1088,6 +1088,93 @@ RULE_RULES = (
 )
 
 
+# --- Compound Inequalities ---------------------------------------------------
+#
+# A set is a frozenset of the numbers in it, tested at sample points: every
+# integer and half-integer from -40 to 40. Two sets with whole or half ends
+# inside that range are equal exactly when they agree at every sample -- a
+# test that shares nothing with the interval arithmetic the app does.
+
+SAMPLES_ON_LINE = [Fraction(k, 2) for k in range(-80, 81)]
+OPS = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b,
+       ">": lambda a, b: a > b, ">=": lambda a, b: a >= b}
+
+
+def holds(relation: str, x: Fraction) -> bool:
+    """One chain of comparisons, like -3 < 2x + 1 <= 7, at one value of x."""
+    bits = re.split(r"\s*(<=|>=|<|>)\s*", relation.strip())
+    values = [at(b, {"x": x}) for b in bits[0::2]]
+    return all(OPS[op](values[i], values[i + 1]) for i, op in enumerate(bits[1::2]))
+
+
+def solve_set(text: str) -> frozenset:
+    return frozenset(x for x in SAMPLES_ON_LINE
+                     if any(all(holds(r, x) for r in clause.split(" and "))
+                            for clause in text.split(" or ")))
+
+
+def interval_set(text: str) -> frozenset:
+    def inside(piece, x):
+        m = re.fullmatch(r"([(\[])(-inf|-?\d+), (inf|-?\d+)([)\]])", piece.strip())
+        lo, hi = m[2], m[3]
+        ok_lo = lo == "-inf" or (x >= int(lo) if m[1] == "[" else x > int(lo))
+        ok_hi = hi == "inf" or (x <= int(hi) if m[4] == "]" else x < int(hi))
+        return ok_lo and ok_hi
+    return frozenset(x for x in SAMPLES_ON_LINE if any(inside(p, x) for p in text.split(" U ")))
+
+
+WORDS_REL = {"greater than": ">", "at least": ">=", "less than": "<", "at most": "<="}
+
+
+def words_set(text: str) -> frozenset:
+    """'x is at least -2 and less than 5', read as two relations."""
+    body = text.removeprefix("x is ")
+    rel = re.sub(r"(greater than|at least|less than|at most) (-?\d+)",
+                 lambda m: f"x {WORDS_REL[m[1]]} {m[2]}", body)
+    return solve_set(rel)
+
+
+def answer_set(value) -> frozenset:
+    def inside(p, x):
+        lo, hi = p["lo"], p["hi"]
+        ok_lo = lo is None or (x >= as_fraction(lo) if p["loIn"] else x > as_fraction(lo))
+        ok_hi = hi is None or (x <= as_fraction(hi) if p["hiIn"] else x < as_fraction(hi))
+        return ok_lo and ok_hi
+    return frozenset(x for x in SAMPLES_ON_LINE if any(inside(p, x) for p in value["parts"]))
+
+
+SET_RULES = (
+    (re.compile(r"^solve: (.+)$"), solve_set),
+    (re.compile(r"^combine: (.+)$"), solve_set),
+    (re.compile(r"^graph set: (.+)$"), interval_set),
+    (re.compile(r"^words: (x is .+)$"), words_set),
+)
+
+
+def notation_set(label: str) -> frozenset:
+    """An option as the student reads it: (−∞, −6) ∪ [2, ∞) or −2 < x ≤ 5."""
+    plain = (label.replace("−∞", "-inf").replace("∞", "inf").replace("∪", "U")
+             .replace("−", "-").replace("≤", "<=").replace("≥", ">="))
+    if plain.startswith(("(", "[")):
+        if re.search(r"\[-inf|inf\]", plain):
+            return frozenset({"never a set"})
+        return interval_set(plain)
+    return solve_set(plain)
+
+
+def matching_option(given: str, ids):
+    want = interval_set(given)
+    fit = [o for o in ids if notation_set(o) == want]
+    if len(fit) != 1:
+        raise ValueError(f"{len(fit)} options are {given}")
+    return fit[0]
+
+
+OPTION_RULES += (
+    (re.compile(r"^(?:interval|inequality) for: (.+)$"), matching_option),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1139,6 +1226,16 @@ for path in sorted(LIB.glob("*.json")):
                 v = answer["value"]
                 if (as_fraction(v["m"]), as_fraction(v["b"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
+            continue
+
+        # A set of numbers: solved again at points along the line, and compared there.
+        if answer["type"] == "solutions":
+            rule = next((r for r in SET_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = rule[1](*rule[0].match(text).groups())
+                if answer_set(answer["value"]) != want:
+                    problems.append(f"{where}: {text} is not {answer['value']}")
             continue
 
         # An ordered pair: solved again from the equations, and compared exactly.

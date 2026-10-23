@@ -1,5 +1,5 @@
 {
-  "built": 237,
+  "built": 245,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -290,6 +290,16 @@
       "the-flip",
       "unknowns-both-sides",
       "does-it-flip",
+      "all-together"
+    ],
+    "compound-ineq": [
+      "between-two-numbers",
+      "either-side",
+      "solving-a-double-inequality",
+      "solving-an-or",
+      "a-negative-in-the-middle",
+      "and-or-or",
+      "interval-notation",
       "all-together"
     ],
     "sequences": [
@@ -734,6 +744,12 @@
         ]
       }
     },
+    "compound-ineq": {
+      "dependsOn": [
+        "inequalities"
+      ],
+      "levels": {}
+    },
     "sequences": {
       "dependsOn": [
         "exponents",
@@ -746,7 +762,7 @@
       }
     }
   },
-  "sources": "3b6e2a9f2a0c6bf33371f57dcbc6ee532d607fb2c5ddd359556684ab7a253481",
+  "sources": "f86adddee28de0f173ad18d68b63597b87fc9a689a386493ab98f5951bad044b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3037,6 +3053,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "inequalities-6.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 0,
+      "slug": "between-two-numbers",
+      "name": "Between Two Numbers",
+      "count": 840,
+      "exhaustive": true,
+      "signed": true,
+      "file": "compound-ineq-0.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 1,
+      "slug": "either-side",
+      "name": "Either Side",
+      "count": 840,
+      "exhaustive": true,
+      "signed": true,
+      "file": "compound-ineq-1.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 2,
+      "slug": "solving-a-double-inequality",
+      "name": "Solving a Double Inequality",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "compound-ineq-2.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 3,
+      "slug": "solving-an-or",
+      "name": "Solving an Or",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "compound-ineq-3.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 4,
+      "slug": "a-negative-in-the-middle",
+      "name": "A Negative in the Middle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "compound-ineq-4.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 5,
+      "slug": "and-or-or",
+      "name": "And or Or?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "compound-ineq-5.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 6,
+      "slug": "interval-notation",
+      "name": "Interval Notation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "compound-ineq-6.json"
+    },
+    {
+      "skill": "compound-ineq",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "compound-ineq-7.json"
     },
     {
       "skill": "sequences",

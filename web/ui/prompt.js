@@ -1,6 +1,7 @@
 import { el } from './dom.js';
 import { previewOf } from './express.js';
 import { getType } from '../math/answer.js';
+import { setTerms } from '../math/solutions.js';
 
 /**
  * Rendering a problem's prompt.
@@ -240,6 +241,7 @@ export function answerTerm(type, value) {
     case 'linear':
     case 'rule': return exprTerms(getType(type).format(value).replace(/−/g, '-'));
     case 'pair': return { t: 'num', v: getType('pair').format(value) };
+    case 'solutions': return setTerms(value);
     case 'frac': return { t: 'frac', n: value.n, d: value.d };
     case 'mixed': return value.w !== undefined && value.w !== 0
       ? { t: 'mixed', w: value.w, n: value.n, d: value.d }

@@ -1219,6 +1219,22 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .pl__verdict.is-ok { fill: var(--grow); }
 .pl__verdict.is-bad { fill: var(--hot); }
 
+/* ── Sets on a number line ────────────────────────────────────────────── */
+.iv { display: block; width: 100%; height: auto; overflow: visible; }
+.iv__axis { stroke: var(--muted); stroke-width: 1.5; }
+.iv__tick { stroke: var(--muted); stroke-width: 1; }
+.iv__num {
+  fill: var(--dim); font-family: var(--display); font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.iv__run { stroke-width: 5; stroke-linecap: butt; opacity: .9; }
+.iv__dot { stroke-width: 2.5; }
+.iv__label { font-family: var(--display); font-size: 12px; font-weight: 700; }
+.iv__row.is-answer .iv__run, .iv__row.is-answer .iv__dot { animation: pop .3s ease-out; }
+.iv__verdict { font-size: 13px; font-weight: 700; }
+.iv__verdict.is-ok { fill: var(--grow); }
+.iv__verdict.is-bad { fill: var(--hot); }
+
 /* Variables are italic, as every mathematical typesetter has done since
    the eighteenth century — and it is what tells 2x from 2·x at a glance. */
 .var-term { font-style: italic; }
