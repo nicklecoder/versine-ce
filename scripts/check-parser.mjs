@@ -63,10 +63,13 @@ for (const [src, mustNot] of [['4/8', '1/2'], ['2+3', '5'], ['sqrt(4)', '2'], ['
 
 // ── 3. Judged the same, and judged apart ─────────────────────────────────
 for (const [a, b] of [['x+1', '1+x'], ['2x', 'x*2'], ['x-1', '-1+x'],
-                      ['5sqrt(2)', 'sqrt(2)*5'], ['a+b+c', 'c+b+a'], ['2.0', '2']]) {
+                      ['5sqrt(2)', 'sqrt(2)*5'], ['a+b+c', 'c+b+a'], ['2.0', '2'],
+                      // A leading minus is read as (−2)·x, a subtraction as minus 2·x:
+                      // the same expression, and once refused as a wrong answer.
+                      ['-2x+3', '3-2x'], ['-(-x)', 'x'], ['10-3a', '-3a+10']]) {
   if (canon(a) !== canon(b)) fail.push(`${a} and ${b} should be accepted for each other`);
 }
-for (const [a, b] of [['a-b', 'b-a'], ['1/2', '2^-1'], ['x-1', 'x+1'], ['2/x', 'x/2']]) {
+for (const [a, b] of [['a-b', 'b-a'], ['1/2', '2^-1'], ['x-1', 'x+1'], ['2/x', 'x/2'], ['-3x', '3x']]) {
   if (canon(a) === canon(b)) fail.push(`${a} and ${b} should be told apart`);
 }
 

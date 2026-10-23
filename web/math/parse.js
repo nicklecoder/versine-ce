@@ -197,39 +197,69 @@ export function parseExpression(src) {
  * them apart.
  */
 export function canonical(node) {
+  const [negative, body] = signed(node);
+  return negative ? `-(${body})` : body;
+}
+
+/**
+ * A node's canonical body, with its sign lifted out to the front.
+ *
+ * Signs are pulled out of products and double negations before anything is
+ * sorted, because the parser reads `−2x` as (−2)·x and `3 − 2x` as 3 minus
+ * 2·x, and those must agree: a student who writes −2x + 3 for 3 − 2x has
+ * written the same expression, and refusing it once was a real bug.
+ *
+ * @returns {[boolean, string]}
+ */
+function signed(node) {
   switch (node.t) {
     case 'num': {
       // 2 and 2.0 and 2.00 are one number; 0.50 and 0.5 likewise.
       const v = node.v.includes('.')
         ? node.v.replace(/0+$/, '').replace(/\.$/, '')
         : node.v;
-      return v.replace(/^0+(?=\d)/, '');
+      return [false, v.replace(/^0+(?=\d)/, '')];
     }
-    case 'var': return node.v;
-    case 'const': return node.v;
-    case 'neg': return `-(${canonical(node.a)})`;
-    case 'call': return `${node.fn}(${node.args.map(canonical).join(',')})`;
+    case 'var': return [false, node.v];
+    case 'const': return [false, node.v];
+    case 'neg': {
+      const [negative, body] = signed(node.a);
+      return [!negative, body];
+    }
+    case 'call': return [false, `${node.fn}(${node.args.map(canonical).join(',')})`];
     case 'bin': {
-      if (node.op === '+' || node.op === '-' || node.op === '*') {
-        const join = node.op === '*' ? '*' : '+';
+      if (node.op === '*') {
+        const parts = [];
+        let negative = false;
+        const gather = (n) => {
+          if (n.t === 'bin' && n.op === '*') { gather(n.a); gather(n.b); return; }
+          const [neg, body] = signed(n);
+          if (neg) negative = !negative;
+          parts.push(body);
+        };
+        gather(node);
+        parts.sort();
+        return [negative, `(${parts.join('*')})`];
+      }
+      if (node.op === '+' || node.op === '-') {
         const parts = [];
         const gather = (n, negated) => {
-          if (n.t === 'bin' && join === '+' && (n.op === '+' || n.op === '-')) {
+          if (n.t === 'bin' && (n.op === '+' || n.op === '-')) {
             gather(n.a, negated);
             gather(n.b, n.op === '-' ? !negated : negated);
-          } else if (n.t === 'bin' && n.op === '*' && join === '*') {
-            gather(n.a, false); gather(n.b, false);
+          } else if (n.t === 'neg') {
+            gather(n.a, !negated);
           } else {
-            const c = canonical(n);
-            parts.push(negated ? `-(${c})` : c);
+            const [neg, body] = signed(n);
+            parts.push(neg !== negated ? `-(${body})` : body);
           }
         };
         gather(node, false);
         parts.sort();
-        return `(${parts.join(join)})`;
+        return [false, `(${parts.join('+')})`];
       }
-      return `(${canonical(node.a)}${node.op}${canonical(node.b)})`;
+      return [false, `(${canonical(node.a)}${node.op}${canonical(node.b)})`];
     }
-    default: return '?';
+    default: return [false, '?'];
   }
 }
