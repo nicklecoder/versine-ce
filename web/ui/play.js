@@ -364,6 +364,9 @@ export function playScreen(route) {
     if (answerKind === 'mixed') {
       return 'Whole number, then / for the fraction. Enter answers' + tail;
     }
+    if (answerKind === 'pair') {
+      return 'Type x, then a comma for y. Enter answers' + tail;
+    }
     if (answerKind === 'frac') {
       // Enter moves down rather than submitting, because submitting a
       // half-typed fraction would cost an attempt. A whole number therefore

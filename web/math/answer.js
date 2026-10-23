@@ -14,6 +14,7 @@
  */
 
 import { parseExpression, canonical } from './parse.js';
+import { valueAt, lettersIn } from './exact.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -237,4 +238,122 @@ defineType({
   },
   equals: (a, b) => a === b,
   format: (v) => String(v),
+});
+
+/** A number as a student would type one: 3, -2, 3/4 or 0.5. Exact, or null. */
+function exactNumber(text) {
+  const s = normalize(text);
+  let m = s.match(/^([+-]?\d+)\/(\d+)$/);
+  if (m) return +m[2] === 0 ? null : reduceFrac(parseInt(m[1], 10), parseInt(m[2], 10));
+  m = s.match(/^([+-]?)(\d*)(?:\.(\d+))?$/);
+  if (!m || (m[2] === '' && !m[3])) return null;
+  const d = 10 ** (m[3] ?? '').length;
+  const n = parseInt(m[2] || '0', 10) * d + (m[3] ? parseInt(m[3], 10) : 0);
+  return reduceFrac(m[1] === '-' ? -n : n, d);
+}
+
+function reduceFrac(n, d) {
+  let a = Math.abs(n), b = Math.abs(d);
+  while (b) [a, b] = [b, a % b];
+  const g = a || 1;
+  return d < 0 ? { n: -n / g, d: -d / g } : { n: n / g, d: d / g };
+}
+
+const sameFrac = (a, b) => a.n * b.d === b.n * a.d;
+const fracText = (f) => {
+  const r = reduceFrac(f.n, f.d);
+  const body = r.d === 1 ? String(Math.abs(r.n)) : `${Math.abs(r.n)}/${r.d}`;
+  return r.n < 0 ? `−${body}` : body;
+};
+
+// requiem: play/answers/line-judged-as-line
+defineType({
+  id: 'linear',
+  input: 'free',
+  hint: 'Type the equation, like y = 2x − 3.',
+  /**
+   * A straight line, judged by the line rather than the spelling.
+   *
+   * y = x/2 + 3, y = 0.5x + 3 and y = 3 + 1/2x are one line, and a student
+   * who found its slope and intercept has done what was asked whichever they
+   * typed. So the right-hand side is evaluated exactly at seven values of x:
+   * equal steps between them mean a line, and the first value and the step
+   * are its intercept and slope. A curve fails the steps and is refused as
+   * not being a line at all, rather than marked as a wrong line.
+   *
+   * What is NOT accepted is an equation that has not been solved for y --
+   * 2y = 4x + 6 is the same line, but writing y on its own is part of what
+   * these levels teach, so it gets a hint rather than a mark. A vertical
+   * line, which cannot be solved for y, is written x = c.
+   *
+   * Value: { m, b } for y = mx + b, or { x } for the vertical line x = c,
+   * each a fraction { n, d }.
+   */
+  parse(raw) {
+    const text = String(raw).trim().replace(/[−–—]/g, '-');
+    if (!text) return { ok: false };
+    const sides = text.split('=').map((t) => t.trim());
+    if (sides.length > 2) return { ok: false, hint: 'One equals sign is enough.' };
+    let right = text;
+    if (sides.length === 2) {
+      const [l, r] = sides.map((t) => t.toLowerCase());
+      // y first: y = x is a line through the origin, not a vertical one.
+      if (l === 'y') right = sides[1];
+      else if (r === 'y') right = sides[0];
+      else if (l === 'x' || r === 'x') {
+        const c = exactNumber(l === 'x' ? sides[1] : sides[0]);
+        if (!c) return { ok: false, hint: 'A vertical line is x = a number, like x = 4.' };
+        return { ok: true, value: { x: c } };
+      } else return { ok: false, hint: 'Write it with y on its own: y = …' };
+    }
+    const parsed = parseExpression(right);
+    if (!parsed.ok) return { ok: false, why: parsed.error };
+    const letters = [...lettersIn(parsed.ast)];
+    if (letters.some((v) => v !== 'x')) return { ok: false, hint: 'Write the line in x and y.' };
+    const at = [0, 1, 2, 3, 4, 5, 6].map((x) => valueAt(parsed.ast, { x: { n: x, d: 1 } }));
+    if (at.some((v) => v === null)) return { ok: false, hint: 'A line needs only numbers and x.' };
+    const step = reduceFrac(at[1].n * at[0].d - at[0].n * at[1].d, at[0].d * at[1].d);
+    for (let i = 2; i < at.length; i++) {
+      const s = reduceFrac(at[i].n * at[i - 1].d - at[i - 1].n * at[i].d, at[i].d * at[i - 1].d);
+      if (!sameFrac(s, step)) return { ok: false, hint: 'That is not a straight line.' };
+    }
+    return { ok: true, value: { m: step, b: reduceFrac(at[0].n, at[0].d) } };
+  },
+  equals(a, b) {
+    if ('x' in a || 'x' in b) return 'x' in a && 'x' in b && sameFrac(a.x, b.x);
+    return sameFrac(a.m, b.m) && sameFrac(a.b, b.b);
+  },
+  /** y = 3/4x − 2, y = −x, y = 5, x = −3. */
+  format(v) {
+    if ('x' in v) return `x = ${fracText(v.x)}`;
+    const { m, b } = v;
+    if (m.n === 0) return `y = ${fracText(b)}`;
+    const size = fracText({ n: Math.abs(m.n), d: m.d });
+    const slope = `${m.n < 0 ? '−' : ''}${size === '1' ? '' : size}x`;
+    if (b.n === 0) return `y = ${slope}`;
+    return `y = ${slope} ${b.n < 0 ? '−' : '+'} ${fracText({ n: Math.abs(b.n), d: b.d })}`;
+  },
+});
+
+defineType({
+  id: 'pair',
+  input: 'pair',
+  hint: 'Give both coordinates, like (3, −2).',
+  /**
+   * An ordered pair: a point, or the solution of a system. Each half may be
+   * a whole number, a fraction or a decimal, and is compared exactly. The
+   * order is the whole of what a pair means, so (2, 3) is not (3, 2).
+   *
+   * Value: { x, y }, each a fraction { n, d }.
+   */
+  parse(raw) {
+    const s = String(raw).trim().replace(/^\(|\)$/g, '');
+    const parts = s.split(/\s*[,;]\s*|\s+/).filter(Boolean);
+    if (parts.length !== 2) return { ok: false };
+    const [x, y] = parts.map(exactNumber);
+    if (!x || !y) return { ok: false };
+    return { ok: true, value: { x, y } };
+  },
+  equals: (a, b) => sameFrac(a.x, b.x) && sameFrac(a.y, b.y),
+  format: (v) => `(${fracText(v.x)}, ${fracText(v.y)})`,
 });

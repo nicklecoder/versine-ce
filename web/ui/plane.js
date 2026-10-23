@@ -113,7 +113,11 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
       }));
     }
     if (m.label) {
-      const [lx, ly] = m.at ?? m.from ?? m.points?.[0] ?? [0, 0];
+      // A segment is labelled at its middle: at one end, the labels of two
+      // segments that share a corner -- a run and a rise -- land on each other.
+      const [lx, ly] = m.kind === 'segment' && m.from && m.to
+        ? [(m.from[0] + m.to[0]) / 2, (m.from[1] + m.to[1]) / 2]
+        : m.at ?? m.from ?? m.points?.[0] ?? [0, 0];
       const t = make('text', { x: px(lx) + 9, y: py(ly) - 8, class: 'pl__label' });
       t.textContent = m.label;
       g.append(t);

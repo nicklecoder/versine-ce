@@ -10,6 +10,7 @@ import { drawRatioModel } from './ratiomodel.js';
 import { drawQuantityModel } from './quantitymodel.js';
 import { drawCompareModel } from './comparemodel.js';
 import { drawPlane } from './plane.js';
+import { drawTable } from './table.js';
 
 /**
  * Visual registry.
@@ -176,6 +177,18 @@ export const VISUALS = {
       answer: { type: 'array', of: { type: 'object' }, phase: 'answer' },
     },
   },
+  // Cells are strings; the one being asked about reads '?', and `fill` is
+  // what goes there once an answer is in.
+  table: {
+    schema: {
+      cols: { type: 'array', of: { type: 'string' }, required: true },
+      rows: { type: 'array', of: { type: 'array', of: { type: 'string' } }, required: true },
+      fill: { type: 'string', phase: 'answer' },
+      workingCol: { type: 'string', phase: 'answer' },
+      working: { type: 'array', of: { type: 'string' }, phase: 'answer' },
+      note: { type: 'string' },
+    },
+  },
   evalmodel: {
     schema: {
       lines: { type: 'array', of: { type: 'string' }, required: true },
@@ -231,6 +244,10 @@ const RENDERERS = {
 
   evalmodel(container, spec, opts) {
     drawEvalModel(container, spec, opts);
+  },
+
+  table(container, spec, opts) {
+    drawTable(container, spec, { reveal: opts.showAnswer, verdict: opts.verdict });
   },
 
   /** The plane owns an <svg> inside the container, as the number line does. */

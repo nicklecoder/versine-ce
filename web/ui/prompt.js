@@ -1,5 +1,6 @@
 import { el } from './dom.js';
 import { previewOf } from './express.js';
+import { getType } from '../math/answer.js';
 
 /**
  * Rendering a problem's prompt.
@@ -112,6 +113,13 @@ const TERMS = {
 
   /** A sentence rather than an expression — strategy levels ask in words. */
   prose: (t) => el(`span.t${t.s ?? 1}.situation`, {}, String(t.v)),
+
+  /**
+   * One equation or expression inside a sentence, kept in one piece. Without
+   * it the prompt wraps wherever a line runs out, and "−3x − 3y = −24" can
+   * end a line on the equals sign and start the next on the answer side.
+   */
+  math: (t) => el('span.math-term', {}, (t.terms ?? []).map(drawTerm)),
 };
 
 export const TERM_KINDS = Object.keys(TERMS);
@@ -203,6 +211,16 @@ export function renderPrompt(node, terms, opts = {}) {
     // Show a marker rather than nothing, so it is obvious on sight.
     return make ? make(t) : el('span.t1.is-unknown', {}, '⚠');
   }));
+  // Punctuation on its own -- the full stop after an equation, a question
+  // mark -- belongs to what it follows. As a flex item of its own it can be
+  // wrapped onto a line by itself, which reads as a stray mark.
+  for (const n of [...node.children]) {
+    const prev = n.previousElementSibling;
+    if (prev && n.classList.contains('situation') && /^[.,;:?!]+$/.test(n.textContent.trim())) {
+      prev.append(el('span.tail', {}, n.textContent.trim()));
+      n.remove();
+    }
+  }
 }
 
 /**
@@ -217,6 +235,10 @@ export function answerTerm(type, value) {
     // as a list rather than wrapped: wrapping made the whole answer as tight
     // as a product, so "5a + 4" lost the spacing its question had.
     case 'expr': return exprTerms(value);
+    // A line and a pair are shown in the notation their own type writes,
+    // which the expression preview can draw: y = 3/4x − 2, (3, −2).
+    case 'linear': return exprTerms(getType('linear').format(value).replace(/−/g, '-'));
+    case 'pair': return { t: 'num', v: getType('pair').format(value) };
     case 'frac': return { t: 'frac', n: value.n, d: value.d };
     case 'mixed': return value.w !== undefined && value.w !== 0
       ? { t: 'mixed', w: value.w, n: value.n, d: value.d }
@@ -242,6 +264,7 @@ export function promptText(terms) {
       case 'var': return String(t.v);
       case 'group': return `(${promptText(t.terms)})`;
       case 'juxt': return promptText(t.terms).replace(/ /g, '');
+      case 'math': return ` ${promptText(t.terms)} `;
       case 'op': return ` ${t.v} `;
       case 'blank': return '?';
       case 'prose': return String(t.v);

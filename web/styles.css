@@ -860,6 +860,26 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .frac-box.is-wrong { border-color: var(--hot); animation: shake .34s ease; }
 .frac-bar { width: 3.6ch; height: 3px; background: var(--cool); border-radius: 2px; }
 
+/* ── Ordered pair input ───────────────────────────────────────────────── */
+.pair-input { display: inline-flex; align-items: center; gap: 4px; }
+.pair-mark {
+  font-family: var(--display); font-weight: 700; color: var(--muted);
+  font-size: clamp(1.3rem, 5vw, 1.8rem);
+}
+.pair-box {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(1.2rem, 4.5vw, 1.6rem);
+  width: 4.2ch; text-align: center; padding: 4px 6px;
+  color: var(--text); background: #050b16;
+  border: 2px solid var(--line); border-radius: var(--radius-sm);
+  outline: none; font-variant-numeric: tabular-nums;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pair-box:focus { border-color: var(--cool); box-shadow: 0 0 0 3px rgba(53,214,255,.15); }
+.pair-box::placeholder { color: var(--dim); opacity: .5; }
+.pair-box.is-right { border-color: var(--grow); }
+.pair-box.is-wrong { border-color: var(--hot); animation: shake .34s ease; }
+
 /* Sound toggle: an icon button, sized like the others but square. */
 .sound-toggle { padding: 8px 12px; font-size: 1rem; line-height: 1; }
 
@@ -990,6 +1010,25 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .eval-row.is-latest { border-color: var(--line); background: var(--bg-2); }
 .eval-row.is-latest .eval-line { color: var(--text); }
 .eval-row.is-answer .eval-line { color: var(--result); }
+
+/* ── Table of values ─────────────────────────────────────────────────── */
+.vtable { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.vtable table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.vtable th {
+  font-family: var(--display); font-size: .62rem; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  padding: 6px 18px; border-bottom: 1px solid var(--line);
+}
+.vtable td {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(1.05rem, 4vw, 1.4rem);
+  text-align: center; padding: 6px 18px; color: var(--text);
+}
+.vtable tbody tr + tr td { border-top: 1px solid var(--line); }
+.vtable td.is-blank { color: var(--gold); }
+.vtable td.is-answer, .vtable th.is-answer { color: var(--result); }
+.vtable th.is-answer { text-transform: none; }
+.vtable-note { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
 
 /* ── Choice input (judgement questions) ───────────────────────────────── */
 .choices { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 460px; }
@@ -1207,6 +1246,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 
 /* A product written without a sign is set without a gap. */
 .juxt-term { display: inline-flex; align-items: center; gap: .06em; }
+/* An equation inside a sentence: wraps around it, never through it. */
+.math-term { display: inline-flex; align-items: center; gap: .28em; white-space: nowrap; }
+.situation .tail, .math-term .tail { margin-left: -.18em; }
 
 /* An expression answer is drawn from terms, and each term carries its own
    colour — so the answer highlight has to reach inside it, or the reply is

@@ -279,6 +279,43 @@
         "phase": "answer"
       }
     },
+    "table": {
+      "cols": {
+        "type": "array",
+        "of": {
+          "type": "string"
+        },
+        "required": true
+      },
+      "rows": {
+        "type": "array",
+        "of": {
+          "type": "array",
+          "of": {
+            "type": "string"
+          }
+        },
+        "required": true
+      },
+      "fill": {
+        "type": "string",
+        "phase": "answer"
+      },
+      "workingCol": {
+        "type": "string",
+        "phase": "answer"
+      },
+      "working": {
+        "type": "array",
+        "of": {
+          "type": "string"
+        },
+        "phase": "answer"
+      },
+      "note": {
+        "type": "string"
+      }
+    },
     "evalmodel": {
       "lines": {
         "type": "array",
@@ -310,7 +347,8 @@
     "var",
     "juxt",
     "group",
-    "prose"
+    "prose",
+    "math"
   ],
   "blankFields": {
     "frac": [
@@ -331,6 +369,8 @@
     "mixed",
     "decimal",
     "expr",
-    "choice"
+    "choice",
+    "linear",
+    "pair"
   ]
 }

@@ -29,6 +29,8 @@ export const op = (v) => ({ t: 'op', v });
 export const group = (terms, s = 1) => ({ t: 'group', terms, s });
 export const blank = () => ({ t: 'blank' });
 export const prose = (v, s = 1) => ({ t: 'prose', v: String(v), s });
+/** An equation or expression set inside a sentence, kept in one unbroken piece. */
+export const math = (terms) => ({ t: 'math', terms });
 
 /** The common shape: terms, an equals, and the space for an answer. */
 export const asks = (...terms) => [...terms, op('='), blank()];

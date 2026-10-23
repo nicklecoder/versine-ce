@@ -39,6 +39,9 @@ export function termsFor(node) {
     case 'const': return [{ t: 'var', v: node.v === 'pi' ? 'π' : node.v }];
 
     case 'neg':
+      // A negative number is one thing, −24, not an operator and a number:
+      // drawn apart, a line can break between them.
+      if (node.a.t === 'num') return [{ t: 'num', v: `−${node.a.v}` }];
       return [{ t: 'op', v: '−' }, ...child(node.a, 3)];
 
     case 'call':
@@ -92,6 +95,17 @@ function flatten(node) {
  * @returns {{ok:true, terms:Array}|{ok:false, error:string}}
  */
 export function previewOf(src) {
+  // An equation is two expressions either side of one equals sign, drawn
+  // side by side: a line is typed as y = 2x − 3, and the preview should show
+  // it as typed rather than give up at the "=".
+  const sides = String(src).split('=');
+  if (sides.length === 2) {
+    const left = previewOf(sides[0]);
+    const right = previewOf(sides[1]);
+    if (!left.ok) return left;
+    if (!right.ok) return right;
+    return { ok: true, terms: [...left.terms, { t: 'op', v: '=' }, ...right.terms] };
+  }
   const parsed = parseExpression(src);
   if (!parsed.ok) return parsed;
   return { ok: true, terms: termsFor(parsed.ast) };
