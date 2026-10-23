@@ -153,7 +153,9 @@ function commonRatio(rng) {
   return {
     prompt: [T.prose(`What is the common ratio? ${list(terms)}`)],
     text: `ratio of ${ascii(terms)}`,
-    answer: r.d === 1 ? { type: 'int', value: r.n } : { type: 'frac', value: { n: r.n, d: r.d } },
+    // Always a fraction box, a whole ratio typed with the bottom left empty:
+    // a box that changed shape for 1/2 would say so before the division did.
+    answer: { type: 'frac', value: { n: r.n, d: r.d } },
     visual: table(terms, { working: times(r)(count) }),
     explain: `Divide any term by the one before it: ${minus(terms[1])} ÷ ${signed(terms[0])} = ${r.label}. `
       + (r.r < 0 ? 'The signs take turns, which is a negative ratio.'
