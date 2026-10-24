@@ -13,6 +13,16 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Trigonometric Ratios**, a new skill under Right Triangles, in nine levels:
+naming the opposite, adjacent and hypotenuse; sine, cosine and tangent as
+fractions; a missing side and a missing angle by calculator; exact sides of the
+45-45-90 and 30-60-90 triangles; cofunctions; and angles of elevation and
+depression, ladders, shadows and bearings in US and metric units. Calculator
+answers are kept only where working with 4-place trig values rounds the same as
+the exact value, and `check-answers.py` works both and asserts they agree. Exact
+answers use the roots type, and a new `EXACT_RULES` table in `check-answers.py`
+compares each with the calculator's value.
+
 **Compound Probability**, a new skill under Probability, in seven levels: Venn
 diagrams; the addition rule, with counts, probabilities and a deck of cards;
 conditional probability from a two-way table; drawing without replacement;

@@ -1,5 +1,5 @@
 {
-  "built": 484,
+  "built": 493,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -611,6 +611,17 @@
       "without-replacement",
       "conditional-formula",
       "independent-or-not",
+      "all-together"
+    ],
+    "trig-ratios": [
+      "opposite-and-adjacent",
+      "ratios",
+      "missing-side",
+      "missing-angle",
+      "45-45-90",
+      "30-60-90",
+      "complementary-sin-cos",
+      "elevation-and-bearings",
       "all-together"
     ]
   },
@@ -1376,9 +1387,20 @@
           "bivariate"
         ]
       }
+    },
+    "trig-ratios": {
+      "dependsOn": [
+        "pythagoras",
+        "similarity"
+      ],
+      "levels": {
+        "45-45-90": [
+          "pythagoras"
+        ]
+      }
     }
   },
-  "sources": "cd53babc4928b0db9f0271d141f732298d55c775739eb44299993983dfb7498c",
+  "sources": "29d80f887069e673d5fffd0e2432693fd1a741e7cd979e7d4791d8420d4f6bde",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6219,6 +6241,96 @@
       "exhaustive": false,
       "signed": false,
       "file": "probability-2-6.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 0,
+      "slug": "opposite-and-adjacent",
+      "name": "Opposite & Adjacent",
+      "count": 216,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-ratios-0.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 1,
+      "slug": "ratios",
+      "name": "Ratios",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-1.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 2,
+      "slug": "missing-side",
+      "name": "Missing Side",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-2.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 3,
+      "slug": "missing-angle",
+      "name": "Missing Angle",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-3.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 4,
+      "slug": "45-45-90",
+      "name": "45-45-90",
+      "count": 87,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-ratios-4.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 5,
+      "slug": "30-60-90",
+      "name": "30-60-90",
+      "count": 88,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-ratios-5.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 6,
+      "slug": "complementary-sin-cos",
+      "name": "Complementary sin/cos",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-6.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 7,
+      "slug": "elevation-and-bearings",
+      "name": "Elevation & Bearings",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-7.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 8,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 600,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-8.json"
     }
   ]
 }

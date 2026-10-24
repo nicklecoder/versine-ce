@@ -326,6 +326,11 @@ With it, Phase 3 is built.
 | `vectors` (TBD) | Components · Magnitude & Direction · Adding · Scalar Multiples · Resultants | TEKS P.4I–K |
 | `parametric-polar` (TBD) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
 
+`trig-ratios` is built, in the plan's eight levels and All Together, which
+makes nine; the skill says why with `longerBecause`. Calculator answers round
+only at the end, and a problem is kept only where 4-place working agrees with
+the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

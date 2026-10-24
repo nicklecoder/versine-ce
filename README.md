@@ -188,7 +188,7 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Sixty-four skills are built so far. They cover pre-algebra -- integer arithmetic
+Sixty-five skills are built so far. They cover pre-algebra -- integer arithmetic
 and absolute value, fractions, decimals, ratio and proportional relationships,
 powers, roots, scientific notation and the real numbers, expressions,
 measurement in both US customary and metric units and converting
@@ -197,7 +197,7 @@ equations and inequalities, including writing them from a situation, and
 compound inequalities and absolute value -- and all of the
 linear algebra after it: functions, slope, linear equations and their forms,
 linear models, systems of two equations, graphing inequalities, and sequences. Phase 2, polynomials to
-exponentials, is built too: monomials, rational exponents, polynomials, both factoring skills, quadratic equations, the quadratic formula, graphs of quadratics, exponential functions and transforming functions. The Pythagorean theorem, center and spread (mean, median, quartiles, MAD and samples), two-variable data (scatter plots, lines of fit, residuals, correlation and two-way tables), and distributions (box plots, histograms, standard deviation, the normal curve and z-scores) finish the Algebra 1 milestone, and geometry has begun with angle relationships, the angles of triangles and polygons, area and the circle, the volume and surface area of solids, transformations of the plane, geometry worked in coordinates, congruent and similar triangles, the properties of quadrilaterals, circles, and logical reasoning with conditionals. Probability has begun as well, with likelihood, single events, complements, sample spaces, independent events and expected counts, and counting, with the multiplication principle, factorials, permutations, combinations and probability by counting, and compound probability: Venn diagrams, the addition rule, conditional probability, drawing without replacement and independence. What comes next, and which standards it answers to, is in
+exponentials, is built too: monomials, rational exponents, polynomials, both factoring skills, quadratic equations, the quadratic formula, graphs of quadratics, exponential functions and transforming functions. The Pythagorean theorem, center and spread (mean, median, quartiles, MAD and samples), two-variable data (scatter plots, lines of fit, residuals, correlation and two-way tables), and distributions (box plots, histograms, standard deviation, the normal curve and z-scores) finish the Algebra 1 milestone, and geometry has begun with angle relationships, the angles of triangles and polygons, area and the circle, the volume and surface area of solids, transformations of the plane, geometry worked in coordinates, congruent and similar triangles, the properties of quadrilaterals, circles, and logical reasoning with conditionals. Probability has begun as well, with likelihood, single events, complements, sample spaces, independent events and expected counts, and counting, with the multiplication principle, factorials, permutations, combinations and probability by counting, and compound probability: Venn diagrams, the addition rule, conditional probability, drawing without replacement and independence. Trigonometry has begun with the ratios of a right triangle: missing sides and angles, the 45-45-90 and 30-60-90 triangles, cofunctions, and elevation and bearings. What comes next, and which standards it answers to, is in
 `docs/catalogue-plan.md`.
 
 ```
