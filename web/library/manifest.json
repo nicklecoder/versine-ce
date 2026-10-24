@@ -5562,7 +5562,7 @@
       "level": 2,
       "slug": "central-and-inscribed-angles",
       "name": "Central & Inscribed Angles",
-      "count": 1000,
+      "count": 750,
       "exhaustive": false,
       "signed": false,
       "file": "circles-2.json"
@@ -5582,7 +5582,7 @@
       "level": 4,
       "slug": "tangents",
       "name": "Tangents",
-      "count": 1000,
+      "count": 550,
       "exhaustive": false,
       "signed": false,
       "file": "circles-4.json"

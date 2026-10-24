@@ -3929,6 +3929,12 @@ BY_RULE += (
     (re.compile(rf"^inscribed: (.+); find {CIRCLE_PART}$"), inscribed_angle),
     # From the minor-arc side the angle stands on the major arc, 360° less the central angle.
     (re.compile(r"^inscribed minor: central AOB (\d+); find ADB$"), lambda c: Fraction(360 - c, 2)),
+    # Back the other way: twice the angle at D is the major arc, and AOB the rest of 360°.
+    (re.compile(r"^inscribed minor: ADB (\d+); find AOB$"), lambda d: Fraction(360 - 2 * d)),
+    # C and D on opposite arcs stand on arcs that make the whole circle: their angles add to 180°.
+    (re.compile(r"^inscribed opposite: ACB (\d+); find ADB$"), lambda c: Fraction(180 - c)),
+    # An arc measures its central angle, twice the inscribed angle on it.
+    (re.compile(r"^inscribed: ACB (\d+); find arc AB$"), lambda c: Fraction(2 * c)),
     (re.compile(rf"^semicircle: AB diameter; (.+); find {CIRCLE_PART}$"),
      lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1)], 90, target) if "ACB" in listing
      else 90 - circle_parts(listing)[next(iter(circle_parts(listing)))][1]),

@@ -21,7 +21,7 @@ import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
 import {
   LINE, GIVEN, ASKED, FRAME, RAD, r2, fit, toward, text, linear, ascii, sized, circlePath, region, rightMark,
-  sideLabel, cornerAt, under, dirTo, TRIPLES,
+  sideLabel, cornerAt, under, dirTo, TRIPLES, cornerLabel, namePoints, piTimes,
 } from './figures.js';
 import { solve } from './congruence.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/circles.js';
@@ -55,6 +55,8 @@ function angleText(V, U, W, label, tone = GIVEN) {
   const r = Math.min(1.3, Math.max(0.6, 0.28 / Math.sin(((to - from) / 2) * RAD)));
   return text(toward((from + to) / 2, r, V), label, tone);
 }
+/** An x-expression angle, written as the prompt writes it, (3x + 10)°, and fitted to its corner or set just outside it. */
+const exprAngle = (V, U, W, e, away = O) => cornerLabel(V, U, W, sized(e), GIVEN, { k: 1.2, away });
 function arcMark(V, U, W, tone = GIVEN) {
   const [from, to] = cornerAt(V, U, W);
   return { ...circlePath(V, 0.42, tone, from, to) };
@@ -63,8 +65,11 @@ function arcMark(V, U, W, tone = GIVEN) {
 // ── Exact decimals ──────────────────────────────────────────────────────
 
 /** n/d as a decimal answer, when it ends. */
+// requiem: catalogue/content/pi-coefficients-short
+// At most two places: 125/8 = 15.625 of π is a fraction to work out, not a
+// coefficient to type, so sizes are chosen that make 15.6 or 16, never 15.625.
 function exactly(n, d) {
-  for (let p = 0; p <= 4; p++) if ((n * 10 ** p) % d === 0) return { type: 'decimal', value: { n: (n * 10 ** p) / d, d: 10 ** p } };
+  for (let p = 0; p <= 2; p++) if ((n * 10 ** p) % d === 0) return { type: 'decimal', value: { n: (n * 10 ** p) / d, d: 10 ** p } };
   return null;
 }
 /** n/d to 1 decimal place, halves up, in whole numbers only. */
@@ -76,12 +81,21 @@ const onEdge = (n, d) => (200 * n) % d === 0 && ((200 * n) / d) % 2 === 1;
 
 const ANGLES = [30, 36, 40, 45, 60, 72, 80, 90, 100, 120, 135, 144, 150, 160, 180, 200, 210, 225, 240, 270, 288, 300, 315];
 /** The sector AOB from angle 0 round to `t`, turned by `start`. */
-function sectorFig(t, start, labels, reveal, shade) {
-  const A = on(start), B = on(start + t);
+/**
+ * The sector AOB from angle 0 round to `t`, turned by `start`. An arc of
+ * 180° or more is named by three letters, so its middle point C is drawn
+ * and lettered; its size is written just inside the arc, by C, since the
+ * angle at O of a major arc is no angle a student has met.
+ */
+function sectorFig(t, start, label, tone, reveal, shade) {
+  const A = on(start), B = on(start + t), mid = start + t / 2;
   const pts = circlePath(O, R, LINE, start, start + t).points;
+  const big = t >= 180;
   const marks = [circlePath(O, R), ...(shade ? [region([O, ...pts], GIVEN)] : []), { ...circlePath(O, R, GIVEN, start, start + t), dashed: false },
-    seg(O, A), seg(O, B), { kind: 'point', at: O, label: '', tone: LINE }, text(toward(start + t / 2 + 180, 0.4, O), 'O', LINE),
-    pointName(A, 'A'), pointName(B, 'B'), ...labels];
+    seg(O, A), seg(O, B), { kind: 'point', at: O, label: '', tone: LINE }, text(toward(mid + 180, 0.4, O), 'O', LINE),
+    pointName(A, 'A'), pointName(B, 'B'),
+    ...(big ? [{ kind: 'point', at: on(mid), label: '', tone: LINE }, pointName(on(mid), 'C')] : []),
+    text(toward(mid, big ? R - 0.75 : 0.75, O), label, tone)];
   return draw(marks, reveal);
 }
 
@@ -95,32 +109,41 @@ function arcOrSector(rng, sector) {
     // The coefficient of π: t·2r/360 for an arc, t·r²/360 for a sector.
     const [n, d] = sector ? [t * r * r, 360] : [t * r, 180];
     const what = sector ? 'sector' : 'arc';
-    const thing = sector ? `the area of sector AOB` : `the length of arc AB`;
+    // requiem: catalogue/content/major-arcs-three-letters
+    // Arc AB is the minor arc. An arc of 180° or more is named by three
+    // letters, arc ACB, with C drawn on it; its size is the arc's measure,
+    // never an "angle AOB" of more than 180°.
+    const big = t >= 180;
+    const arcName = big ? 'arc ACB' : 'arc AB', sectorName = big ? 'the sector bounded by OA, OB and arc ACB' : 'sector AOB';
+    const thing = sector ? `the area of ${sectorName}` : `the length of ${arcName}`;
+    const sizeSaid = big ? `${t === 180 ? 'arc ACB, a semicircle,' : 'major arc ACB'} measures ${t}°` : `∠AOB = ${t}°`;
     const whole = sector ? `A = πr² = π × ${r}² = ${r * r}π` : `C = 2πr = 2 × π × ${r} = ${2 * r}π`;
     const trap = sector ? `(The circumference 2πr gives an arc’s length, not a sector’s area${byD ? '; and r is half the diameter' : ''}.)`
       : `(πr² is the area, not the length round the edge${byD ? '; and r is half the diameter' : ''}.)`;
     const given = byD ? `diameter ${2 * r}` : `radius ${r}`;
     const rFrom = byD ? `The radius is half the diameter: ${r}. ` : '';
+    const angleWord = big ? 'arc’s measure' : 'central angle';
+    const labelAt = [on(0), on(90), on(180), on(270)];
     if (mode === 'find') {
       const a = exactly(n, d);
       if (usePi && !a) continue;
       if (!usePi && onEdge(314 * n, 100 * d)) continue;
       const q = tenths(314 * n, 100 * d);
       const answer = usePi ? a : { type: 'decimal', value: { n: q, d: 10, places: 1 } };
-      const shown = usePi ? `${shownExact(a)}π` : shownTenths(q);
+      const shown = usePi ? piTimes(a.value.n / a.value.d) : shownTenths(q);
       const letter = sector ? 'A' : 'L';
       const prompt = usePi
-        ? [T.prose(`Circle O has ${given} cm, and ∠AOB = ${t}°. What is ${thing}, in ${sector ? 'cm²' : 'cm'}? Keep π in the answer.`),
+        ? [T.prose(`Circle O has ${given} cm, and ${sizeSaid}. What is ${thing}, in ${sector ? 'cm²' : 'cm'}? Keep π in the answer.`),
           T.letter(letter), T.op('='), T.blank(), T.letter('π')]
-        : [T.prose(`Circle O has ${given} cm, and ∠AOB = ${t}°. What is ${thing}, in ${sector ? 'cm²' : 'cm'}, to 1 decimal place? Use 3.14 for π.`)];
+        : [T.prose(`Circle O has ${given} cm, and ${sizeSaid}. What is ${thing}, in ${sector ? 'cm²' : 'cm'}, to 1 decimal place? Use 3.14 for π.`)];
       const exactShown = exactly(n, d);
-      const piWork = exactShown ? `${shownExact(exactShown)}π` : `${n}π/${d}`;
+      const piWork = exactShown ? piTimes(exactShown.value.n / exactShown.value.d) : `${n}π/${d}`;
       return {
         prompt,
         text: `${what}: ${byD ? 'd' : 'r'} ${byD ? 2 * r : r}, angle ${t} ${usePi ? '(pi)' : '(3.14) to 1 dp'}`,
         answer,
-        visual: sectorFig(t, start, [text(toward(start + t / 2, 0.75, O), `${t}°`, GIVEN)], [answerAt([on(0), on(90), on(180), on(270)], `${shown}`)], sector),
-        explain: `${rFrom}The ${what} is the central angle’s share of the whole circle, ${share}. The whole: ${whole}. `
+        visual: sectorFig(t, start, `${t}°`, GIVEN, [answerAt(labelAt, `${shown}`)], sector),
+        explain: `${rFrom}The ${what} is the ${angleWord}’s share of the whole circle, ${share}. The whole: ${whole}. `
           + `So ${share} × ${sector ? r * r : 2 * r}π = ${piWork}${usePi ? '' : ` ≈ ${exactShown ? `${shownExact(exactShown)} × 3.14` : `${n} × 3.14 ÷ ${d}`} = ${((314 * n) / (100 * d)).toFixed(4).replace(/\.?0+$/, '')}, which is ${shown} to 1 dp`}. `
           + `${trap} So ${shown}${sector ? ' cm²' : ' cm'}.`,
       };
@@ -128,25 +151,27 @@ function arcOrSector(rng, sector) {
     // Back from a length or an area kept in π.
     const a = exactly(n, d);
     if (!a || !(Number.isInteger(n / d) || Number.isInteger((2 * n) / d))) continue;
-    const coeff = shownExact(a);
+    const coeff = shownExact(a), kept = piTimes(a.value.n / a.value.d);
     if (mode === 'angle') {
+      const asked = big ? `the measure of ${t === 180 ? 'arc ACB' : 'major arc ACB'}` : '∠AOB';
+      const said = big ? `arc ACB = ${t}°` : `∠AOB = ${t}°`;
       return {
-        prompt: [T.prose(`Circle O has radius ${r} cm, and ${thing} is ${coeff}π ${sector ? 'cm²' : 'cm'}. What is ∠AOB, in degrees?`)],
+        prompt: [T.prose(`Circle O has radius ${r} cm, and ${thing} is ${kept} ${sector ? 'cm²' : 'cm'}. What is ${asked}, in degrees?`)],
         text: `${what} angle: r ${r}, ${sector ? 'area' : 'length'} ${coeff} pi`,
         answer: { type: 'int', value: t },
-        visual: sectorFig(t, start, [text(toward(start + t / 2, 0.75, O), '?', ASKED)], [answerAt([on(0), on(90), on(180), on(270)], `∠AOB = ${t}°`)], sector),
-        explain: `The whole circle’s ${sector ? `area is πr² = ${r * r}π` : `circumference is 2πr = ${2 * r}π`}, and the ${what} is ${coeff}π of it: `
+        visual: sectorFig(t, start, '?', ASKED, [answerAt(labelAt, said)], sector),
+        explain: `The whole circle’s ${sector ? `area is πr² = ${r * r}π` : `circumference is 2πr = ${2 * r}π`}, and the ${what} is ${kept} of it: `
           + `${coeff}/${sector ? r * r : 2 * r} of the circle. That share of 360° is ${coeff} ÷ ${sector ? r * r : 2 * r} × 360 = ${t}°. `
-          + `(Not ${coeff} × 360: the share is the ${what} over the whole.) So ∠AOB = ${t}°.`,
+          + `(Not ${coeff} × 360: the share is the ${what} over the whole.) So ${said}.`,
       };
     }
     if (sector && t >= 300) continue;
     return {
-      prompt: [T.prose(`In circle O, ∠AOB = ${t}°, and ${thing} is ${coeff}π ${sector ? 'cm²' : 'cm'}. What is the radius, in cm?`)],
+      prompt: [T.prose(`In circle O, ${sizeSaid}, and ${thing} is ${kept} ${sector ? 'cm²' : 'cm'}. What is the radius, in cm?`)],
       text: `${what} radius: angle ${t}, ${sector ? 'area' : 'length'} ${coeff} pi`,
       answer: { type: 'int', value: r },
-      visual: sectorFig(t, start, [text(toward(start + t / 2, 0.75, O), `${t}°`, GIVEN)], [answerAt([on(0), on(90), on(180), on(270)], `r = ${r}`)], sector),
-      explain: `The ${what} is ${share} of the whole, so the whole ${sector ? 'area' : 'circumference'} is ${coeff}π × 360/${t} = ${sector ? r * r : 2 * r}π. `
+      visual: sectorFig(t, start, `${t}°`, GIVEN, [answerAt(labelAt, `r = ${r}`)], sector),
+      explain: `The ${what} is ${share} of the whole, so the whole ${sector ? 'area' : 'circumference'} is ${kept} × 360/${t} = ${sector ? r * r : 2 * r}π. `
         + (sector ? `πr² = ${r * r}π, so r² = ${r * r} and r = ${r}. (Stopping at ${r * r} gives r², not r.)` : `2πr = ${2 * r}π, so r = ${2 * r} ÷ 2 = ${r}. (${2 * r} is the diameter.)`)
         + ` So r = ${r} cm.`,
     };
@@ -157,16 +182,55 @@ function arcOrSector(rng, sector) {
 
 function inscribed(rng) {
   for (;;) {
-    const c = 2 * rng.int(20, 80);                 // the central angle on the minor arc AB
+    const c = 2 * rng.int(16, 85);                 // the central angle on the minor arc AB
     const a0 = rng.int(200, 340), A = on(a0), B = on(a0 + c);
     const Cat = a0 + c + rng.int(30, 360 - c - 30), C = on(Cat);
     const Dat = a0 + rng.int(15, c - 15), D = on(Dat);
-    const mode = rng.pick(['central', 'central', 'arc', 'inscribed', 'minor', 'x']);
+    // requiem: catalogue/content/circle-rules-before-equations
+    // The rule is the new idea, so most rows give a number and ask for the
+    // other angle, every way round; the x-equations are one mode of eight,
+    // and the level's cap keeps them near a third of its library.
+    const mode = rng.pick(['central', 'arc', 'inscribed', 'arc-back', 'minor', 'minor-back', 'opposite', 'x']);
     const half = c / 2;
     const base = [circlePath(O, R), seg(O, A), seg(O, B), text(toward(a0 + c / 2 + 180, 0.38, O), 'O', LINE),
       pointName(A, 'A'), pointName(B, 'B')];
     const atC = [seg(C, A), seg(C, B), pointName(C, 'C')];
     const fact = 'An inscribed angle is half the central angle standing on the same arc. ';
+    if (mode === 'minor-back') {
+      // From the angle at D, on the minor arc, back to the central angle.
+      const gv = 180 - half;
+      return {
+        prompt: [T.prose(`A, B and D are on circle O, with D on the minor arc AB, and ∠ADB = ${deg(gv)}. What is ∠AOB, in degrees?`)],
+        text: `inscribed minor: ADB ${gv}; find AOB`,
+        answer: { type: 'int', value: c },
+        visual: draw([...base, seg(D, A), seg(D, B), pointName(D, 'D'), angleText(D, A, B, deg(gv)), angleText(O, A, B, '?', ASKED)],
+          [answerAt([on(0), on(180), on(270)], `∠AOB = ${deg(c)}`)]),
+        explain: `${fact}∠ADB stands on the major arc AB, the one away from D, so that arc's central angle is 2 × ${gv} = ${2 * gv}°. `
+          + `∠AOB is the rest of the way round: 360 − ${2 * gv} = ${c}°. (Doubling ${gv} gives the major arc, not ∠AOB.) So ∠AOB = ${deg(c)}.`,
+      };
+    }
+    if (mode === 'opposite') {
+      // C on the major arc and D on the minor: together they stand on the whole circle.
+      const want = 180 - half;
+      return {
+        prompt: [T.prose(`A, B, C and D are on circle O, with C on the major arc AB and D on the minor arc AB, and ∠ACB = ${deg(half)}. What is ∠ADB, in degrees?`)],
+        text: `inscribed opposite: ACB ${half}; find ADB`,
+        answer: { type: 'int', value: want },
+        visual: draw([...base, ...atC, seg(D, A), seg(D, B), pointName(D, 'D'), angleText(C, A, B, deg(half)), angleText(D, A, B, '?', ASKED)],
+          [answerAt([on(0), on(180), on(270)], `∠ADB = ${deg(want)}`)]),
+        explain: `${fact}∠ACB stands on the minor arc AB and ∠ADB on the major arc, and the two arcs make the whole 360°, so the two angles add to half of it, 180°: `
+          + `∠ADB = 180 − ${half} = ${want}°. (ACBD is a cyclic quadrilateral, and these are its opposite angles; they are equal only when both are 90°.) So ∠ADB = ${deg(want)}.`,
+      };
+    }
+    if (mode === 'arc-back') {
+      return {
+        prompt: [T.prose(`A, B and C are on circle O, with C on the major arc AB, and ∠ACB = ${deg(half)}. What is the measure of the minor arc AB, in degrees?`)],
+        text: `inscribed: ACB ${half}; find arc AB`,
+        answer: { type: 'int', value: c },
+        visual: draw([...base, ...atC, { ...circlePath(O, R, ASKED, a0, a0 + c) }, angleText(C, A, B, deg(half))], [answerAt([on(0), on(180), on(270)], `arc AB = ${deg(c)}`)]),
+        explain: `${fact}An arc measures its central angle, so the minor arc AB is twice ∠ACB: 2 × ${half} = ${c}°. (Halving goes the wrong way: the arc is twice the angle at the circle.) So ${deg(c)}.`,
+      };
+    }
     if (mode === 'minor') {
       const want = 180 - half;
       return {
@@ -188,7 +252,7 @@ function inscribed(rng) {
         prompt: [T.prose(`A, B and C are on circle O, with C on the major arc AB. ∠ACB = ${sized(e1)} and ∠AOB = ${sized(e2)}. What is x?`)],
         text: `inscribed: ACB ${ascii(...e1)}, AOB ${ascii(...e2)}; find x`,
         answer: { type: 'int', value: x },
-        visual: draw([...base, ...atC, angleText(O, A, B, `${linear(...e2)}°`), angleText(C, A, B, `${linear(...e1)}°`)], [answerAt([on(0), on(180), on(270)], `x = ${x}`)]),
+        visual: draw([...base, ...atC, ...exprAngle(O, A, B, e2, C), ...exprAngle(C, A, B, e1)], [answerAt([on(0), on(180), on(270)], `x = ${x}`)]),
         explain: `${fact}So ∠AOB = 2∠ACB: 2(${linear(...e1)}) = ${linear(...e2)}, which is ${s.work} `
           + `Check: ∠ACB = ${putX(e1, x)} = ${half}° and ∠AOB = ${putX(e2, x)} = ${c}°. (Setting them equal forgets the half.) So x = ${x}.`,
       };
@@ -231,7 +295,7 @@ function semicircle(rng) {
       prompt: [T.prose(`AB is a diameter of circle O, and C is on the circle. ∠ACB = ${sized(e)}. What is x?`)],
       text: `semicircle: AB diameter; angle ACB ${ascii(...e)}; find x`,
       answer: { type: 'int', value: x },
-      visual: draw([...marks, angleText(Cp, A, B, `${linear(...e)}°`)], [answerAt([A, B, on(270)], `x = ${x}`)]),
+      visual: draw([...marks, ...exprAngle(Cp, A, B, e)], [answerAt([A, B, on(270)], `x = ${x}`)]),
       explain: `${fact}So ${s.work} Check: ${putX(e, x)} = 90. (It is half of 180°, not 180° itself.) So x = ${x}.`,
     };
   }
@@ -263,6 +327,7 @@ function cyclic(rng) {
     const P = at.map(on), names = 'ABCD';
     const marks = [circlePath(O, R), ...P.map((p, i) => seg(p, P[(i + 1) % 4])), ...P.map((p, i) => pointName(p, names[i]))];
     const corner = (v, l, tone) => { const i = names.indexOf(v); return angleText(P[i], P[(i + 1) % 4], P[(i + 3) % 4], l, tone); };
+    const cornerE = (v, e) => { const i = names.indexOf(v); return exprAngle(P[i], P[(i + 1) % 4], P[(i + 3) % 4], e); };
     const fact = 'Opposite angles of a cyclic quadrilateral add to 180°: each is half the arc it stands on, and the two arcs make the whole 360°. ';
     if (rng.chance(0.4)) {
       const [v, u] = rng.pick([['A', 'C'], ['B', 'D']]);
@@ -273,7 +338,7 @@ function cyclic(rng) {
         prompt: [T.prose(`ABCD is a quadrilateral with all four corners on a circle. ∠${v} = ${sized(e1)} and ∠${u} = ${sized(e2)}. What is x?`)],
         text: `cyclic quadrilateral: angle ${v} ${ascii(...e1)}, angle ${u} ${ascii(...e2)}; find x`,
         answer: { type: 'int', value: x },
-        visual: draw([...marks, corner(v, `${linear(...e1)}°`), corner(u, `${linear(...e2)}°`)], [answerAt(P, `x = ${x}`)]),
+        visual: draw([...marks, ...cornerE(v, e1), ...cornerE(u, e2)], [answerAt(P, `x = ${x}`)]),
         explain: `${fact}So (${linear(...e1)}) + (${linear(...e2)}) = 180, which gathers to ${sv.work} Check: ${putX(e1, x)} = ${ang[v]} and ${putX(e2, x)} = ${ang[u]}, which add to 180. `
           + `(Opposite angles add to 180°; they are equal only when both are 90°.) So x = ${x}.`,
       };
@@ -303,7 +368,7 @@ function sameArc(rng) {
     prompt: [T.prose(`A, B, C and D are on a circle, with C and D on the same side of AB. ∠ACB = ${sized(e1)} and ∠ADB = ${sized(e2)}. What is x?`)],
     text: `same arc: angle ACB ${ascii(...e1)}, angle ADB ${ascii(...e2)}; find x`,
     answer: { type: 'int', value: x },
-    visual: draw([...marks, angleText(C, A, B, `${linear(...e1)}°`), angleText(D, A, B, `${linear(...e2)}°`)], [answerAt([A, B, C, D], `x = ${x}`)]),
+    visual: draw([...marks, ...exprAngle(C, A, B, e1), ...exprAngle(D, A, B, e2)], [answerAt([A, B, C, D], `x = ${x}`)]),
     explain: `∠ACB and ∠ADB both stand on arc AB from the same side, so each is half the same central angle: they are equal. ${s.work} `
       + `Check: both come to ${half}°. (Adding them to 180° is the rule for opposite corners of a cyclic quadrilateral, not for angles on the same arc.) So x = ${x}.`,
   };
@@ -316,7 +381,7 @@ const semicirclesCyclic =(rng) => rng.pick([semicircle, cyclic, cyclic, sameArc]
 
 function tangentRadius(rng) {
   const [p, q, h] = rng.pick(TRIPLES);
-  const k = rng.pick([1, 1, 2, 3]);
+  const k = rng.pick([1, 1, 2, 3, 4]);
   const [r, t, d] = rng.chance(0.5) ? [p * k, q * k, h * k] : [q * k, p * k, h * k];
   const ask = rng.pick(['OP', 'PT', 'OT']);
   // O at the middle, T on the circle, P along the tangent at T.
@@ -356,7 +421,7 @@ function tangentRadius(rng) {
 }
 
 function twoTangents(rng) {
-  const byAngle = rng.chance(0.45);
+  const byAngle = rng.chance(0.6);
   const p = byAngle ? 2 * rng.int(15, 60) : 2 * rng.int(18, 40);
   const half = p / 2, dist = R / Math.sin(half * RAD), axis = rng.int(-30, 30);
   const P = toward(axis, dist), A = on(axis + (90 - half)), B = on(axis - (90 - half));
@@ -500,6 +565,8 @@ const CONTENT = [(rng) => arcOrSector(rng, false), (rng) => arcOrSector(rng, tru
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
   const p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
+  // The plane questions' points, and the center revealed with its circle, named clear of the circle.
+  if (p.visual) p.visual = namePoints(p.visual);
   p.parSeconds = PAR_SECONDS[level];
   return p;
 }
