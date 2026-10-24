@@ -341,6 +341,11 @@ Speed · All Together. The plan's Degrees ↔ Radians is two levels, one each
 way, and Sector Area is added beside Arc Length; the two depend on the
 circles skill's Arc Length and Sector Area, where both are taken in degrees. Exact answers are the
 coefficient of π, as a fraction.
+`unit-circle` is built, as Special Angles · Signs by Quadrant · Around the
+Circle · Tangent · sec, csc, cot · From One Ratio, the Rest · All Together.
+Around the Circle is added between the first-quadrant values and tangent,
+for any angle by its reference angle, and depends on radians' Reference
+Angles; Special Angles depends on trig-ratios' 30-60-90.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

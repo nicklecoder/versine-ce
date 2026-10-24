@@ -13,6 +13,15 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**The Unit Circle**, a new skill under the Unit Circle, in seven levels:
+special angles, signs by quadrant, any multiple of 30° or 45° by its
+reference angle (drawn on the circle), tangent, sec, csc and cot, and the
+rest of the ratios from one, then All Together. Exact values use the roots
+type, so √3/3 and 1/√3 are both right; an undefined tangent or cotangent is
+asked as a choice. A question that gives one ratio always fixes the
+quadrant. `check-answers.py` works every value out again with the
+calculator and places θ in its quadrant with the inverse function.
+
 **Radians**, a new skill under the Unit Circle, in eight levels: degrees to
 radians and back, coterminal angles, reference angles on a drawn angle, arc
 length s = rθ, sector area ½r²θ, and angular and linear speed in rpm, radians

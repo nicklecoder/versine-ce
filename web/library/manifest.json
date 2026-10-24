@@ -1,5 +1,5 @@
 {
-  "built": 509,
+  "built": 516,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -642,6 +642,15 @@
       "arc-length",
       "sector-area",
       "angular-speed",
+      "all-together"
+    ],
+    "unit-circle": [
+      "special-angles",
+      "signs-by-quadrant",
+      "around-the-circle",
+      "tangent",
+      "sec-csc-cot",
+      "from-one-ratio",
       "all-together"
     ]
   },
@@ -1442,9 +1451,23 @@
           "circles"
         ]
       }
+    },
+    "unit-circle": {
+      "dependsOn": [
+        "radians",
+        "trig-ratios"
+      ],
+      "levels": {
+        "special-angles": [
+          "trig-ratios"
+        ],
+        "around-the-circle": [
+          "radians"
+        ]
+      }
     }
   },
-  "sources": "b5d1b898666a5a0c26e8de4bec9057fcdd883864a83d1a6ee3e4112d69aa23ce",
+  "sources": "8a9c8bc86c198d81b1c850b0de919a5d4e1c62c4e6d247048501800911e131db",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6535,6 +6558,76 @@
       "exhaustive": false,
       "signed": false,
       "file": "radians-7.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 0,
+      "slug": "special-angles",
+      "name": "Special Angles",
+      "count": 60,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-0.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 1,
+      "slug": "signs-by-quadrant",
+      "name": "Signs by Quadrant",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "unit-circle-1.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 2,
+      "slug": "around-the-circle",
+      "name": "Around the Circle",
+      "count": 108,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-2.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 3,
+      "slug": "tangent",
+      "name": "Tangent",
+      "count": 112,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-3.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 4,
+      "slug": "sec-csc-cot",
+      "name": "sec, csc, cot",
+      "count": 202,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-4.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 5,
+      "slug": "from-one-ratio",
+      "name": "From One Ratio, the Rest",
+      "count": 720,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-5.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "unit-circle-6.json"
     }
   ]
 }

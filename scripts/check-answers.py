@@ -5104,6 +5104,100 @@ BY_RULE += (
     (re.compile(r"^wheel speed: diameter (\d+) (in|cm), rpm (\d+), want (mi|km) per h to (\d) dp$"), rad_wheel),
 )
 
+
+# --- The Unit Circle ---------------------------------------------------------
+#
+# Every exact value is worked out again with the calculator, from the angle
+# the text gives in degrees or as a multiple of π, and the stored a + b√r
+# must agree (exact_holds). A sign or a quadrant is read off the calculator's
+# value; a ratio from a point is y/x and the rest, after checking the point
+# is on the circle. A value from one ratio places θ in its quadrant with the
+# inverse function and evaluates the other there, with no triangle.
+
+UC_ANGLE = r"(-?\d+(?:/\d+ pi)?)"
+UC = {
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "sec": lambda t: 1 / math.cos(t), "csc": lambda t: 1 / math.sin(t), "cot": lambda t: math.cos(t) / math.sin(t),
+}
+ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4}
+
+
+def uc_angle(written: str) -> float:
+    """Radians, from 210 (degrees) or 7/6 pi."""
+    written = str(written)
+    if written.endswith(" pi"):
+        return float(Fraction(written[:-3])) * math.pi
+    return math.radians(int(written))
+
+
+def uc_quadrant_signs(q: int) -> tuple:
+    """(cos, sin) signs at the middle of quadrant q."""
+    t = math.radians(45 + 90 * (q - 1))
+    return (math.cos(t) > 0, math.sin(t) > 0)
+
+
+def uc_sign(fn: str, angle: str) -> str:
+    v = UC[fn](uc_angle(angle))
+    assert abs(v) > 1e-9, f"{fn} {angle} is zero"
+    return "positive" if v > 0 else "negative"
+
+
+def uc_sign_in_quadrant(fn: str, q: str) -> str:
+    return "positive" if UC[fn](math.radians(45 + 90 * (ROMAN[q] - 1))) > 0 else "negative"
+
+
+def uc_quadrant_from_signs(f: str, sf: str, g: str, sg: str) -> str:
+    fits = [name for name, q in ROMAN.items()
+            if (UC[f](math.radians(45 + 90 * (q - 1))) > 0) == (sf == "+")
+            and (UC[g](math.radians(45 + 90 * (q - 1))) > 0) == (sg == "+")]
+    return fits[0] if len(fits) == 1 else f"ambiguous {fits}"
+
+
+def uc_defined(fn: str, angle: str) -> str:
+    t = uc_angle(angle)
+    below = math.cos(t) if fn == "tan" else math.sin(t)
+    if abs(below) < 1e-12:
+        return "undefined"
+    return str(round(UC[fn](t)))
+
+
+def uc_from_point(fn: str, x: str, y: str) -> Fraction:
+    X, Y = Fraction(x), Fraction(y)
+    assert X * X + Y * Y == 1, f"({x}, {y}) is not on the unit circle"
+    return {"sin": Y, "cos": X, "tan": Y / X, "sec": 1 / X, "csc": 1 / Y, "cot": X / Y}[fn]
+
+
+# requiem: catalogue/content/one-ratio-fixes-the-quadrant
+def uc_from_ratio(fn: str, value: str, q: str, want: str) -> float:
+    v = Fraction(value)
+    t0 = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn](abs(float(v)))
+    t = [t0, math.pi - t0, math.pi + t0, 2 * math.pi - t0][ROMAN[q] - 1]
+    if (UC[fn](t) > 0) != (v > 0):
+        return math.nan  # the given ratio cannot have that sign in that quadrant
+    return UC[want](t)
+
+
+EXACT_RULES += (
+    (re.compile(rf"^exact: (sin|cos|tan|sec|csc|cot) {UC_ANGLE}$"), lambda f, a: UC[f](uc_angle(a))),
+    (re.compile(rf"^point coordinate: (x|y), {UC_ANGLE}$"), lambda c, a: (math.cos if c == "x" else math.sin)(uc_angle(a))),
+    (re.compile(r"^from ratio: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (\w+)$"), uc_from_ratio),
+)
+
+BY_RULE += (
+    (re.compile(r"^ratio from point: (tan|sec|csc|cot), (-?\d+/\d+), (-?\d+/\d+)$"), uc_from_point),
+    # A rational value from one ratio: the calculator's value, which is a
+    # fraction with a small denominator when the sides are a triple.
+    (re.compile(r"^from ratio: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (\w+)$"),
+     lambda *g: Fraction(uc_from_ratio(*g)).limit_denominator(1000)),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^sign: (sin|cos|tan|sec|csc|cot) {UC_ANGLE}$"), uc_sign),
+    (re.compile(r"^sign in quadrant: (sin|cos|tan|sec|csc|cot) (I|II|III|IV)$"), uc_sign_in_quadrant),
+    (re.compile(r"^quadrant from signs: (\w+) ([+-]), (\w+) ([+-])$"), uc_quadrant_from_signs),
+    (re.compile(rf"^defined: (tan|cot) {UC_ANGLE}$"), uc_defined),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
