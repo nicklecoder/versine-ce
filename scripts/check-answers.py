@@ -1614,6 +1614,61 @@ CHOICE_RULES += (
 )
 
 
+# --- The Quadratic Formula ---------------------------------------------------
+#
+# Each claimed root p + q√r is put back into the equation in exact
+# arithmetic: x² is p² + q²r + 2pq√r, so the equation holds when its
+# rational part and its √r part are both zero. The number of roots must be
+# what the discriminant says, so a root that satisfies the equation cannot
+# hide a missing second one.
+
+def abc(equation: str):
+    left, right = equation.split(" = ")
+    letter = re.search(r"[a-z]", equation)[0]
+    cs = coefficients(f"({left}) - ({right})".replace(letter, "x"))
+    c, b, a = (cs + [Fraction(0)] * 3)[:3]
+    return a, b, c
+
+
+def real_root_count(equation: str) -> int:
+    a, b, c = abc(equation)
+    d = b * b - 4 * a * c
+    return 2 if d > 0 else 1 if d == 0 else 0
+
+
+def roots_hold(equation: str, value) -> str:
+    a, b, c = abc(equation)
+    roots = value["roots"]
+    seen = {(as_fraction(x["a"]), as_fraction(x["b"]), x["r"]) for x in roots}
+    if len(seen) != len(roots) or len(roots) != real_root_count(equation):
+        return f"has {len(roots)} roots, not {real_root_count(equation)}"
+    for p, q, r in seen:
+        if r > 1 and (q == 0 or any(r % (k * k) == 0 for k in range(2, math.isqrt(r) + 1))):
+            return "has a root not in simplest form"
+        if a * (p * p + q * q * r) + b * p + c != 0 or 2 * a * p * q + b * q != 0:
+            return f"has {p} + {q}√{r}, which is not a root"
+    return "ok"
+
+
+def quickest(equation: str) -> str:
+    a, b, c = abc(equation)
+    if b == 0:
+        return "roots"
+    if is_square(b * b - 4 * a * c):
+        return "factor"
+    return "complete" if a == 1 and b.denominator == 1 and b.numerator % 2 == 0 else "formula"
+
+
+BY_RULE += (
+    (re.compile(r"^square: (.+)$"), lambda src: (coefficients(src)[1] / 2) ** 2),
+    (re.compile(r"^real roots: (.+)$"), real_root_count),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^quickest: (.+)$"), quickest),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1668,6 +1723,13 @@ for path in sorted(LIB.glob("*.json")):
             continue
 
         # A set of numbers: solved again at points along the line, and compared there.
+        if answer["type"] == "roots" and text.startswith("roots: "):
+            checked += 1
+            verdict = roots_hold(text[len("roots: "):], answer["value"])
+            if verdict != "ok":
+                problems.append(f"{where}: {answer['accept'][0]} {verdict}")
+            continue
+
         if answer["type"] == "solutions" and text.startswith("quadratic: "):
             checked += 1
             want, got = quadratic_roots(text[len("quadratic: "):]), answer_points(answer["value"])

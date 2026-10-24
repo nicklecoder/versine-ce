@@ -1,5 +1,5 @@
 {
-  "built": 302,
+  "built": 309,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -334,6 +334,15 @@
       "by-factoring",
       "rearrange-to-zero-first",
       "square-roots",
+      "which-method",
+      "all-together"
+    ],
+    "quadratic-formula": [
+      "make-a-square",
+      "completing-the-square",
+      "the-formula",
+      "the-discriminant",
+      "exact-radical-answers",
       "which-method",
       "all-together"
     ],
@@ -846,6 +855,17 @@
         ]
       }
     },
+    "quadratic-formula": {
+      "dependsOn": [
+        "quadratic-eq",
+        "roots"
+      ],
+      "levels": {
+        "which-method": [
+          "quadratic-eq"
+        ]
+      }
+    },
     "inequalities": {
       "dependsOn": [
         "equations",
@@ -904,7 +924,7 @@
       }
     }
   },
-  "sources": "27ba869b77382995e3cfb043243f013663321c56ec9696ed61afb577dabbd791",
+  "sources": "387e0cd1e976ef323b7b1fdc906d28f5e72904897f58e40361744cd72b1e26d5",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3545,6 +3565,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "quadratic-eq-5.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 0,
+      "slug": "make-a-square",
+      "name": "Make a Square",
+      "count": 96,
+      "exhaustive": true,
+      "signed": false,
+      "file": "quadratic-formula-0.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 1,
+      "slug": "completing-the-square",
+      "name": "Completing the Square",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-formula-1.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 2,
+      "slug": "the-formula",
+      "name": "The Formula",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-formula-2.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 3,
+      "slug": "the-discriminant",
+      "name": "The Discriminant",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadratic-formula-3.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 4,
+      "slug": "exact-radical-answers",
+      "name": "Exact Radical Answers",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-formula-4.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 5,
+      "slug": "which-method",
+      "name": "Which Method?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadratic-formula-5.json"
+    },
+    {
+      "skill": "quadratic-formula",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-formula-6.json"
     },
     {
       "skill": "inequalities",

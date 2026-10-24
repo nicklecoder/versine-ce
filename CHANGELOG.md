@@ -104,6 +104,9 @@ Phase 2 has begun:
 - **Quadratic Equations** (Equations): the zero product property, solving by factoring,
   rearranging to zero first, square roots, and a strategy level on choosing square roots,
   factoring, or neither.
+- **The Quadratic Formula** (Equations): making a square, completing the square, the
+  formula, the discriminant, exact radical answers, and a strategy level on the least-work
+  method of four.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.
@@ -123,6 +126,10 @@ it is set smaller so it fits the card.
 A problem can list more than one accepted answer, and any of them is judged right:
 (x + 3)² and (x + 3)(x + 3) are both a finished factorisation. The expression answer box
 is a little wider.
+
+A new answer type, **roots**, takes a quadratic's solutions exactly, with ±: x = (−3 ± √17)/4,
+−3/4 ± √17/4 and (−6 ± √68)/8 are one answer, judged in exact arithmetic, and the preview
+draws a ± read both ways.
 
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.

@@ -115,7 +115,9 @@ Pattern? (strategy, on polynomials' Special Products) and All Together; and
 `factoring-2`, as ax² + bx + c · The AC Method · Factor Completely · Grouping
 Four Terms · Sums and Differences of Cubes · All Together; and `quadratic-eq`,
 as Zero Product · By Factoring · Rearrange to Zero First · Square Roots · Which
-Method? (strategy, on factoring's Which Pattern?) · All Together.
+Method? (strategy, on factoring's Which Pattern?) · All Together; and
+`quadratic-formula`, as Make a Square · Completing the Square · The Formula ·
+The Discriminant · Exact Radical Answers · Which Method? (strategy) · All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
