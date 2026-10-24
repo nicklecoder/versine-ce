@@ -15,8 +15,9 @@
  * squaring anything.
  *
  * Whole-number levels take a number; the exact levels take a root, typed
- * as 2√5 or sqrt(20), and their whole answers are typed the same way so the
- * box never says which kind is coming.
+ * 2sqrt(5), and their whole answers are typed the same way so the box never
+ * says which kind is coming. The root must be simplified: sqrt(20) is
+ * answered as right but not finished.
  */
 
 export const LEVELS = [

@@ -40,6 +40,12 @@ function rootOf(letter, n) {
   const root = m === 1 ? { a: Q(k), b: Q(0), r: 1 } : { a: Q(0), b: Q(k), r: m };
   return { type: 'roots', value: { letter, roots: [root] } };
 }
+/**
+ * The same, as an answer that must be simplified: √20 is right and not
+ * finished, and these levels are named for finishing it.
+ */
+// requiem: catalogue/library/exact-levels-require-simplest
+const simplestRootOf = (letter, n) => ({ ...rootOf(letter, n), requireSimplest: true });
 const shown = (letter, n) => formatRoots(rootOf(letter, n).value).replace(`${letter} = `, '');
 /** The simplifying step, or nothing when the root is already simplest. */
 function simplified(n) {
@@ -59,10 +65,16 @@ function triangle(a, b, unknown, answerLabel) {
   const side = (from, to, label) => ({ kind: 'segment', from, to, tone: LINE, ...(label ? { label } : {}) });
   const sides = { a: [[0, 0], [a, 0]], b: [[0, 0], [0, b]], c: [[a, 0], [0, b]] };
   const labels = { a: String(a), b: String(b), c: null };
+  // The right angle marked with its square, sized to the grid.
+  const s = Math.min(a, b, Math.max(0.4, top * 0.06));
+  const corner = [side([s, 0], [s, s]), side([s, s], [0, s])];
   return {
     kind: 'plane', xRange: [-1, top], yRange: [-1, top], grid: top > 16 ? 0 : 1,
-    marks: Object.entries(sides).map(([k, [f, t]]) => side(f, t, k === unknown ? null : labels[k] ?? null)),
-    answer: [{ ...side(...sides[unknown], answerLabel), tone: MARK }],
+    marks: [...Object.entries(sides).map(([k, [f, t]]) => side(f, t, k === unknown ? null : labels[k] ?? null)), ...corner],
+    // The tick that marks it right is drawn just past the end the answer's
+    // side is drawn to. A short upright leg would put it on that leg's own
+    // number, so then the side is drawn the other way, to the bottom.
+    answer: [{ ...side(...(b < 4 ? [...sides[unknown]].reverse() : sides[unknown]), answerLabel), tone: MARK }],
   };
 }
 
@@ -160,10 +172,10 @@ function exact(rng) {
   const letter = hyp ? 'c' : 'b';
   return {
     prompt: [T.prose(hyp
-      ? `A right triangle has legs ${p} and ${q}. Give the exact length of the hypotenuse.`
-      : `A right triangle has hypotenuse ${q} and one leg ${p}. Give the exact length of the other leg.`)],
+      ? `A right triangle has legs ${p} and ${q}. Give the exact length of the hypotenuse, simplified.`
+      : `A right triangle has hypotenuse ${q} and one leg ${p}. Give the exact length of the other leg, simplified.`)],
     text: hyp ? `exact hypotenuse: ${p}, ${q}` : `exact leg: ${q}, ${p}`,
-    answer: rootOf(letter, n),
+    answer: simplestRootOf(letter, n),
     visual: hyp ? triangle(p, q, 'c', shown(letter, n)) : null,
     explain: `${letter}² = ${hyp ? `${p}² + ${q}² = ${p * p} + ${q * q}` : `${q}² − ${p}² = ${q * q} − ${p * p}`} = ${n}, `
       + `so ${letter} = √${n}. ${simplified(n)}.`,
@@ -186,9 +198,9 @@ function distance(rng) {
   const n = dx * dx + dy * dy;
   const P = `(${minus(x1)}, ${minus(y1)})`, R = `(${minus(x2)}, ${minus(y2)})`;
   return {
-    prompt: [T.prose(`How far apart are ${P} and ${R}? Give the exact distance.`)],
+    prompt: [T.prose(`How far apart are ${P} and ${R}? Give the exact distance, simplified.`)],
     text: `distance: ${x1}, ${y1}, ${x2}, ${y2}`,
-    answer: rootOf('d', n),
+    answer: simplestRootOf('d', n),
     visual: { kind: 'plane', xRange: [-10, 10], yRange: [-10, 10], grid: 1,
       marks: [{ kind: 'point', at: [x1, y1], label: P, tone: LINE }, { kind: 'point', at: [x2, y2], label: R, tone: LINE }],
       answer: [
