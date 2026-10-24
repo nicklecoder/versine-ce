@@ -2178,7 +2178,7 @@ BY_RULE += (
     (re.compile(r"^The (?:diver|elevator|temperature|account) (−?\d+) then ([+−]\d+)$"),
      lambda a, b: signed(a) + signed(b)),
     (re.compile(r"^The (?:diver|elevator|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
-    (re.compile(r"^(\d+) (?:m|\$|°) down, (\d+) times$"), lambda k, n: -k * n),
+    (re.compile(r"^(\d+) (?:m|ft|\$|°) down, (\d+) times$"), lambda k, n: -k * n),
     (re.compile(r"^−(\d+) shared over (\d+)$"), lambda a, n: whole(Fraction(-a, n))),
     (re.compile(r"^([\d ()+−×÷]+[²³][\d ()+−×÷²³]*)$"),
      lambda src: evaluate(src.replace("²", "^2").replace("³", "^3"))),
