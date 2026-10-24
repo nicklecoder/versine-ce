@@ -4109,6 +4109,162 @@ CHOICE_RULES += (
      lambda domain, cond: "yes" if all(logic_holds(domain, logic_form(f, logic_cond(cond))) for f in ("original", "converse")) else "no"),
 )
 
+# --- Two-variable data ------------------------------------------------------
+#
+# Worked from the data and the line as the question gives them: r from the
+# points by its definition, predictions and residuals from y = mx + b, and
+# every two-way question from the four counts, its totals added here. The
+# bands for describing r are kept apart (strong from 0.7, weak 0.15 to 0.5,
+# none to 0.1), so a value between them is reported rather than judged.
+
+BIV_NUM = r"-?\d+(?:\.\d+)?"
+BIV_LINE = rf"y = ({BIV_NUM})x \+ ({BIV_NUM})"
+BIV_PT = rf"\(({BIV_NUM}), ({BIV_NUM})\)"
+
+
+def biv_points(listing: str) -> list:
+    return [(Fraction(a), Fraction(b)) for a, b in re.findall(BIV_PT, listing)]
+
+
+def biv_r(pts: list) -> float:
+    n = len(pts)
+    mx = sum(p[0] for p in pts) / n
+    my = sum(p[1] for p in pts) / n
+    sxy = sum((x - mx) * (y - my) for x, y in pts)
+    sxx = sum((x - mx) ** 2 for x, _ in pts)
+    syy = sum((y - my) ** 2 for _, y in pts)
+    return float(sxy) / math.sqrt(float(sxx) * float(syy))
+
+
+def biv_direction(listing: str) -> str:
+    r = biv_r(biv_points(listing))
+    if r >= 0.6:
+        return "positive"
+    if r <= -0.6:
+        return "negative"
+    assert abs(r) <= 0.3, f"r = {r:.2f} is neither clear nor absent"
+    return "none"
+
+
+def biv_options(listing: str) -> dict:
+    return dict(item.split("=", 1) for item in listing.split(", "))
+
+
+def biv_band(r: str) -> str:
+    v = Fraction(r)
+    if abs(v) <= Fraction(1, 10):
+        return "none"
+    side = "positive" if v > 0 else "negative"
+    if abs(v) >= Fraction(7, 10):
+        return f"strong-{side}"
+    assert Fraction(15, 100) <= abs(v) <= Fraction(1, 2), r
+    return f"weak-{side}"
+
+
+def biv_meaning(v: str, m: str, b: str, listing: str) -> str:
+    v, m, b = Fraction(v), Fraction(m), Fraction(b)
+    assert (v == m) != (v == b)
+    meaning = "start" if v == b else "rate-up" if m > 0 else "rate-down"
+    return next(k for k, w in biv_options(listing).items() if w == meaning)
+
+
+def biv_closest(listing: str, options: str) -> str:
+    r = biv_r(biv_points(listing))
+    gaps = sorted((abs(float(Fraction(v)) - r), k) for k, v in biv_options(options).items())
+    assert gaps[1][0] - gaps[0][0] > 0.2, (r, gaps)
+    return gaps[0][1]
+
+
+def biv_cause(design: str, r: str, listing: str) -> str:
+    # Random assignment is what shows a cause; without it, only an association.
+    v = abs(Fraction(r))
+    if v <= Fraction(1, 10):
+        want = "none"
+    else:
+        assert v >= Fraction(1, 2)
+        want = "cause" if design == "experiment" else "associated"
+    return next(k for k, w in biv_options(listing).items() if w == want)
+
+
+def biv_table(counts: str) -> tuple:
+    a, b, d, e = (int(v) for v in re.findall(r"\d+", counts))
+    return ((a, b, a + b), (d, e, d + e), (a + d, b + e, a + b + d + e))
+
+
+def biv_missing(grid: str) -> int:
+    cells = [row.split() for row in grid.split(" / ")]
+    (i, j), = [(i, j) for i in range(3) for j in range(3) if cells[i][j] == "?"]
+    v = lambda r, c: int(cells[r][c])
+    # A total is the sum of its line; an inside cell is its row total less the other.
+    if j == 2:
+        return v(i, 0) + v(i, 1)
+    if i == 2:
+        return v(0, j) + v(1, j)
+    return v(i, 2) - v(i, 1 - j)
+
+
+def biv_percent(kind: str, counts: str, rounded) -> Fraction:
+    t = biv_table(counts)
+    if kind.startswith("cell"):
+        i, j = (int(x) - 1 for x in re.findall(r"\d", kind))
+        part, whole = t[i][j], t[2][2]
+    elif kind.endswith("of all"):
+        k = int(re.findall(r"\d", kind)[0]) - 1
+        part, whole = (t[k][2] if kind.startswith("row") else t[2][k]), t[2][2]
+    elif " within row " in kind:
+        j, i = (int(x) - 1 for x in re.findall(r"\d", kind))
+        part, whole = t[i][j], t[i][2]
+    else:
+        i, j = (int(x) - 1 for x in re.findall(r"\d", kind))
+        part, whole = t[i][j], t[2][j]
+    exact = Fraction(100 * part, whole)
+    if rounded:
+        assert (exact * 10).denominator != 1
+        return half_up(exact, 1)
+    assert (exact * 10).denominator == 1
+    return exact
+
+
+def biv_linked(counts: str) -> str:
+    t = biv_table(counts)
+    gap = abs(Fraction(100 * t[0][0], t[0][2]) - Fraction(100 * t[1][0], t[1][2]))
+    if gap >= 10:
+        return "yes"
+    assert gap <= 5
+    return "no"
+
+
+BY_RULE += (
+    (re.compile(rf"^predict y at x=({BIV_NUM}): {BIV_LINE}$"),
+     lambda x, m, b: Fraction(str(m)) * Fraction(str(x)) + Fraction(str(b))),
+    (re.compile(rf"^predict x at y=({BIV_NUM}): {BIV_LINE}$"),
+     lambda y, m, b: (Fraction(str(y)) - Fraction(str(b))) / Fraction(str(m))),
+    (re.compile(rf"^slope through {BIV_PT} {BIV_PT}$"),
+     lambda x1, y1, x2, y2: (Fraction(str(y2)) - Fraction(str(y1))) / (Fraction(str(x2)) - Fraction(str(x1)))),
+    (re.compile(rf"^intercept through {BIV_PT} {BIV_PT}$"),
+     lambda x1, y1, x2, y2: Fraction(str(y1)) - Fraction(str(x1)) * (Fraction(str(y2)) - Fraction(str(y1))) / (Fraction(str(x2)) - Fraction(str(x1)))),
+    (re.compile(rf"^residual: {BIV_LINE} at {BIV_PT}$"),
+     lambda m, b, x, y: Fraction(str(y)) - (Fraction(str(m)) * Fraction(str(x)) + Fraction(str(b)))),
+    (re.compile(r"^two-way missing: ((?:[\d?]+ ){2}[\d?]+(?: / (?:[\d?]+ ){2}[\d?]+){2})$"), biv_missing),
+    (re.compile(r"^two-way percent (.+?): (\d+ \d+ / \d+ \d+)( to 1 dp)?$"), biv_percent),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^association: ({BIV_PT}(?: {BIV_PT})+)$"), lambda listing, *_: biv_direction(listing)),
+    (re.compile(rf"^meaning of ({BIV_NUM}) in {BIV_LINE}; options (.+)$"), biv_meaning),
+    (re.compile(rf"^fit check: {BIV_LINE} at {BIV_PT}$"),
+     lambda m, b, x, y: "above" if Fraction(y) > Fraction(m) * Fraction(x) + Fraction(b) else "below"),
+    (re.compile(rf"^describe r=({BIV_NUM}); options (.+)$"),
+     lambda r, listing: next(k for k, w in biv_options(listing).items() if w == biv_band(r))),
+    (re.compile(r"^strongest r: (.+)$"),
+     lambda listing: max(biv_options(listing).items(), key=lambda kv: abs(Fraction(kv[1])))[0]),
+    (re.compile(rf"^closest r: ({BIV_PT}(?: {BIV_PT})+); options (.+)$"), lambda listing, *rest: biv_closest(listing, rest[-1])),
+    (re.compile(rf"^causation: design=(experiment|observational) r=({BIV_NUM}); options (.+)$"), biv_cause),
+    (re.compile(r"^design for cause \([a-z ]+\): options (.+)$"),
+     lambda listing: next(k for k, w in biv_options(listing).items() if w == "experiment")),
+    (re.compile(r"^two-way association: (\d+ \d+ / \d+ \d+)$"), biv_linked),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

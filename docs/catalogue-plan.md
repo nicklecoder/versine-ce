@@ -242,6 +242,13 @@ if q" have to be read before a form can be built. Each form level both builds
 the form and asks whether it is true; truth is only asked about whole numbers,
 quadrilaterals and triangles, where it can be tested, and everyday statements
 appear only in questions about structure.
+`bivariate` is built, as Association · Line-of-Fit Predictions · Slope &
+Intercept in Context · Residuals · Correlation Strength · Correlation vs
+Causation · Two-Way Tables · All Together. Residuals is added for S-ID.6b:
+actual minus predicted, and which side of the line a point is on. Describing
+r is only asked of values well inside a band, since texts disagree on where
+"strong" begins, and only a randomized experiment is treated as showing a
+cause.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

@@ -13,6 +13,17 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Two-Variable Data**, a new skill under Statistics, in eight levels: positive,
+negative or no association in a scatter plot or table; predicting from a line of
+fit, forward and back; what its slope and intercept mean in context, and finding
+them from two points; residuals, as actual minus predicted; how strong a
+correlation coefficient is, and which plot fits which r; when a correlation shows a
+cause; and two-way tables, filled in from their totals, read as joint, marginal and
+conditional percents, and checked for an association. Scatter plots are drawn by a
+new chart helper on the plane, with axes that start where the data does.
+`check-answers.py` works out r from the points, every prediction and residual from
+the line, and every table question from the four counts.
+
 **Logical Reasoning**, a new skill under Shapes, in eight levels: the hypothesis and
 conclusion of a conditional, however it is worded ("q if p", "p only if q"); the
 converse, inverse and contrapositive, both built and judged true or false; which

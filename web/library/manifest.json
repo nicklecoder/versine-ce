@@ -1,5 +1,5 @@
 {
-  "built": 445,
+  "built": 453,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -562,6 +562,16 @@
       "which-is-equivalent",
       "counterexample",
       "biconditional",
+      "all-together"
+    ],
+    "bivariate": [
+      "association",
+      "line-of-fit-predictions",
+      "slope-and-intercept-in-context",
+      "residuals",
+      "correlation-strength",
+      "correlation-vs-causation",
+      "two-way-tables",
       "all-together"
     ]
   },
@@ -1260,9 +1270,23 @@
         "quadrilaterals"
       ],
       "levels": {}
+    },
+    "bivariate": {
+      "dependsOn": [
+        "linear-models",
+        "percents"
+      ],
+      "levels": {
+        "slope-and-intercept-in-context": [
+          "linear-models"
+        ],
+        "two-way-tables": [
+          "percents"
+        ]
+      }
     }
   },
-  "sources": "598b5c22f04143bb7deb8179639299a545cc5dac68c3bb3ed470efe5460689c1",
+  "sources": "64d73bdbc646ae8a47e40ac7f3bb86a966fef3eb222957df307a9275e67c8501",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5713,6 +5737,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "reasoning-7.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 0,
+      "slug": "association",
+      "name": "Association",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-0.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 1,
+      "slug": "line-of-fit-predictions",
+      "name": "Line-of-Fit Predictions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-1.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 2,
+      "slug": "slope-and-intercept-in-context",
+      "name": "Slope & Intercept in Context",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "bivariate-2.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 3,
+      "slug": "residuals",
+      "name": "Residuals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "bivariate-3.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 4,
+      "slug": "correlation-strength",
+      "name": "Correlation Strength",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-4.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 5,
+      "slug": "correlation-vs-causation",
+      "name": "Correlation vs Causation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-5.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 6,
+      "slug": "two-way-tables",
+      "name": "Two-Way Tables",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-6.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "bivariate-7.json"
     }
   ]
 }
