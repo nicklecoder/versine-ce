@@ -151,6 +151,8 @@ def half_up(x: Fraction, places: int) -> Fraction:
 # obviously, every equivalence, since "2/3 = ?/12" is not an expression and
 # fell through every branch below in silence. These re-derive the answer from
 # the numbers in the question, by a different route than the generator took.
+ROUNDED_TO = re.compile(r" to (?:the nearest whole|(\d) dp)$")
+
 BY_RULE = (
     (re.compile(r"^GCF of (\d+) and (\d+)$"),
      lambda a, b: math.gcd(a, b)),
@@ -2740,6 +2742,15 @@ for path in sorted(LIB.glob("*.json")):
             checked += 1
             if want != as_fraction(answer["value"]):
                 problems.append(f"{where}: {text} is {want}, not {answer['value']}")
+            # requiem: play/answers/rounding-keeps-places
+            # Rounded to a stated place, the answer is written to that place:
+            # the stored places and the first accepted form both say so.
+            asked = ROUNDED_TO.search(text)
+            if asked:
+                places = 0 if asked[1] is None else int(asked[1])
+                shown = answer.get("accept", [""])[0].replace("−", "-")
+                if answer["value"].get("places") != places or len(shown.partition(".")[2]) != places:
+                    problems.append(f"{where}: {text} is written {shown!r}, not to {places} places")
             continue
 
         # An equation: substitute the claimed solution and see if it balances.

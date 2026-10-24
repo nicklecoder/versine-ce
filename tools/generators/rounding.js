@@ -20,9 +20,8 @@ const show = (v) => {
 /**
  * Written to exactly `places` decimals, zeros kept: 1.6 to two places is
  * 1.60, and 15 to one place is 15.0. The zero is the point of "to 2 d.p." --
- * it says the number is right as far as that column -- so the picture and the
- * explanation write it, even though the answer box takes 1.6 as the same
- * number.
+ * it says the number is right as far as that column -- so the picture, the
+ * explanation and the answer all write it, and 1.6 typed for 1.60 is told so.
  */
 const fixed = (v, places) => {
   const scaled = v.n * 10 ** places / v.d;
@@ -101,7 +100,7 @@ function roundQuestion(rng, places, halfway) {
   return {
     prompt: [T.prose(`Round ${show(v)} to ${TO[places]}.`)],
     text: `${show(v)} to ${SHORT[places]}`,
-    answer: { type: 'decimal', value: answer },
+    answer: { type: 'decimal', value: { ...answer, places } },
     visual: {
       kind: 'evalmodel',
       lines: [show(v), `between ${lo} and ${hi}`,

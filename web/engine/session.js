@@ -124,6 +124,15 @@ export class Session {
       return { ...this.#wrong(), hint: `${shown} is right, but it isn't ${type.unfinished ?? 'in lowest terms'} yet.` };
     }
 
+    // requiem: play/answers/rounding-keeps-places
+    // Rounded to a stated number of places, the zeros are part of the answer:
+    // 1.6 is the right number, but "to 2 decimal places" is written 1.60.
+    const places = spec.value?.places;
+    if (places != null && parsed.value.d !== 10 ** places) {
+      const to = places ? `to ${places} decimal place${places === 1 ? '' : 's'}` : 'to the nearest whole number';
+      return { ...this.#wrong(), hint: `${String(raw).trim()} is right, but ${to} it is written ${type.format(spec.value)}.` };
+    }
+
     return this.#correct();
   }
 

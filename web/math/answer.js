@@ -179,14 +179,22 @@ defineType({
     return { ok: true, value: { n, d } };
   },
   equals: (a, b) => a.n * b.d === b.n * a.d,
-  /** Trailing zeros are dropped: 0.50 and 0.5 are the same number. */
+  /**
+   * Trailing zeros are dropped: 0.50 and 0.5 are the same number. A value
+   * rounded to a stated number of places carries `places`, and keeps its
+   * zeros: 1.60 to 2 decimal places says the hundredths are known to be 0.
+   */
+  // requiem: play/answers/rounding-keeps-places
   format(v) {
     const neg = v.n < 0;
     const n = Math.abs(v.n);
     const whole = Math.floor(n / v.d);
     const rem = n - whole * v.d;
     let out = String(whole);
-    if (rem) {
+    if (v.places != null) {
+      const scaled = (rem * 10 ** v.places) / v.d;
+      if (v.places) out += '.' + String(scaled).padStart(v.places, '0');
+    } else if (rem) {
       const places = String(v.d).length - 1;
       out += '.' + String(rem).padStart(places, '0').replace(/0+$/, '');
     }

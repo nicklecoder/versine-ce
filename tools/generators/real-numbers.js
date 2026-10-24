@@ -361,7 +361,7 @@ function pinItDown(rng) {
   return {
     prompt: [T.prose('To one decimal place,'), T.num(`√${n}`, 1), T.op('≈'), T.blank()],
     text: `√${n} to 1 dp`,
-    answer: { type: 'decimal', value: { n: answer, d: 10 } },
+    answer: { type: 'decimal', value: { n: answer, d: 10, places: 1 } },
     visual: {
       kind: 'evalmodel',
       lines: [`√${n}`, `${lo}² = ${lo * lo} and ${lo + 1}² = ${(lo + 1) ** 2}`,

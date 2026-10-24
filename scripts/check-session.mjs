@@ -252,6 +252,24 @@ for (const skill of SKILLS) {
   if (s.cleanSolved !== 0 || s.streak !== 0) fail.push('an answer after the walkthrough counted as a first try');
 }
 
+// requiem: play/answers/rounding-keeps-places
+// Rounded to 2 decimal places, 1.60 is the answer and 1.6 is told why it isn't.
+{
+  const skill = SKILLS.find((s) => s.id === 'rounding');
+  const lib = libOf(skill, 1);
+  const p = lib.problems.find((q) => q.answer.accept[0].endsWith('0'));
+  const short = p.answer.accept[0].replace(/0+$/, '').replace(/\.$/, '');
+  const play = (raw) => {
+    const s = new Session({ skill, level: 1, mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const cut = play(short);
+  if (cut.status !== 'wrong' || !cut.hint?.includes(p.answer.accept[0])) fail.push(`rounding: "${short}" for ${p.answer.accept[0]} not told about the zero`);
+  if (play(p.answer.accept[0]).status !== 'correct') fail.push(`rounding: "${p.answer.accept[0]}" refused`);
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);
