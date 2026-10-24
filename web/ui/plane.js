@@ -59,8 +59,11 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
 
   // Square units: a right angle has to look like one, or the picture lies.
   const box = svg.parentNode?.getBoundingClientRect?.() ?? { width: 320 };
-  const width = Math.max(200, Math.round(box.width));
-  const unit = Math.min((width - PAD * 2) / (x1 - x0), 26);
+  const room = Math.max(200, Math.round(box.width));
+  const unit = Math.min((room - PAD * 2) / (x1 - x0), 26);
+  // Only as wide as the plane, so a small one capped at 26 per unit sits in
+  // the middle of the card rather than at its left edge.
+  const width = Math.round((x1 - x0) * unit + PAD * 2);
   const height = Math.round((y1 - y0) * unit + PAD * 2);
 
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
