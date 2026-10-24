@@ -13,6 +13,15 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Probability**, a new skill under Probability, in eight levels: likelihood on the
+scale from 0 to 1; the probability of a single event with dice, spinners, cards,
+marbles and letter tiles; complements, as fractions, decimals and percents; sample
+spaces of two or three steps, two dice and several coins; independent events,
+including picks put back; expected counts; and experimental against theoretical
+probability. Fractions are accepted in any equivalent form. `check-answers.py`
+counts every event again from the listed outcomes with its own definitions, and
+lists out two dice and n coins in full.
+
 The two-way tables in Two-Variable Data that reveal a working column now drop
 their row-total column, so they stay four columns wide and fit a phone.
 

@@ -255,6 +255,12 @@ Together. Shape & Center is added for S-ID.3: skew is named for its tail, and
 a tail pulls the mean past the median. Normal-curve questions stay at whole
 numbers of standard deviations, using the 68-95-99.7 rule. The standard
 deviation divides by n, and every set comes out whole.
+`probability` is built, as Likelihood · Single Event · Complement · Sample
+Spaces · Independent "And" · Expected Frequency · Experimental vs
+Theoretical · All Together. Likelihood is added for 7.SP.5, and asks only
+about probabilities clear of the edge between likely and unlikely. Fractions
+are accepted in any equivalent form, since simplifying is taught by the
+fractions skills.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

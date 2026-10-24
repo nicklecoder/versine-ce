@@ -1,5 +1,5 @@
 {
-  "built": 461,
+  "built": 469,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -582,6 +582,16 @@
       "normal-curve-percents",
       "z-scores",
       "which-spread",
+      "all-together"
+    ],
+    "probability": [
+      "likelihood",
+      "single-event",
+      "complement",
+      "sample-spaces",
+      "independent-and",
+      "expected-frequency",
+      "experimental-vs-theoretical",
       "all-together"
     ]
   },
@@ -1312,9 +1322,23 @@
           "percents"
         ]
       }
+    },
+    "probability": {
+      "dependsOn": [
+        "frac-muldiv",
+        "percents"
+      ],
+      "levels": {
+        "independent-and": [
+          "frac-muldiv"
+        ],
+        "expected-frequency": [
+          "frac-muldiv"
+        ]
+      }
     }
   },
-  "sources": "60d01be7126fd2686272a683013598771801804a8857a9a902bf1f53adcbeabb",
+  "sources": "c0c09a1f06d7b10353f8e0a00fda03a6f38e1dd29afc87f8d509f61f64ab5c20",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5925,6 +5949,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "distributions-7.json"
+    },
+    {
+      "skill": "probability",
+      "level": 0,
+      "slug": "likelihood",
+      "name": "Likelihood",
+      "count": 112,
+      "exhaustive": true,
+      "signed": false,
+      "file": "probability-0.json"
+    },
+    {
+      "skill": "probability",
+      "level": 1,
+      "slug": "single-event",
+      "name": "Single Event",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-1.json"
+    },
+    {
+      "skill": "probability",
+      "level": 2,
+      "slug": "complement",
+      "name": "Complement",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2.json"
+    },
+    {
+      "skill": "probability",
+      "level": 3,
+      "slug": "sample-spaces",
+      "name": "Sample Spaces",
+      "count": 179,
+      "exhaustive": true,
+      "signed": false,
+      "file": "probability-3.json"
+    },
+    {
+      "skill": "probability",
+      "level": 4,
+      "slug": "independent-and",
+      "name": "Independent \"And\"",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-4.json"
+    },
+    {
+      "skill": "probability",
+      "level": 5,
+      "slug": "expected-frequency",
+      "name": "Expected Frequency",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-5.json"
+    },
+    {
+      "skill": "probability",
+      "level": 6,
+      "slug": "experimental-vs-theoretical",
+      "name": "Experimental vs Theoretical",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-6.json"
+    },
+    {
+      "skill": "probability",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-7.json"
     }
   ]
 }

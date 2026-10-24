@@ -4412,6 +4412,96 @@ CHOICE_RULES += (
      lambda listing: "iqr" if dist_outlying([int(v) for v in listing.split()]) else "sd"),
 )
 
+# --- Probability ------------------------------------------------------------
+#
+# Equally likely outcomes, counted again: the outcomes are listed in the text,
+# the event is named by a code read with the definitions here, and the
+# probability is the count over the whole. Two dice and n coins are listed
+# out in full here rather than trusted to a formula.
+
+def chance_test(code: str):
+    m = re.fullmatch(r"(gt|lt|at least|at most|multiple of) (\d+)", code)
+    if m:
+        k = int(m[2])
+        return {"gt": lambda x: int(x) > k, "lt": lambda x: int(x) < k, "at least": lambda x: int(x) >= k,
+                "at most": lambda x: int(x) <= k, "multiple of": lambda x: int(x) % k == 0}[m[1]]
+    m = re.fullmatch(r"is (\w+)(?: or (\w+))?", code)
+    if m:
+        return lambda x: x in (m[1], m[2])
+    return {"even": lambda x: int(x) % 2 == 0, "odd": lambda x: int(x) % 2 == 1,
+            "prime": lambda x: int(x) > 1 and all(int(x) % k for k in range(2, int(x)))}[code]
+
+
+def chance_of(outcomes: str, code: str) -> Fraction:
+    xs = outcomes.split()
+    return Fraction(sum(1 for x in xs if chance_test(code)(x)), len(xs))
+
+
+def chance_likely(n: str, d: str) -> str:
+    p = Fraction(int(n), int(d))
+    if p == 0:
+        return "impossible"
+    if p == 1:
+        return "certain"
+    if p == Fraction(1, 2):
+        return "even"
+    assert abs(p - Fraction(1, 2)) >= Fraction(1, 5), p
+    return "likely" if p > Fraction(1, 2) else "unlikely"
+
+
+def chance_dice(ask: str) -> Fraction:
+    rolls = [(a, b) for a in range(1, 7) for b in range(1, 7)]
+    m = re.fullmatch(r"sum (at least |at most )?(\d+)", ask)
+    if m:
+        k = int(m[2])
+        ok = [r for r in rolls if {"at least ": sum(r) >= k, "at most ": sum(r) <= k, None: sum(r) == k}[m[1]]]
+    else:
+        assert ask == "doubles"
+        ok = [r for r in rolls if r[0] == r[1]]
+    return Fraction(len(ok), len(rolls))
+
+
+def chance_coins(n, how: str, k) -> Fraction:
+    import itertools
+    flips = list(itertools.product("HT", repeat=int(n)))
+    heads = [f.count("H") for f in flips]
+    ok = [h for h in heads if (h >= int(k) if how == "at least" else h == int(k))]
+    return Fraction(len(ok), len(flips))
+
+
+def chance_results(listing: str) -> dict:
+    return {face: int(c) for face, c in (item.split(":") for item in listing.split())}
+
+
+BY_RULE += (
+    (re.compile(r"^single: ([\w ]+); event (.+)$"), chance_of),
+    (re.compile(r"^complement: (\d+)/(\d+)$"), lambda n, d: 1 - Fraction(n, d)),
+    (re.compile(r"^complement: (\d+)%$"), lambda p: 100 - p),
+    (re.compile(r"^complement: (0\.\d+)$"), lambda p: 1 - Fraction(p)),
+    (re.compile(r"^complement: ([\w ]+); event (.+)$"), lambda xs, code: 1 - chance_of(xs, code)),
+    (re.compile(r"^sample space: (\d+) x (\d+)$"), lambda a, b: a * b),
+    (re.compile(r"^sample space: (\d+) x (\d+) x (\d+)$"), lambda a, b, c: a * b * c),
+    (re.compile(r"^two dice: (sum (?:at (?:least|most) )?\d+|doubles)$"), chance_dice),
+    (re.compile(r"^coins (\d+): (exactly|at least) (\d+) heads$"), chance_coins),
+    (re.compile(r"^and: ([\w ]+); event (.+?) \| ([\w ]+); event (.+)$"),
+     lambda a, ea, b, eb: chance_of(a, ea) * chance_of(b, eb)),
+    (re.compile(r"^with replacement: ([\w ]+); (\w+) then (\w+)$"),
+     lambda xs, first, second: chance_of(xs, f"is {first}") * chance_of(xs, f"is {second}")),
+    (re.compile(r"^expected: ([\w ]+); event (.+); trials (\d+)$"), lambda xs, code, n: chance_of(xs, code) * int(n)),
+    (re.compile(r"^expected from results: (\d+) of (\d+); trials (\d+)$"), lambda k, m, n: Fraction(k * n, m)),
+    (re.compile(r"^experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
+     lambda listing, face: Fraction(chance_results(listing)[str(face)], sum(chance_results(listing).values()))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^likelihood: (\d+)/(\d+)$"), chance_likely),
+    (re.compile(r"^compare experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
+     lambda listing, face: (lambda r: {1: "higher", -1: "lower", 0: "equal"}[
+         (r[face] * len(r) > sum(r.values())) - (r[face] * len(r) < sum(r.values()))])(chance_results(listing))),
+    (re.compile(r"^more trials: .+; options (.+)$"),
+     lambda listing: next(k for k, v in (item.split("=") for item in listing.split(", ")) if v == "closer")),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
