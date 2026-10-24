@@ -5777,6 +5777,234 @@ BY_RULE += (
     (re.compile(r"^compose: (sin|cos|tan)\(a(sin|cos|tan)\((-?\d+)/(\d+)\)\)$"), te_compose),
 )
 
+# --- Domain & Range ----------------------------------------------------------
+#
+# A formula's domain is found by trying it, in exact rationals, at every
+# twelfth from −40 to 40: a negative under a square root or a zero
+# denominator leaves that x out. A range is found from the values: the
+# formula is evaluated every 1/64 from −40 to 40 and at points doubling
+# rightward from there (where √x keeps climbing), each step whose midpoint
+# lies between its ends (so not a leap across an asymptote) covers every
+# height between them, and a height counts only where some step covers it.
+# A graph's domain and range come from walking its pieces, and a piecewise
+# value from the one piece whose condition holds.
+
+DR_X = [Fraction(k, 12) for k in range(-480, 481)]
+DR_Y = [Fraction(k, 2) for k in range(-40, 41)]
+
+
+def dr_root(v):
+    if v < 0:
+        raise ValueError("negative under a root")
+    return math.sqrt(v)
+
+
+def dr_cbrt(v):
+    return math.copysign(abs(float(v)) ** (1 / 3), float(v))
+
+
+DR_NAMES = {"sqrt": dr_root, "cbrt": dr_cbrt, "abs": abs, "floor": math.floor, "ceil": math.ceil}
+
+
+def dr_fn(expr: str, var: str = "x"):
+    assert re.fullmatch(r"[\w\s+\-*/().]+", expr), expr
+    assert set(re.findall(r"[a-z]+", expr)) <= set(DR_NAMES) | {var}, expr
+    return eval(f"lambda {var}: {expr}", {"__builtins__": {}, **DR_NAMES})
+
+
+def dr_defined(f, x) -> bool:
+    try:
+        v = f(x)
+    except (ValueError, ZeroDivisionError, OverflowError):
+        return False
+    return not isinstance(v, complex)
+
+
+def dr_domain(expr: str) -> OnGrid:
+    f = dr_fn(expr)
+    return on_grid({x for x in DR_X if dr_defined(f, x)}, DR_X)
+
+
+def dr_range(expr: str) -> OnGrid:
+    f = dr_fn(expr)
+    # Every 1/64 near the middle, then doubling to the right, so a slow riser like
+    # √x still climbs past every height sampled.
+    far = [40 * 2 ** j for j in range(1, 20)]
+    xs = [k / 64 for k in range(-40 * 64, 40 * 64 + 1)] + far
+    def val(x):
+        try:
+            v = float(f(Fraction(x)))
+        except (ValueError, ZeroDivisionError, OverflowError, TypeError):
+            return None
+        return v
+
+    spans = []
+    prev = None
+    for x in xs:
+        v = val(x)
+        if v is not None and prev is not None and prev[1] is not None:
+            m = val((prev[0] + x) / 2)
+            lo, hi = sorted((prev[1], v))
+            if m is not None and lo - 1e-12 <= m <= hi + 1e-12:
+                spans.append((lo, hi))
+        prev = (x, v)
+    return on_grid({y for y in DR_Y if any(lo <= y <= hi for lo, hi in spans)}, DR_Y)
+
+
+DR_PIECE = re.compile(r"^(closed|open|arrow) ((?:\(-?\d+, -?\d+\) ?)+) (closed|open|arrow)$")
+
+
+def dr_pieces(listing: str) -> list:
+    out = []
+    for part in listing.split(" | "):
+        m = DR_PIECE.match(part)
+        assert m, part
+        pts = [(int(x), int(y)) for x, y in re.findall(PT, m[2])]
+        assert [x for x, _ in pts] == sorted({x for x, _ in pts}), f"not a function: {part}"
+        out.append((m[1], pts, m[3]))
+    return out
+
+
+def dr_in_domain(pieces, x) -> bool:
+    for left, pts, right in pieces:
+        x0, xn = pts[0][0], pts[-1][0]
+        ok_lo = left == "arrow" or x > x0 or (x == x0 and left == "closed")
+        ok_hi = right == "arrow" or x < xn or (x == xn and right == "closed")
+        if ok_lo and ok_hi:
+            return True
+    return False
+
+
+def dr_in_range(pieces, y) -> bool:
+    for left, pts, right in pieces:
+        n = len(pts)
+        for i in range(n - 1):
+            (xa, ya), (xb, yb) = pts[i], pts[i + 1]
+            lo, hi = min(ya, yb), max(ya, yb)
+            if i == 0 and left == "arrow" and ya != yb:
+                lo, hi = (-math.inf, hi) if ya < yb else (lo, math.inf)
+            if i == n - 2 and right == "arrow" and ya != yb:
+                lo, hi = (lo, math.inf) if yb > ya else (-math.inf, hi)
+            if not lo <= y <= hi:
+                continue
+            # Reached only at an open end of the piece is not reached.
+            only_a = ya != yb and y == ya and not (i == 0 and left == "arrow")
+            only_b = ya != yb and y == yb and not (i == n - 2 and right == "arrow")
+            if only_a and i == 0 and left == "open":
+                continue
+            if only_b and i == n - 2 and right == "open":
+                continue
+            return True
+    return False
+
+
+def dr_graph(which: str, listing: str) -> frozenset:
+    pieces = dr_pieces(listing)
+    test = dr_in_domain if which == "domain" else dr_in_range
+    return frozenset(v for v in SAMPLES_ON_LINE if test(pieces, v))
+
+
+def dr_piecewise(listing: str, at) -> Fraction:
+    x = int(at)
+    hits = []
+    for piece in listing.split("; "):
+        expr, cond = piece.split(" if ")
+        assert re.fullmatch(r"[-\d\s<=>x]+", cond), cond
+        if eval(cond, {"__builtins__": {}}, {"x": x}):
+            hits.append(dr_fn(expr)(Fraction(x)))
+    assert len(hits) == 1, f"{len(hits)} pieces hold at x = {x} in {listing}"
+    return Fraction(hits[0])
+
+
+def dr_graph_value(listing: str, at) -> Fraction:
+    x = int(at)
+    hits = set()
+    for left, pts, right in dr_pieces(listing):
+        for i in range(len(pts) - 1):
+            (xa, ya), (xb, yb) = pts[i], pts[i + 1]
+            if not xa <= x <= xb:
+                continue
+            if (x == pts[0][0] and left == "open") or (x == pts[-1][0] and right == "open"):
+                continue
+            hits.add(Fraction(ya) + Fraction(yb - ya, xb - xa) * (x - xa))
+    assert len(hits) == 1, f"{len(hits)} values at x = {x} on {listing}"
+    return hits.pop()
+
+
+def dr_step(expr: str) -> Fraction:
+    exact = re.sub(r"\d+\.\d+", lambda m: f"Fraction('{m[0]}')", expr)
+    return Fraction(eval(exact, {"__builtins__": {}, "Fraction": Fraction, **DR_NAMES}))
+
+
+def dr_each(each, per, amount) -> Fraction:
+    return Fraction(int(each) * math.ceil(Fraction(int(amount), int(per))), 100)
+
+
+def dr_first(first, each, per, amount) -> Fraction:
+    more = max(0, math.ceil(Fraction(int(amount) - int(per), int(per))))
+    return Fraction(int(first) + int(each) * more, 100)
+
+
+def dr_context(expr: str) -> frozenset:
+    f = dr_fn(expr, "t")
+    return frozenset(t for t in SAMPLES_ON_LINE if t >= 0 and f(t) >= 0)
+
+
+DR_COUNTED = {"bags", "boxes", "bottles", "rolls", "cans", "coils"}
+DR_MEASURED = {"pounds", "kilograms", "liters", "yards", "gallons", "meters"}
+
+
+def dr_kind(unit: str, most: str, each: str, listing: str) -> str:
+    assert unit in DR_COUNTED | DR_MEASURED, unit
+    want = f"{'whole' if unit in DR_COUNTED else 'real'} {most}"
+    fit = [oid for oid, body in te_options(listing).items() if body == want]
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options are {want}"
+
+
+SET_RULES += (
+    (re.compile(r"^domain: (.+)$"), dr_domain),
+    (re.compile(r"^range: (.+)$"), dr_range),
+    (re.compile(r"^graph (domain|range): (.+)$"), dr_graph),
+    (re.compile(r"^context domain: (.+) >= 0, t >= 0$"), dr_context),
+)
+
+BY_RULE += (
+    (re.compile(r"^piecewise: (.+); at (-?\d+)$"), dr_piecewise),
+    (re.compile(r"^piecewise graph: (.+); at (-?\d+)$"), dr_graph_value),
+    (re.compile(r"^step value: (.+)$"), dr_step),
+    (re.compile(r"^each started: (\d+) per (\d+), amount (\d+)$"), dr_each),
+    (re.compile(r"^first then each: (\d+) then (\d+) per (\d+), amount (\d+)$"), dr_first),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^context domain: (\w+), at most (\d+), each (\d+); options (.+)$"), dr_kind),
+)
+
+# requiem: catalogue/content/graph-pieces-drawn-as-told
+# A graph is the student's only copy of the function, so each piece is drawn
+# exactly as the text gives it: its corners in order, and at each end a
+# filled dot, an open dot, or an arrowhead, never anything else.
+for path in sorted(LIB.glob("domain-range-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        m = re.match(r"^(?:graph (?:domain|range)|piecewise graph): (.+?)(?:; at -?\d+)?$", p["text"])
+        if not m:
+            continue
+        where = f"domain-range L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        marks = p["visual"]["marks"]
+        drawn_dots = sorted((tuple(mk["at"]), bool(mk.get("open"))) for mk in marks if mk["kind"] == "point")
+        want_dots = []
+        for left, pts, right in dr_pieces(m[1]):
+            if not any([list(map(float, q)) for q in pts] == mk["points"] for mk in marks if mk["kind"] == "path"):
+                problems.append(f"{where}: no curve is drawn through {pts}")
+            for end, tip in ((left, pts[0]), (right, pts[-1])):
+                if end == "arrow":
+                    if not any(mk["kind"] == "path" and len(mk["points"]) == 3 and mk["points"][1] == list(map(float, tip)) for mk in marks):
+                        problems.append(f"{where}: no arrowhead at {tip}")
+                else:
+                    want_dots.append(((float(tip[0]), float(tip[1])), end == "open"))
+        if drawn_dots != sorted(want_dots):
+            problems.append(f"{where}: dots drawn {drawn_dots}, not {sorted(want_dots)}")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

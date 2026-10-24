@@ -365,6 +365,14 @@ from four, as is every general solution. Solve in Degrees depends on the
 unit circle's Around the Circle, General Solutions on the graphs' Period,
 and Quadratic-Type on the identities' Pythagorean.
 
+`domain-range` is built, as Domain of √ and Fractions · From a Graph ·
+Ranges of Parents · Piecewise · Step Functions · Domain in Context · All
+Together. Domain in Context is added for F-IF.5: whether the input is
+counted or measured, and where a story starts and stops. From a Graph
+depends on functions' Domain and Range, and Ranges of Parents on
+transforming functions' Combined. Piecewise and Step Functions ask for
+a value, so All Together leaves them out and keeps one answer box.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

@@ -1,5 +1,5 @@
 {
-  "built": 537,
+  "built": 544,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -678,6 +678,15 @@
       "solve-on-0-2pi",
       "general-solutions",
       "quadratic-type",
+      "all-together"
+    ],
+    "domain-range": [
+      "domain-of-roots-and-fractions",
+      "from-a-graph",
+      "ranges-of-parents",
+      "piecewise",
+      "step-functions",
+      "domain-in-context",
       "all-together"
     ]
   },
@@ -1532,9 +1541,23 @@
           "identities"
         ]
       }
+    },
+    "domain-range": {
+      "dependsOn": [
+        "functions",
+        "transformations-f"
+      ],
+      "levels": {
+        "from-a-graph": [
+          "functions"
+        ],
+        "ranges-of-parents": [
+          "transformations-f"
+        ]
+      }
     }
   },
-  "sources": "d31d90ca8c3e96d3e0c9154bad9eea6466d6ff45c373be7b289c57ed59706a92",
+  "sources": "ed8157cb666b69bd3a316ca18e9ed5e5ebfd8f30f91b4ceb2926c39273617e92",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6905,6 +6928,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "trig-equations-5.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 0,
+      "slug": "domain-of-roots-and-fractions",
+      "name": "Domain of √ and Fractions",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "domain-range-0.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 1,
+      "slug": "from-a-graph",
+      "name": "From a Graph",
+      "count": 400,
+      "exhaustive": false,
+      "signed": true,
+      "file": "domain-range-1.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 2,
+      "slug": "ranges-of-parents",
+      "name": "Ranges of Parents",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "domain-range-2.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 3,
+      "slug": "piecewise",
+      "name": "Piecewise",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "domain-range-3.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 4,
+      "slug": "step-functions",
+      "name": "Step Functions",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "domain-range-4.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 5,
+      "slug": "domain-in-context",
+      "name": "Domain in Context",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "domain-range-5.json"
+    },
+    {
+      "skill": "domain-range",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "domain-range-6.json"
     }
   ]
 }

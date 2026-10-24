@@ -13,6 +13,18 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Domain and Range**, a new skill under Functions, in seven levels:
+Domain of √ and Fractions, From a Graph (closed and open dots, arrows,
+and gaps), Ranges of Parents (shifted and stretched), Piecewise (a value
+from a table of rules or from a graph, the boundary owned by one piece),
+Step Functions (floor, ceiling, and charges by the started hour or
+ounce), Domain in Context (counted against measured, both ways for every
+setting, and an end worked out from the story), then All Together, which
+draws on the levels whose answer is a set. Every set is typed in the
+solutions input. `check-answers.py` finds each domain on a grid of
+twelfths and each range by sampling, without the generator's tables, and
+checks that every graph is drawn as its text describes.
+
 **Trig Equations**, a new skill under Identities, in six levels:
 arcsin, arccos and arctan (exact values as multiples of π, sin⁻¹(sin θ)
 outside the range, and cos(sin⁻¹(3/5)) from a triangle, all fractions in
