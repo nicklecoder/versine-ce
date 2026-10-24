@@ -3289,9 +3289,13 @@ def scale_out_back(per: str, unit: str, length: str, way: str) -> Fraction:
     return length * per if way == "out" else length / per
 
 
-def scale_model(n: int, model: str, unit: str) -> Fraction:
+# How many of a model's own unit make the bigger unit it may be asked in.
+MODEL_BIG = {("cm", "m"): 100, ("in", "ft"): 12}
+
+
+def scale_model(n: int, model: str, small: str, unit: str) -> Fraction:
     real = Fraction(model) * n
-    return real / 100 if unit == "m" else real
+    return real if unit == small else real / MODEL_BIG[(small, unit)]
 
 
 def area_scale(what: str, k: str, amount: str, which: str) -> Fraction:
@@ -3366,10 +3370,13 @@ NUMBER = r"(\d+(?:\.\d+)?)"
 BY_RULE += (
     (re.compile(r"^scale factor: ABC ~ ([A-Z]{3}); (.+); from (ABC|[A-Z]{3})$"), scale_factor),
     (re.compile(r"^similar missing: ABC ~ ([A-Z]{3}); (.+); find ([A-Z]{2})$"), similar_missing),
-    (re.compile(rf"^scale drawing: 1 cm = {NUMBER} (km|m); {NUMBER} (?:cm|km|m) (out|back)$"), scale_out_back),
-    (re.compile(rf"^scale drawing: (\d+) cm = {NUMBER} (?:km|m); per cm$"), lambda n, real: Fraction(real) / n),
-    (re.compile(rf"^scale model: 1:(\d+); {NUMBER} cm; in (m|cm)$"), scale_model),
-    (re.compile(rf"^scale area: 1 cm = {NUMBER} m; {NUMBER} cm by {NUMBER} cm$"),
+    # Centimeters on the paper for meters or kilometers, inches for feet or miles.
+    (re.compile(rf"^scale drawing: 1 (?:cm|in) = {NUMBER} (km|m|mi|ft); {NUMBER} (?:cm|in|km|m|mi|ft) (out|back)$"),
+     scale_out_back),
+    (re.compile(rf"^scale drawing: (\d+) (?:cm|in) = {NUMBER} (?:km|m|mi|ft); per (?:cm|in)$"),
+     lambda n, real: Fraction(real) / n),
+    (re.compile(rf"^scale model: 1:(\d+); {NUMBER} (cm|in); in (m|cm|ft|in)$"), scale_model),
+    (re.compile(rf"^scale area: 1 (?:cm|in) = {NUMBER} (?:m|ft); {NUMBER} (?:cm|in) by {NUMBER} (?:cm|in)$"),
      lambda per, w, h: Fraction(w) * Fraction(per) * Fraction(h) * Fraction(per)),
     (re.compile(rf"^(area|volume) scale: factor {NUMBER}; (?:area|volume) {NUMBER}; (larger|smaller)$"), area_scale),
     (re.compile(rf"^length from (areas|volumes): {NUMBER}, {NUMBER}$"), length_from),
