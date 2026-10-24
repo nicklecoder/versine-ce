@@ -16,8 +16,10 @@ import { formatSet } from '../../web/math/solutions.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/abs-value.js';
 
 const SIGN = { '<': '<', '<=': '≤', '>': '>', '>=': '≥', '=': '=' };
-/** How far, in words, for each sign: |x − 3| ≤ 2 is "no more than 2" from 3. */
-const HOW = { '<': 'less than', '<=': 'no more than', '>': 'more than', '>=': 'at least' };
+/** How far, in words, for each sign: |x − 3| ≤ 2 is "at most 2" from 3. */
+const HOW = { '<': 'less than', '<=': 'at most', '>': 'more than', '>=': 'at least' };
+/** What a distance can never be, for a negative k: "below −6", "−6 or less". */
+const NEVER = { '<': (k) => `below ${minus(k)}`, '<=': (k) => `${minus(k)} or less` };
 const pretty = (s) => s.replace(/<=/g, '≤').replace(/>=/g, '≥').replace(/-/g, '−');
 
 const frac = (v) => (v === null ? null : { n: v, d: 1 });
@@ -143,8 +145,8 @@ function inequality(rng, side) {
   const lead = isolating(a, b, rhs, k, g.src).replace(/ = /g, ` ${SIGN[op]} `);
   const s = SIGN[op];
   const body = negative
-    ? (side === 'less' ? `A distance is never ${HOW[op]} ${minus(k)}, so nothing works: no solution.`
-      : `A distance is always ${HOW[op]} ${minus(k)}, so every number works: all real numbers.`)
+    ? (side === 'less' ? `A distance is never negative, so it can never be ${NEVER[op](k)}: nothing works, no solution.`
+      : `A distance is never negative, so it is always ${HOW[op]} ${minus(k)}: every number works, all real numbers.`)
     : side === 'less'
       ? `${pretty(g.src)} is ${HOW[op]} ${k} from zero, so it is between −${k} and ${k}: `
         + `−${k} ${s} ${pretty(g.src)} ${s} ${k}. Solve all three parts: ${written(parts)}.`

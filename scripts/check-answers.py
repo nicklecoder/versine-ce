@@ -1097,11 +1097,11 @@ RULE_RULES = (
 # --- Compound Inequalities ---------------------------------------------------
 #
 # A set is a frozenset of the numbers in it, tested at sample points: every
-# integer and half-integer from -40 to 40. Two sets with whole or half ends
+# integer and half-integer from -60 to 60. Two sets with whole or half ends
 # inside that range are equal exactly when they agree at every sample -- a
 # test that shares nothing with the interval arithmetic the app does.
 
-SAMPLES_ON_LINE = [Fraction(k, 2) for k in range(-80, 81)]
+SAMPLES_ON_LINE = [Fraction(k, 2) for k in range(-120, 121)]
 OPS = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b,
        ">": lambda a, b: a > b, ">=": lambda a, b: a >= b, "=": lambda a, b: a == b}
 
