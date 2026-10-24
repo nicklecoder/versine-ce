@@ -3938,9 +3938,15 @@ BY_RULE += (
     (re.compile(rf"^semicircle: AB diameter; (.+); find {CIRCLE_PART}$"),
      lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1)], 90, target) if "ACB" in listing
      else 90 - circle_parts(listing)[next(iter(circle_parts(listing)))][1]),
+    # Two neighboring corners given: the asked one is 180° less the given corner opposite it.
+    (re.compile(r"^cyclic quadrilateral pair: angle ([A-D]) (\d+), angle ([A-D]) (\d+); find angle ([A-D])$"),
+     lambda p, a, q, b, t: Fraction(180 - {p: a, q: b}["ABCD"[("ABCD".index(t) + 2) % 4]])),
     (re.compile(rf"^cyclic quadrilateral: (.+); find {CIRCLE_PART}$"),
      lambda listing, target: (lambda v: quad_relation(v, [(n, 1) for n in v], 180, target) if len(v) == 2
                               else 180 - next(iter(v.values()))[1])(circle_parts(listing))),
+    # Each inscribed angle on arc AB is half of it.
+    (re.compile(r"^same arc: angle ACB (\d+); find arc AB$"), lambda c: Fraction(2 * c)),
+    (re.compile(r"^same arc: arc AB (\d+); find angle (?:ACB|ADB)$"), lambda c: Fraction(c, 2)),
     (re.compile(rf"^same arc: (.+); find {CIRCLE_PART}$"),
      lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1), ("angle ADB", -1)], 0, target)),
     (re.compile(rf"^tangent: (.+); find {CIRCLE_PART}$"), lambda listing, target: tangent_side(circle_parts(listing), target)),
