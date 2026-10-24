@@ -1,5 +1,5 @@
 {
-  "built": 413,
+  "built": 437,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -522,6 +522,36 @@
       "area-and-volume-scale",
       "side-splitter",
       "altitude-to-hypotenuse",
+      "all-together"
+    ],
+    "units": [
+      "customary-length",
+      "customary-weight-and-capacity",
+      "metric-units",
+      "between-the-systems",
+      "temperature",
+      "unit-fractions",
+      "square-and-cubic-units",
+      "all-together"
+    ],
+    "quadrilaterals": [
+      "parallelogram-properties",
+      "diagonals",
+      "angles-with-diagonals",
+      "which-special-quadrilateral",
+      "trapezoids-and-kites",
+      "triangle-midsegment",
+      "verify-on-coordinates",
+      "all-together"
+    ],
+    "circles": [
+      "arc-length",
+      "sector-area",
+      "central-and-inscribed-angles",
+      "semicircles-and-cyclic-quadrilaterals",
+      "tangents",
+      "equation-of-a-circle",
+      "complete-the-square-for-center",
       "all-together"
     ]
   },
@@ -1156,9 +1186,66 @@
           "roots"
         ]
       }
+    },
+    "units": {
+      "dependsOn": [
+        "area",
+        "decimals",
+        "frac-signed",
+        "ratio",
+        "volume"
+      ],
+      "levels": {
+        "temperature": [
+          "frac-signed"
+        ],
+        "unit-fractions": [
+          "ratio"
+        ],
+        "square-and-cubic-units": [
+          "area",
+          "volume"
+        ]
+      }
+    },
+    "quadrilaterals": {
+      "dependsOn": [
+        "congruence",
+        "coord-geometry"
+      ],
+      "levels": {
+        "verify-on-coordinates": [
+          "coord-geometry"
+        ]
+      }
+    },
+    "circles": {
+      "dependsOn": [
+        "area",
+        "pythagoras",
+        "quadratic-formula",
+        "triangle-angles"
+      ],
+      "levels": {
+        "arc-length": [
+          "area"
+        ],
+        "sector-area": [
+          "area"
+        ],
+        "tangents": [
+          "pythagoras"
+        ],
+        "equation-of-a-circle": [
+          "pythagoras"
+        ],
+        "complete-the-square-for-center": [
+          "quadratic-formula"
+        ]
+      }
     }
   },
-  "sources": "ec98d7961c2a9d96a6448fc1c36d27039a11d38315f1cf8dadb13cfa8939bd5a",
+  "sources": "5e2c3cf529afb678c4e947e633817e92c0b1a9ce7e713f347dfc82fc328d001d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5289,6 +5376,246 @@
       "exhaustive": false,
       "signed": false,
       "file": "similarity-7.json"
+    },
+    {
+      "skill": "units",
+      "level": 0,
+      "slug": "customary-length",
+      "name": "Customary Length",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-0.json"
+    },
+    {
+      "skill": "units",
+      "level": 1,
+      "slug": "customary-weight-and-capacity",
+      "name": "Customary Weight & Capacity",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-1.json"
+    },
+    {
+      "skill": "units",
+      "level": 2,
+      "slug": "metric-units",
+      "name": "Metric Units",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-2.json"
+    },
+    {
+      "skill": "units",
+      "level": 3,
+      "slug": "between-the-systems",
+      "name": "Between the Systems",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-3.json"
+    },
+    {
+      "skill": "units",
+      "level": 4,
+      "slug": "temperature",
+      "name": "Temperature",
+      "count": 782,
+      "exhaustive": false,
+      "signed": true,
+      "file": "units-4.json"
+    },
+    {
+      "skill": "units",
+      "level": 5,
+      "slug": "unit-fractions",
+      "name": "Unit Fractions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-5.json"
+    },
+    {
+      "skill": "units",
+      "level": 6,
+      "slug": "square-and-cubic-units",
+      "name": "Square & Cubic Units",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-6.json"
+    },
+    {
+      "skill": "units",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "units-7.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 0,
+      "slug": "parallelogram-properties",
+      "name": "Parallelogram Properties",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-0.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 1,
+      "slug": "diagonals",
+      "name": "Diagonals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-1.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 2,
+      "slug": "angles-with-diagonals",
+      "name": "Angles with Diagonals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-2.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 3,
+      "slug": "which-special-quadrilateral",
+      "name": "Which Special Quadrilateral",
+      "count": 250,
+      "exhaustive": true,
+      "signed": false,
+      "file": "quadrilaterals-3.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 4,
+      "slug": "trapezoids-and-kites",
+      "name": "Trapezoids & Kites",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-4.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 5,
+      "slug": "triangle-midsegment",
+      "name": "Triangle Midsegment",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-5.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 6,
+      "slug": "verify-on-coordinates",
+      "name": "Verify on Coordinates",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-6.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-7.json"
+    },
+    {
+      "skill": "circles",
+      "level": 0,
+      "slug": "arc-length",
+      "name": "Arc Length",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-0.json"
+    },
+    {
+      "skill": "circles",
+      "level": 1,
+      "slug": "sector-area",
+      "name": "Sector Area",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-1.json"
+    },
+    {
+      "skill": "circles",
+      "level": 2,
+      "slug": "central-and-inscribed-angles",
+      "name": "Central & Inscribed Angles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-2.json"
+    },
+    {
+      "skill": "circles",
+      "level": 3,
+      "slug": "semicircles-and-cyclic-quadrilaterals",
+      "name": "Semicircles & Cyclic Quadrilaterals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-3.json"
+    },
+    {
+      "skill": "circles",
+      "level": 4,
+      "slug": "tangents",
+      "name": "Tangents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-4.json"
+    },
+    {
+      "skill": "circles",
+      "level": 5,
+      "slug": "equation-of-a-circle",
+      "name": "Equation of a Circle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "circles-5.json"
+    },
+    {
+      "skill": "circles",
+      "level": 6,
+      "slug": "complete-the-square-for-center",
+      "name": "Complete the Square for Center",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "circles-6.json"
+    },
+    {
+      "skill": "circles",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "circles-7.json"
     }
   ]
 }

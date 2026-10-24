@@ -13,6 +13,31 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Circles**, a new skill under Shapes, in eight levels: arc length and sector area as
+the central angle's share of the circle, and back to the angle or radius; central and
+inscribed angles; angles in a semicircle, on the same arc and in a cyclic
+quadrilateral; tangents, by the right angle at the radius and equal tangents from a
+point; the equation of a circle; and its center and radius found by completing the
+square. `check-answers.py` re-derives every answer from the circle's rules and the
+equations themselves.
+
+**Quadrilaterals**, a new skill under Shapes, in eight levels: the sides and angles of a
+parallelogram; diagonals that bisect each other, are equal in a rectangle and
+perpendicular in a rhombus; chasing angles with diagonals; which special quadrilateral
+a list of facts proves, if any; trapezoids and kites; the triangle midsegment; and
+naming a quadrilateral from its coordinates. `check-answers.py` re-derives each
+answer from the shapes' properties, builds the rectangle or rhombus to measure its
+diagonal angles, and names coordinate shapes by exact slopes and lengths.
+
+**Units & Conversions**, a new skill under Area & Volume, in eight levels: customary
+length; customary weight and capacity; metric units; converting between the systems
+with the factor given; temperature in °F and °C; chains of unit fractions and rates
+(miles per hour into feet per second, dollars per pound into cents per ounce); and
+square and cubic units, where the length factor is squared or cubed. A few rows on
+each level ask which unit fits a familiar thing, or which of two amounts is more.
+`check-answers.py` re-derives every answer from its own exact unit table, built on
+the international definitions (1 in = 2.54 cm, 1 lb = 0.45359237 kg, 1 gal = 231 in³).
+
 **Scientific Notation**, a new skill under Powers & Roots, in eight levels: writing big
 and small numbers, reading them back, tidying an untidy front number, comparing,
 multiplying and dividing, and adding and taking away. `check-answers.py` re-derives

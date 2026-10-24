@@ -3436,6 +3436,539 @@ CHOICE_RULES += (
     (re.compile(rf"^similar sas: {NUMBER}, {NUMBER}, angle (\d+); {NUMBER}, {NUMBER}, angle (\d+)$"), similar_by_sas),
 )
 
+# --- Units and Conversions ---------------------------------------------------
+#
+# Every unit is held here by its exact size under the international
+# definitions (1 in = 2.54 cm, 1 lb = 0.45359237 kg, 1 gal = 231 in³), so a
+# conversion within a system divides two sizes, and comparing across the
+# systems compares true sizes. Where a question gives a rounded factor
+# between the systems (1 mi ≈ 1.61 km), that factor is used, as the student
+# is told to. Estimates are judged against a table of typical sizes kept
+# here, apart from the generator's.
+
+_IN = Fraction(254, 10000)                           # meters
+_LB = Fraction(45359237, 10 ** 8)                    # kilograms
+_IN3_L = _IN ** 3 * 1000                             # liters in a cubic inch
+_GAL = 231 * _IN3_L
+UNIT_SIZE = {
+    # length, in meters
+    "in": ("length", "us", _IN), "ft": ("length", "us", 12 * _IN), "yd": ("length", "us", 36 * _IN),
+    "mi": ("length", "us", 63360 * _IN),
+    "mm": ("length", "metric", Fraction(1, 1000)), "cm": ("length", "metric", Fraction(1, 100)),
+    "m": ("length", "metric", Fraction(1)), "km": ("length", "metric", Fraction(1000)),
+    # weight, in kilograms
+    "oz": ("weight", "us", _LB / 16), "lb": ("weight", "us", _LB), "ton": ("weight", "us", 2000 * _LB),
+    "mg": ("weight", "metric", Fraction(1, 10 ** 6)), "g": ("weight", "metric", Fraction(1, 1000)),
+    "kg": ("weight", "metric", Fraction(1)),
+    # capacity and volume, in liters
+    "floz": ("capacity", "us", _GAL / 128), "cup": ("capacity", "us", _GAL / 16), "pt": ("capacity", "us", _GAL / 8),
+    "qt": ("capacity", "us", _GAL / 4), "gal": ("capacity", "us", _GAL),
+    "mL": ("capacity", "metric", Fraction(1, 1000)), "L": ("capacity", "metric", Fraction(1)),
+    "cm3": ("capacity", "metric", Fraction(1, 1000)), "m3": ("capacity", "metric", Fraction(1000)),
+    "in3": ("capacity", "us", _IN3_L), "ft3": ("capacity", "us", 1728 * _IN3_L), "yd3": ("capacity", "us", 46656 * _IN3_L),
+    # area, in square meters
+    "in2": ("area", "us", _IN ** 2), "ft2": ("area", "us", (12 * _IN) ** 2), "yd2": ("area", "us", (36 * _IN) ** 2),
+    "mm2": ("area", "metric", Fraction(1, 10 ** 6)), "cm2": ("area", "metric", Fraction(1, 10 ** 4)),
+    "m2": ("area", "metric", Fraction(1)),
+    # time, in seconds; money, in cents
+    "s": ("time", "both", Fraction(1)), "min": ("time", "both", Fraction(60)), "h": ("time", "both", Fraction(3600)),
+    "day": ("time", "both", Fraction(86400)), "week": ("time", "both", Fraction(604800)),
+    "cent": ("money", "both", Fraction(1)), "usd": ("money", "both", Fraction(100)),
+}
+
+
+def size_of(unit: str) -> Fraction:
+    return UNIT_SIZE[unit][2]
+
+
+def within(v, a: str, b: str) -> Fraction:
+    """v of unit a in unit b, both of one system (or a unit both systems share)."""
+    assert UNIT_SIZE[a][0] == UNIT_SIZE[b][0], (a, b)
+    assert "both" in (UNIT_SIZE[a][1], UNIT_SIZE[b][1]) or UNIT_SIZE[a][1] == UNIT_SIZE[b][1], (a, b)
+    return Fraction(v) * size_of(a) / size_of(b)
+
+
+def across(v, a: str, b: str, p: str, k, q: str) -> Fraction:
+    """v of a in b, crossing the systems with the factor the question gives: 1 p = k q."""
+    k = Fraction(k)
+    if UNIT_SIZE[a][1] == UNIT_SIZE[p][1]:
+        return within(within(v, a, p) * k, q, b)
+    return within(within(v, a, q) / k, p, b)
+
+
+def units_given(v, a, b, p, k, q, rounded) -> Fraction:
+    exact_value = across(v, a, b, p, k, q)
+    return half_up(exact_value, 1) if rounded else exact_value
+
+
+def to_degrees(v, a: str, b: str, rounded) -> Fraction:
+    v = Fraction(v)
+    out = v * Fraction(9, 5) + 32 if (a, b) == ("C", "F") else (v - 32) * Fraction(5, 9)
+    return half_up(out, 1) if rounded else out
+
+
+def rate_of(v, top: str, bottom: str, top2: str, bottom2: str, given) -> Fraction:
+    if given:
+        # 1 mi = 1.61 km, as the question gives it; the hours are unchanged.
+        assert bottom == bottom2 == "h"
+        return half_up(across(v, top, top2, "mi", Fraction("1.61"), "km"), 0)
+    return within(v, top, top2) / within(1, bottom, bottom2)
+
+
+def rectangle_area(w, u, h, u2, sq: str) -> Fraction:
+    assert u == u2
+    return within(w, u, sq[:-1]) * within(h, u, sq[:-1])
+
+
+def which_is_more(a, ua: str, b, ub: str) -> str:
+    assert UNIT_SIZE[ua][0] == UNIT_SIZE[ub][0], (ua, ub)
+    qa, qb = Fraction(a) * size_of(ua), Fraction(b) * size_of(ub)
+    return "same" if qa == qb else "first" if qa > qb else "second"
+
+
+def which_is_warmer(a, ua: str, b, ub: str) -> str:
+    c = lambda v, u: Fraction(v) if u == "C" else (Fraction(v) - 32) * Fraction(5, 9)
+    ca, cb = c(a, ua), c(b, ub)
+    assert ca != cb
+    return "first" if ca > cb else "second"
+
+
+# Typical sizes, in meters, kilograms and liters, for judging an estimate.
+TYPICAL = {
+    "the height of a door": 2.03, "the length of a new pencil": 0.19, "the length of a car": 4.6,
+    "the width of a fingernail": 0.011, "the length of a football field": 91.44, "the height of a basketball hoop": 3.05,
+    "the distance run in a marathon": 42195, "the length of a paper clip": 0.032,
+    "the weight of an apple": 0.18, "the weight of a car": 1400, "the weight of a paper clip": 0.001,
+    "the weight of a newborn baby": 3.3, "the weight of a dictionary": 1.4, "the weight of a grain of rice": 0.000025,
+    "the water in a full bathtub": 280, "the juice in a glass": 0.24, "the gas a car’s tank holds": 55,
+    "the medicine in a teaspoon": 0.0049, "the milk in a large jug": 3.79,
+}
+TYPICAL_C = {
+    "a cold winter night": -10, "a room": 21, "a hot summer day": 34, "freezing water": 0, "boiling water": 100,
+    "a healthy person": 37, "a cup of hot cocoa": 68, "a fridge": 4, "an oven baking bread": 200,
+}
+
+
+# requiem: catalogue/content/units-familiarity-rows
+def nearest_estimate(what: str, listing: str) -> str:
+    true = TYPICAL[what]
+    off = {}
+    for item in listing.split(", "):
+        n, unit = item.split(" ")
+        size = float(n) * float(size_of(unit))
+        off[unit] = abs(math.log10(size / true))
+    ranked = sorted(off, key=off.get)
+    # Only a fair question: the right choice is close, and every other one far.
+    assert off[ranked[0]] < math.log10(1.7) and off[ranked[1]] > math.log10(2.5), (what, listing, off)
+    return ranked[0]
+
+
+def nearest_temperature(what: str, listing: str) -> str:
+    true = TYPICAL_C[what]
+    off = {}
+    for item in listing.split(", "):
+        v, unit = item.split(" ")
+        c = float(v) if unit == "C" else (float(v) - 32) * 5 / 9
+        off[v] = abs(c - true)
+    ranked = sorted(off, key=off.get)
+    assert off[ranked[0]] <= 3 and off[ranked[1]] >= 12, (what, listing, off)
+    return ranked[0]
+
+
+UNIT_NAME = r"([A-Za-z]+[23]?)"
+AMOUNT = r"(-?\d+(?:\.\d+)?)"
+
+BY_RULE += (
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"), within),
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} \+ {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"),
+     lambda v, a, w, b, c: within(v, a, c) + within(w, b, c)),
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME} given 1 {UNIT_NAME} = {AMOUNT} {UNIT_NAME}( to 1 dp)?$"), units_given),
+    (re.compile(rf"^temperature: {AMOUNT} ([CF]) to ([CF])( to 1 dp)?$"), to_degrees),
+    (re.compile(rf"^rate: {AMOUNT} {UNIT_NAME}/{UNIT_NAME} to {UNIT_NAME}/{UNIT_NAME}"
+                rf"( given 1 mi = 1\.61 km to the nearest whole)?$"), rate_of),
+    (re.compile(rf"^area: {AMOUNT} {UNIT_NAME} by {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"), rectangle_area),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^which is more: {AMOUNT} {UNIT_NAME} or {AMOUNT} {UNIT_NAME}$"), which_is_more),
+    (re.compile(rf"^which is warmer: {AMOUNT} ([CF]) or {AMOUNT} ([CF])$"), which_is_warmer),
+    (re.compile(r"^benchmark: ([^;]+); (.+)$"), nearest_estimate),
+    (re.compile(r"^benchmark temperature: ([^;]+); (.+)$"), nearest_temperature),
+)
+
+# --- Quadrilaterals ----------------------------------------------------------
+#
+# Each shape's properties are written here as relations between its parts:
+# opposite sides and angles equal, neighboring angles adding to 180°, the
+# halves of a diagonal, a midsegment the average of the bases. The answer is
+# solved again from those, never read from the question. The diagonal-angle
+# questions are worked by building the shape itself and measuring it, and
+# the coordinate questions by exact slopes and squared lengths.
+
+def quad_expr(s: str) -> tuple:
+    """A part's value: a number, or a·x + b."""
+    s = s.strip()
+    if re.fullmatch(r"-?\d+", s):
+        return Fraction(0), Fraction(int(s))
+    return lin_x(s)
+
+
+def quad_parts(listing: str) -> dict:
+    out = {}
+    for item in listing.split(", "):
+        m = re.fullmatch(r"(angle [A-E]{1,3}|[A-Z]{2}) (.+)", item)
+        assert m, item
+        out[m[1]] = quad_expr(m[2])
+    return out
+
+
+def quad_relation(vals: dict, terms: list, total, target: str) -> Fraction:
+    """
+    Solve Σ c·part = total, where each part is known (a number or a·x + b)
+    or is the target itself, then give the target: x, or a part's value.
+    """
+    total = Fraction(total)
+    missing = [c for name, c in terms if name not in vals]
+    if missing:
+        assert len(missing) == 1 and target not in vals and target != "x", (terms, target)
+        known = sum(c * vals[n][1] for n, c in terms if n in vals)
+        assert all(vals[n][0] == 0 for n, _ in terms if n in vals)
+        return (total - known) / missing[0]
+    a = sum(c * vals[n][0] for n, c in terms)
+    b = sum(c * vals[n][1] for n, c in terms)
+    assert a != 0, (terms, vals)
+    x = (total - b) / a
+    if target == "x":
+        return x
+    return vals[target][0] * x + vals[target][1]
+
+
+QUAD_OPPOSITE = {"AB": "CD", "CD": "AB", "BC": "DA", "DA": "BC",
+                 "angle A": "angle C", "angle C": "angle A", "angle B": "angle D", "angle D": "angle B"}
+
+
+def parallelogram_part(listing: str, target: str) -> Fraction:
+    vals = quad_parts(listing)
+    # Opposite parts are equal; neighboring angles add to 180°.
+    relations = []
+    names = list(vals)
+    for i, p in enumerate(names):
+        for q in names[i + 1:]:
+            if QUAD_OPPOSITE[p] == q:
+                relations.append(([(p, 1), (q, -1)], 0))
+            elif p.startswith("angle") and q.startswith("angle"):
+                relations.append(([(p, 1), (q, 1)], 180))
+    with_x = [r for r in relations if sum(c * vals[n][0] for n, c in r[0]) != 0]
+    x = quad_relation(vals, *with_x[0], "x") if with_x else None
+    for terms, total in with_x[1:]:
+        assert quad_relation(vals, terms, total, "x") == x
+    if target == "x":
+        return x
+    value = lambda n: vals[n][0] * (x or 0) + vals[n][1]
+    if target in vals:
+        return value(target)
+    if QUAD_OPPOSITE[target] in vals:
+        return value(QUAD_OPPOSITE[target])
+    assert target.startswith("angle")
+    beside = next(n for n in vals if n.startswith("angle"))
+    return 180 - value(beside)
+
+
+QUAD_HALF = {"AE": ("AC", 1), "EC": ("AC", 1), "BE": ("BD", 1), "ED": ("BD", 1), "AC": ("AC", 2), "BD": ("BD", 2)}
+
+
+def diagonal_part(shape: str, listing: str, target: str) -> Fraction:
+    vals = quad_parts(listing)
+    if len(vals) == 1:
+        (name, e), = vals.items()
+        assert shape == "rhombus" and re.fullmatch(r"angle [A-D]E[A-D]", name), (shape, name)
+        return quad_relation(vals, [(name, 1)], 90, target)          # the diagonals cross at right angles
+    (n1, _), (n2, _) = vals.items()
+    (d1, m1), (d2, m2) = QUAD_HALF[n1], QUAD_HALF[n2]
+    # Halves of one diagonal are equal (they bisect each other); in a
+    # rectangle the two diagonals are equal too.
+    assert d1 == d2 or shape == "rectangle", (shape, n1, n2)
+    x = quad_relation(vals, [(n1, m2), (n2, -m1)], 0, "x")
+    if target == "x":
+        return x
+    half = (vals[n1][0] * x + vals[n1][1]) / m1
+    dt, mt = QUAD_HALF[target]
+    assert dt == d1 or shape == "rectangle"
+    return half * mt
+
+
+def quad_built(shape: str, t: float) -> dict:
+    if shape == "rectangle":                 # t is the height of a rectangle 1 wide
+        P = {"A": (0, 0), "B": (1, 0), "C": (1, t), "D": (0, t)}
+    else:                                    # t is the angle at A of a rhombus of side 1
+        c, s = math.cos(math.radians(t)), math.sin(math.radians(t))
+        P = {"A": (0, 0), "B": (1, 0), "C": (1 + c, s), "D": (c, s)}
+    P["E"] = ((P["A"][0] + P["C"][0]) / 2, (P["A"][1] + P["C"][1]) / 2)
+    return P
+
+
+def quad_angle(P: dict, name: str) -> float:
+    (ux, uy), (vx, vy), (wx, wy) = P[name[0]], P[name[1]], P[name[2]]
+    a = math.atan2(uy - vy, ux - vx) - math.atan2(wy - vy, wx - vx)
+    return abs(math.degrees((a + math.pi) % (2 * math.pi) - math.pi))
+
+
+def diagonal_angle(shape: str, given: str, value: int, asked: str) -> Fraction:
+    """Build every rectangle or rhombus with the given angle, and measure the asked one in each."""
+    grid = ([math.tan(math.radians(d / 10)) for d in range(5, 900)] if shape == "rectangle"
+            else [d / 10 for d in range(5, 1800)])
+    f = lambda t: quad_angle(quad_built(shape, t), given) - value
+    found = []
+    for lo, hi in zip(grid, grid[1:]):
+        if f(lo) == 0 or f(lo) * f(hi) < 0:
+            for _ in range(60):
+                m = (lo + hi) / 2
+                lo, hi = (lo, m) if f(lo) * f(m) <= 0 else (m, hi)
+            found.append(quad_angle(quad_built(shape, lo), asked))
+    assert found, (shape, given, value)
+    assert all(abs(a - found[0]) < 1e-6 for a in found), found
+    assert abs(found[0] - round(found[0])) < 1e-6, found
+    return Fraction(round(found[0]))
+
+
+# requiem: catalogue/content/quadrilateral-names-both-readings
+# The most specific name the facts prove, by the theorems that prove it.
+def special_name(name: str, listing: str) -> str:
+    facts = set(listing.split(", "))
+    parallelogram = bool(facts & {"opp-par", "opp-eq", "diag-bis", "pair-eq-par", "opp-ang", "all-right", "all-eq"})
+    rectangle = "all-right" in facts or (parallelogram and bool(facts & {"right", "diag-eq"}))
+    rhombus = "all-eq" in facts or (parallelogram and bool(facts & {"adj-eq", "diag-perp", "diag-bis-ang"}))
+    if rectangle and rhombus:
+        return "square"
+    if rectangle:
+        return "rectangle"
+    if rhombus:
+        return "rhombus"
+    if parallelogram:
+        return "parallelogram"
+    if "one-par" in facts:
+        return "trapezoid"
+    if "kite-sides" in facts:
+        return "kite"
+    return "none"
+
+
+def trapezoid_mid(listing: str, target: str) -> Fraction:
+    vals = quad_parts(listing)
+    return quad_relation(vals, [("MN", 2), ("AB", -1), ("DC", -1)], 0, target)
+
+
+def iso_trapezoid(listing: str, target: str) -> Fraction:
+    vals = quad_parts(listing)
+    same_base = lambda p, q: {p[-1], q[-1]} in ({"A", "B"}, {"C", "D"})
+    names = list(vals)
+    if len(names) == 2:
+        p, q = names
+        terms, total = ([(p, 1), (q, -1)], 0) if same_base(p, q) else ([(p, 1), (q, 1)], 180)
+        return quad_relation(vals, terms, total, target)
+    (p,) = names
+    v = vals[p][1]
+    return v if same_base(p, target) else 180 - v
+
+
+def kite_part(listing: str, target: str) -> Fraction:
+    vals = quad_parts(listing)
+    if "angle B" in vals and "angle D" in vals:
+        return quad_relation(vals, [("angle B", 1), ("angle D", -1)], 0, target)
+    # B and D, between the unequal sides, are equal; all four add to 360°.
+    v = {n[-1]: vals[n][1] for n in vals}
+    if "B" in v or "D" in v:
+        v["B"] = v["D"] = v.get("B", v.get("D"))
+    if target[-1] in "BD":
+        return (360 - v["A"] - v["C"]) / 2
+    return 360 - sum(v[k] for k in "ABD") if target[-1] == "C" else 360 - sum(v[k] for k in "BCD")
+
+
+def triangle_midsegment(d_side: str, e_side: str, listing: str, target: str) -> Fraction:
+    shared = set(d_side) & set(e_side)
+    assert len(shared) == 1
+    third = "".join(sorted((set(d_side) | set(e_side)) - shared))
+    vals = quad_parts(listing)
+    if any(n.startswith("angle") for n in vals):
+        assert (d_side, e_side) == ("AB", "AC")
+        b = vals["angle ABC"][1]
+        return {"angle ADE": b, "angle BDE": 180 - b}[target]
+    return quad_relation(vals, [(third, 1), ("DE", -2)], 0, target)
+
+
+def quad_points(listing: str) -> list:
+    return [(int(x), int(y)) for x, y in re.findall(r"\((-?\d+), (-?\d+)\)", listing)]
+
+
+def quadrilateral_kind(listing: str) -> str:
+    P = quad_points(listing)
+    assert len(P) == 4
+    side = [(P[(i + 1) % 4][0] - P[i][0], P[(i + 1) % 4][1] - P[i][1]) for i in range(4)]
+    sq = [dx * dx + dy * dy for dx, dy in side]
+    parallel = lambda u, v: u[0] * v[1] == u[1] * v[0]
+    turns = [side[i][0] * side[(i + 1) % 4][1] - side[i][1] * side[(i + 1) % 4][0] for i in range(4)]
+    assert all(t > 0 for t in turns) or all(t < 0 for t in turns), "not a convex quadrilateral in order"
+    right = [side[i][0] * side[(i + 1) % 4][0] + side[i][1] * side[(i + 1) % 4][1] == 0 for i in range(4)]
+    pairs = parallel(side[0], side[2]) + parallel(side[1], side[3])
+    if pairs == 2:
+        if all(right) and len(set(sq)) == 1:
+            return "square"
+        if all(right):
+            return "rectangle"
+        if len(set(sq)) == 1:
+            return "rhombus"
+        return "parallelogram"
+    if pairs == 1:
+        return "trapezoid"
+    if (sq[0] == sq[1] and sq[2] == sq[3]) or (sq[1] == sq[2] and sq[3] == sq[0]):
+        return "kite"
+    return "none"
+
+
+QUAD_PART = r"(x|[A-Z]{2}|angle [A-E]{1,3})"
+BY_RULE += (
+    (re.compile(rf"^parallelogram: ((?:(?:angle )?[A-D]{{1,2}} [^,;]+)(?:, (?:angle )?[A-D]{{1,2}} [^,;]+)*); find {QUAD_PART}$"),
+     parallelogram_part),
+    (re.compile(rf"^diagonals: (parallelogram|rectangle|rhombus) ABCD, E; (.+); find {QUAD_PART}$"), diagonal_part),
+    (re.compile(r"^diagonal angles: (rectangle|rhombus) ABCD, E; angle ([A-E]{3}) (\d+); find angle ([A-E]{3})$"), diagonal_angle),
+    (re.compile(rf"^trapezoid midsegment: (.+); find {QUAD_PART}$"), trapezoid_mid),
+    (re.compile(rf"^isosceles trapezoid: AB par DC, AD = BC; (.+); find {QUAD_PART}$"), iso_trapezoid),
+    (re.compile(rf"^kite: AB = AD, CB = CD; (.+); find {QUAD_PART}$"), kite_part),
+    (re.compile(rf"^triangle midsegment: D mid ([A-C]{{2}}), E mid ([A-C]{{2}}); (.+); find {QUAD_PART}$"), triangle_midsegment),
+    (re.compile(r"^midpoint triangle: AB (\d+), BC (\d+), CA (\d+); find perimeter$"), lambda a, b, c: Fraction(a + b + c, 2)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^special quadrilateral ([A-Z]{4}): ([a-z, -]+)$"), special_name),
+    (re.compile(r"^classify quadrilateral: (.+)$"), quadrilateral_kind),
+)
+
+# --- Circles -----------------------------------------------------------------
+#
+# Arcs and sectors are the angle's share of 360° of the circumference 2πr
+# or the area πr², kept as a multiple of π or taken with π as 3.14. The
+# angle rules are the inscribed angle theorem and its consequences; the
+# tangent rules are the right angle at the radius and equal tangents; the
+# plane rules read h, k and r² from (x − h)² + (y − k)² = r², completing the
+# square first when the equation comes expanded.
+
+def circle_parts(listing: str) -> dict:
+    out = {}
+    for item in listing.split(", "):
+        m = re.fullmatch(r"(angle [A-Z]{1,3}|[A-Z]{2,3}) (.+)", item)
+        assert m, item
+        out[m[1]] = quad_expr(m[2])
+    return out
+
+
+def circle_part(kind: str, key: str, size: str, angle: int, how: str) -> Fraction:
+    r = Fraction(size) / (2 if key == "d" else 1)
+    whole = 2 * r if kind == "arc" else r * r            # times π
+    share = Fraction(angle, 360) * whole
+    return share if how == "(pi)" else half_up(share * Fraction(314, 100), 1)
+
+
+def circle_angle_back(kind: str, r: int, coeff: str) -> Fraction:
+    whole = 2 * r if kind == "arc" else r * r
+    return Fraction(coeff) / whole * 360
+
+
+def circle_radius_back(kind: str, angle: int, coeff: str) -> Fraction:
+    whole = Fraction(coeff) * 360 / angle                 # 2r for an arc, r² for a sector
+    return whole / 2 if kind == "arc" else fraction_root(Fraction(whole), 2)
+
+
+def inscribed_angle(listing: str, target: str) -> Fraction:
+    vals = circle_parts(listing.replace("arc AB", "AOB"))
+    # Central = 2 × inscribed on the same arc, from the major-arc side.
+    return quad_relation(vals, [("AOB", 1), ("ACB", -2)], 0, target)
+
+
+CIRCLE_PART = r"(x|angle [A-Z]{1,3}|[A-Z]{2,3})"
+
+BY_RULE += (
+    (re.compile(r"^(arc|sector): (r|d) (\d+), angle (\d+) (\(pi\)|\(3\.14\) to 1 dp)$"), circle_part),
+    (re.compile(r"^(arc|sector) angle: r (\d+), (?:length|area) ([\d.]+) pi$"), circle_angle_back),
+    (re.compile(r"^(arc|sector) radius: angle (\d+), (?:length|area) ([\d.]+) pi$"), circle_radius_back),
+    (re.compile(rf"^inscribed: (.+); find {CIRCLE_PART}$"), inscribed_angle),
+    # From the minor-arc side the angle stands on the major arc, 360° less the central angle.
+    (re.compile(r"^inscribed minor: central AOB (\d+); find ADB$"), lambda c: Fraction(360 - c, 2)),
+    (re.compile(rf"^semicircle: AB diameter; (.+); find {CIRCLE_PART}$"),
+     lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1)], 90, target) if "ACB" in listing
+     else 90 - circle_parts(listing)[next(iter(circle_parts(listing)))][1]),
+    (re.compile(rf"^cyclic quadrilateral: (.+); find {CIRCLE_PART}$"),
+     lambda listing, target: (lambda v: quad_relation(v, [(n, 1) for n in v], 180, target) if len(v) == 2
+                              else 180 - next(iter(v.values()))[1])(circle_parts(listing))),
+    (re.compile(rf"^same arc: (.+); find {CIRCLE_PART}$"),
+     lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1), ("angle ADB", -1)], 0, target)),
+    (re.compile(rf"^tangent: (.+); find {CIRCLE_PART}$"), lambda listing, target: tangent_side(circle_parts(listing), target)),
+    # The tangent's right angle at T leaves 90° for the other two angles of △OTP.
+    (re.compile(r"^tangent angle: angle (TOP|TPO) (\d+); find angle (TOP|TPO)$"), lambda g, v, t: Fraction(90 - v)),
+    (re.compile(rf"^two tangents: (.+); find {CIRCLE_PART}$"), lambda listing, target: two_tangents(circle_parts(listing), target)),
+    (re.compile(r"^circle radius: (.+) = (\d+)$"), lambda left, rr: fraction_root(Fraction(Fraction(rr)), 2)),
+    (re.compile(rf"^circle through: center ({GRID_POINT}), point ({GRID_POINT}); find r\^2$"),
+     lambda c, cx, cy, p, px, py: Fraction((int(px) - int(cx)) ** 2 + (int(py) - int(cy)) ** 2)),
+    (re.compile(r"^circle general: (.+) = 0; find radius$"), lambda eq: circle_from_general(eq)[1]),
+)
+
+
+def tangent_side(vals: dict, target: str) -> Fraction:
+    # The radius meets the tangent at a right angle: OT² + PT² = OP².
+    v = {n: vals[n][1] for n in vals}
+    if target == "OP":
+        return fraction_root(Fraction(v["OT"] ** 2 + v["PT"] ** 2), 2)
+    other = "PT" if target == "OT" else "OT"
+    return fraction_root(Fraction(v["OP"] ** 2 - v[other] ** 2), 2)
+
+
+def two_tangents(vals: dict, target: str) -> Fraction:
+    if "PA" in vals:
+        return quad_relation(vals, [("PA", 1), ("PB", -1)], 0, target)   # tangents from one point are equal
+    # Two right angles at A and B: the other two angles of OAPB add to 180°.
+    (name, (_, v)), = vals.items()
+    return 180 - v
+
+
+def circle_center_of(eq: str) -> tuple:
+    m = re.fullmatch(r"(x\^2|\(x ([+-]) (\d+)\)\^2) \+ (y\^2|\(y ([+-]) (\d+)\)\^2)", eq)
+    assert m, eq
+    h = 0 if m[2] is None else (-int(m[3]) if m[2] == "+" else int(m[3]))
+    k = 0 if m[5] is None else (-int(m[6]) if m[5] == "+" else int(m[6]))
+    return Fraction(h), Fraction(k)
+
+
+def circle_from_general(eq: str) -> tuple:
+    """a·x² + a·y² + D·x + E·y + F = 0, read term by term, then the square completed."""
+    terms = re.findall(r"([+-]?)\s*(\d*)(x\^2|y\^2|x|y|)", eq.replace(" ", " "))
+    coef = {"x^2": 0, "y^2": 0, "x": 0, "y": 0, "": 0}
+    for sign, n, var in terms:
+        if not n and not var:
+            continue
+        c = int(n) if n else 1
+        coef[var] += -c if sign == "-" else c
+    a = coef["x^2"]
+    assert a == coef["y^2"] and a != 0, eq
+    D, E, F = (Fraction(coef[v], a) for v in ("x", "y", ""))
+    h, k = -D / 2, -E / 2
+    return (h, k), fraction_root(Fraction(h * h + k * k - F), 2)
+
+
+PAIR_RULES += (
+    (re.compile(r"^circle center: (.+) = \d+$"), circle_center_of),
+    (re.compile(r"^circle general: (.+) = 0; find center$"), lambda eq: circle_from_general(eq)[0]),
+)
+
+
+def circle_point(eq: str, rr: str, px: str, py: str) -> str:
+    h, k = circle_center_of(eq)
+    d2 = (int(px) - h) ** 2 + (int(py) - k) ** 2
+    return "on" if d2 == int(rr) else "inside" if d2 < int(rr) else "outside"
+
+
+CHOICE_RULES += (
+    (re.compile(r"^circle point: (.+) = (\d+); point \((-?\d+), (-?\d+)\)$"), circle_point),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

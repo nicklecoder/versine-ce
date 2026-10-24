@@ -93,6 +93,16 @@ pre-algebra.
 Customary: in, ft, yd, mi; oz, lb, ton; fl oz, cup, pint, quart, gallon.
 Metric: mm, cm, m, km; mg, g, kg; mL, L. Cross-system factors are given in
 the question (1 in = 2.54 cm, 1 mi ≈ 1.61 km, 1 kg ≈ 2.2 lb, 1 gal ≈ 3.79 L).
+
+`units` is built, as Customary Length · Customary Weight & Capacity · Metric
+Units · Between the Systems · Temperature · Unit Fractions · Square & Cubic
+Units · All Together. It does not depend on `proportional`: a conversion
+here is read as a fact and a factor, and needs nothing of a constant of
+proportionality. Its edges are decimals, signed fractions (for Temperature),
+unit rate (for the rates) and the first levels of area and volume (for
+square and cubic units). Each level keeps a minority of choice rows that
+build a feel for size: which unit fits a familiar thing, and which of two
+amounts is more.
 Temperature is °F ↔ °C both ways, with the benchmarks 32/212 and 0/100.
 
 Every student-facing string uses US notation, dollars and cents, and US
@@ -210,6 +220,21 @@ Scale Drawings · Area & Volume Scale · Side Splitter · Altitude to
 Hypotenuse · All Together. AA or Not became Similar or Not?, which asks SSS
 and SAS similarity beside AA (G-SRT.5). Only the altitude level
 takes a square root, and it depends on roots' Perfect Squares.
+`quadrilaterals` is built, as Parallelogram Properties · Diagonals · Angles
+with Diagonals · Which Special Quadrilateral · Trapezoids & Kites · Triangle
+Midsegment · Verify on Coordinates · All Together. Angles with Diagonals
+chases the isosceles triangles a rectangle's or rhombus's diagonals make,
+and Trapezoids & Kites adds the trapezoid midsegment, isosceles trapezoid
+and kite angles beside the triangle midsegment. Which Special Quadrilateral
+asks what a list of facts proves (TEKS G.6E), including when it proves
+nothing; every naming question gives the same answer under the inclusive
+and exclusive definitions of trapezoid and kite.
+`circles` is built, as Arc Length · Sector Area · Central & Inscribed
+Angles · Semicircles & Cyclic Quadrilaterals · Tangents · Equation of a
+Circle · Complete the Square for Center · All Together. Semicircles and
+cyclic quadrilaterals get a level of their own (G-C.3), as the inscribed
+angle theorem's two consequences. Like area, each arc and sector question
+says whether π is kept or taken as 3.14, and a 3.14 answer is to 1 dp.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
