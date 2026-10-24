@@ -1,5 +1,5 @@
 {
-  "built": 341,
+  "built": 365,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -432,6 +432,36 @@
       "distance-between-points",
       "the-3d-diagonal",
       "spot-the-triple",
+      "all-together"
+    ],
+    "data-center": [
+      "the-mean",
+      "the-median",
+      "missing-value-for-a-mean",
+      "quartiles-and-the-iqr",
+      "mean-absolute-deviation",
+      "samples",
+      "which-measure",
+      "all-together"
+    ],
+    "angles": [
+      "complementary",
+      "supplementary",
+      "vertical-angles",
+      "around-a-point",
+      "parallel-lines",
+      "solve-for-x",
+      "which-equation",
+      "all-together"
+    ],
+    "triangle-angles": [
+      "angle-sum",
+      "exterior-angle",
+      "isosceles-triangles",
+      "polygon-angle-sum",
+      "regular-polygons",
+      "the-exterior-sum",
+      "triangle-inequality",
       "all-together"
     ]
   },
@@ -1000,9 +1030,32 @@
         "roots"
       ],
       "levels": {}
+    },
+    "data-center": {
+      "dependsOn": [
+        "decimals",
+        "ratio"
+      ],
+      "levels": {}
+    },
+    "angles": {
+      "dependsOn": [
+        "equations-both"
+      ],
+      "levels": {
+        "which-equation": [
+          "equations-both"
+        ]
+      }
+    },
+    "triangle-angles": {
+      "dependsOn": [
+        "angles"
+      ],
+      "levels": {}
     }
   },
-  "sources": "3ae3526853e81efa48f523b2248b0300c1e8b0588d319bc628753b9c1956fbab",
+  "sources": "c54cc32fd71456bd20c2945e13a5c9dccb59b0135197fad0acdb2da83c9e32ca",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4413,6 +4466,246 @@
       "exhaustive": false,
       "signed": false,
       "file": "pythagoras-7.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 0,
+      "slug": "the-mean",
+      "name": "The Mean",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-0.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 1,
+      "slug": "the-median",
+      "name": "The Median",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-1.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 2,
+      "slug": "missing-value-for-a-mean",
+      "name": "Missing Value for a Mean",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-2.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 3,
+      "slug": "quartiles-and-the-iqr",
+      "name": "Quartiles and the IQR",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-3.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 4,
+      "slug": "mean-absolute-deviation",
+      "name": "Mean Absolute Deviation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "data-center-4.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 5,
+      "slug": "samples",
+      "name": "Samples",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "data-center-5.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 6,
+      "slug": "which-measure",
+      "name": "Which Measure?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "data-center-6.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-7.json"
+    },
+    {
+      "skill": "angles",
+      "level": 0,
+      "slug": "complementary",
+      "name": "Complementary",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-0.json"
+    },
+    {
+      "skill": "angles",
+      "level": 1,
+      "slug": "supplementary",
+      "name": "Supplementary",
+      "count": 600,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-1.json"
+    },
+    {
+      "skill": "angles",
+      "level": 2,
+      "slug": "vertical-angles",
+      "name": "Vertical Angles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-2.json"
+    },
+    {
+      "skill": "angles",
+      "level": 3,
+      "slug": "around-a-point",
+      "name": "Around a Point",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-3.json"
+    },
+    {
+      "skill": "angles",
+      "level": 4,
+      "slug": "parallel-lines",
+      "name": "Parallel Lines",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-4.json"
+    },
+    {
+      "skill": "angles",
+      "level": 5,
+      "slug": "solve-for-x",
+      "name": "Solve for x",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-5.json"
+    },
+    {
+      "skill": "angles",
+      "level": 6,
+      "slug": "which-equation",
+      "name": "Which Equation?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-6.json"
+    },
+    {
+      "skill": "angles",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "angles-7.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 0,
+      "slug": "angle-sum",
+      "name": "Angle Sum",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-0.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 1,
+      "slug": "exterior-angle",
+      "name": "Exterior Angle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-1.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 2,
+      "slug": "isosceles-triangles",
+      "name": "Isosceles Triangles",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-2.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 3,
+      "slug": "polygon-angle-sum",
+      "name": "Polygon Angle Sum",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-3.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 4,
+      "slug": "regular-polygons",
+      "name": "Regular Polygons",
+      "count": 188,
+      "exhaustive": true,
+      "signed": false,
+      "file": "triangle-angles-4.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 5,
+      "slug": "the-exterior-sum",
+      "name": "The Exterior Sum",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-5.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 6,
+      "slug": "triangle-inequality",
+      "name": "Triangle Inequality",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-6.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-7.json"
     }
   ]
 }

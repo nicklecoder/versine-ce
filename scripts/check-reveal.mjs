@@ -131,6 +131,26 @@ for (const file of readdirSync(LIB)) {
   }
 }
 
+// A figure drawn on the plane with `axes: false` -- an angle, a polygon --
+// must draw no axes and no coordinates, or the picture claims positions the
+// question never gave. And a text mark, which is how such a figure writes an
+// angle's size inside it, must draw its words and only once answered when
+// they are the answer.
+{
+  const figure = { kind: 'plane', xRange: [-4, 4], yRange: [-4, 4], grid: 0, axes: false,
+    marks: [{ kind: 'segment', from: [0, 0], to: [3, 0] }, { kind: 'text', at: [1, 1], label: 'a' }],
+    answer: [{ kind: 'text', at: [2, 2], label: '137°' }] };
+  const classes = (n) => [...n.cls, ...n.children.flatMap((k) => (k.cls ? classes(k) : []))];
+  const ask = new Node_('div'), shown = new Node_('div');
+  renderVisual(ask, figure, { reveal: 1, animateFrom: 0 });
+  renderVisual(shown, figure, { showAnswer: true, animateFrom: 1, verdict: 'ok' });
+  if (classes(ask).some((c) => c === 'pl__axes' || c === 'pl__ticks')) leaks.push('plane: axes: false still draws axes');
+  if (!/\ba\b/.test(ask.allText)) leaks.push('plane: a text mark did not draw its label');
+  if (ask.allText.includes('137°') || !shown.allText.includes('137°')) {
+    leaks.push('plane: an answer text mark is not held back until answered');
+  }
+}
+
 if (leaks.length) {
   console.log(`${leaks.length} reveal problem(s):`);
   for (const l of leaks.slice(0, 20)) console.log('  ' + l);

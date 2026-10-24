@@ -2234,8 +2234,11 @@ CHOICE_RULES += (
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
     (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
      lambda have, need: "scale" if int(need) % int(have) == 0 else "unit"),
-    (re.compile(r"^(.+[.?])$"), judged),
 )
+
+# Asked in prose: tried only once every other choice rule has passed, so a
+# skill added later is never shadowed by a catch-all it did not know about.
+PROSE_RULE = re.compile(r"^(.+[.?])$")
 
 
 def collected_or_factored(src: str, answer: str) -> str:
@@ -2248,6 +2251,198 @@ EXPR_RULES += (
     (re.compile(r"^([\d ()+\-]*[a-z][\da-z +\-()]*)$"), collected_or_factored),
 )
 
+
+# --- Center and Spread -------------------------------------------------------
+#
+# The data is read back as the question lists it, unsorted, and every measure
+# is worked again from it: sorted here, never trusted to arrive in order.
+# Quartiles split at the median, the middle value of an odd count in neither
+# half. Which measure fits is decided by the 1.5 × IQR test for an outlier,
+# and a sample stands for its population only if it was drawn from all of
+# it and by chance.
+
+def data_of(listing: str) -> list:
+    return [int(v) for v in listing.split(", ")]
+
+
+def median_of(ys: list) -> Fraction:
+    ys = sorted(ys)
+    n = len(ys)
+    return Fraction(ys[n // 2]) if n % 2 else Fraction(ys[n // 2 - 1] + ys[n // 2], 2)
+
+
+def quartiles_of(listing: str):
+    ys = sorted(data_of(listing))
+    h = len(ys) // 2
+    return median_of(ys[:h]), median_of(ys[len(ys) - h:])
+
+
+def mean_deviation(listing: str) -> Fraction:
+    xs = data_of(listing)
+    centre = Fraction(sum(xs), len(xs))
+    return sum(abs(x - centre) for x in xs) / len(xs)
+
+
+def has_outlier(listing: str) -> bool:
+    q1, q3 = quartiles_of(listing)
+    fence = Fraction(3, 2) * (q3 - q1)
+    return any(x < q1 - fence or x > q3 + fence for x in data_of(listing))
+
+
+def missing_value(mean: str, n: int, listing: str) -> Fraction:
+    return Fraction(mean) * n - sum(data_of(listing))
+
+
+BY_RULE += (
+    (re.compile(r"^mean: (-?\d+(?:, -?\d+)*)$"), lambda xs: Fraction(sum(data_of(xs)), len(data_of(xs)))),
+    (re.compile(r"^median: (-?\d+(?:, -?\d+)*)$"), lambda xs: median_of(data_of(xs))),
+    (re.compile(r"^q1: (-?\d+(?:, -?\d+)*)$"), lambda xs: quartiles_of(xs)[0]),
+    (re.compile(r"^q3: (-?\d+(?:, -?\d+)*)$"), lambda xs: quartiles_of(xs)[1]),
+    (re.compile(r"^iqr: (-?\d+(?:, -?\d+)*)$"), lambda xs: quartiles_of(xs)[1] - quartiles_of(xs)[0]),
+    (re.compile(r"^range: (-?\d+(?:, -?\d+)*)$"), lambda xs: max(data_of(xs)) - min(data_of(xs))),
+    (re.compile(r"^mad: (-?\d+(?:, -?\d+)*)$"), mean_deviation),
+    (re.compile(r"^missing for mean: mean (-?\d+(?:\.5)?) over (\d+), given (-?\d+(?:, -?\d+)*)$"), missing_value),
+    (re.compile(r"^next to reach: (\d+) at (\d+), want (\d+)$"), lambda n, now, goal: (n + 1) * goal - n * now),
+    (re.compile(r"^add to mean: (\d+) at (\d+), add (\d+)$"), lambda n, now, new: Fraction(n * now + new, n + 1)),
+    (re.compile(r"^sample estimate: (\d+) of (\d+), population (\d+)$"), lambda c, k, pop: Fraction(c * pop, k)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^center: (-?\d+(?:, -?\d+)*)$"), lambda xs: "median" if has_outlier(xs) else "mean"),
+    (re.compile(r"^spread: (-?\d+(?:, -?\d+)*)$"), lambda xs: "iqr" if has_outlier(xs) else "mad"),
+    (re.compile(r"^sample \((\w+), \d+, [fu]\d+, \d+\): from (all|part), by (chance|choice)$"),
+     lambda _, frame, by: "yes" if frame == "all" and by == "chance" else "no"),
+)
+
+
+
+# --- Angle Relationships -----------------------------------------------------
+#
+# Each relationship applied again from what the text says: a right angle,
+# a straight line and a full turn take away what is given; where two lines
+# cross, angles an even number of places round are equal and the rest make
+# 180; on parallel lines TR and BL are one size and TL and BR the other, at
+# both crossings. An equation in x is solved again from the relationship's
+# name, and the choice of equation is read from the words alone.
+
+def angle_sum(listing) -> list:
+    return [int(v) for v in str(listing).split(", ")]
+
+
+def transversal_angle(given: int, at: str, find: str) -> int:
+    one_size = lambda spot: spot in ("TR", "BL")
+    return given if one_size(at) == one_size(find) else 180 - given
+
+
+ANGLE_RELATION = {"vertical": "equal", "corresponding": "equal", "alternate interior": "equal",
+                  "linear pair": 180, "same-side interior": 180, "complementary": 90}
+
+
+def linear_in_x(src: str):
+    m = re.fullmatch(r"(\d*)x(?: ([+-]) (\d+))?", src)
+    assert m, f"cannot read {src}"
+    a = int(m.group(1) or 1)
+    b = int(m.group(3) or 0) * (-1 if m.group(2) == "-" else 1)
+    return a, b
+
+
+def angle_equation(relation: str, e1: str, e2: str, find: str) -> Fraction:
+    (a1, b1), (a2, b2) = linear_in_x(e1), linear_in_x(e2)
+    rule = ANGLE_RELATION[relation]
+    x = Fraction(b2 - b1, a1 - a2) if rule == "equal" else Fraction(rule - b1 - b2, a1 + a2)
+    if find == "x":
+        return x
+    a, b = linear_in_x(find)
+    return a * x + b
+
+
+def equation_from_relation(words: str) -> str:
+    if "not parallel" in words or "share a vertex" in words:
+        return "none"
+    if "complementary" in words or "right angle" in words:
+        return "90"
+    if "linear pair" in words or "supplementary" in words or "same-side" in words:
+        return "180"
+    assert re.search(r"vertical|corresponding|alternate", words), words
+    return "equal"
+
+
+BY_RULE += (
+    (re.compile(r"^complement: (\d+(?:, \d+)*) \(\w+\)$"), lambda xs: 90 - sum(angle_sum(xs))),
+    (re.compile(r"^supplement: (\d+(?:, \d+)*) \(\w+\)$"), lambda xs: 180 - sum(angle_sum(xs))),
+    (re.compile(r"^around a point: (\d+(?:, \d+)*)$"), lambda xs: 360 - sum(angle_sum(xs))),
+    (re.compile(r"^crossing: (\d+) at ([0-3]), find ([0-3])$"),
+     lambda g, i, j: g if (i - j) % 2 == 0 else 180 - g),
+    (re.compile(r"^parallel: (\d+) at (?:top|bottom) (TL|TR|BL|BR), find (?:top|bottom) (TL|TR|BL|BR)$"),
+     transversal_angle),
+    (re.compile(r"^angle equation: ([a-z -]+), (\d*x(?: [+-] \d+)?), (\d*x(?: [+-] \d+)?), find (x|\d*x(?: [+-] \d+)?)$"),
+     angle_equation),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^which equation: ([a-z -]+), \d*x(?: [+-] \d+)?, \d*x(?: [+-] \d+)?$"), equation_from_relation),
+)
+
+
+# --- Triangles and Polygons --------------------------------------------------
+#
+# Everything from two facts, applied again: a polygon of n sides has angles
+# adding to (n - 2) × 180, and its exterior angles add to 360. An exterior
+# angle of a triangle is 180 less the angle beside it, which is the two far
+# ones added. Three lengths make a triangle when the two shorter add to more
+# than the longest.
+
+def polygon_sum(n: int) -> int:
+    return (n - 2) * 180
+
+
+def regular_each(n: int) -> Fraction:
+    return Fraction(polygon_sum(n), n)
+
+
+def sides_from_exterior(each) -> Fraction:
+    return Fraction(360) / Fraction(each)
+
+
+def triangle_in_x(listing: str) -> Fraction:
+    terms = [linear_in_x(t) for t in listing.split(", ")]
+    return Fraction(180 - sum(b for _, b in terms), sum(a for a, _ in terms))
+
+
+def isosceles_in_x(e1: str, other: str, e2: str) -> Fraction:
+    (a1, b1), (a2, b2) = linear_in_x(e1), linear_in_x(e2)
+    if other == "base":
+        return Fraction(b2 - b1, a1 - a2)
+    return Fraction(180 - 2 * b1 - b2, 2 * a1 + a2)
+
+
+def makes_triangle(listing: str) -> str:
+    x, y, z = sorted(angle_sum(listing))
+    return "yes" if x + y > z else "no"
+
+
+BY_RULE += (
+    (re.compile(r"^triangle: (\d+, \d+)$"), lambda xs: 180 - sum(angle_sum(xs))),
+    (re.compile(r"^triangle in x: (\d*x(?: [+-] \d+)?(?:, \d*x(?: [+-] \d+)?){2})$"), triangle_in_x),
+    (re.compile(r"^exterior angle: remote (\d+), (\d+)$"), lambda a, c: a + c),
+    (re.compile(r"^remote angle: exterior (\d+), other (\d+)$"), lambda e, k: e - k),
+    (re.compile(r"^isosceles: apex (\d+)$"), lambda apex: Fraction(180 - apex, 2)),
+    (re.compile(r"^isosceles: base (\d+)$"), lambda base: 180 - 2 * base),
+    (re.compile(r"^isosceles in x: base (\d*x(?: [+-] \d+)?), (base|apex) (\d*x(?: [+-] \d+)?)$"), isosceles_in_x),
+    (re.compile(r"^interior sum: (\d+)$"), polygon_sum),
+    (re.compile(r"^missing interior: (\d+) sides, (\d+(?:, \d+)*)$"), lambda n, xs: polygon_sum(n) - sum(angle_sum(xs))),
+    (re.compile(r"^regular interior: (\d+)$"), regular_each),
+    (re.compile(r"^regular from sum: (\d+)$"), lambda total: Fraction(total, total // 180 + 2)),
+    (re.compile(r"^regular sides from interior: (\d+)$"), lambda each: sides_from_exterior(180 - each)),
+    (re.compile(r"^regular gap: (\d+(?:, \d+)*)$"), lambda ns: 360 - sum(regular_each(n) for n in angle_sum(ns))),
+    (re.compile(r"^regular exterior: (\d+)$"), lambda n: Fraction(360, n)),
+    (re.compile(r"^regular sides from exterior: (\d+)$"), sides_from_exterior),
+    (re.compile(r"^missing exterior: (\d+(?:, \d+)*)$"), lambda xs: 360 - sum(angle_sum(xs))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^triangle sides: (\d+, \d+, \d+)$"), makes_triangle),
+)
 
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
@@ -2286,6 +2481,12 @@ for path in sorted(LIB.glob("*.json")):
                         if want != answer["value"]:
                             problems.append(f"{where}: {text} is {want}, not {answer['value']}")
                         break
+                else:
+                    if PROSE_RULE.match(text):
+                        checked += 1
+                        want = judged(text)
+                        if want != answer["value"]:
+                            problems.append(f"{where}: {text} is {want}, not {answer['value']}")
             continue
 
         # A line: built again from what the question gives, and compared as a line.

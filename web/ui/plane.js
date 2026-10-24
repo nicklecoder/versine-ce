@@ -17,7 +17,9 @@
  * line and point, so shading never hides what it is the shading of.
  *
  * @typedef {object} Mark
- * @property {'point'|'segment'|'path'|'region'} kind
+ * @property {'point'|'segment'|'path'|'region'|'text'} kind
+ *   A text mark is words alone, centred on `at`: the size of an angle,
+ *   written inside it, where a label offset from a point would drift.
  * @property {[number, number]} [at]     for a point
  * @property {[number, number]} [from]   for a segment
  * @property {[number, number]} [to]
@@ -31,6 +33,9 @@
  * @property {[number, number]} xRange
  * @property {[number, number]} yRange
  * @property {number} [grid]             gridline spacing, 0 for none
+ * @property {boolean} [axes]            false for a figure with no coordinates:
+ *   an angle or a polygon drawn on axes says its corners have positions the
+ *   question never gave, and invites reading them off.
  * @property {Mark[]} [marks]            drawn while the question is open
  * @property {Mark[]} [answer]           withheld until an answer is committed
  */
@@ -46,7 +51,7 @@ const make = (tag, attrs) => {
 const PAD = 22;
 
 export function drawPlane(svg, spec, { verdict = null } = {}) {
-  const { xRange, yRange, grid = 1, marks = [], answer = [] } = spec;
+  const { xRange, yRange, grid = 1, axes: withAxes = true, marks = [], answer = [] } = spec;
   const [x0, x1] = xRange;
   const [y0, y1] = yRange;
 
@@ -79,26 +84,29 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
   }
 
   // ── Axes and their numbers ────────────────────────────────────────────
-  const axes = make('g', { class: 'pl__axes' });
-  axes.append(make('line', { x1: px(x0), y1: originY, x2: px(x1), y2: originY }));
-  axes.append(make('line', { x1: originX, y1: py(y0), x2: originX, y2: py(y1) }));
-  svg.append(axes);
+  // requiem: play/visuals/figures-on-plane-without-axes
+  if (withAxes) {
+    const axes = make('g', { class: 'pl__axes' });
+    axes.append(make('line', { x1: px(x0), y1: originY, x2: px(x1), y2: originY }));
+    axes.append(make('line', { x1: originX, y1: py(y0), x2: originX, y2: py(y1) }));
+    svg.append(axes);
 
-  const ticks = make('g', { class: 'pl__ticks' });
-  const step = Math.max(grid, Math.ceil((x1 - x0) / 10));
-  for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) {
-    if (x === 0) continue;
-    const t = make('text', { x: px(x), y: originY + 13, 'text-anchor': 'middle' });
-    t.textContent = String(x);
-    ticks.append(t);
+    const ticks = make('g', { class: 'pl__ticks' });
+    const step = Math.max(grid, Math.ceil((x1 - x0) / 10));
+    for (let x = Math.ceil(x0 / step) * step; x <= x1; x += step) {
+      if (x === 0) continue;
+      const t = make('text', { x: px(x), y: originY + 13, 'text-anchor': 'middle' });
+      t.textContent = String(x);
+      ticks.append(t);
+    }
+    for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) {
+      if (y === 0) continue;
+      const t = make('text', { x: originX - 7, y: py(y) + 4, 'text-anchor': 'end' });
+      t.textContent = String(y);
+      ticks.append(t);
+    }
+    svg.append(ticks);
   }
-  for (let y = Math.ceil(y0 / step) * step; y <= y1; y += step) {
-    if (y === 0) continue;
-    const t = make('text', { x: originX - 7, y: py(y) + 4, 'text-anchor': 'end' });
-    t.textContent = String(y);
-    ticks.append(t);
-  }
-  svg.append(ticks);
 
   // ── Marks ─────────────────────────────────────────────────────────────
   const drawMark = (m, cls) => {
@@ -116,6 +124,12 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
       g.append(make('polygon', {
         points: m.points.map(([x, y]) => `${px(x)},${py(y)}`).join(' '), class: 'pl__region',
       }));
+    } else if (m.kind === 'text') {
+      const t = make('text', { x: px(m.at[0]), y: py(m.at[1]), class: 'pl__label pl__text',
+        'text-anchor': 'middle', 'dominant-baseline': 'central' });
+      t.textContent = m.label ?? '';
+      g.append(t);
+      return g;
     } else if (m.kind === 'point') {
       g.append(make('circle', {
         cx: px(m.at[0]), cy: py(m.at[1]), r: 5,

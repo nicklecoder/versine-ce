@@ -172,6 +172,8 @@ export const VISUALS = {
       xRange: { type: 'array', of: { type: 'number' }, required: true },
       yRange: { type: 'array', of: { type: 'number' }, required: true },
       grid: { type: 'number', min: 0, max: 20 },
+      // false for a figure, an angle or a polygon, that has no coordinates.
+      axes: { type: 'bool' },
       marks: { type: 'array', of: { type: 'object' } },
       // Anything that would answer the question is withheld until one is
       // committed, so the renderer never receives it and cannot leak it.

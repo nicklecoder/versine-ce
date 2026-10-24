@@ -124,6 +124,27 @@ That finishes Phase 2.
 hypotenuse and a missing leg (as ladders, screens, walks and ramps too), whether three
 sides make a right angle, exact answers in simplest radical form, distance between points
 on a grid, the diagonal of a box, and spotting a scaled triple to skip the squaring.
+
+**Center and Spread**, the first skill under Statistics, in eight levels: the mean, the
+median from an unsorted list, a missing value or a next score from a mean, quartiles with
+the IQR beside the range, the mean absolute deviation (its distances shown in a table on
+reveal), whether a sample is representative and scaling a random one up to its
+population, and which measure fits data with or without an outlier. That finishes the
+Algebra 1 milestone.
+
+**Angle Relationships**, the first skill under Lines & Angles and of Phase 3, in eight
+levels: complementary and supplementary angles (in words and in figures, two or three
+parts), vertical angles, angles around a point, parallel lines cut by a transversal,
+solving for x from the relationship, and a strategy level on which equation a
+relationship gives, including none when the lines are not parallel. The plane can now
+draw a figure without axes (`axes: false`) and write text inside it (a `text` mark),
+which check-reveal.mjs checks.
+
+**Triangles and Polygons** (Lines & Angles), in eight levels: a triangle's angle sum, in
+numbers and in x; the exterior angle as the two far angles added; isosceles triangles,
+in numbers and in x; the interior sum of a polygon and a missing angle; regular polygons,
+their angles, their sides from an angle, and the gap left where several meet at a point;
+the exterior sum of 360°; and the triangle inequality as a yes or no.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

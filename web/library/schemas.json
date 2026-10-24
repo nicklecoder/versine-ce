@@ -265,6 +265,9 @@
         "min": 0,
         "max": 20
       },
+      "axes": {
+        "type": "bool"
+      },
       "marks": {
         "type": "array",
         "of": {
