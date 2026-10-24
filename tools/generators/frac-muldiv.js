@@ -92,16 +92,25 @@ function quantity(rng) {
     visual: { kind: 'quantitymodel', n, d, whole, each, value },
     explain: `Cut ${whole} into ${d} equal parts: ${whole} ÷ ${d} = ${each} in each. `
       + `${n} of them is ${n} × ${each} = ${value}. `
-      + `It is the same rule as always -- ${whole} is ${whole}/1, so ${n}/${d} × ${whole}/1 `
+      + `It is the same rule as always: ${whole} is ${whole}/1, so ${n}/${d} × ${whole}/1 `
       + `is ${n * whole}/${d}, which is ${value}.`,
   };
 }
 
+const SIMPLIFY = 5;
+
 function build(rng, level, requireSimplest) {
   let a, b, op, raw;
-  for (let i = 0; i < 40; i++) {
+  // Simplify the Answer drew Dividing Fractions' own rows (878 of its 879),
+  // so it tested nothing new. It now multiplies as well as divides, and four
+  // rows in five come out needing to be simplified; its pool is far past the
+  // library's thousand, so the build samples it and that share holds.
+  const reducible = level === SIMPLIFY && rng.chance(0.8);
+  for (let i = 0; i < 200; i++) {
     ({ a, b, op } = draw(rng, level));
+    if (level === SIMPLIFY && rng.chance(0.5)) op = '×';
     raw = op === '×' ? multiply(a, b) : divide(a, b);
+    if (level === SIMPLIFY && isSimplest(raw) === reducible) continue;
     // Reject the trivial: an answer of exactly one, or a divisor equal to the
     // dividend. Also keep quotients sane so the picture stays drawable.
     //
@@ -120,8 +129,11 @@ function build(rng, level, requireSimplest) {
   const tidy = op === '÷' || requireSimplest;
   const expected = tidy ? reduce(raw) : raw;
   const opSign = op;
+  // Where lowest terms are demanded, the question says so; the level blurb
+  // is read once, and the timed mixed level refused 6/12 with no reason shown.
+  const terms = T.asks(T.frac(a.n, a.d, 1), T.op(opSign), T.frac(b.n, b.d, 2));
   return {
-    prompt: T.asks(T.frac(a.n, a.d, 1), T.op(opSign), T.frac(b.n, b.d, 2)),
+    prompt: requireSimplest ? [T.prose('In lowest terms:'), ...terms] : terms,
     text: `${format(a)} ${opSign} ${format(b)}`,
     answer: { type: 'frac', value: expected, requireSimplest },
     parSeconds: PAR_SECONDS[level],

@@ -180,6 +180,9 @@ BY_RULE = (
     # front, which Fraction does for itself.
     (re.compile(r"^(-?\d+)/(-?\d+) in lowest terms$"),
      lambda n, d: Fraction(int(n), int(d))),
+    # The negative of a bracketed fraction: the same number, minus in front.
+    (re.compile(r"^-\((\d+)/(\d+)\) in lowest terms$"),
+     lambda n, d: -Fraction(n, d)),
     # Rounding, re-derived in exact rationals. Doing it in floats is the one
     # way to get this wrong that matters: 2.675 is not 2.675 as a double, so a
     # float check would call the correct 2.68 an error.
@@ -2196,8 +2199,14 @@ def terminates(x: Fraction) -> bool:
 JUDGED = {
     # decimals: a decimal to measure, place or compare; a fraction to stay exact
     "You need to compare # with #.": "decimal",
-    "You need to say which of # and # is the better price.": "decimal",
-    "You need to measure a length of about # metres with a ruler.": "decimal",
+    # A price per gram, and a length measured out with a ruler: a ruler is
+    # read in centimetres and millimetres, which are decimals of a metre,
+    # whatever fraction of a metre was asked for.
+    "One brand costs £# a gram and another costs £# a gram. You need to say which is cheaper.": "decimal",
+    "You need to measure out #/# of a metre with a ruler.": "decimal",
+    # Two measurements with their points lined up; as fractions they would
+    # be over 100 and 1000 and need a common bottom first.
+    "You need to add # kg and # kg.": "decimal",
     "You need to plot # on a number line.": "decimal",
     "You need to add #/# to #/#.": "fraction",
     # exponents: a count is reported as a number (combining powers is judged
@@ -2207,7 +2216,13 @@ JUDGED = {
     "# red counters and # blue ones, in rows of equal length, no row mixing colours. How long can a row be?": "gcf",
     "Two lights flash every # seconds and every # seconds. When do they next flash together?": "lcm",
     "Putting #/# into lowest terms — what do you divide by?": "gcf",
-    "# pens and # pencils, split into identical packs with nothing left over.": "gcf",
+    "# pens and # pencils, split into identical packs with nothing left over. What is the greatest number of packs?": "gcf",
+    # The fewest pens is a count both box sizes reach; the fewest rows is the
+    # longest row, which fits inside both colours.
+    "Pens come in boxes of # and pencils in boxes of #. What is the fewest pens you can buy and still have exactly as many pencils?": "lcm",
+    "Ribbons come # cm and # cm long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
+    "# red counters and # blue ones, in rows of equal length, no row mixing colours. What is the fewest rows there can be?": "gcf",
+    "Two classes of # and # pupils are split into teams of the same size, no team mixing classes. What is the largest team size?": "gcf",
     "Tiles # cm by # cm, laid out to make the smallest possible square.": "lcm",
     "Two buses set off together, then run every # and every # minutes. Next time together?": "lcm",
     "Buns come in packs of # and sausages in packs of #. Fewest packs to have equal numbers?": "lcm",
@@ -2215,13 +2230,23 @@ JUDGED = {
     "The largest square tile that exactly fills a # cm by # cm rectangle.": "gcf",
     "Adding # and # — what should the denominator become?": "lcm",
     # mixed numbers: improper to compute with, mixed to read or report
-    "You need to multiply # #/# by #.": "improper",
+    # Whichever form the number is given in: multiplying by, or dividing by,
+    # a whole and a bit needs a single fraction, and reading a size needs the
+    # whole number out in front.
     "You need to work out # #/# × # #/#.": "improper",
-    "You need to divide # #/# by #.": "improper",
+    "You need to work out #/# × # #/#.": "improper",
+    "You need to work out # #/# ÷ # #/#.": "improper",
+    "You need to work out #/# ÷ # #/#.": "improper",
+    "You need to work out # ÷ # #/#.": "improper",
+    "You need to work out # ÷ #/#.": "improper",
     "You need to say whether #/# is more than #.": "mixed",
+    "You need to say whether # #/# is more than #.": "mixed",
     "You want to know roughly how big #/# is, at a glance.": "mixed",
-    "You need to write # #/# as the answer to a word problem about lengths.": "mixed",
-    "You are telling someone how much juice is left in the jug.": "mixed",
+    "You want to know roughly how big # #/# is, at a glance.": "mixed",
+    "You need to give #/# m as the answer to a word problem about lengths.": "mixed",
+    "You need to give # #/# m as the answer to a word problem about lengths.": "mixed",
+    "There are #/# litres of juice left, and you are telling someone how much.": "mixed",
+    "There are # #/# litres of juice left, and you are telling someone how much.": "mixed",
     # roots: exact work wants the simplest radical, a physical length a decimal
     "You need to add √# to √#.": "simplify",
     "You need to add √# to #√#.": "simplify",
@@ -2233,11 +2258,10 @@ JUDGED = {
     "You need to say whether √# is nearer # or #.": "estimate",
     "You need to say whether √# is more than #.": "estimate",
     # rounding: money handed over and things cut to fit are exact
-    "You want to know roughly how many # litre cans fill a # litre tank.": "estimate",
-    "You want to know whether # × # is nearer # or nearer #.": "estimate",
-    "You are splitting a £# bill exactly # ways.": "exact",
+    "You are splitting a £# bill # ways and paying your share.": "exact",
     "You are cutting a shelf to fit a gap of # metres.": "exact",
-    "You want to check that a bill of about £# looks right before paying it.": "estimate",
+    "You are checking that a bill of £# looks right before paying it.": "estimate",
+    "You are checking that # × # on your calculator has its decimal point in the right place.": "estimate",
     "You are working out the change from £# and handing it over.": "exact",
     "You are recording a race time that decides who won.": "exact",
     "You have just divided and want to know if the answer is the right size.": "estimate",
@@ -2278,8 +2302,32 @@ def power_job(job: str, text: str) -> str:
     return "work out"
 
 
+def rounding_settles(a: Fraction, b: Fraction, b_rounds: bool, t: int) -> str:
+    """
+    Is a × b more than t, from the rounded values alone? Each rounded factor
+    is within a half of the true one, so the product lies strictly between
+    (A - 1/2)(B - 1/2) and (A + 1/2)(B + 1/2), B being b itself when b is a
+    count. An estimate is enough exactly when t falls outside that range.
+    """
+    A = half_up(a, 0)
+    B = half_up(b, 0) if b_rounds else b
+    lo = (A - Fraction(1, 2)) * (B - (Fraction(1, 2) if b_rounds else 0))
+    hi = (A + Fraction(1, 2)) * (B + (Fraction(1, 2) if b_rounds else 0))
+    assert t not in (lo, hi), f"{t} sits on the edge of what rounding allows"
+    return "exact" if lo < t < hi else "estimate"
+
+
 def judged(text: str) -> str:
+    # Rounding's comparisons: settled by an estimate only when rounding
+    # cannot carry the product across the line.
+    if m := re.match(r"^You want to know whether (\d+\.\d) × (\d+\.\d) is more than (\d+)\.$", text):
+        return rounding_settles(Fraction(m[1]), Fraction(m[2]), True, int(m[3]))
+    if m := re.match(r"^You are checking whether £(\d+) is enough for (\d+) tickets at £(\d+\.\d\d) each\.$", text):
+        return rounding_settles(Fraction(m[3]), Fraction(int(m[2])), False, int(m[1]))
     # A fraction for exactness only where the decimal would not terminate.
+    # An exact quotient of a decimal: fine as a decimal exactly when it ends.
+    if m := re.match(r"^You need the exact answer to (\d+\.\d+) ÷ (\d+)\.$", text):
+        return "decimal" if terminates(Fraction(m[1]) / int(m[2])) else "fraction"
     m = (re.match(r"^You need the exact value of (\d+/\d+) of something\.$", text)
          or re.match(r"^You need to multiply by (\d+/\d+) and keep the answer exact\.$", text)
          or re.match(r"^You need to divide (\d+ into \d+) equal shares, exactly\.$", text))
@@ -2306,8 +2354,11 @@ CHOICE_RULES += (
     (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
     (re.compile(r"^sign of (.+)$"), sign_of),
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
+    # One step when either is a whole number of lots of the other: 4 of 12
+    # is the price divided by 3, as surely as 24 of 12 is it doubled.
     (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
-     lambda have, need: "scale" if int(need) % int(have) == 0 else "unit"),
+     lambda have, need: "scale" if int(have) != int(need) and (int(need) % int(have) == 0
+                                                                or int(have) % int(need) == 0) else "unit"),
     (re.compile(r"^(You need to (multiply|divide|simplify|add|say whether) .*\d[⁰¹²³⁴⁵⁶⁷⁸⁹].*\.)$"),
      lambda text, job: power_job(job, text)),
 )

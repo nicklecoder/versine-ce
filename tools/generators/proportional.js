@@ -16,6 +16,13 @@ import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/proportional.js';
  * constant of 2.5 is 250 and nothing here is ever a float.
  */
 const hund = (h) => ({ n: h, d: 100 });
+/**
+ * The answer box takes a decimal and refuses 3/4, so a question whose answer
+ * is not whole says which form it wants: a student who found k = 18/24 = 3/4
+ * had done the mathematics and was told only "type a decimal".
+ */
+const asDecimal = (h) => (h % 100 === 0 ? '' : ' Give it as a decimal.');
+
 function show(h) {
   const neg = h < 0, a = Math.abs(h);
   const whole = Math.floor(a / 100), rem = a % 100;
@@ -83,7 +90,8 @@ function theConstant(rng) {
   const ys = x.map((v) => v * k);
   const first = `${show(ys[0])} ÷ ${x[0]} = ${show(k)}`;
   return {
-    prompt: [T.prose('y is proportional to x. What is the constant of proportionality, k, in y = kx?')],
+    prompt: [T.prose('y is proportional to x. What is the constant of proportionality, k, in y = kx?'
+      + asDecimal(k))],
     text: `k from ${x.map((v, i) => `${v}→${show(ys[i])}`).join(', ')}`,
     answer: { type: 'decimal', value: hund(k) },
     visual: { kind: 'table', cols: ['x', 'y'], rows: x.map((v, i) => [String(v), show(ys[i])]),
@@ -105,7 +113,8 @@ function useK(rng) {
   if (findY) {
     const y1 = x1 * k;
     return {
-      prompt: [T.prose(`y is proportional to x, and y = ${show(y0)} when x = ${x0}. What is y when x = ${x1}?`)],
+      prompt: [T.prose(`y is proportional to x, and y = ${show(y0)} when x = ${x0}. What is y when x = ${x1}?`
+        + asDecimal(y1))],
       text: `y = kx, ${x0}→${show(y0)}, y at x = ${x1}`,
       answer: { type: 'decimal', value: hund(y1) },
       visual: { kind: 'table', cols: ['x', 'y'], rows: [[String(x0), show(y0)], [String(x1), '?']], fill: show(y1) },
@@ -150,16 +159,19 @@ function readGraph(rng) {
   if (at === run) at = 1;
   const yH = kH * at;
   return {
-    prompt: [T.prose(`This graph shows a proportional relationship. What is y when x = ${at}?`)],
+    prompt: [T.prose(`This graph shows a proportional relationship. What is y when x = ${at}?` + asDecimal(yH))],
     text: `graph through (${run}, ${rise}), y at x = ${at}`,
     answer: { type: 'decimal', value: hund(yH) },
     visual: {
       kind: 'plane', ...PLANE,
       marks: [{ kind: 'segment', from: [0, 0], to: edge(rise, run), tone: 'var(--vec-1)' },
               { kind: 'point', at: [run, rise], label: `(${run}, ${rise})`, tone: 'var(--vec-1)' }],
-      answer: [{ kind: 'point', at: [1, kH / 100], label: `(1, ${show(kH)})` }],
-      // The marked answer is always the height at 1: that is k, and k is
-      // what any other x is worked out from.
+      // The height at 1 is k, which any other x is worked out from, and the
+      // point asked about is marked beside it whenever it is on the grid --
+      // marking only (1, k) answered a question nobody had asked.
+      answer: [{ kind: 'point', at: [1, kH / 100], label: `(1, ${show(kH)})` },
+               ...(at !== 1 && at <= SPAN && yH <= SPAN * 100
+                 ? [{ kind: 'point', at: [at, yH / 100], label: `(${at}, ${show(yH)})` }] : [])],
     },
     explain: `The line passes through (${run}, ${rise}), so y is ${rise} ÷ ${run} = ${show(kH)} times x `
       + `everywhere on it. At x = ${at}, y = ${at === 1 ? '' : `${show(kH)} × ${at} = `}${show(yH)}.`,
@@ -237,7 +249,8 @@ function convert(rng) {
     ? [show(bigH), big, show(smallH), small, smallH]
     : [show(smallH), small, show(bigH), big, bigH];
   return {
-    prompt: [T.num(`${from} ${fromU}`, 1), T.op('='), T.blank(), T.prose(toU)],
+    prompt: [...(ans % 100 === 0 ? [] : [T.prose('As a decimal:')]),
+             T.num(`${from} ${fromU}`, 1), T.op('='), T.blank(), T.prose(toU)],
     text: `${from} ${fromU} to ${toU}`,
     answer: { type: 'decimal', value: hund(ans) },
     visual: null,

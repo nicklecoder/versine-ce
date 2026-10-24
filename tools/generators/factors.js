@@ -243,6 +243,10 @@ function pairSharing(rng) {
 
 /** The greatest common factor: what is left when the two are laid side by side. */
 function greatestCommonFactor(rng) {
+  // Some pairs share nothing. A GCF of 1 is the case that says a fraction is
+  // already in lowest terms, and a level that never has one teaches that two
+  // numbers always have something in common.
+  if (rng.chance(0.15)) return coprimePair(rng);
   const { share, x, y } = pairSharing(rng);
   return {
     prompt: [T.prose(`What is the greatest common factor of ${x} and ${y}?`)],
@@ -263,6 +267,29 @@ function greatestCommonFactor(rng) {
   };
 }
 
+function coprimePair(rng) {
+  let x, y;
+  do {
+    x = rng.int(10, 99);
+    y = rng.int(10, 99);
+  } while (x === y || gcd(x, y) !== 1 || factorise(x).length + factorise(y).length < 3);
+  return {
+    prompt: [T.prose(`What is the greatest common factor of ${x} and ${y}?`)],
+    text: `GCF of ${x} and ${y}`,
+    answer: { type: 'int', value: 1 },
+    visual: {
+      kind: 'evalmodel',
+      lines: [`${x} and ${y}`, `${x} = ${spelt(x)}`, `${y} = ${spelt(y)}`,
+              'no prime in both', '1'],
+      rules: ['break the first into primes', 'and the second',
+              'keep only the factors that appear in both', 'so only 1 goes into both'],
+      hint: 'What do both of them contain?',
+    },
+    explain: `${x} is ${spelt(x)} and ${y} is ${spelt(y)}. No prime appears in both, so the only `
+      + `factor they share is 1, and ${x}/${y} is already in lowest terms.`,
+  };
+}
+
 /** The lowest common multiple: the first place two counts land together. */
 function lowestCommonMultiple(rng) {
   const { x, y, lcm } = pairSharing(rng);
@@ -271,18 +298,36 @@ function lowestCommonMultiple(rng) {
     for (let k = n; k <= lcm; k += n) steps.push(k);
     return steps.length > 6 ? `${steps.slice(0, 5).join(', ')}, …, ${lcm}` : steps.join(', ');
   };
+  const share = gcd(x, y);
+  // Counting up works when the counts are short. 112 and 80 meet at 560, five
+  // and seven steps in with big numbers to add, and saying "the first number
+  // both reach is 560" told a student nothing about how to get there.
+  const short = lcm / Math.min(x, y) <= 8;
+  const shortcut = `Or use the GCF: ${x} × ${y} ÷ ${share} = ${lcm}.`;
   return {
     prompt: [T.prose(`What is the lowest common multiple of ${x} and ${y}?`)],
     text: `LCM of ${x} and ${y}`,
     answer: { type: 'int', value: lcm },
-    visual: {
-      kind: 'evalmodel',
-      lines: [`${x} and ${y}`, `${x}s: ${runUp(x)}`, `${y}s: ${runUp(y)}`, String(lcm)],
-      rules: [`count up in ${x}s`, `count up in ${y}s`, 'the first number in both lists'],
-      hint: 'Where do the two counts first land on the same number?',
-    },
-    explain: `Counting in ${x}s and counting in ${y}s, the first number both reach is ${lcm}. `
-      + `That is the lowest common multiple.`,
+    visual: short
+      ? {
+        kind: 'evalmodel',
+        lines: [`${x} and ${y}`, `${x}s: ${runUp(x)}`, `${y}s: ${runUp(y)}`, String(lcm)],
+        rules: [`count up in ${x}s`, `count up in ${y}s`, 'the first number in both lists'],
+        hint: 'Where do the two counts first land on the same number?',
+      }
+      : {
+        kind: 'evalmodel',
+        lines: [`${x} and ${y}`, `${x} = ${powered(x)}`, `${y} = ${powered(y)}`,
+                powered(lcm), String(lcm)],
+        rules: ['break the first into primes', 'and the second',
+                'each prime, as many times as either one has it', 'multiplied out'],
+        hint: 'Counting up would take a while. What are they made of?',
+      },
+    explain: short
+      ? `Counting in ${x}s and counting in ${y}s, the first number both reach is ${lcm}. `
+        + `That is the lowest common multiple. ${shortcut}`
+      : `${x} is ${powered(x)} and ${y} is ${powered(y)}. A multiple of both needs every prime `
+        + `either one has, as many times as it has it: ${powered(lcm)} = ${lcm}. ${shortcut}`,
   };
 }
 
@@ -297,6 +342,12 @@ function lowestCommonMultiple(rng) {
  * big enough to hold both, wants an answer at least as big as either, and
  * that is a multiple.
  */
+//
+// requiem: catalogue/strategy/no-surface-cue
+// Each kind of object turns up on both sides -- ribbons cut down and ribbons
+// laid end to end, packs split up and boxes bought, rows as long as possible
+// and as few as possible -- because with one answer per object the level
+// was passed by recognising the object.
 const SITUATIONS = [
   { text: 'A {a} cm ribbon and a {b} cm ribbon, cut into equal pieces as long as possible.',
     want: 'gcf',
@@ -306,10 +357,31 @@ const SITUATIONS = [
     want: 'lcm',
     why: 'Both lights have to have completed whole cycles, so the answer is a number of seconds '
       + 'both counts reach — at least as big as either. That is the lowest common multiple.' },
-  { text: '{a} pens and {b} pencils, split into identical packs with nothing left over.',
+  { text: '{a} pens and {b} pencils, split into identical packs with nothing left over. '
+      + 'What is the greatest number of packs?',
     want: 'gcf',
     why: 'The number of packs has to divide both piles exactly, so it is no bigger than either. '
-      + 'That is the greatest common factor.' },
+      + 'The most packs is the greatest common factor.' },
+  { text: 'Pens come in boxes of {a} and pencils in boxes of {b}. What is the fewest pens you can '
+      + 'buy and still have exactly as many pencils?',
+    want: 'lcm',
+    why: 'The number of pens has to be a whole number of boxes of {a} and also of {b}, so it is a '
+      + 'number both counts reach. The fewest is the lowest common multiple.' },
+  { text: 'Ribbons come {a} cm and {b} cm long. Laid end to end, what is the shortest length both '
+      + 'kinds can make exactly?',
+    want: 'lcm',
+    why: 'The length has to be a whole number of each kind of ribbon, so both counts reach it — '
+      + 'it is at least as long as either. The shortest is the lowest common multiple.' },
+  { text: 'Two classes of {a} and {b} pupils are split into teams of the same size, no team mixing '
+      + 'classes. What is the largest team size?',
+    want: 'gcf',
+    why: 'A team size has to divide both classes exactly, so it is no bigger than either. '
+      + 'The largest is the greatest common factor.' },
+  { text: '{a} red counters and {b} blue ones, in rows of equal length, no row mixing colours. '
+      + 'What is the fewest rows there can be?',
+    want: 'gcf',
+    why: 'The fewest rows means the longest rows, and a row length has to divide both colours '
+      + 'exactly. The longest that does is the greatest common factor.' },
   { text: 'Tiles {a} cm by {b} cm, laid out to make the smallest possible square.',
     want: 'lcm',
     why: 'The square\'s side has to be a whole number of tiles each way, so it is a length both '
