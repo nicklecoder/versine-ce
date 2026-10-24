@@ -13,6 +13,14 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Quadrilaterals**, a new skill under Shapes, in eight levels: the sides and angles of a
+parallelogram; diagonals that bisect each other, are equal in a rectangle and
+perpendicular in a rhombus; chasing angles with diagonals; which special quadrilateral
+a list of facts proves, if any; trapezoids and kites; the triangle midsegment; and
+naming a quadrilateral from its coordinates. `check-answers.py` re-derives each
+answer from the shapes' properties, builds the rectangle or rhombus to measure its
+diagonal angles, and names coordinate shapes by exact slopes and lengths.
+
 **Units & Conversions**, a new skill under Area & Volume, in eight levels: customary
 length; customary weight and capacity; metric units; converting between the systems
 with the factor given; temperature in °F and °C; chains of unit fractions and rates

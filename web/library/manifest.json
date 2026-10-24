@@ -1,5 +1,5 @@
 {
-  "built": 421,
+  "built": 429,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -532,6 +532,16 @@
       "temperature",
       "unit-fractions",
       "square-and-cubic-units",
+      "all-together"
+    ],
+    "quadrilaterals": [
+      "parallelogram-properties",
+      "diagonals",
+      "angles-with-diagonals",
+      "which-special-quadrilateral",
+      "trapezoids-and-kites",
+      "triangle-midsegment",
+      "verify-on-coordinates",
       "all-together"
     ]
   },
@@ -1187,9 +1197,20 @@
           "volume"
         ]
       }
+    },
+    "quadrilaterals": {
+      "dependsOn": [
+        "congruence",
+        "coord-geometry"
+      ],
+      "levels": {
+        "verify-on-coordinates": [
+          "coord-geometry"
+        ]
+      }
     }
   },
-  "sources": "7a89664b3d0b062676668661b22a173a7e574a9e28729f00530242a77207dda0",
+  "sources": "2a8b202ea6ebc93ef69d8c5af8c8a26cb3ecdfdcba2d1efe45a6e7e4293f5dc3",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5400,6 +5421,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "units-7.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 0,
+      "slug": "parallelogram-properties",
+      "name": "Parallelogram Properties",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-0.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 1,
+      "slug": "diagonals",
+      "name": "Diagonals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-1.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 2,
+      "slug": "angles-with-diagonals",
+      "name": "Angles with Diagonals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-2.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 3,
+      "slug": "which-special-quadrilateral",
+      "name": "Which Special Quadrilateral",
+      "count": 250,
+      "exhaustive": true,
+      "signed": false,
+      "file": "quadrilaterals-3.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 4,
+      "slug": "trapezoids-and-kites",
+      "name": "Trapezoids & Kites",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-4.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 5,
+      "slug": "triangle-midsegment",
+      "name": "Triangle Midsegment",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-5.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 6,
+      "slug": "verify-on-coordinates",
+      "name": "Verify on Coordinates",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-6.json"
+    },
+    {
+      "skill": "quadrilaterals",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadrilaterals-7.json"
     }
   ]
 }

@@ -220,6 +220,15 @@ Scale Drawings · Area & Volume Scale · Side Splitter · Altitude to
 Hypotenuse · All Together. AA or Not became Similar or Not?, which asks SSS
 and SAS similarity beside AA (G-SRT.5). Only the altitude level
 takes a square root, and it depends on roots' Perfect Squares.
+`quadrilaterals` is built, as Parallelogram Properties · Diagonals · Angles
+with Diagonals · Which Special Quadrilateral · Trapezoids & Kites · Triangle
+Midsegment · Verify on Coordinates · All Together. Angles with Diagonals
+chases the isosceles triangles a rectangle's or rhombus's diagonals make,
+and Trapezoids & Kites adds the trapezoid midsegment, isosceles trapezoid
+and kite angles beside the triangle midsegment. Which Special Quadrilateral
+asks what a list of facts proves (TEKS G.6E), including when it proves
+nothing; every naming question gives the same answer under the inclusive
+and exclusive definitions of trapezoid and kite.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
