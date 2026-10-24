@@ -4219,14 +4219,13 @@ def biv_options(listing: str) -> dict:
 
 
 def biv_band(r: str) -> str:
-    v = Fraction(r)
-    if abs(v) <= Fraction(1, 10):
+    v = abs(Fraction(r))
+    edges = (Fraction(1, 10), Fraction(4, 10), Fraction(7, 10))
+    assert all(abs(v - e) > Fraction(5, 100) for e in edges), f"r = {r} is too near the edge of a band"
+    if v < edges[0]:
         return "none"
-    side = "positive" if v > 0 else "negative"
-    if abs(v) >= Fraction(7, 10):
-        return f"strong-{side}"
-    assert Fraction(15, 100) <= abs(v) <= Fraction(1, 2), r
-    return f"weak-{side}"
+    side = "positive" if Fraction(r) > 0 else "negative"
+    return f"{'weak' if v < edges[1] else 'moderate' if v < edges[2] else 'strong'}-{side}"
 
 
 def biv_meaning(v: str, m: str, b: str, listing: str) -> str:
@@ -4293,6 +4292,24 @@ def biv_percent(kind: str, counts: str, rounded) -> Fraction:
     return exact
 
 
+def biv_relative(by: str, grid: str) -> Fraction:
+    cells = [row.split() for row in grid.split(" / ")]
+    (i, j), = [(i, j) for i in range(2) for j in range(2) if cells[i][j] == "?"]
+    # Each row (or column) of a relative frequency table adds to 100%.
+    other = cells[i][1 - j] if by == "row" else cells[1 - i][j]
+    return 100 - Fraction(other)
+
+
+def biv_relative_linked(by: str, grid: str) -> str:
+    (a, b), (d, e) = ([Fraction(v) for v in row.split()] for row in grid.split(" / "))
+    assert (a + b == d + e == 100) if by == "row" else (a + d == b + e == 100)
+    gap = abs(a - d) if by == "row" else abs(a - b)
+    if gap >= 10:
+        return "yes"
+    assert gap <= 5
+    return "no"
+
+
 def biv_linked(counts: str) -> str:
     t = biv_table(counts)
     gap = abs(Fraction(100 * t[0][0], t[0][2]) - Fraction(100 * t[1][0], t[1][2]))
@@ -4315,6 +4332,7 @@ BY_RULE += (
      lambda m, b, x, y: Fraction(str(y)) - (Fraction(str(m)) * Fraction(str(x)) + Fraction(str(b)))),
     (re.compile(r"^two-way missing: ((?:[\d?]+ ){2}[\d?]+(?: / (?:[\d?]+ ){2}[\d?]+){2})$"), biv_missing),
     (re.compile(r"^two-way percent (.+?): (\d+ \d+ / \d+ \d+)( to 1 dp)?$"), biv_percent),
+    (re.compile(r"^two-way relative missing: (row|col) ([\d?]+ [\d?]+ / [\d?]+ [\d?]+)$"), biv_relative),
 )
 
 CHOICE_RULES += (
@@ -4331,6 +4349,7 @@ CHOICE_RULES += (
     (re.compile(r"^design for cause \([a-z ]+\): options (.+)$"),
      lambda listing: next(k for k, w in biv_options(listing).items() if w == "experiment")),
     (re.compile(r"^two-way association: (\d+ \d+ / \d+ \d+)$"), biv_linked),
+    (re.compile(r"^two-way relative association: (row|col) (\d+ \d+ / \d+ \d+)$"), biv_relative_linked),
 )
 
 # --- Distributions ----------------------------------------------------------
