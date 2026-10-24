@@ -2192,11 +2192,10 @@ JUDGED = {
     "You need to plot √# on a number line.": "estimate",
     "You need to say whether √# is more than #.": "estimate",
     # rounding: money handed over and things cut to fit are exact
-    "You want to know roughly how many # litre cans fill a # litre tank.": "estimate",
-    "You want to know whether # × # is nearer # or nearer #.": "estimate",
-    "You are splitting a £# bill exactly # ways.": "exact",
+    "You are splitting a £# bill # ways and paying your share.": "exact",
     "You are cutting a shelf to fit a gap of # metres.": "exact",
-    "You want to check that a bill of about £# looks right before paying it.": "estimate",
+    "You are checking that a bill of £# looks right before paying it.": "estimate",
+    "You are checking that # × # on your calculator has its decimal point in the right place.": "estimate",
     "You are working out the change from £# and handing it over.": "exact",
     "You are recording a race time that decides who won.": "exact",
     "You have just divided and want to know if the answer is the right size.": "estimate",
@@ -2210,7 +2209,28 @@ JUDGED = {
 }
 
 
+def rounding_settles(a: Fraction, b: Fraction, b_rounds: bool, t: int) -> str:
+    """
+    Is a × b more than t, from the rounded values alone? Each rounded factor
+    is within a half of the true one, so the product lies strictly between
+    (A - 1/2)(B - 1/2) and (A + 1/2)(B + 1/2), B being b itself when b is a
+    count. An estimate is enough exactly when t falls outside that range.
+    """
+    A = half_up(a, 0)
+    B = half_up(b, 0) if b_rounds else b
+    lo = (A - Fraction(1, 2)) * (B - (Fraction(1, 2) if b_rounds else 0))
+    hi = (A + Fraction(1, 2)) * (B + (Fraction(1, 2) if b_rounds else 0))
+    assert t not in (lo, hi), f"{t} sits on the edge of what rounding allows"
+    return "exact" if lo < t < hi else "estimate"
+
+
 def judged(text: str) -> str:
+    # Rounding's comparisons: settled by an estimate only when rounding
+    # cannot carry the product across the line.
+    if m := re.match(r"^You want to know whether (\d+\.\d) × (\d+\.\d) is more than (\d+)\.$", text):
+        return rounding_settles(Fraction(m[1]), Fraction(m[2]), True, int(m[3]))
+    if m := re.match(r"^You are checking whether £(\d+) is enough for (\d+) tickets at £(\d+\.\d\d) each\.$", text):
+        return rounding_settles(Fraction(m[3]), Fraction(int(m[2])), False, int(m[1]))
     # A fraction for exactness only where the decimal would not terminate.
     # An exact quotient of a decimal: fine as a decimal exactly when it ends.
     if m := re.match(r"^You need the exact answer to (\d+\.\d+) ÷ (\d+)\.$", text):
