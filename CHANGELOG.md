@@ -44,8 +44,11 @@ neither of the two candidates), Both Sides Radical (a root each side, a
 multiple of one, and √(x + k) = √x + m squared twice), Cube Roots,
 Rational Exponents (x^(p/q) = c raised to q/p, ± for an even p, nothing
 for a negative under an even root), then All Together. Every answer is a
-set typed in the solutions input. `check-answers.py` finds the solutions
-by trying every whole number from −1000 to 1000 in the original equation.
+set typed in the solutions input, and every level that can have no
+solution asks the student to solve or say there is none, on every row, so
+the wording gives nothing away. `check-answers.py` finds the solutions by
+trying every whole number from −1000 to 1000 in the original equation,
+and asserts every key is one of them.
 
 **Inverse Functions**, a new skill under Functions, in six levels: Undo a
 Function (f⁻¹ of a number from a rule, a cube, a table, or f's steps

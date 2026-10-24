@@ -52,6 +52,7 @@ const said = (xs) => (xs.length ? formatSet(setOf(xs).value) : 'no solution');
  * level can have no solution, every row of it says so may be the answer,
  * so the wording gives nothing away.
  */
+// requiem: catalogue/content/none-offered-on-every-row
 function ask(lhs, rhs, none) {
   const drawn = previewOf(`${lhs} = ${rhs}`);
   if (!drawn.ok) throw new Error(`rational-eq: cannot draw ${lhs} = ${rhs}: ${drawn.error}`);

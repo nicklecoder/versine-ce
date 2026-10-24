@@ -36,14 +36,19 @@ const setOf = (xs) => {
 };
 const said = (xs) => (xs.length ? formatSet(setOf(xs).value) : 'no solution');
 
-/** "Solve:" and the equation drawn as the expression box draws it. */
-function ask(lhs, rhs) {
+/**
+ * "Solve:" and the equation drawn as the expression box draws it. Where a
+ * level can have no solution, every row of it says so may be the answer,
+ * so the wording gives nothing away; a cube root always has one.
+ */
+// requiem: catalogue/content/none-offered-on-every-row
+function ask(lhs, rhs, none) {
   const drawn = previewOf(`${lhs} = ${rhs}`);
   if (!drawn.ok) throw new Error(`radical-eq: cannot draw ${lhs} = ${rhs}: ${drawn.error}`);
-  return [T.prose('Solve:'), ...drawn.terms];
+  return [T.prose(none ? 'Solve, or say there is none:' : 'Solve:'), ...drawn.terms];
 }
-const problem = (lhs, rhs, xs, explain) => ({
-  prompt: ask(lhs, rhs),
+const problem = (lhs, rhs, xs, explain, none = true) => ({
+  prompt: ask(lhs, rhs, none),
   text: `radical: ${lhs} = ${rhs}`,
   answer: setOf(xs),
   visual: null,
@@ -153,7 +158,7 @@ function cube(rng) {
       const b = v - a * x, d = v - c * x;
       return problem(`root(3, ${lin(a, b)})`, `root(3, ${lin(c, d)})`, [x],
         `Cube both sides: ${lin(a, b, true)} = ${lin(c, d, true)}, so ${a - c === 1 ? '' : `${lin(a - c, 0, true)} = ${minus(d - b)} and `}x = ${minus(x)}. `
-        + `${v < 0 ? `Both sides are then ∛(${minus(v)}), and a cube root of a negative is a real, negative number, so it stands.` : 'A cube root takes any number, so there is nothing to throw away.'}`);
+        + `${v < 0 ? `Both sides are then ∛(${minus(v)}), and a cube root of a negative is a real, negative number, so it stands.` : 'A cube root takes any number, so there is nothing to throw away.'}`, false);
     }
     const r = rng.int(-4, 4);
     const b = r ** 3 - a * x;
@@ -162,11 +167,11 @@ function cube(rng) {
       const k = rng.pick([2, 3, -2]), d = rng.nonZero(-9, 9);
       return problem(`${k}root(3, ${inside})${tail(d)}`, String(k * r + d), [x],
         `Get the root alone: ${d > 0 ? 'subtract' : 'add'} ${Math.abs(d)}, then divide by ${minus(k)}: ∛(${insideF}) = ${minus(r)}. `
-        + `Cube both sides: ${insideF} = ${minus(r ** 3)}, so x = ${minus(x)}.${r < 0 ? ` (∛ of a negative is negative: (${minus(r)})³ = ${minus(r ** 3)}, so nothing is extraneous.)` : ''}`);
+        + `Cube both sides: ${insideF} = ${minus(r ** 3)}, so x = ${minus(x)}.${r < 0 ? ` (∛ of a negative is negative: (${minus(r)})³ = ${minus(r ** 3)}, so nothing is extraneous.)` : ''}`, false);
     }
     return problem(`root(3, ${inside})`, String(r), [x],
       `Cube both sides to undo the cube root: ${insideF} = ${minus(r)}³ = ${minus(r ** 3)}, so x = ${minus(x)}. `
-      + `${r < 0 ? 'A cube root can be negative, unlike a square root, so this is not a no-solution case.' : 'Cubing never lets in a false answer, so this one needs no throwing away.'}`);
+      + `${r < 0 ? 'A cube root can be negative, unlike a square root, so this is not a no-solution case.' : 'Cubing never lets in a false answer, so this one needs no throwing away.'}`, false);
   }
 }
 
