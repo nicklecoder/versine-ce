@@ -1158,7 +1158,7 @@
       }
     }
   },
-  "sources": "d989752ba4695c068f933902c06e2cc4c37a3bdd20a427dcbce8148cda4beb18",
+  "sources": "17c846fd6654cf6d8aaed84c69cb0d591d125d37d6d1dfb9684ea732af0ae6fc",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4655,7 +4655,7 @@
       "level": 0,
       "slug": "complementary",
       "name": "Complementary",
-      "count": 400,
+      "count": 240,
       "exhaustive": false,
       "signed": false,
       "file": "angles-0.json"
@@ -4665,7 +4665,7 @@
       "level": 1,
       "slug": "supplementary",
       "name": "Supplementary",
-      "count": 600,
+      "count": 500,
       "exhaustive": false,
       "signed": false,
       "file": "angles-1.json"
@@ -4765,7 +4765,7 @@
       "level": 3,
       "slug": "polygon-angle-sum",
       "name": "Polygon Angle Sum",
-      "count": 1000,
+      "count": 500,
       "exhaustive": false,
       "signed": false,
       "file": "triangle-angles-3.json"
@@ -4775,8 +4775,8 @@
       "level": 4,
       "slug": "regular-polygons",
       "name": "Regular Polygons",
-      "count": 188,
-      "exhaustive": true,
+      "count": 185,
+      "exhaustive": false,
       "signed": false,
       "file": "triangle-angles-4.json"
     },
@@ -4845,7 +4845,7 @@
       "level": 3,
       "slug": "circumference",
       "name": "Circumference",
-      "count": 416,
+      "count": 516,
       "exhaustive": true,
       "signed": false,
       "file": "area-3.json"
@@ -4855,7 +4855,7 @@
       "level": 4,
       "slug": "area-of-a-circle",
       "name": "Area of a Circle",
-      "count": 212,
+      "count": 338,
       "exhaustive": true,
       "signed": false,
       "file": "area-4.json"
@@ -4925,7 +4925,7 @@
       "level": 3,
       "slug": "spheres",
       "name": "Spheres",
-      "count": 140,
+      "count": 268,
       "exhaustive": true,
       "signed": false,
       "file": "volume-3.json"
@@ -4954,7 +4954,7 @@
       "skill": "volume",
       "level": 6,
       "slug": "cones-and-spheres",
-      "name": "Cones and Spheres",
+      "name": "Surface Area: Cones and Spheres",
       "count": 552,
       "exhaustive": true,
       "signed": false,
@@ -4985,7 +4985,7 @@
       "level": 1,
       "slug": "reflect-over-an-axis",
       "name": "Reflect Over an Axis",
-      "count": 1000,
+      "count": 780,
       "exhaustive": false,
       "signed": true,
       "file": "transformations-g-1.json"
@@ -4995,7 +4995,7 @@
       "level": 2,
       "slug": "reflect-over-y-equals-x",
       "name": "Reflect Over y = x",
-      "count": 312,
+      "count": 544,
       "exhaustive": true,
       "signed": true,
       "file": "transformations-g-2.json"
@@ -5015,7 +5015,7 @@
       "level": 4,
       "slug": "dilate",
       "name": "Dilate",
-      "count": 1000,
+      "count": 480,
       "exhaustive": false,
       "signed": true,
       "file": "transformations-g-4.json"

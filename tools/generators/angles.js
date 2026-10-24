@@ -62,8 +62,14 @@ function filled(rng, total, kind) {
   return { sizes, want, given, letter, visual: figure([...marks, ...pieces]) };
 }
 
+// requiem: catalogue/content/complementary-names-a-pair
+// Complementary and supplementary are said of a pair of angles. Three angles
+// that fill a right angle or a straight line are said to do just that, and
+// are the minority: the level drills the pair it is named after.
+const fillKind = (rng) => (rng.chance(0.06) ? 'three' : rng.pick(['word', 'pair', 'figure', 'figure']));
+
 function complementary(rng) {
-  const kind = rng.pick(['word', 'pair', 'figure', 'figure', 'three']);
+  const kind = fillKind(rng);
   const { want, given, letter, visual } = filled(rng, 90, kind);
   const prompt = {
     word: `What is the complement of ${deg(given[0])}?`,
@@ -76,14 +82,16 @@ function complementary(rng) {
     text: `complement: ${given.join(', ')} (${kind})`,
     answer: { type: 'int', value: want },
     visual: kind === 'figure' || kind === 'three' ? visual : null,
-    explain: `Complementary angles make a right angle, so they add to 90°: `
-      + `${kind === 'three' ? `${given.join(' + ')} = ${sumOf(given)}, and ` : ''}90 − ${sumOf(given)} = ${want}. `
-      + `(Not 180 − ${sumOf(given)}: 180° is a straight line, and that would be the supplement.) So ${kind === 'word' ? 'the complement is' : `${letter} =`} ${deg(want)}.`,
+    explain: (kind === 'three'
+      ? `Together the three make a right angle, so they add to 90°: ${given.join(' + ')} = ${sumOf(given)}, and `
+      : `Complementary angles are two that make a right angle, so they add to 90°: `)
+      + `90 − ${sumOf(given)} = ${want}. `
+      + `(Not 180 − ${sumOf(given)}: 180° is a straight line${kind === 'three' ? '' : ', and that would be the supplement'}.) So ${kind === 'word' ? 'the complement is' : `${letter} =`} ${deg(want)}.`,
   };
 }
 
 function supplementary(rng) {
-  const kind = rng.pick(['word', 'pair', 'figure', 'figure', 'three']);
+  const kind = fillKind(rng);
   const { want, given, letter, visual } = filled(rng, 180, kind);
   const other = letter === 'a' ? 'b' : 'a';
   const prompt = {
@@ -97,8 +105,10 @@ function supplementary(rng) {
     text: `supplement: ${given.join(', ')} (${kind})`,
     answer: { type: 'int', value: want },
     visual: kind === 'figure' || kind === 'three' ? visual : null,
-    explain: `Supplementary angles make a straight line, so they add to 180°: `
-      + `${kind === 'three' ? `${given.join(' + ')} = ${sumOf(given)}, and ` : ''}180 − ${sumOf(given)} = ${want}. `
+    explain: (kind === 'three'
+      ? `Together the three make a straight line, so they add to 180°: ${given.join(' + ')} = ${sumOf(given)}, and `
+      : `Supplementary angles are two that make a straight line, so they add to 180°: `)
+      + `180 − ${sumOf(given)} = ${want}. `
       + `${given[0] < 90 && kind !== 'three' ? `(Not 90 − ${given[0]}: that would be the complement.) ` : ''}`
       + `So ${kind === 'word' ? 'the supplement is' : `${letter} =`} ${deg(want)}.`,
   };
@@ -171,7 +181,7 @@ function aroundPoint(rng) {
     text: `around a point: ${given.join(', ')}`,
     answer: { type: 'int', value: want },
     visual: figure([...marks, ...pieces]),
-    explain: `All the way round a point is a full turn, 360°. The others add to ${given.join(' + ')} = ${sumOf(given)}, `
+    explain: `All the way around a point is a full turn, 360°. The others add to ${given.join(' + ')} = ${sumOf(given)}, `
       + `so ${letter} = 360 − ${sumOf(given)} = ${want}. (Not 180: that is only a straight line, half a turn.) So ${letter} = ${deg(want)}.`,
   };
 }
@@ -258,21 +268,21 @@ function parallel(rng) {
   let why;
   if (name) {
     const [said, rule] = PAIR_RULE[name];
-    why = `The two are ${said}. ${rule === 'equal' ? `With the lines parallel these are equal, so ${letter} = ${g}.`
-      : `These add to 180°, so ${letter} = 180 − ${g} = ${want}.`}`;
+    why = `The two are ${said}. ${rule === 'equal' ? `With the lines parallel these are equal, so ${letter} = ${deg(g)}.`
+      : `These add to 180°, so ${letter} = 180 − ${g} = ${deg(want)}.`}`;
   } else {
     // Two steps: across to the same position, then along the line.
     const via = { line: asked.line, spot: given.spot };
     why = `Move the ${deg(g)} angle to the other crossing first: in the same position there, it is a corresponding angle, also ${deg(g)}. `
-      + `${PAIR_RULE[pairName(via, asked)][1] === 'equal' ? `That one and ${letter} are vertical angles, so ${letter} = ${g}.`
-        : `That one and ${letter} make a straight line, so ${letter} = 180 − ${g} = ${want}.`}`;
+      + `${PAIR_RULE[pairName(via, asked)][1] === 'equal' ? `That one and ${letter} are vertical angles, so ${letter} = ${deg(g)}.`
+        : `That one and ${letter} make a straight line, so ${letter} = 180 − ${g} = ${deg(want)}.`}`;
   }
   return {
     prompt: [T.prose(`Lines ℓ and m are parallel, cut by a transversal. What is ${letter}?`)],
     text: `parallel: ${g} at ${given.line} ${given.spot}, find ${asked.line} ${asked.spot}`,
     answer: { type: 'int', value: want },
     visual: transversalFigure(dir, given, asked, { givenLabel: deg(g), askedLabel: letter, askedAnswer: deg(want) }),
-    explain: `${why} So ${letter} = ${deg(want)}.`,
+    explain: why,
   };
 }
 
@@ -422,7 +432,7 @@ function whichEquation(rng) {
     none: 'so no equation can be written from that alone',
   }[rule];
   return {
-    prompt: [T.prose(`Angles of ${s1} and ${s2} ${words}. Which equation finds x?`)],
+    prompt: [T.prose(`Angles ${s1} and ${s2} ${words}. Which equation finds x?`)],
     text: `which equation: ${words}, ${ascii(...e1)}, ${ascii(...e2)}`,
     answer: { type: 'choice', value: rule, options: CHOICES },
     visual: null,

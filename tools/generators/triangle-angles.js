@@ -60,8 +60,11 @@ function triangleFigure(P, labels, extra = [], extraReveal = []) {
     const [from, to] = cornerAt(P[i], P[(i + 1) % 3], P[(i + 2) % 3]);
     const short = Math.min(Math.hypot(P[(i + 1) % 3][0] - P[i][0], P[(i + 1) % 3][1] - P[i][1]),
       Math.hypot(P[(i + 2) % 3][0] - P[i][0], P[(i + 2) % 3][1] - P[i][1]));
+    // A given right angle is marked as one; an asked one never is, or the
+    // square would answer it.
+    const right = !l[1] && Math.abs(to - from - 90) < 0.5;
     const m = angleMarks(from, to, { label: l[0], asked: l[1], answer: l[2] ?? null, c: P[i],
-      maxOut: 0.4 * short, radius: Math.min(0.6, 0.25 * short), outside: true });
+      maxOut: 0.4 * short, radius: Math.min(0.6, 0.25 * short), outside: true, right });
     parts.push(...m.marks);
     reveal.push(...m.reveal);
   });
@@ -243,8 +246,9 @@ function regularPoints(n) {
 }
 
 function polygonSum(rng) {
-  if (rng.chance(0.3)) {
-    const n = rng.int(3, 30);
+  if (rng.chance(0.15)) return sidesFromSum(rng);
+  if (rng.chance(0.2)) {
+    const n = rng.int(3, 40);
     return {
       prompt: [T.prose(`What do the interior angles of ${named(n)} add to?`)],
       text: `interior sum: ${n}`,
@@ -271,6 +275,19 @@ function polygonSum(rng) {
   }
 }
 
+/** The number of sides, from what the interior angles add to: the sum run backwards. */
+function sidesFromSum(rng) {
+  const n = rng.int(3, 40), total = (n - 2) * 180;
+  return {
+    prompt: [T.prose(`The interior angles of a polygon add to ${deg(total)}. How many sides does it have?`)],
+    text: `sides from interior sum: ${total}`,
+    answer: { type: 'int', value: n },
+    visual: null,
+    explain: `The sum is (n − 2) × 180, so first undo the × 180: ${total} ÷ 180 = ${n - 2} triangles. `
+      + `That is n − 2, so n = ${n - 2} + 2 = ${n}. (Stopping at ${n - 2} counts the triangles, not the sides.) So ${n} sides.`,
+  };
+}
+
 /** Sides for which a regular polygon's angles are whole. */
 const WHOLE = [3, 4, 5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36, 40, 45, 60, 72, 90, 120, 180];
 
@@ -282,84 +299,155 @@ function regularFigure(n, corner, label = 'a') {
 }
 
 const interior = (n) => 180 - 360 / n;
-const SHAPE = (n) => (n === 3 ? 'equilateral triangle' : n === 4 ? 'square' : `regular ${NAMES[n] ?? `${n}-gon`}`);
+/** A regular polygon's name, one way throughout: a square, a regular hexagon, a regular 15-sided polygon. */
+const SHAPE = (n) => (n === 3 ? 'equilateral triangle' : n === 4 ? 'square' : `regular ${NAMES[n] ?? `${n}-sided polygon`}`);
+const aShape = (n) => `${/^[aeiou]/.test(SHAPE(n)) ? 'an' : 'a'} ${SHAPE(n)}`;
+const COUNT = ['', 'one', 'two', 'three'];
+/** Shapes counted the way a person says them: two regular octagons and a square. */
+function shapesSaid(ns) {
+  const kinds = [...new Set(ns)];
+  const said = kinds.map((n) => {
+    const k = ns.filter((m) => m === n).length;
+    return k === 1 ? aShape(n) : `${COUNT[k]} ${SHAPE(n).replace(/polygon$/, 'polygons').replace(/(triangle|square|gon)$/, '$1s')}`;
+  });
+  return said.length === 1 ? said[0] : `${said.slice(0, -1).join(', ')} and ${said[said.length - 1]}`;
+}
 
-/** Regular polygons meeting at one point, and the angle left over to make a full turn. */
+/** A regular n-gon with one corner at c, filling the angle from direction `from` round to from + its interior angle. */
+function polygonAt(n, from, s, c = [0, 0]) {
+  const P = [c];
+  for (let i = 0; i < n - 1; i++) P.push(toward(from + (360 / n) * i, s, P[P.length - 1]));
+  return P;
+}
+
+/**
+ * Regular polygons meeting at one point, edge to edge, and the angle left
+ * over to make a full turn: drawn, so the meeting is seen and not imagined.
+ */
 function gap(rng) {
-  const pool = WHOLE.filter((k) => k <= 20);
+  const pool = WHOLE.filter((k) => k <= 12);
   const count = rng.chance(0.6) ? 2 : 3;
   const ns = Array.from({ length: count }, () => rng.pick(pool)).sort((a, b) => a - b);
   const used = sumOf(ns.map(interior));
   const want = 360 - used;
-  if (want <= 0) return gap(rng);
-  const said = ns.map((n) => `${/^[aeiou]/.test(SHAPE(n)) ? 'an' : 'a'} ${SHAPE(n)}`);
-  const list = `${said.slice(0, -1).join(', ')} and ${said[said.length - 1]}`;
+  if (want < 20) return gap(rng);
+  const list = shapesSaid(ns);
+  const letter = rng.pick(LETTERS);
+  // Each polygon takes its corner's share of the turn, one after the other.
+  const marks = [];
+  let at = 90 + want / 2;
+  for (const n of ns) {
+    const P = polygonAt(n, at, 2);
+    marks.push(...P.map((p, i) => side(p, P[(i + 1) % n])));
+    at += interior(n);
+  }
+  const m = angleMarks(at, at + want, { label: letter, asked: true, answer: deg(want), radius: 0.5 });
   return {
-    prompt: [T.prose(`${list[0].toUpperCase()}${list.slice(1)} meet at a point, each with one corner there, edge to edge. What angle is left over to make a full turn?`)],
+    prompt: [T.prose(`${list[0].toUpperCase()}${list.slice(1)} meet at a point, each with one corner there, edge to edge. What is the angle ${letter} left over to make a full turn?`)],
     text: `regular gap: ${ns.join(', ')}`,
     answer: { type: 'int', value: want },
-    visual: null,
-    explain: `Each corner is the polygon’s interior angle, 180 − 360 ÷ n: ${ns.map((n) => `${SHAPE(n)} ${interior(n)}°`).join(', ')}. `
-      + `Together ${ns.map(interior).join(' + ')} = ${used}, and a full turn is 360°, so ${360 - used}° is left. So ${deg(want)}.`,
+    visual: fit({ ...FRAME, marks: [...marks, ...m.marks], answer: m.reveal }, 1),
+    explain: `Each corner is the polygon’s interior angle, 180 − 360 ÷ n: ${[...new Set(ns)].map((n) => `${SHAPE(n)} ${interior(n)}°`).join(', ')}. `
+      + `Together ${ns.map(interior).join(' + ')} = ${used}, and a full turn is 360°, so ${letter} = 360 − ${used} = ${want}. So ${letter} = ${deg(want)}.`,
   };
 }
 
+// requiem: catalogue/content/regular-polygons-core-first
+// Each angle from n and n from an angle, inside and out, are the level; the
+// polygons meeting at a point are the puzzle beside it, and the fewer.
 function regular(rng) {
-  const roll = rng.int(0, 9);
-  if (roll < 4) return gap(rng);
-  const n = rng.pick(WHOLE.filter((k) => k <= 40));
-  const each = 180 - 360 / n;
-  if (roll === 4) {
+  if (rng.chance(0.08)) return gap(rng);
+  const roll = rng.int(0, 6);
+  const n = rng.pick(WHOLE.filter((k) => k <= 180 && (roll !== 2 || k > 3)));
+  const each = 180 - 360 / n, ext = 360 / n;
+  if (roll === 0) {
     return {
       prompt: [T.prose(`The interior angles of a regular polygon add to ${deg((n - 2) * 180)}. What is each one?`)],
       text: `regular from sum: ${(n - 2) * 180}`,
       answer: { type: 'int', value: each },
       visual: null,
-      explain: `First the number of sides: the sum is (n − 2) × 180, and ${(n - 2) * 180} ÷ 180 = ${n - 2}, so n = ${n}. `
+      explain: `First the number of sides: the sum is (n − 2) × 180, and ${(n - 2) * 180} ÷ 180 = ${n - 2} triangles, so n − 2 = ${n - 2} and n = ${n}. `
         + `Then share it out: ${(n - 2) * 180} ÷ ${n} = ${each}. So ${deg(each)}.`,
     };
   }
-  if (roll < 7 && n > 3) {
+  if (roll === 1) {
     return {
       prompt: [T.prose(`Each interior angle of a regular polygon is ${deg(each)}. How many sides does it have?`)],
       text: `regular sides from interior: ${each}`,
       answer: { type: 'int', value: n },
       visual: null,
-      explain: `Each exterior angle is 180 − ${each} = ${360 / n}°, and the exterior angles add to 360°, `
-        + `so there are 360 ÷ ${360 / n} = ${n} of them. So ${n} sides.`,
+      explain: `Each exterior angle is 180 − ${each} = ${ext}°, and the exterior angles add to 360°, `
+        + `so there are 360 ÷ ${ext} = ${n} of them. So ${n} sides.`,
+    };
+  }
+  if (roll === 2) {
+    return {
+      prompt: [T.prose(`Each exterior angle of a regular polygon is ${deg(ext)}. How many sides does it have?`)],
+      text: `regular sides from exterior: ${ext}`,
+      answer: { type: 'int', value: n },
+      visual: null,
+      explain: `The exterior angles of any polygon add to 360°, and a regular one has them all equal, so there are `
+        + `360 ÷ ${ext} = ${n} of them, one at each corner. (Not 180 ÷ ${ext}: once around is 360°.) So ${n} sides.`,
+    };
+  }
+  if (roll === 3) {
+    return {
+      prompt: [T.prose(`What is each exterior angle of ${aShape(n)}?`)],
+      text: `regular exterior: ${n}`,
+      answer: { type: 'int', value: ext },
+      visual: null,
+      explain: `The exterior angles of any polygon add to 360°, and ${aShape(n)} has ${n} equal ones: 360 ÷ ${n} = ${ext}. `
+        + `(Not (n − 2) × 180 shared out: that is the interior angle, ${each}°.) So ${deg(ext)}.`,
+    };
+  }
+  if (roll === 4) {
+    const fromExt = rng.chance(0.5);
+    return fromExt ? {
+      prompt: [T.prose(`Each exterior angle of a regular polygon is ${deg(ext)}. What is each interior angle?`)],
+      text: `regular interior from exterior: ${ext}`,
+      answer: { type: 'int', value: each },
+      visual: null,
+      explain: `At each corner the interior and exterior angles make a straight line, so they add to 180°: 180 − ${ext} = ${each}. So ${deg(each)}.`,
+    } : {
+      prompt: [T.prose(`Each interior angle of a regular polygon is ${deg(each)}. What is each exterior angle?`)],
+      text: `regular exterior from interior: ${each}`,
+      answer: { type: 'int', value: ext },
+      visual: null,
+      explain: `At each corner the interior and exterior angles make a straight line, so they add to 180°: 180 − ${each} = ${ext}. `
+        + `(It is 360 ÷ n as well: ${n} sides, 360 ÷ ${n} = ${ext}.) So ${deg(ext)}.`,
     };
   }
   return {
-    prompt: [T.prose(`What is each interior angle of ${/^[aeiou]/.test(SHAPE(n)) ? 'an' : 'a'} ${SHAPE(n)}?`)],
+    prompt: [T.prose(`What is each interior angle of ${aShape(n)}?`)],
     text: `regular interior: ${n}`,
     answer: { type: 'int', value: each },
     visual: n <= 12 ? regularFigure(n, each) : null,
     explain: `${triangles(n)}. Regular means all ${n} are equal: ${(n - 2) * 180} ÷ ${n} = ${each}. `
-      + `(Or: each exterior angle is 360 ÷ ${n} = ${360 / n}, and 180 − ${360 / n} = ${each}.) So ${deg(each)}.`,
+      + `(Or: each exterior angle is 360 ÷ ${n} = ${ext}, and 180 − ${ext} = ${each}.) So ${deg(each)}.`,
   };
 }
 
 function exteriorSum(rng) {
   const roll = rng.int(0, 2);
   if (roll === 0) {
-    const n = rng.pick(WHOLE.filter((k) => k <= 72));
+    const n = rng.pick(WHOLE.filter((k) => k <= 180));
     return {
       prompt: [T.prose(`Each exterior angle of a regular polygon is ${deg(360 / n)}. How many sides does it have?`)],
       text: `regular sides from exterior: ${360 / n}`,
       answer: { type: 'int', value: n },
       visual: null,
-      explain: `Walking once round any polygon turns you a full 360°, one exterior angle at each corner. `
+      explain: `Walking once around any polygon turns you a full 360°, one exterior angle at each corner. `
         + `With every turn ${360 / n}°, there are 360 ÷ ${360 / n} = ${n} corners. So ${n} sides.`,
     };
   }
   if (roll === 1) {
-    const n = rng.pick(WHOLE.filter((k) => k <= 40));
+    const n = rng.pick(WHOLE.filter((k) => k <= 180));
     return {
-      prompt: [T.prose(`What is each exterior angle of a regular ${NAMES[n] ?? `${n}-sided polygon`}?`)],
+      prompt: [T.prose(`What is each exterior angle of ${aShape(n)}?`)],
       text: `regular exterior: ${n}`,
       answer: { type: 'int', value: 360 / n },
       visual: null,
-      explain: `The exterior angles of any polygon add to 360°, and a regular one has ${n} equal ones: 360 ÷ ${n} = ${360 / n}. `
+      explain: `The exterior angles of any polygon add to 360°, and ${aShape(n)} has ${n} equal ones: 360 ÷ ${n} = ${360 / n}. `
         + `(However many sides, the sum is 360, not (n − 2) × 180: that is the interior sum.) So ${deg(360 / n)}.`,
     };
   }
@@ -393,8 +481,10 @@ function inequality(rng, want = rng.pick(['yes', 'no'])) {
     if (hi - lo < 3) return inequality(rng, want);
     c = rng.int(lo + 1, hi - 1);
   } else {
-    // Mostly the near misses: exactly the sum, which lies flat, or just over.
-    c = rng.pick([hi, hi, hi + 1, hi + rng.int(2, 8), lo, Math.max(1, lo - rng.int(1, 3))]);
+    // Mostly the near misses, just over the sum or just under the difference.
+    // Exactly the sum, which lies flat, is kept but is the fewer: it is the
+    // trick, and the idea is the gap closing.
+    c = rng.pick([hi, hi + 1, hi + 1, hi + rng.int(2, 8), hi + rng.int(2, 8), lo, Math.max(1, lo - rng.int(1, 3)), Math.max(1, lo - rng.int(1, 3))]);
     if (c < 1) return inequality(rng, want);
   }
   const sides = rng.shuffle([a, b, c]);
@@ -412,7 +502,43 @@ function inequality(rng, want = rng.pick(['yes', 'no'])) {
   };
 }
 
-const CONTENT = [angleSum, exterior, isosceles, polygonSum, regular, exteriorSum, (rng) => inequality(rng)];
+// requiem: catalogue/content/third-side-range
+/**
+ * Two sides known, and the third side's range: more than their difference,
+ * less than their sum. Asked as the longest or shortest whole length, since
+ * the box takes one number.
+ */
+function thirdSide(rng) {
+  const a = rng.int(2, 20), b = rng.int(2, 20);
+  if (a === b && rng.chance(0.7)) return thirdSide(rng);
+  const lo = Math.abs(a - b), hi = a + b;
+  const reasons = `The third side has to be less than the other two added, ${a} + ${b} = ${hi}, or they could not reach around it; `
+    + (lo ? `and more than their difference, ${Math.max(a, b)} − ${Math.min(a, b)} = ${lo}, or it could not reach across the gap between them. `
+      : `and with two equal sides any length above 0 reaches across. `);
+  // Mostly the range itself, written as the inequality it is.
+  if (rng.chance(0.6)) {
+    return {
+      prompt: [T.prose(`Two sides of a triangle are ${a} and ${b}. What lengths can the third side, c, be? Write it as an inequality.`)],
+      text: `third side range: ${a}, ${b}`,
+      answer: { type: 'solutions', value: { letter: 'c', parts: [{ lo: { n: lo, d: 1 }, loIn: false, hi: { n: hi, d: 1 }, hiIn: false }] } },
+      visual: null,
+      explain: `${reasons}So ${lo} < c < ${hi}. (Neither end itself: at ${hi}${lo ? ` or ${lo}` : ''} the sides would lie flat.)`,
+    };
+  }
+  const longest = rng.chance(0.5);
+  const want = longest ? hi - 1 : lo + 1;
+  return {
+    prompt: [T.prose(`Two sides of a triangle are ${a} and ${b}. What is the ${longest ? 'longest' : 'shortest'} the third side can be, as a whole number?`)],
+    text: `third side: ${a}, ${b}, ${longest ? 'longest' : 'shortest'}`,
+    answer: { type: 'int', value: want },
+    visual: null,
+    explain: `${reasons}So ${lo} < third side < ${hi}, and the ${longest ? `longest whole length is ${hi} − 1 = ${want}. (${hi} itself would lie flat.)` : `shortest whole length is ${lo} + 1 = ${want}.${lo === 0 ? '' : ` (${lo} itself would lie flat.)`}`} So ${want}.`,
+  };
+}
+
+const sides = (rng) => (rng.chance(0.3) ? thirdSide(rng) : inequality(rng));
+
+const CONTENT = [angleSum, exterior, isosceles, polygonSum, regular, exteriorSum, sides];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
