@@ -6665,6 +6665,102 @@ SET_RULES += (
     (re.compile(r"^radical: (.+) = (.+)$"), re_solutions),
 )
 
+# --- Rational Expressions -----------------------------------------------------
+#
+# The question's expression and the answer are compared by value at rational
+# points, skipping any that divide by zero, and the answer must be finished:
+# one fraction whose top and bottom share no factor (their polynomial gcd is a
+# constant), or a polynomial written expanded. Excluded values are the zeros
+# of every denominator in the question as written, found by trying it.
+
+RA_POINTS = [Fraction(n, 7) for n in range(-70, 71)]
+
+
+def ra_equal(a: str, b: str) -> bool:
+    agreed = 0
+    for x in RA_POINTS:
+        try:
+            u, v = at(a, {"x": x}), at(b, {"x": x})
+        except ZeroDivisionError:
+            continue
+        if u != v:
+            return False
+        agreed += 1
+    return agreed >= 40
+
+
+def ra_split(expr: str):
+    """expr as (top, bottom) at its last division outside every bracket, or (expr, None)."""
+    depth, cut = 0, None
+    for i, ch in enumerate(expr):
+        depth += ch == "("
+        depth -= ch == ")"
+        if ch == "/" and depth == 0:
+            cut = i
+    if cut is None:
+        return expr, None
+    return expr[:cut], expr[cut + 1:]
+
+
+def ra_coefficients(src: str) -> list:
+    return coefficients(src) if re.search(r"[a-z]", src) else [evaluate(src)]
+
+
+def ra_trim(r: list) -> list:
+    while r and r[-1] == 0:
+        r = r[:-1]
+    return r
+
+
+def ra_gcd_degree(p: list, q: list) -> int:
+    """The degree of gcd(p, q), coefficients lowest power first, by Euclid."""
+    p, q = ra_trim(list(p)), ra_trim(list(q))
+    while q:
+        r = list(p)
+        while len(r) >= len(q):
+            k, shift = r[-1] / q[-1], len(r) - len(q)
+            for i, c in enumerate(q):
+                r[i + shift] -= k * c
+            r = ra_trim(r)
+        p, q = q, r
+    return len(p) - 1
+
+
+# requiem: catalogue/content/rational-answer-lowest-terms
+def ra_finished(answer: str) -> bool:
+    top, bottom = ra_split(answer.strip())
+    if bottom is None:
+        return expanded(answer) or bool(re.fullmatch(r"-?\d+", answer.strip()))
+    if not re.search(r"x", bottom):
+        return False
+    return ra_gcd_degree(ra_coefficients(top), ra_coefficients(bottom)) == 0
+
+
+def ra_simplified(src: str, answer: str) -> str:
+    if not ra_equal(src, answer):
+        return f"is not equal to {src}"
+    return "ok" if ra_finished(answer) else "is not simplified: its top and bottom share a factor"
+
+
+def ra_excluded(src: str) -> frozenset:
+    # Where any denominator written in the question is zero, evaluating it divides by zero.
+    zeros = set()
+    for x in SAMPLES_ON_LINE:
+        try:
+            at(src, {"x": x})
+        except ZeroDivisionError:
+            zeros.add(x)
+    return frozenset(zeros)
+
+
+EXPR_RULES += (
+    (re.compile(r"^rational: (.+)$"), ra_simplified),
+)
+
+SET_RULES += (
+    (re.compile(r"^excluded: (.+)$"), ra_excluded),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

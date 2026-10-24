@@ -13,6 +13,17 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Rational Expressions**, a new skill under Expressions, in seven levels:
+Simplify (cancelling a shared factor, a number, or a factor with its sign
+reversed), Excluded Values (including one whose factor cancels), Multiply
+& Divide, Common Denominator (subtraction taking away the whole second
+numerator, and sums that cancel to a number), Unlike Denominators,
+Complex Fractions, then All Together. Excluded values are a set in the
+solutions input and everything else an expression, accepted with the
+denominator factored or multiplied out. `check-answers.py` compares each
+answer with the question by value and requires its top and bottom to
+share no factor.
+
 **Radical Equations**, a new skill under Equations, in six levels:
 Isolate & Square (with a root that would have to be negative, so no
 solution), Extraneous Roots (√(px + q) = x + s, keeping one, both or

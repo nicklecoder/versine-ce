@@ -1,5 +1,5 @@
 {
-  "built": 563,
+  "built": 570,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -712,6 +712,15 @@
       "both-sides-radical",
       "cube-roots",
       "rational-exponents",
+      "all-together"
+    ],
+    "rational-expr": [
+      "simplify",
+      "excluded-values",
+      "multiply-and-divide",
+      "common-denominator",
+      "unlike-denominators",
+      "complex-fractions",
       "all-together"
     ]
   },
@@ -1640,9 +1649,34 @@
           "rational-exponents"
         ]
       }
+    },
+    "rational-expr": {
+      "dependsOn": [
+        "factoring",
+        "frac-addsub",
+        "frac-muldiv",
+        "quadratic-eq"
+      ],
+      "levels": {
+        "simplify": [
+          "factoring"
+        ],
+        "excluded-values": [
+          "quadratic-eq"
+        ],
+        "multiply-and-divide": [
+          "frac-muldiv"
+        ],
+        "common-denominator": [
+          "frac-addsub"
+        ],
+        "unlike-denominators": [
+          "frac-addsub"
+        ]
+      }
     }
   },
-  "sources": "0160cfb1de44da691da11efb7b4a23932188fa2b44b2a6a32adbfa2ad5e5d991",
+  "sources": "eb1ac3b1585ad53d1ebff9c6ce519295c8ea2a882a44cedf6375d41eb271a976",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7273,6 +7307,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "radical-eq-5.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 0,
+      "slug": "simplify",
+      "name": "Simplify",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-0.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 1,
+      "slug": "excluded-values",
+      "name": "Excluded Values",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-expr-1.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 2,
+      "slug": "multiply-and-divide",
+      "name": "Multiply & Divide",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-2.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 3,
+      "slug": "common-denominator",
+      "name": "Common Denominator",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-3.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 4,
+      "slug": "unlike-denominators",
+      "name": "Unlike Denominators",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-4.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 5,
+      "slug": "complex-fractions",
+      "name": "Complex Fractions",
+      "count": 323,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-expr-5.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-expr-6.json"
     }
   ]
 }

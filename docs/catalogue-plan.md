@@ -424,6 +424,13 @@ Cube Roots, and Rational Exponents on rational exponents' Root, Then
 Power. Every answer is a set, so a row whose candidates are all
 extraneous is answered "no solution".
 
+`rational-expr` is built, as Simplify · Excluded Values · Multiply &
+Divide · Common Denominator · Unlike Denominators · Complex Fractions ·
+All Together. Simplify depends on factoring's x² + bx + c, Excluded
+Values on quadratic equations' Zero Product, Multiply & Divide on
+fraction multiplication's Dividing Fractions, and the two adding levels on
+fraction addition's Same Denominator and Unlike Denominators.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

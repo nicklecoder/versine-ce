@@ -66,6 +66,7 @@ import domainRange from '../skills/domain-range.js';
 import composition from '../skills/composition.js';
 import inverses from '../skills/inverses.js';
 import radicalEq from '../skills/radical-eq.js';
+import rationalExpr from '../skills/rational-expr.js';
 import bivariate from '../skills/bivariate.js';
 import evaluate from '../skills/evaluate.js';
 import equations from '../skills/equations.js';
@@ -80,7 +81,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines, radians, unitCircle, trigGraphs, identities, trigEquations, domainRange, composition, inverses, radicalEq];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines, radians, unitCircle, trigGraphs, identities, trigEquations, domainRange, composition, inverses, radicalEq, rationalExpr];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 
