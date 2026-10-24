@@ -88,6 +88,16 @@ shows as typed.
 Fixed: an expression answer with a leading minus, like −2x + 3, was refused when the stored
 answer was written 3 − 2x. Signs are now lifted out of products before comparing.
 
+Phase 2 has begun:
+
+- **Monomials** (Expressions): multiplying and dividing, a power of a monomial, zero and
+  negative powers finished with positive powers only, simplest form, and choosing the right
+  answer from the slips students actually make.
+
+Letters typed side by side are a product, as on paper: 6ab is 6·a·b and xy² is x·y², the
+power on the last letter alone. A quotient's sign now comes out the way a product's does,
+so −4/x², −(4/x²) and 4/(−x²) are one answer.
+
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.
 Table headers keep their case, since x, y and aₙ are letters and a capital is a different one. A segment on the plane is labelled at its middle, so a run and a rise sharing a corner no

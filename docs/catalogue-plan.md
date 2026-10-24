@@ -105,6 +105,9 @@ term.
 
 ## Phase 2 — polynomials, factoring, quadratics, exponentials
 
+**In progress.** Built so far: `monomials`, with The Usual Mistakes (a choice
+between the right answer and the rule-for-rule slips) and All Together.
+
 | Skill (category) | Levels | Covers |
 |---|---|---|
 | `monomials` (Expressions) | Multiplying · Dividing · Powers of Monomials · Negative Exponents With Letters · Simplest Form | TEKS A.11B |

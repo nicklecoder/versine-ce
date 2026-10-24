@@ -1315,6 +1315,55 @@ HALFPLANE_RULES = (
 )
 
 
+# --- Monomials ---------------------------------------------------------------
+#
+# An answer is right when it has the question's value at every choice of the
+# letters -- two choices, with no letter 0 or 1 and different letters given
+# different values, are enough for one term -- and is finished: one number,
+# each letter once, and no zero or negative power left.
+
+LETTER_VALUES = ({c: Fraction(v) for c, v in zip("abmnxy", (2, 3, 5, 7, 11, 13))},
+                 {c: Fraction(v) for c, v in zip("abmnxy", (-3, 5, -2, 3, -5, 2))})
+MONOMIAL = re.compile(r"^-?\d*(?:[a-z](?:\^\d+)?)*$")
+OVER = re.compile(r"^-?\d*(?:[a-z](?:\^\d+)?)*/(?:\((?:[a-z](?:\^\d+)?)+\)|[a-z](?:\^\d+)?)$")
+
+
+def same_value(a: str, b: str) -> bool:
+    return all(at(a, v) == at(b, v) for v in LETTER_VALUES)
+
+
+def finished_monomial(src: str, answer: str, allow_over: bool) -> str:
+    if not same_value(src, answer):
+        return f"has a different value from {src}"
+    if not (MONOMIAL.match(answer) or (allow_over and OVER.match(answer))):
+        return "is not one finished term"
+    letters = re.findall(r"[a-z]", answer)
+    if len(letters) != len(set(letters)) or "^0" in answer or "^1" in re.sub(r"\^1\d", "", answer):
+        return "repeats a letter or leaves a power of 0 or 1 written"
+    return "ok"
+
+
+SUPERSCRIPT = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+
+
+def right_option(src: str, ids):
+    plain = lambda label: re.sub(r"([a-z])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)", lambda m: f"{m[1]}^{m[2].translate(SUPERSCRIPT)}", label)
+    fit = [o for o in ids if same_value(src, plain(o))]
+    if len(fit) != 1:
+        raise ValueError(f"{len(fit)} options equal {src}")
+    return fit[0]
+
+
+OPTION_RULES += (
+    (re.compile(r"^which is: (.+)$"), right_option),
+)
+
+EXPR_RULES = (
+    (re.compile(r"^simplify: (.+)$"), lambda src, answer: finished_monomial(src, answer, False)),
+    (re.compile(r"^positive powers: (.+)$"), lambda src, answer: finished_monomial(src, answer, True)),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1397,6 +1446,16 @@ for path in sorted(LIB.glob("*.json")):
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
             continue
+
+        # A simplified expression: the same value as the question, and finished.
+        if answer["type"] == "expr":
+            rule = next((r for r in EXPR_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                verdict = rule[1](*rule[0].match(text).groups(), answer["value"])
+                if verdict != "ok":
+                    problems.append(f"{where}: {answer['value']} {verdict}")
+                continue
 
         # An expression written from words: read the words independently and
         # compare by value, since any equivalent arrangement is accepted.

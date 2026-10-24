@@ -1,5 +1,5 @@
 {
-  "built": 260,
+  "built": 267,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -235,6 +235,15 @@
       "distribute-and-collect",
       "taking-a-factor-out",
       "which-form",
+      "all-together"
+    ],
+    "monomials": [
+      "multiplying",
+      "dividing",
+      "a-power-of-a-monomial",
+      "zero-and-negative-powers",
+      "simplest-form",
+      "the-usual-mistakes",
       "all-together"
     ],
     "evaluate": [
@@ -672,6 +681,13 @@
         ]
       }
     },
+    "monomials": {
+      "dependsOn": [
+        "exponents",
+        "simplify"
+      ],
+      "levels": {}
+    },
     "evaluate": {
       "dependsOn": [
         "int-muldiv",
@@ -798,7 +814,7 @@
       }
     }
   },
-  "sources": "49b704b2b8ff6365368e5465be91d1d5ba7944cb6920884090c6635597dd4a65",
+  "sources": "640a1cb5d3dfad95dd5d35275deb77abb346632bb86bee2131249efb3cd5f585",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2659,6 +2675,76 @@
       "exhaustive": false,
       "signed": false,
       "file": "simplify-6.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 0,
+      "slug": "multiplying",
+      "name": "Multiplying",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-0.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 1,
+      "slug": "dividing",
+      "name": "Dividing",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-1.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 2,
+      "slug": "a-power-of-a-monomial",
+      "name": "A Power of a Monomial",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-2.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 3,
+      "slug": "zero-and-negative-powers",
+      "name": "Zero and Negative Powers",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-3.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 4,
+      "slug": "simplest-form",
+      "name": "Simplest Form",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-4.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 5,
+      "slug": "the-usual-mistakes",
+      "name": "The Usual Mistakes",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-5.json"
+    },
+    {
+      "skill": "monomials",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "monomials-6.json"
     },
     {
       "skill": "evaluate",
