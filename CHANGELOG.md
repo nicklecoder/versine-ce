@@ -44,7 +44,8 @@ Clear Denominators (numbers under x, and x under numbers), Extraneous
 one, both or neither stand, and a linear one whose only answer is
 excluded), Proportions With x (cross-multiplying, some to a quadratic),
 Inverse Variation (in symbols and in stories), Work & Rate (working
-together, one alone, a fill against a drain, and a current), then All
+together, two printers sharing a batch, one alone, a fill against a drain,
+and a current, none of them more than about a quarter of the level), then All
 Together. The equations take a set in the solutions input; variation and
 work take a number. `check-answers.py` puts both sides over one
 denominator, finds the numerator's zeros by the rational root theorem,

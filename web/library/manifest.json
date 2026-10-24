@@ -1803,7 +1803,7 @@
       }
     }
   },
-  "sources": "740eba07fb1bed47327e0f2cff38b7423d49198f537c4de07a02f33e7906356b",
+  "sources": "0462da5e6e6ec3b630386eb202f88c3c601519f9d0e91bca23e7e5cd80d69fb9",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7590,8 +7590,8 @@
       "level": 4,
       "slug": "work-and-rate",
       "name": "Work & Rate",
-      "count": 1000,
-      "exhaustive": false,
+      "count": 830,
+      "exhaustive": true,
       "signed": false,
       "file": "rational-eq-4.json"
     },

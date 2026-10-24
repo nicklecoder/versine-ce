@@ -7036,6 +7036,7 @@ SET_RULES += (
 BY_RULE += (
     (re.compile(r"^inverse variation: y = (-?\d+) when x = (-?\d+); (?:(y) when x = (-?\d+)|(x) when y = (-?\d+)|(k))$"), qe_variation),
     (re.compile(r"^work together: (\d+), (\d+)$"), qe_together),
+    (re.compile(r"^printers together: (\d+), (\d+)$"), qe_together),
     (re.compile(r"^work alone: together (\d+), (\d+)$"), qe_alone),
     (re.compile(r"^fill drain: (\d+), (\d+)$"), qe_fill),
     (re.compile(r"^current: speed (\d+), downstream (\d+), upstream (\d+)$"), qe_current),

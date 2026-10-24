@@ -270,7 +270,8 @@ const PAIRS = [];
 for (let a = 2; a <= 40; a += 1) for (let b = a + 1; b <= 90; b += 1) if ((a * b) % (a + b) === 0) PAIRS.push([a, b]);
 
 function work(rng) {
-  const kind = rng.pick(['together', 'alone', 'drain', 'current']);
+  // Five shapes, and none with a pool so large that it fills the level.
+  const kind = rng.pick(['together', 'printers', 'alone', 'drain', 'current']);
   for (;;) {
     if (kind === 'together') {
       const a = rng.int(2, 30), b = rng.int(2, 30);
@@ -281,6 +282,15 @@ function work(rng) {
         `work together: ${a}, ${b}`, a * b, a + b,
         `Ana paints 1/${a} of the fence each hour and Ben 1/${b}. Rates add: 1/${a} + 1/${b} = ${fracText(a + b, a * b)} of the fence each hour. `
         + `The time is the whole job divided by the rate: 1 ÷ (${fracText(a + b, a * b)}) = ${t} hours.`);
+    }
+    if (kind === 'printers') {
+      const a = rng.int(3, 60), b = rng.int(3, 60);
+      if (a === b || reduce(a * b, a + b).d > 4) continue;
+      const t = fracText(a * b, a + b);
+      return worded(`One printer prints a batch of reports in ${a} minutes. A second printer prints the same batch in ${b} minutes. Sharing the batch, how many minutes do the two printers take?`,
+        `printers together: ${a}, ${b}`, a * b, a + b,
+        `The first prints 1/${a} of the batch each minute and the second 1/${b}. Rates add: 1/${a} + 1/${b} = ${fracText(a + b, a * b)} of the batch each minute. `
+        + `The time is the whole batch divided by the rate: 1 ÷ (${fracText(a + b, a * b)}) = ${t} minutes.`);
     }
     if (kind === 'alone') {
       const [p, q] = rng.pick(PAIRS), t = (p * q) / (p + q);
@@ -299,7 +309,7 @@ function work(rng) {
         `The pipe fills 1/${a} of the tank each hour and the drain takes away 1/${b}. Together: 1/${a} − 1/${b} = ${fracText(b - a, a * b)} each hour, `
         + `so the tank takes 1 ÷ (${fracText(b - a, a * b)}) = ${t} hours.`);
     }
-    const v = rng.int(6, 20), c = rng.int(1, v - 2), m = rng.int(1, 4);
+    const v = rng.int(6, 14), c = rng.int(1, v - 2), m = rng.int(1, 3);
     const down = m * (v + c), up = m * (v - c);
     return worded(`A boat goes ${v} miles per hour in still water. It travels ${down} miles downstream in the same time it travels ${up} miles upstream. How fast is the current, in miles per hour?`,
       `current: speed ${v}, downstream ${down}, upstream ${up}`, c, 1,
