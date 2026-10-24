@@ -23,7 +23,7 @@
 
 export const LEVELS = [
   { name: 'Common Difference', slug: 'common-difference',
-    blurb: 'An arithmetic sequence adds the same number every time. Find it.' },
+    blurb: 'An arithmetic sequence adds the same number every time. Find it, or use it to fill a gap.' },
   { name: 'Any Term', slug: 'any-term',
     blurb: 'The 50th term is the first plus 49 steps, not 50: aₙ = a₁ + (n − 1)d.' },
   { name: 'Writing the Rule', slug: 'writing-the-rule',
