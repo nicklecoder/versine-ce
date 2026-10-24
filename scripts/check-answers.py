@@ -4460,6 +4460,20 @@ def dist_outlying(xs: list) -> bool:
     return any(x < q1 - fence or x > q3 + fence for x in xs)
 
 
+def dist_spread(listing: str) -> str:
+    # An outlier or a clear skew takes the IQR; a set that mirrors itself
+    # about its middle, with no outlier, takes the standard deviation.
+    xs = sorted(int(v) for v in listing.split())
+    if dist_outlying(xs):
+        return "iqr"
+    if len({a + b for a, b in zip(xs, reversed(xs))}) == 1:
+        return "sd"
+    q1, q3 = dist_halves(xs)
+    mean, med = Fraction(sum(xs), len(xs)), median_of(xs)
+    assert abs(mean - med) >= (q3 - q1) / 4, f"{listing} is neither symmetric nor clearly skewed"
+    return "iqr"
+
+
 BY_RULE += (
     (re.compile(r"^box plot (min|q1|median|q3|max|iqr|range): (\d+ \d+ \d+ \d+ \d+)$"), dist_box),
     (re.compile(r"^box plot percent from (min|q1|median|q3) to (q1|median|q3|max): \d+ \d+ \d+ \d+ \d+$"),
@@ -4495,8 +4509,7 @@ CHOICE_RULES += (
      lambda a, b: "A" if dist_sd(a.split()) > dist_sd(b.split()) else "B"),
     (re.compile(rf"^better z: a=(\d+) mean (\d+) sd (\d+), b=(\d+) mean (\d+) sd (\d+)$"),
      lambda x1, m1, s1, x2, m2, s2: "a" if dist_z(x1, m1, s1) > dist_z(x2, m2, s2) else "b"),
-    (re.compile(r"^spread measure: (\d+(?: \d+)+)$"),
-     lambda listing: "iqr" if dist_outlying([int(v) for v in listing.split()]) else "sd"),
+    (re.compile(r"^spread measure: (\d+(?: \d+)+)$"), dist_spread),
 )
 
 # --- Probability ------------------------------------------------------------
