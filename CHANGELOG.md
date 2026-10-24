@@ -13,6 +13,14 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Counting**, a new skill under Probability, in eight levels: the multiplication
+principle; factorials and their quotients; permutations; combinations, as the
+ordered count divided by r!; a strategy level, Does Order Matter?, that asks
+whether swapping two of the chosen makes a different outcome; restrictions on a
+digit, a place in a row, or a committee seat; and probability by counting.
+`check-answers.py` counts every restricted arrangement and every probability by
+listing all of them with itertools.
+
 **Probability**, a new skill under Probability, in eight levels: likelihood on the
 scale from 0 to 1; the probability of a single event with dice, spinners, cards,
 marbles and letter tiles; complements, as fractions, decimals and percents; sample

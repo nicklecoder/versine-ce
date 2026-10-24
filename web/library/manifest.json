@@ -1,5 +1,5 @@
 {
-  "built": 469,
+  "built": 477,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -592,6 +592,16 @@
       "independent-and",
       "expected-frequency",
       "experimental-vs-theoretical",
+      "all-together"
+    ],
+    "counting": [
+      "multiplication-principle",
+      "factorials",
+      "permutations",
+      "combinations",
+      "does-order-matter",
+      "restrictions",
+      "probability-by-counting",
       "all-together"
     ]
   },
@@ -1336,9 +1346,19 @@
           "frac-muldiv"
         ]
       }
+    },
+    "counting": {
+      "dependsOn": [
+        "probability"
+      ],
+      "levels": {
+        "does-order-matter": [
+          "probability"
+        ]
+      }
     }
   },
-  "sources": "c0c09a1f06d7b10353f8e0a00fda03a6f38e1dd29afc87f8d509f61f64ab5c20",
+  "sources": "58097174a03e3a82b186d5e99ae4c64a40cd8894b03d9ee29952732269b5d8a2",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6029,6 +6049,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "probability-7.json"
+    },
+    {
+      "skill": "counting",
+      "level": 0,
+      "slug": "multiplication-principle",
+      "name": "Multiplication Principle",
+      "count": 590,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-0.json"
+    },
+    {
+      "skill": "counting",
+      "level": 1,
+      "slug": "factorials",
+      "name": "Factorials",
+      "count": 64,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-1.json"
+    },
+    {
+      "skill": "counting",
+      "level": 2,
+      "slug": "permutations",
+      "name": "Permutations",
+      "count": 120,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-2.json"
+    },
+    {
+      "skill": "counting",
+      "level": 3,
+      "slug": "combinations",
+      "name": "Combinations",
+      "count": 120,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-3.json"
+    },
+    {
+      "skill": "counting",
+      "level": 4,
+      "slug": "does-order-matter",
+      "name": "Does Order Matter?",
+      "count": 240,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-4.json"
+    },
+    {
+      "skill": "counting",
+      "level": 5,
+      "slug": "restrictions",
+      "name": "Restrictions",
+      "count": 90,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-5.json"
+    },
+    {
+      "skill": "counting",
+      "level": 6,
+      "slug": "probability-by-counting",
+      "name": "Probability by Counting",
+      "count": 209,
+      "exhaustive": true,
+      "signed": false,
+      "file": "counting-6.json"
+    },
+    {
+      "skill": "counting",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "counting-7.json"
     }
   ]
 }

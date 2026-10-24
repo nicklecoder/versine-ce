@@ -4502,6 +4502,109 @@ CHOICE_RULES += (
      lambda listing: next(k for k, v in (item.split("=") for item in listing.split(", ")) if v == "closer")),
 )
 
+# --- Counting ---------------------------------------------------------------
+# requiem: catalogue/content/counting-restricted-counts-listed
+#
+# The plain counts are counted with math's own perm and comb; everything with
+# a restriction, and every probability, is counted by listing each
+# arrangement or group with itertools and testing it, so a slip in the
+# explanation's shortcut cannot hide behind the same shortcut here.
+
+def count_product(choices: str) -> int:
+    return math.prod(int(c) for c in choices.split())
+
+
+def count_factorial_ratio(n, k) -> int:
+    return math.factorial(n) // math.factorial(k)
+
+
+def count_code(length, repeat: str, rules: str) -> int:
+    import itertools
+    pool = itertools.product(range(10), repeat=length) if repeat == "repeat" else itertools.permutations(range(10), length)
+    tests = {"first not zero": lambda c: c[0] != 0, "ends even": lambda c: c[-1] % 2 == 0, "ends odd": lambda c: c[-1] % 2 == 1}
+    wanted = [tests[r] for r in rules.split(", ") if r]
+    return sum(1 for c in pool if all(t(c) for t in wanted))
+
+
+def count_small_code(length, top, repeat: str, parity: str) -> int:
+    import itertools
+    digits = range(1, top + 1)
+    pool = itertools.product(digits, repeat=length) if repeat == "repeat" else itertools.permutations(digits, length)
+    return sum(1 for c in pool if c[-1] % 2 == (0 if parity == "even" else 1))
+
+
+def count_row(n, rule: str) -> int:
+    import itertools
+    # Person 0 is A and person 1 is B.
+    tests = {"A first": lambda r: r[0] == 0, "A at an end": lambda r: 0 in (r[0], r[-1]),
+             "A and B together": lambda r: abs(r.index(0) - r.index(1)) == 1,
+             "A and B apart": lambda r: abs(r.index(0) - r.index(1)) > 1}
+    return sum(1 for r in itertools.permutations(range(n)) if tests[rule](r))
+
+
+def count_committee(n, r, rule: str) -> int:
+    import itertools
+    test = {"includes A": lambda c: 0 in c, "excludes A": lambda c: 0 not in c}[rule]
+    return sum(1 for c in itertools.combinations(range(n), r) if test(c))
+
+
+def count_chance_pair(n, r) -> Fraction:
+    import itertools
+    groups = list(itertools.combinations(range(n), r))
+    return Fraction(sum(1 for c in groups if 0 in c and 1 in c), len(groups))
+
+
+def count_chance_seniors(g, j, r, k) -> Fraction:
+    import itertools
+    groups = list(itertools.combinations(range(g + j), r))
+    return Fraction(sum(1 for c in groups if sum(1 for x in c if x < g) == k), len(groups))
+
+
+def count_chance_lottery(r, n) -> Fraction:
+    import itertools
+    draws = list(itertools.combinations(range(1, n + 1), r))
+    return Fraction(sum(1 for c in draws if c == tuple(range(1, r + 1))), len(draws))
+
+
+def count_chance_row(n) -> Fraction:
+    import itertools
+    rows = list(itertools.permutations(range(n)))
+    return Fraction(sum(1 for r in rows if abs(r.index(0) - r.index(1)) == 1), len(rows))
+
+
+def count_chance_race(n) -> Fraction:
+    import itertools
+    finishes = list(itertools.permutations(range(n), 2))
+    return Fraction(sum(1 for f in finishes if f == (0, 1)), len(finishes))
+
+
+BY_RULE += (
+    (re.compile(r"^multiply choices: ([\d ]+)$"), count_product),
+    (re.compile(r"^(?:factorial|arrange) (\d+)(?:; \w+)?$"), math.factorial),
+    (re.compile(r"^factorial ratio (\d+) (\d+)$"), count_factorial_ratio),
+    (re.compile(r"^permutations (\d+) (\d+); \w+$"), math.perm),
+    (re.compile(r"^combinations (\d+) (\d+); \w+$"), math.comb),
+    (re.compile(r"^code: length (\d+), digits, (repeat|no repeat)(?:, )?(.*)$"), count_code),
+    (re.compile(r"^code: length (\d+), digits 1 to (\d+), (repeat|no repeat), ends (even|odd)$"), count_small_code),
+    (re.compile(r"^row: (\d+) people, (A first|A at an end|A and B together|A and B apart)$"), count_row),
+    (re.compile(r"^committee: (\d+) people, (\d+) chosen, (includes A|excludes A)$"), count_committee),
+    (re.compile(r"^committee chance: (\d+) people, (\d+) chosen, includes A and B$"), count_chance_pair),
+    (re.compile(r"^committee chance: (\d+) seniors (\d+) juniors, (\d+) chosen, exactly (\d+) seniors$"), count_chance_seniors),
+    (re.compile(r"^lottery: (\d+) of (\d+)$"), count_chance_lottery),
+    (re.compile(r"^row chance: (\d+) people, A and B together$"), count_chance_row),
+    (re.compile(r"^race chance: (\d+) runners, A first and B second$"), count_chance_race),
+)
+
+# Whether a selection's order matters is a property of what is chosen: a
+# place or a job makes it a permutation, a group with no first a combination.
+COUNT_ORDERED = {"ranked", "roles", "row", "sequence", "route"}
+COUNT_UNORDERED = {"committee", "toppings", "group", "set", "hand"}
+
+CHOICE_RULES += (
+    (re.compile(r"^order matters: n \d+ r \d+; selection is (\w+)$"),
+     lambda what: "perm" if what in COUNT_ORDERED else ("comb" if what in COUNT_UNORDERED else None)),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

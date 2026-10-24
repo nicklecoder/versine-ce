@@ -261,6 +261,13 @@ Theoretical · All Together. Likelihood is added for 7.SP.5, and asks only
 about probabilities clear of the edge between likely and unlikely. Fractions
 are accepted in any equivalent form, since simplifying is taught by the
 fractions skills.
+`counting` is built, as Multiplication Principle · Factorials · Permutations ·
+Combinations · Does Order Matter? (strategy) · Restrictions · Probability by
+Counting · All Together. Does Order Matter? depends on probability's Sample
+Spaces, where heads then tails first counts apart from tails then heads.
+Restrictions is added for S-CP.9's harder counts: fill the limited place
+first. No level has a visual; three numbers multiplied teach the count better
+than a tree too big to draw.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
