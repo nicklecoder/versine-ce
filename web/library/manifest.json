@@ -1,5 +1,5 @@
 {
-  "built": 453,
+  "built": 461,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -572,6 +572,16 @@
       "correlation-strength",
       "correlation-vs-causation",
       "two-way-tables",
+      "all-together"
+    ],
+    "distributions": [
+      "box-plots",
+      "histograms",
+      "shape-and-center",
+      "standard-deviation",
+      "normal-curve-percents",
+      "z-scores",
+      "which-spread",
       "all-together"
     ]
   },
@@ -1284,9 +1294,27 @@
           "percents"
         ]
       }
+    },
+    "distributions": {
+      "dependsOn": [
+        "data-center",
+        "percents",
+        "roots"
+      ],
+      "levels": {
+        "box-plots": [
+          "data-center"
+        ],
+        "standard-deviation": [
+          "roots"
+        ],
+        "normal-curve-percents": [
+          "percents"
+        ]
+      }
     }
   },
-  "sources": "64d73bdbc646ae8a47e40ac7f3bb86a966fef3eb222957df307a9275e67c8501",
+  "sources": "ac79a8bd36848fd51668861d0eb3a89a0f9081f438c4d56cd64927a76a7fbfb8",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5817,6 +5845,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "bivariate-7.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 0,
+      "slug": "box-plots",
+      "name": "Box Plots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-0.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 1,
+      "slug": "histograms",
+      "name": "Histograms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-1.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 2,
+      "slug": "shape-and-center",
+      "name": "Shape & Center",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-2.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 3,
+      "slug": "standard-deviation",
+      "name": "Standard Deviation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-3.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 4,
+      "slug": "normal-curve-percents",
+      "name": "Normal Curve Percents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-4.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 5,
+      "slug": "z-scores",
+      "name": "z-Scores",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "distributions-5.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 6,
+      "slug": "which-spread",
+      "name": "Which Spread",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-6.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "distributions-7.json"
     }
   ]
 }

@@ -249,6 +249,12 @@ actual minus predicted, and which side of the line a point is on. Describing
 r is only asked of values well inside a band, since texts disagree on where
 "strong" begins, and only a randomized experiment is treated as showing a
 cause.
+`distributions` is built, as Box Plots · Histograms · Shape & Center ·
+Standard Deviation · Normal Curve Percents · z-Scores · Which Spread · All
+Together. Shape & Center is added for S-ID.3: skew is named for its tail, and
+a tail pulls the mean past the median. Normal-curve questions stay at whole
+numbers of standard deviations, using the 68-95-99.7 rule. The standard
+deviation divides by n, and every set comes out whole.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

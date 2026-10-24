@@ -4265,6 +4265,153 @@ CHOICE_RULES += (
     (re.compile(r"^two-way association: (\d+ \d+ / \d+ \d+)$"), biv_linked),
 )
 
+# --- Distributions ----------------------------------------------------------
+#
+# A box plot is read from its five numbers, each part a quarter of the data.
+# A histogram is rebuilt as every value standing at its bar's midpoint, which
+# is what its shape, mean and median are judged by: a tail to the right pulls
+# the mean above the median. The standard deviation divides by n and must
+# come out exact. The normal curve's shares are the 68-95-99.7 rule, kept
+# here as the share of each one-SD band on one side of the mean.
+
+DIST_NUM = r"-?\d+(?:\.\d+)?"
+DIST_HIST = r"from (\d+) width (\d+) counts (\d+(?: \d+)+)"
+DIST_FIVE = ("min", "q1", "median", "q3", "max")
+DIST_BANDS = (Fraction(34), Fraction(27, 2), Fraction(47, 20), Fraction(3, 20))
+
+
+def dist_five(listing: str) -> list:
+    five = [int(v) for v in listing.split()]
+    assert len(five) == 5 and five == sorted(five)
+    return five
+
+
+def dist_box(part: str, listing: str) -> int:
+    f = dist_five(listing)
+    if part == "iqr":
+        return f[3] - f[1]
+    if part == "range":
+        return f[4] - f[0]
+    return f[DIST_FIVE.index(part)]
+
+
+def dist_values(start, width, counts) -> list:
+    """Every value of a histogram at its bar's midpoint."""
+    start, width = int(start), int(width)
+    cs = [int(c) for c in str(counts).split()]
+    return [Fraction(2 * start + width * (2 * i + 1), 2) for i, c in enumerate(cs) for _ in range(c)]
+
+
+def dist_bars(lo, hi, start, width, counts) -> int:
+    start, width = int(start), int(width)
+    cs = [int(c) for c in str(counts).split()]
+    i, j = Fraction(Fraction(str(lo)) - start, width), Fraction(Fraction(str(hi)) - start, width)
+    assert i.denominator == j.denominator == 1
+    return sum(cs[int(i):int(j)])
+
+
+def dist_hist_percent(lo, hi, start, width, counts, rounded) -> Fraction:
+    exact = Fraction(100 * dist_bars(lo, hi, start, width, counts), sum(int(c) for c in str(counts).split()))
+    return half_up(exact, 1) if rounded else exact
+
+
+def dist_shape(start, width, counts) -> str:
+    cs = str(counts).split()
+    xs = dist_values(start, width, counts)
+    mean, med = sum(xs) / len(xs), median_of(xs)
+    if cs == cs[::-1]:
+        assert mean == med
+        return "symmetric"
+    assert abs(mean - med) >= Fraction(int(width), 4), (counts, mean, med)
+    return "right" if mean > med else "left"
+
+
+def dist_median_bin(start, width, counts, listing: str) -> str:
+    cs = [int(c) for c in str(counts).split()]
+    n = sum(cs)
+    def bar(pos):
+        run = 0
+        for i, c in enumerate(cs):
+            run += c
+            if pos <= run:
+                return i + 1
+    lo, hi = bar((n + 1) // 2), bar((n + 2) // 2)
+    assert lo == hi
+    return next(k for k, v in (item.split("=") for item in listing.split(", ")) if int(v) == lo)
+
+
+def dist_sd(xs: list) -> Fraction:
+    xs = [Fraction(x) for x in xs]
+    mean = sum(xs) / len(xs)
+    var = sum((x - mean) ** 2 for x in xs) / len(xs)
+    root = fraction_root(var, 2)
+    assert root is not None and root * root == var, var
+    return root
+
+
+def dist_normal(mean, sd, lo, hi) -> Fraction:
+    mean, sd = Fraction(str(mean)), Fraction(str(sd))
+    k = lambda v, edge: edge if v in ("inf", "-inf") else (Fraction(v) - mean) / sd
+    a, b = k(lo, -4), k(hi, 4)
+    assert Fraction(a).denominator == Fraction(b).denominator == 1 and -4 <= a < b <= 4
+    return sum(DIST_BANDS[-z - 1 if z < 0 else z] for z in range(int(a), int(b)))
+
+
+def dist_z(x, mean, sd) -> Fraction:
+    return (Fraction(str(x)) - Fraction(str(mean))) / Fraction(str(sd))
+
+
+def dist_halves(xs: list) -> tuple:
+    ys = sorted(xs)
+    h = len(ys) // 2
+    return median_of(ys[:h]), median_of(ys[len(ys) - h:])
+
+
+def dist_outlying(xs: list) -> bool:
+    q1, q3 = dist_halves(xs)
+    fence = Fraction(3, 2) * (q3 - q1)
+    return any(x < q1 - fence or x > q3 + fence for x in xs)
+
+
+BY_RULE += (
+    (re.compile(r"^box plot (min|q1|median|q3|max|iqr|range): (\d+ \d+ \d+ \d+ \d+)$"), dist_box),
+    (re.compile(r"^box plot percent from (min|q1|median|q3) to (q1|median|q3|max): \d+ \d+ \d+ \d+ \d+$"),
+     lambda a, b: 25 * (DIST_FIVE.index(b) - DIST_FIVE.index(a))),
+    (re.compile(rf"^histogram total: {DIST_HIST}$"), lambda start, width, counts: len(dist_values(start, width, counts))),
+    (re.compile(rf"^histogram count from ({DIST_NUM}) to ({DIST_NUM}): {DIST_HIST}$"), dist_bars),
+    (re.compile(rf"^histogram percent from ({DIST_NUM}) to ({DIST_NUM}): {DIST_HIST}( to 1 dp)?$"), dist_hist_percent),
+    (re.compile(r"^sd: (\d+(?: \d+)+)$"), lambda listing: dist_sd(str(listing).split())),
+    (re.compile(rf"^normal percent: mean ({DIST_NUM}) sd ({DIST_NUM}), from (-inf|{DIST_NUM}) to (inf|{DIST_NUM})$"), dist_normal),
+    (re.compile(rf"^normal count: (\d+) values, mean ({DIST_NUM}) sd ({DIST_NUM}), from (-inf|{DIST_NUM}) to (inf|{DIST_NUM})$"),
+     lambda n, mean, sd, lo, hi: dist_normal(mean, sd, lo, hi) * int(n) / 100),
+    (re.compile(rf"^z of ({DIST_NUM}): mean ({DIST_NUM}) sd ({DIST_NUM})$"), dist_z),
+    (re.compile(rf"^value at z=({DIST_NUM}): mean ({DIST_NUM}) sd ({DIST_NUM})$"),
+     lambda z, mean, sd: Fraction(str(mean)) + Fraction(str(z)) * Fraction(str(sd))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^box plots greater (iqr|range|median): A (\d+ \d+ \d+ \d+ \d+) / B (\d+ \d+ \d+ \d+ \d+)$"),
+     lambda part, a, b: "A" if dist_box(part, a) > dist_box(part, b) else "B"),
+    (re.compile(r"^wider by (iqr|range): A (\d+ \d+ \d+ \d+ \d+) / B (\d+ \d+ \d+ \d+ \d+)$"),
+     lambda part, a, b: "A" if dist_box(part, a) > dist_box(part, b) else "B"),
+    (re.compile(r"^outlier rule: q1 (\d+) q3 (\d+), value (\d+)$"),
+     lambda q1, q3, v: "yes" if not (Fraction(q1) - Fraction(3, 2) * (int(q3) - int(q1)) <= int(v) <= Fraction(q3) + Fraction(3, 2) * (int(q3) - int(q1))) else "no"),
+    (re.compile(rf"^histogram median bin: {DIST_HIST}; options (.+)$"), dist_median_bin),
+    (re.compile(rf"^histogram shape: {DIST_HIST}$"), dist_shape),
+    (re.compile(rf"^histogram mean or median: {DIST_HIST}$"),
+     lambda *h: {"symmetric": "equal", "right": "mean", "left": "median"}[dist_shape(*h)]),
+    (re.compile(rf"^histogram center: {DIST_HIST}$"), lambda *h: "mean" if dist_shape(*h) == "symmetric" else "median"),
+    (re.compile(rf"^histogram spread: {DIST_HIST}$"), lambda *h: "sd" if dist_shape(*h) == "symmetric" else "iqr"),
+    (re.compile(r"^sd change: sd \d+, (times|plus) \d+; options same, plus, times$"),
+     lambda how: "times" if how == "times" else "same"),
+    (re.compile(r"^greater sd: A (\d+(?: \d+)+) / B (\d+(?: \d+)+)$"),
+     lambda a, b: "A" if dist_sd(a.split()) > dist_sd(b.split()) else "B"),
+    (re.compile(rf"^better z: a=(\d+) mean (\d+) sd (\d+), b=(\d+) mean (\d+) sd (\d+)$"),
+     lambda x1, m1, s1, x2, m2, s2: "a" if dist_z(x1, m1, s1) > dist_z(x2, m2, s2) else "b"),
+    (re.compile(r"^spread measure: (\d+(?: \d+)+)$"),
+     lambda listing: "iqr" if dist_outlying([int(v) for v in listing.split()]) else "sd"),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
