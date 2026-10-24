@@ -1,5 +1,5 @@
 {
-  "built": 557,
+  "built": 563,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -704,6 +704,14 @@
       "check-by-composing",
       "restrict-the-domain",
       "graph-reflection",
+      "all-together"
+    ],
+    "radical-eq": [
+      "isolate-and-square",
+      "extraneous-roots",
+      "both-sides-radical",
+      "cube-roots",
+      "rational-exponents",
       "all-together"
     ]
   },
@@ -1609,9 +1617,32 @@
           "functions"
         ]
       }
+    },
+    "radical-eq": {
+      "dependsOn": [
+        "equations",
+        "quadratic-eq",
+        "rational-exponents",
+        "roots"
+      ],
+      "levels": {
+        "isolate-and-square": [
+          "equations",
+          "roots"
+        ],
+        "extraneous-roots": [
+          "quadratic-eq"
+        ],
+        "cube-roots": [
+          "roots"
+        ],
+        "rational-exponents": [
+          "rational-exponents"
+        ]
+      }
     }
   },
-  "sources": "09488764c82ed8dee7ceab6c58c3c779628beab38ba3fc58644501d8ddf2f283",
+  "sources": "0160cfb1de44da691da11efb7b4a23932188fa2b44b2a6a32adbfa2ad5e5d991",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7182,6 +7213,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "inverses-5.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 0,
+      "slug": "isolate-and-square",
+      "name": "Isolate & Square",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-0.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 1,
+      "slug": "extraneous-roots",
+      "name": "Extraneous Roots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-1.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 2,
+      "slug": "both-sides-radical",
+      "name": "Both Sides Radical",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-2.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 3,
+      "slug": "cube-roots",
+      "name": "Cube Roots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-3.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 4,
+      "slug": "rational-exponents",
+      "name": "Rational Exponents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-4.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-5.json"
     }
   ]
 }

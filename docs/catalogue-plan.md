@@ -416,6 +416,14 @@ Vertex Form, and Graph Reflection on functions' Reading f off a Graph. A
 number goes in the fraction box, a formula in the expression box and a
 reflected point in the pair box; the question says which.
 
+`radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
+Radical · Cube Roots · Rational Exponents · All Together. Isolate & Square
+depends on equations' Two Steps and roots' Perfect Squares, Extraneous
+Roots on quadratic equations' By Factoring, Cube Roots on roots' Cubes and
+Cube Roots, and Rational Exponents on rational exponents' Root, Then
+Power. Every answer is a set, so a row whose candidates are all
+extraneous is answered "no solution".
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

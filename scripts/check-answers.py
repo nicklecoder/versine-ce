@@ -6605,6 +6605,66 @@ for path in sorted(LIB.glob("inverses-*.json")):
         if dots != sorted([corners[0], corners[-1]]):
             problems.append(f"{where}: end dots {dots}, not at {corners[0]} and {corners[-1]}")
 
+# --- Radical Equations --------------------------------------------------------
+#
+# Each equation is read as written, sqrt(), root(3, ) and ^(p/q) included,
+# and its solutions are found by trying every whole number from -1000 to
+# 1000 in the original equation: an extraneous answer is left out because it
+# fails there, not because a rule says so. A real power is taken the way the
+# textbook does: an odd root of a negative is negative, an even one is not a
+# real number. A sign change between two whole numbers, where neither is a
+# solution, would mean a solution off the grid, and fails the check.
+
+def re_pow(base: float, p: int, q: int) -> float:
+    if base < 0:
+        if q % 2 == 0:
+            raise ValueError("even root of a negative")
+        return (-((-base) ** (1 / q))) ** p
+    return (base ** (1 / q)) ** p
+
+
+def re_cbrt(v: float) -> float:
+    return -((-v) ** (1 / 3)) if v < 0 else v ** (1 / 3)
+
+
+def re_side(src: str):
+    py = src.replace("root(3, ", "cbrt(")
+    py = re.sub(r"(\([^()]*\)|x)\^\((\d+)/(\d+)\)", r"rpow(\1, \2, \3)", py)
+    py = py.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(scr])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(])", ")*", py)
+    fn = eval(f"lambda x: {py}", {"__builtins__": {}, "sqrt": math.sqrt, "cbrt": re_cbrt, "rpow": re_pow})  # noqa: S307
+    return fn
+
+
+RE_GRID = [Fraction(n) for n in range(-1000, 1001)]
+
+
+# requiem: catalogue/content/extraneous-level-mixes-outcomes
+def re_solutions(lhs: str, rhs: str) -> OnGrid:
+    L, R = re_side(lhs), re_side(rhs)
+
+    def gap(x):
+        try:
+            return L(x) - R(x)
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    hits, prev = set(), None
+    for x in range(-1000, 1001):
+        g = gap(float(x))
+        if g is not None and abs(g) < 1e-7 * max(1.0, abs(R(float(x)))):
+            hits.add(Fraction(x))
+        elif g is not None and prev is not None and prev[1] is not None and abs(prev[1]) >= 1e-7 and (g > 0) != (prev[1] > 0):
+            raise AssertionError(f"{lhs} = {rhs} changes sign between {prev[0]} and {x}")
+        prev = (x, g)
+    return on_grid(hits, RE_GRID)
+
+
+SET_RULES += (
+    (re.compile(r"^radical: (.+) = (.+)$"), re_solutions),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

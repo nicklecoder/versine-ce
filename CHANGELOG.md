@@ -13,6 +13,16 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Radical Equations**, a new skill under Equations, in six levels:
+Isolate & Square (with a root that would have to be negative, so no
+solution), Extraneous Roots (√(px + q) = x + s, keeping one, both or
+neither of the two candidates), Both Sides Radical (a root each side, a
+multiple of one, and √(x + k) = √x + m squared twice), Cube Roots,
+Rational Exponents (x^(p/q) = c raised to q/p, ± for an even p, nothing
+for a negative under an even root), then All Together. Every answer is a
+set typed in the solutions input. `check-answers.py` finds the solutions
+by trying every whole number from −1000 to 1000 in the original equation.
+
 **Inverse Functions**, a new skill under Functions, in six levels: Undo a
 Function (f⁻¹ of a number from a rule, a cube, a table, or f's steps
 undone in reverse order), Solve for x ↔ y (swap and solve, every form of
