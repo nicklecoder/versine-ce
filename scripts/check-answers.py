@@ -1962,30 +1962,308 @@ CHOICE_RULES += (
 )
 
 
+# --- Older levels ------------------------------------------------------------
+#
+# Levels built before every level had to have a reader. Most are arithmetic
+# the plain-expression branch skips because of a power, a superscript or a
+# blank; the rest are strategy levels asked in prose, judged below situation
+# by situation.
+
+MINUS = str.maketrans({"−": "-"})
+
+
+def signed(s: str) -> int:
+    return int(str(s).translate(MINUS).replace("+", ""))
+
+
+def is_prime(n: int) -> bool:
+    return n > 1 and all(n % d for d in range(2, math.isqrt(n) + 1))
+
+
+def exponent_by_search(base: int, value: Fraction) -> int:
+    e = next((e for e in range(-20, 41) if Fraction(base) ** e == value), None)
+    assert e is not None, f"{value} is not a power of {base}"
+    return e
+
+
+def repeated_factor(base, rest, again):
+    factors = [int(base), *[int(f) for f in re.findall(r"\d+", rest)]]
+    assert set(factors) == {int(again)}, f"{factors} are not all {again}"
+    return len(factors)
+
+
+def power_law(a, m, op, b, n, c):
+    assert a == b == c, "the bases differ"
+    value = (Fraction(a) ** m * Fraction(b) ** n if op == "×" else Fraction(a) ** m / Fraction(b) ** n)
+    return exponent_by_search(c, value)
+
+
+def digit_worth(number: str, place: str) -> Fraction:
+    k = {"tenths": 1, "hundredths": 2, "thousandths": 3}[place]
+    x = Fraction(number)
+    return Fraction(int(x * 10 ** k) % 10, 10 ** k)
+
+
+def whole(x: Fraction) -> int:
+    assert x.denominator == 1, f"{x} is not whole"
+    return int(x)
+
+
+def prime_blank(n: int, rhs: str) -> int:
+    """N = 2^4 × 3^2 × ?: the blank, from N's own prime factorisation."""
+    own, m, p = {}, n, 2
+    while m > 1:
+        while m % p == 0:
+            own[p] = own.get(p, 0) + 1
+            m //= p
+        p += 1
+    terms = [t.split("^") for t in rhs.split(" × ")]
+    shown = {int(t[0]): (int(t[1]) if len(t) > 1 and t[1] != "?" else (None if len(t) > 1 else 1))
+             for t in terms if t[0] != "?"}
+    blank = [t for t in terms if "?" in t]
+    assert len(blank) == 1, "not one blank"
+    if blank[0][0] == "?":
+        missing = set(own) - set(shown)
+        assert len(missing) == 1 and own[next(iter(missing))] == (int(blank[0][1]) if len(blank[0]) > 1 else 1)
+        answer = missing.pop()
+    else:
+        answer = own[int(blank[0][0])]
+        shown[int(blank[0][0])] = answer
+        assert set(shown) == set(own)
+    for prime, e in shown.items():
+        assert own.get(prime) == e, f"{n} does not have {prime}^{e}"
+    return answer
+
+
+def cube_root(n: int) -> int:
+    r = round(abs(n) ** (1 / 3))
+    r = next(k for k in (r - 1, r, r + 1) if k ** 3 == abs(n))
+    return r if n > 0 else -r
+
+
+def cube_floor(n: int) -> int:
+    r = next(k for k in range(0, 100) if (k + 1) ** 3 > n)
+    assert r ** 3 != n, f"{n} is a cube, so its root does not lie just above anything"
+    return r
+
+
+def root_floor(n: int) -> int:
+    assert not is_square(n), f"{n} is square, so its root does not lie just above anything"
+    return math.isqrt(n)
+
+
+def outside_root(n: int, inside: int) -> int:
+    assert squarefree(inside) == (1, inside), f"√{inside} is not simplest"
+    return whole_root(whole(Fraction(n, inside)))
+
+
+def far(a: str, b: str) -> int:
+    return abs(signed(b) - signed(a))
+
+
+BY_RULE += (
+    (re.compile(r"^point \((-?\d+), (-?\d+)\): ([xy])$"), lambda x, y, which: int(x if which == "x" else y)),
+    (re.compile(r"^distance \((-?\d+),(-?\d+)\) to \((-?\d+),(-?\d+)\)$"),
+     lambda x1, y1, x2, y2: whole_root((int(x2) - int(x1)) ** 2 + (int(y2) - int(y1)) ** 2)),
+    (re.compile(r"^gradient \((-?\d+),(-?\d+)\) to \((-?\d+),(-?\d+)\)$"), rise_over_run),
+    (re.compile(r"^(\d+)\^(-?\d+)$"), lambda a, b: Fraction(a) ** int(b)),
+    (re.compile(r"^(\d+)((?: × \d+)*) = (\d+)\^\?$"), repeated_factor),
+    (re.compile(r"^(\d+)\^(\d+) ([×÷]) (\d+)\^(\d+) = (\d+)\^\?$"), power_law),
+    (re.compile(r"^\((\d+)\^(\d+)\)\^(\d+) = (\d+)\^\?$"),
+     lambda a, m, n, c: power_law(a, m * n, "×", c, 0, c)),
+    (re.compile(r"^([\d.]+): (tenths|hundredths|thousandths) digit worth$"), digit_worth),
+    (re.compile(r"^([\d.]+) = \?/(\d+)$"), lambda x, d: whole(Fraction(x) * d)),
+    (re.compile(r"^(\d+) × \? = (\d+)$"), lambda a, b: whole(Fraction(b, a))),
+    (re.compile(r"^\? × (\d+) = (\d+)$"), lambda a, b: whole(Fraction(b, a))),
+    (re.compile(r"^(\d+) = ((?:\S+ × )*\S+)$"), prime_blank),
+    (re.compile(r"^(\d+/\d+) as a mixed number$"), amount),
+    (re.compile(r"^(\d+ \d+/\d+) as an improper fraction$"), amount),
+    (re.compile(r"^The (?:diver|lift|temperature|account) (−?\d+) then ([+−]\d+)$"),
+     lambda a, b: signed(a) + signed(b)),
+    (re.compile(r"^The (?:diver|lift|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
+    (re.compile(r"^(\d+) (?:m|£|°) down, (\d+) times$"), lambda k, n: -k * n),
+    (re.compile(r"^−(\d+) shared over (\d+)$"), lambda a, n: whole(Fraction(-a, n))),
+    (re.compile(r"^([\d ()+−]+[²³][\d ()+−²³]*)$"),
+     lambda src: evaluate(src.replace("²", "^2").replace("³", "^3"))),
+    (re.compile(r"^([\d.]+)% = \?/(\d+)$"), lambda p, d: whole(Fraction(p) / 100 * d)),
+    (re.compile(r"^([\d.]+)% as a decimal$"), lambda p: Fraction(p) / 100),
+    (re.compile(r"^([\d.]+)% of (\d+)$"), lambda p, n: Fraction(p) / 100 * n),
+    (re.compile(r"^(\d+) is \?% of (\d+)$"), lambda a, b: Fraction(100 * a, b)),
+    (re.compile(r"^(\d+) (up|down) (\d+)%$"),
+     lambda n, way, p: n * (1 + Fraction(p if way == "up" else -p, 100))),
+    (re.compile(r"^sqrt\((\d+)\)$"), whole_root),
+    (re.compile(r"^sqrt\((\d+)\) lies just above \?$"), root_floor),
+    (re.compile(r"^sqrt\((\d+)\) = \?sqrt\((\d+)\)$"), outside_root),
+    (re.compile(r"^cube root of (−?\d+)$"), lambda n: cube_root(signed(n))),
+    (re.compile(r"^cube root of (\d+) lies just above \?$"), cube_floor),
+)
+
+
+def quadrant(x, y) -> str:
+    x, y = int(x), int(y)
+    assert x and y, "a point on an axis is in no quadrant"
+    return {(1, 1): "I", (-1, 1): "II", (-1, -1): "III", (1, -1): "IV"}[(x > 0) - (x < 0), (y > 0) - (y < 0)]
+
+
+def first_move(k, c, r) -> str:
+    # k(v + c) = r: dividing first leaves whole numbers only when k goes into r.
+    return "divide" if int(r) % int(k) == 0 else "expand"
+
+
+def gather_side(a, c) -> str:
+    a, c = int(a or 1), int(c or 1)
+    assert a != c, "the letters cancel"
+    # Gathering on the side with more keeps the letter's count positive.
+    return "left" if a > c else "right"
+
+
+def flips(k: str) -> str:
+    return "flip" if k.startswith("−") else "keep"
+
+
+def sign_of(src: str) -> str:
+    v = evaluate(src)
+    assert v != 0
+    return "positive" if v > 0 else "negative"
+
+
+def which_way_in(n, d, to) -> str:
+    n, d, to = int(n), int(d), int(to)
+    if to % d == 0:
+        return "scale"
+    assert to % Fraction(n, d).denominator == 0, f"{n}/{d} has no equivalent over {to}"
+    return "simplify"
+
+
+def terminates(x: Fraction) -> bool:
+    d = x.denominator
+    for p in (2, 5):
+        while d % p == 0:
+            d //= p
+    return d == 1
+
+
+# The prose strategy levels: each situation, numbers taken out, with the form
+# it calls for -- written from the situation, not copied from the generator.
+JUDGED = {
+    # decimals: a decimal to measure, place or compare; a fraction to stay exact
+    "You need to compare # with #.": "decimal",
+    "You need to say which of # and # is the better price.": "decimal",
+    "You need to measure a length of about # metres with a ruler.": "decimal",
+    "You need to plot # on a number line.": "decimal",
+    "You need to add #/# to #/#.": "fraction",
+    # exponents: keep the power while an exponent rule applies to it
+    "You need to add # to #.": "work out",
+    "You need to divide # by #.": "keep",
+    "You need to multiply # by #.": "keep",
+    "You need to say whether # is bigger than #.": "work out",
+    "You need to simplify # × # × #.": "keep",
+    "You need to write # as the final answer to a counting problem.": "work out",
+    # factors: the GCF fits inside both, the LCM is reached by both
+    "# red counters and # blue ones, in rows of equal length, no row mixing colours. How long can a row be?": "gcf",
+    "Two lights flash every # seconds and every # seconds. When do they next flash together?": "lcm",
+    "Putting #/# into lowest terms — what do you divide by?": "gcf",
+    "# pens and # pencils, split into identical packs with nothing left over.": "gcf",
+    "Tiles # cm by # cm, laid out to make the smallest possible square.": "lcm",
+    "Two buses set off together, then run every # and every # minutes. Next time together?": "lcm",
+    "Buns come in packs of # and sausages in packs of #. Fewest packs to have equal numbers?": "lcm",
+    "A # cm ribbon and a # cm ribbon, cut into equal pieces as long as possible.": "gcf",
+    "The largest square tile that exactly fills a # cm by # cm rectangle.": "gcf",
+    "Adding # and # — what should the denominator become?": "lcm",
+    # mixed numbers: improper to compute with, mixed to read or report
+    "You need to multiply # #/# by #.": "improper",
+    "You need to work out # #/# × # #/#.": "improper",
+    "You need to divide # #/# by #.": "improper",
+    "You need to say whether #/# is more than #.": "mixed",
+    "You want to know roughly how big #/# is, at a glance.": "mixed",
+    "You need to write # #/# as the answer to a word problem about lengths.": "mixed",
+    "You are telling someone how much juice is left in the jug.": "mixed",
+    # roots: exact work wants the simplest radical, a physical length a decimal
+    "You need to add √# to another radical.": "simplify",
+    "You need to check whether √# equals another radical.": "simplify",
+    "You need to give the exact answer to √#.": "simplify",
+    "You need to cut a piece of wood √# inches long.": "estimate",
+    "You need to plot √# on a number line.": "estimate",
+    "You need to say whether √# is more than #.": "estimate",
+    # rounding: money handed over and things cut to fit are exact
+    "You want to know roughly how many # litre cans fill a # litre tank.": "estimate",
+    "You want to know whether # × # is nearer # or nearer #.": "estimate",
+    "You are splitting a £# bill exactly # ways.": "exact",
+    "You are cutting a shelf to fit a gap of # metres.": "exact",
+    "You want to check that a bill of about £# looks right before paying it.": "estimate",
+    "You are working out the change from £# and handing it over.": "exact",
+    "You are recording a race time that decides who won.": "exact",
+    "You have just divided and want to know if the answer is the right size.": "estimate",
+    # brackets: opened to see terms, kept to divide or cancel them whole
+    "You need to solve #(v + #) = # for v.": "keep",
+    "You need to add #(v + #) to #v.": "open",
+    "You need to cancel a factor of # from #(v + #) over #.": "keep",
+    "You need to divide #(v + #) by # exactly.": "keep",
+    "You need to check whether #(v + #) matches another expression written as #v + #.": "open",
+    "You need the number in front of v in #(v + #).": "open",
+}
+
+
+def judged(text: str) -> str:
+    # A fraction for exactness only where the decimal would not terminate.
+    m = (re.match(r"^You need the exact value of (\d+/\d+) of something\.$", text)
+         or re.match(r"^You need to multiply by (\d+/\d+) and keep the answer exact\.$", text)
+         or re.match(r"^You need to divide (\d+ into \d+) equal shares, exactly\.$", text))
+    if m:
+        a, b = re.split(r"/| into ", m[1])
+        x = Fraction(int(a), int(b))
+        return "decimal" if terminates(x) else "fraction"
+    if m := re.search(r"√(\d+)", text):
+        n = int(m[1])
+        assert not is_square(n), f"√{n} is whole"
+        assert "simplify" not in JUDGED.get(re.sub(r"\d+", "#", text), "") or squarefree(n)[0] > 1, \
+            f"√{n} does not simplify"
+    shape = re.sub(r"(?<=#)(?:st|nd|rd|th)s", "", re.sub(r"[⁰¹²³⁴⁵⁶⁷⁸⁹]", "", re.sub(r"\d+(?:\.\d+)?", "#", text)))
+    shape = re.sub(r"\b[anxyt]\b(?! factor)", "v", shape) if "(" in shape else shape
+    return JUDGED.get(shape, f"unjudged: {shape}")
+
+
+CHOICE_RULES += (
+    (re.compile(r"^quadrant of \((-?\d+), (-?\d+)\)$"), quadrant),
+    (re.compile(r"^first move for (\d+)\([a-z] \+ (\d+)\) = (\d+)$"), first_move),
+    (re.compile(r"^first move for \d+[a-z] \+ \d+ = \d+$"), lambda: "subtract"),
+    (re.compile(r"^which side for (\d*)([a-z]) \+ \d+ = (\d*)\2 \+ \d+$"), lambda a, v, c: gather_side(a, c)),
+    (re.compile(r"^does (−?)\d+[a-z] [<>≤≥] −?\d+ flip$"), flips),
+    (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
+    (re.compile(r"^sign of (.+)$"), sign_of),
+    (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
+    (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
+     lambda have, need: "scale" if int(need) % int(have) == 0 else "unit"),
+    (re.compile(r"^(.+[.?])$"), judged),
+)
+
+
+def collected_or_factored(src: str, answer: str) -> str:
+    # Already collected, the only thing left to do is take the factor out.
+    plain = src.replace("-", "−").replace("−", "-")
+    return factored(plain, answer) if expanded(plain) else same_polynomial(plain, answer)
+
+
+EXPR_RULES += (
+    (re.compile(r"^([\d ()+\-]*[a-z][\da-z +\-()]*)$"), collected_or_factored),
+)
+
+
 # requiem: catalogue/library/every-level-checked
-# A level none of whose texts any rule reads would pass by saying nothing:
-# a prefix spelled one way in the generator and another here does that.
-# These levels were built before the rule and have no reader yet. The list
-# only shrinks: a level on it that gains a reader must come off it.
-NOT_YET_READ = frozenset((
-    "coords L1", "coords L2", "coords L3", "coords L4", "coords L5", "coords L6", "coords L7",
-    "decimals L1", "decimals L6", "decimals L7", "equations L6", "equations-both L6",
-    "exponents L1", "exponents L2", "exponents L3", "exponents L4", "exponents L5", "exponents L6",
-    "exponents L7", "factors L1", "factors L3", "factors L6", "frac-equiv L7", "frac-mixed L1",
-    "frac-mixed L2", "frac-mixed L3", "frac-mixed L4", "frac-mixed L5", "frac-mixed L7",
-    "frac-signed L7", "inequalities L6", "int-addsub L5", "int-muldiv L5", "order-ops L4",
-    "percents L1", "percents L2", "percents L3", "percents L4", "percents L5", "ratio L7",
-    "roots L1", "roots L2", "roots L3", "roots L4", "roots L5", "roots L6", "roots L7",
-    "rounding L5", "simplify L1", "simplify L2", "simplify L3", "simplify L4", "simplify L5",
-    "simplify L6", "simplify L7",
-))
+# A problem no rule reads would pass by saying nothing: a prefix spelled one
+# way in the generator and another here does that, and so does one new shape
+# of question in a level whose other shapes are read. So every problem, not
+# just every level, must be re-derived by something.
 unread = []
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
     lib = json.loads(path.read_text())
-    checked_before = checked
+    row_before = None
     for i, p in enumerate(lib["problems"]):
+        if row_before == checked:
+            unread.append(f"{lib['skill']} L{lib['level'] + 1}: {lib['problems'][i - 1]['text']}")
+        row_before = checked
         text, answer = p["text"], p["answer"]
         where = f"{lib['skill']} L{lib['level'] + 1} row {i}"
 
@@ -2166,14 +2444,11 @@ for path in sorted(LIB.glob("*.json")):
             checked += 1
             if want != got:
                 problems.append(f"{where}: {text} is {want}, not {got}")
-    if checked == checked_before:
-        unread.append(f"{lib['skill']} L{lib['level'] + 1}")
+    if row_before == checked:
+        unread.append(f"{lib['skill']} L{lib['level'] + 1}: {lib['problems'][-1]['text']}")
 
 for line in unread:
-    if line not in NOT_YET_READ:
-        problems.append(f"{line}: no rule re-derives any of its answers")
-for line in sorted(NOT_YET_READ - set(unread)):
-    problems.append(f"{line}: is read now, so take it off NOT_YET_READ")
+    problems.append(f"{line} -- no rule re-derives this answer")
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")
@@ -2183,5 +2458,4 @@ if problems:
         print(f"  ... and {len(problems) - 15} more")
     sys.exit(1)
 
-print(f"answers: {checked:,} re-derived independently — all correct "
-      f"({len(NOT_YET_READ)} older levels not yet read)")
+print(f"answers: {checked:,} re-derived independently — all correct, every problem read")

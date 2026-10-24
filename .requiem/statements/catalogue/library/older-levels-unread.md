@@ -2,7 +2,7 @@
 id: older-levels-unread
 namespace: catalogue/library
 kind: question
-status: proposed
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-24T01:57:01.882238474Z

@@ -165,8 +165,8 @@ function toFraction(rng) {
  * settles it -- 1/3 has no decimal you can write down.
  */
 const SITUATIONS = [
-  { text: 'You need the exact value of one {odd} of something.', want: 'fraction',
-    why: 'One {odd} has no terminating decimal, so any decimal for it is close and not equal.' },
+  { text: 'You need the exact value of 1/{odd} of something.', want: 'fraction',
+    why: '1/{odd} has no terminating decimal, so any decimal for it is close and not equal.' },
   { text: 'You need to compare {da} with {db}.', want: 'decimal',
     why: 'Lining the places up compares at a glance. As fractions you would have to find a common denominator first.' },
   { text: 'You need to multiply by {n}/{odd} and keep the answer exact.', want: 'fraction',
@@ -178,7 +178,7 @@ const SITUATIONS = [
   { text: 'You need to plot {da} on a number line.', want: 'decimal',
     why: 'A position on a line is easiest to place from a decimal.' },
   { text: 'You need to divide {whole} into {odd} equal shares, exactly.', want: 'fraction',
-    why: 'Splitting into {odd} rarely lands on a decimal you can write down. A fraction always does.' },
+    why: '{whole}/{odd} has no decimal you can write down in full. A fraction always does.' },
   { text: 'You need to say which of {da} and {db} is the better price.', want: 'decimal',
     why: 'Prices are compared by place value, which is what a decimal is for.' },
 ];
@@ -189,13 +189,23 @@ const SITUATIONS = [
  * interpolate. The numbers are chosen to keep each argument true: the
  * "exact" cases use denominators with no terminating decimal.
  */
+function terminates(n, d) {
+  let q = reduce({ n, d }).d;
+  for (const p of [2, 5]) while (q % p === 0) q /= p;
+  return q === 1;
+}
+
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+
 function whichForm(rng) {
   const s = rng.pick(SITUATIONS);
-  const odd = rng.pick([3, 6, 7, 9, 11, 12]);       // never a terminating decimal
+  const odd = rng.pick([3, 6, 7, 9, 11, 12]);       // 1/odd never terminates
   const even = rng.pick([4, 8, 5, 10, 16, 20]);
-  const n = rng.int(1, odd - 1);
+  // n/odd and whole/odd must not terminate either: 3/6 is 0.5 and 6 shared
+  // 3 ways is 2, and the case for keeping a fraction is gone.
+  const n = rng.pick(range(1, odd - 1).filter((k) => !terminates(k, odd)));
   const m = rng.int(1, even - 1);
-  const whole = rng.pick([2, 3, 4, 5, 6, 10]);
+  const whole = rng.pick([2, 3, 4, 5, 6, 10].filter((k) => !terminates(k, odd)));
   const da = show(dec(rng.int(11, 99), 2));
   const db = show(dec(rng.int(101, 999), 3));
   const fill = (t) => t
