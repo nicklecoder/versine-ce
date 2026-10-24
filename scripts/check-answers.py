@@ -6739,6 +6739,16 @@ SET_RULES += (
     (re.compile(r"^radical: (.+) = (.+)$"), re_solutions),
 )
 
+# The search above only sees whole numbers from -1000 to 1000, so every key
+# must be one of those: a lone whole number inside that range.
+for path in sorted(LIB.glob("radical-eq-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"radical-eq L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            lo, hi = part["lo"], part["hi"]
+            if lo != hi or lo["d"] != 1 or not -1000 <= lo["n"] <= 1000:
+                problems.append(f"{where}: key {part} is outside the whole numbers -1000 to 1000 the check searches")
+
 # --- Rational Expressions -----------------------------------------------------
 #
 # The question's expression and the answer are compared by value at rational
@@ -6834,6 +6844,436 @@ EXPR_RULES += (
 SET_RULES += (
     (re.compile(r"^excluded: (.+)$"), ra_excluded),
 )
+
+# --- Rational Equations -------------------------------------------------------
+#
+# Each side is read into an exact quotient of two polynomials, the sides are
+# subtracted over one denominator, and the numerator's zeros are found
+# exactly: every p/q the rational root theorem allows is tried, and what is
+# left once those are divided out must have no real zeros at all. A zero
+# counts only if the question as written, evaluated there in exact
+# arithmetic, divides by nothing that is 0 and has both sides equal. Work,
+# rate and variation questions are written here as such an equation, from
+# their numbers alone, and solved the same way.
+
+def qe_trim(c: list) -> list:
+    c = list(c)
+    while len(c) > 1 and c[-1] == 0:
+        c.pop()
+    return c
+
+
+def qe_plus(p: list, q: list) -> list:
+    n = max(len(p), len(q))
+    return qe_trim([(p[i] if i < len(p) else 0) + (q[i] if i < len(q) else 0) for i in range(n)])
+
+
+def qe_times(p: list, q: list) -> list:
+    out = [Fraction(0)] * (len(p) + len(q) - 1)
+    for i, a in enumerate(p):
+        for j, b in enumerate(q):
+            out[i + j] += a * b
+    return qe_trim(out)
+
+
+class QeRat:
+    """num/den, each a list of Fraction coefficients from x^0 up."""
+
+    def __init__(self, num, den=(Fraction(1),)):
+        self.num, self.den = qe_trim(num), qe_trim(den)
+
+    @staticmethod
+    def of(v):
+        return v if isinstance(v, QeRat) else QeRat([Fraction(v)])
+
+    def __add__(self, o):
+        o = QeRat.of(o)
+        return QeRat(qe_plus(qe_times(self.num, o.den), qe_times(o.num, self.den)), qe_times(self.den, o.den))
+
+    __radd__ = __add__
+
+    def __neg__(self):
+        return QeRat([-a for a in self.num], self.den)
+
+    def __pos__(self):
+        return self
+
+    def __sub__(self, o):
+        return self + -QeRat.of(o)
+
+    def __rsub__(self, o):
+        return QeRat.of(o) - self
+
+    def __mul__(self, o):
+        o = QeRat.of(o)
+        return QeRat(qe_times(self.num, o.num), qe_times(self.den, o.den))
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, o):
+        o = QeRat.of(o)
+        assert o.num != [0], "a division by the zero polynomial"
+        return QeRat(qe_times(self.num, o.den), qe_times(self.den, o.num))
+
+    def __rtruediv__(self, o):
+        return QeRat.of(o) / self
+
+    def __pow__(self, k):
+        out = QeRat([Fraction(1)])
+        for _ in range(int(k)):
+            out = out * self
+        return out
+
+
+def qe_py(src: str) -> str:
+    py = src.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(\d])", ")*", py)
+    py = re.sub(r"x\s*(?=[(\d])", "x*", py)
+    return re.sub(r"(?<![\w.])(\d+)", r"F(\1)", py)
+
+
+def qe_eval(src: str, x):
+    return eval(qe_py(src), {"__builtins__": {}, "F": Fraction, "x": x})  # noqa: S307
+
+
+def qe_at(c: list, r: Fraction) -> Fraction:
+    return sum((a * r ** i for i, a in enumerate(c)), Fraction(0))
+
+
+def qe_deflate(c: list, r: Fraction) -> list:
+    hi = c[::-1]
+    out = [hi[0]]
+    for a in hi[1:-1]:
+        out.append(a + out[-1] * r)
+    return out[::-1]
+
+
+def qe_divisors(n: int) -> list:
+    n = abs(n)
+    return [d for d in range(1, math.isqrt(n) + 1) if n % d == 0 for d in {d, n // d}]
+
+
+def qe_zeros(c: list) -> set:
+    """Every real zero of the polynomial, each of which must be rational."""
+    c = qe_trim(c)
+    assert c != [0], "the two sides are the same for every x"
+    zeros = set()
+    while len(c) > 1 and c[0] == 0:
+        zeros.add(Fraction(0))
+        c = c[1:]
+    scale = math.lcm(*(a.denominator for a in c))
+    ints = [int(a * scale) for a in c]
+    cands = {s * Fraction(p, q) for p in qe_divisors(ints[0]) for q in qe_divisors(ints[-1]) for s in (1, -1)}
+    for r in sorted(cands):
+        while len(c) > 1 and qe_at(c, r) == 0:
+            zeros.add(r)
+            c = qe_deflate(c, r)
+    deg = len(c) - 1
+    assert deg == 0 or (deg == 2 and c[1] ** 2 - 4 * c[0] * c[2] < 0), f"zeros that are not rational are left in {c}"
+    return zeros
+
+
+# requiem: catalogue/content/rational-extraneous-mixes-outcomes
+def qe_roots(lhs: str, rhs: str) -> set:
+    x = QeRat([Fraction(0), Fraction(1)])
+    gap = QeRat.of(qe_eval(lhs, x)) - QeRat.of(qe_eval(rhs, x))
+    out = set()
+    for r in qe_zeros(gap.num):
+        try:
+            if qe_eval(lhs, r) == qe_eval(rhs, r):
+                out.add(r)
+        except ZeroDivisionError:
+            pass  # a denominator in the question is 0 there: extraneous
+    return out
+
+
+def qe_solutions(lhs: str, rhs: str) -> OnGrid:
+    roots = qe_roots(lhs, rhs)
+    return on_grid(roots, sorted(set(SAMPLES_ON_LINE) | roots))
+
+
+def qe_only(roots: set, keep=lambda r: True) -> Fraction:
+    hits = [r for r in roots if keep(r)]
+    assert len(hits) == 1, f"{len(hits)} answers fit: {sorted(hits)}"
+    return hits[0]
+
+
+def qe_over(v: Fraction) -> str:
+    return f"({v.numerator})/({v.denominator})"
+
+
+def qe_variation(y1, x1, _y, xa, _x, yb, _k) -> Fraction:
+    # y = k/x: k is the one number that makes y1 = k/x1 true.
+    k = qe_only(qe_roots(f"({y1})", f"x/({x1})"))
+    if _k:
+        return k
+    if _y:
+        return qe_eval(f"{qe_over(k)}/({xa})", None)
+    return qe_only(qe_roots(f"({yb})", f"{qe_over(k)}/x"))
+
+
+def qe_together(a, b) -> Fraction:
+    return qe_only(qe_roots(f"1/({a}) + 1/({b})", "1/x"), lambda r: r > 0)
+
+
+def qe_alone(t, a) -> Fraction:
+    return qe_only(qe_roots(f"1/({a}) + 1/x", f"1/({t})"), lambda r: r > 0)
+
+
+def qe_fill(a, b) -> Fraction:
+    return qe_only(qe_roots(f"1/({a}) - 1/({b})", "1/x"), lambda r: r > 0)
+
+
+def qe_current(v, down, up) -> Fraction:
+    return qe_only(qe_roots(f"({down})/({v} + x)", f"({up})/({v} - x)"), lambda r: 0 < r < int(v))
+
+
+SET_RULES += (
+    (re.compile(r"^rational eq: (.+) = (.+)$"), qe_solutions),
+)
+
+BY_RULE += (
+    (re.compile(r"^inverse variation: y = (-?\d+) when x = (-?\d+); (?:(y) when x = (-?\d+)|(x) when y = (-?\d+)|(k))$"), qe_variation),
+    (re.compile(r"^work together: (\d+), (\d+)$"), qe_together),
+    (re.compile(r"^work alone: together (\d+), (\d+)$"), qe_alone),
+    (re.compile(r"^fill drain: (\d+), (\d+)$"), qe_fill),
+    (re.compile(r"^current: speed (\d+), downstream (\d+), upstream (\d+)$"), qe_current),
+)
+
+# The sets above are read at the half-steps from -60 to 60 and at the roots
+# found, so a key anywhere else would go unread: every key must be one of
+# those half-steps.
+QE_LINE = set(SAMPLES_ON_LINE)
+for path in sorted(LIB.glob("rational-eq-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "solutions":
+            continue
+        where = f"rational-eq L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
+                problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
+
+# --- Rational Functions -------------------------------------------------------
+#
+# f is read from "TOP over BOTTOM" into two exact polynomials. A zero of the
+# bottom is a vertical asymptote when it divides the bottom more times than
+# the top, and a hole otherwise, its height read from both with that factor
+# divided out. Far out f is evaluated, in exact arithmetic, at x = ±10^12:
+# it settles on a number, or it does not, and a slant line is the one that
+# f stays within a hair of at ±10^9. None of this compares degrees, which
+# is the generator's route.
+
+def rf_poly(src: str) -> list:
+    v = QeRat.of(qe_eval(src, QeRat([Fraction(0), Fraction(1)])))
+    assert v.den == [1], f"{src} is not a polynomial"
+    return v.num
+
+
+def rf_split(f: str) -> tuple:
+    top, bottom = f.split(" over ")
+    return rf_poly(top), rf_poly(bottom)
+
+
+def rf_times(c: list, r: Fraction) -> int:
+    k = 0
+    while len(c) > 1 and qe_at(c, r) == 0:
+        c, k = qe_deflate(c, r), k + 1
+    return k
+
+
+# requiem: catalogue/content/asymptote-or-hole-by-multiplicity
+def rf_vertical(f: str) -> OnGrid:
+    top, bottom = rf_split(f)
+    found = {r for r in qe_zeros(bottom) if rf_times(bottom, r) > rf_times(top, r)}
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+def rf_hole(f: str) -> tuple:
+    top, bottom = rf_split(f)
+    shared = [r for r in qe_zeros(bottom) if rf_times(top, r) >= rf_times(bottom, r)]
+    assert len(shared) == 1, f"{len(shared)} holes"
+    r = shared[0]
+    for _ in range(rf_times(bottom, r)):
+        top, bottom = qe_deflate(top, r), qe_deflate(bottom, r)
+    return r, qe_at(top, r) / qe_at(bottom, r)
+
+
+def rf_far(top: list, bottom: list, x: int):
+    """f at x: a Fraction, or 'inf' / '-inf' when it is past any bound."""
+    v = qe_at(top, Fraction(x)) / qe_at(bottom, Fraction(x))
+    if abs(v) > 10 ** 6:
+        return "inf" if v > 0 else "-inf"
+    return v
+
+
+def rf_pick(listing: str, fits) -> str:
+    hits = [oid for oid, body in te_options(listing).items() if fits(body)]
+    assert len(hits) == 1, f"{len(hits)} options fit"
+    return hits[0]
+
+
+def rf_near(v, body: str) -> bool:
+    if isinstance(v, str):
+        return body == v
+    return body not in ("inf", "-inf", "none") and abs(Fraction(body) - v) < Fraction(1, 10 ** 5)
+
+
+def rf_horizontal(f: str, listing: str) -> str:
+    top, bottom = rf_split(f)
+    right, left = rf_far(top, bottom, 10 ** 12), rf_far(top, bottom, -(10 ** 12))
+    if isinstance(right, str) or isinstance(left, str):
+        return rf_pick(listing, lambda body: body == "none")
+    return rf_pick(listing, lambda body: body.startswith("y = ") and rf_near(right, body[4:]) and rf_near(left, body[4:]))
+
+
+def rf_oblique(f: str, listing: str) -> str:
+    top, bottom = rf_split(f)
+
+    def fits(body):
+        line = rf_poly(body[4:])
+        return all(abs(qe_at(top, Fraction(x)) / qe_at(bottom, Fraction(x)) - qe_at(line, Fraction(x))) < Fraction(1, 1000)
+                   for x in (10 ** 9, -(10 ** 9)))
+    return rf_pick(listing, fits)
+
+
+def rf_ends(f: str, way: str, listing: str) -> str:
+    top, bottom = rf_split(f)
+    v = rf_far(top, bottom, 10 ** 12 if way == "inf" else -(10 ** 12))
+    return rf_pick(listing, lambda body: rf_near(v, body))
+
+
+SET_RULES += (
+    (re.compile(r"^vertical asymptotes: (.+ over .+)$"), rf_vertical),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^hole: (.+ over .+)$"), rf_hole),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^horizontal asymptote: (.+ over .+); options (.+)$"), rf_horizontal),
+    (re.compile(r"^oblique asymptote: (.+ over .+); options (.+)$"), rf_oblique),
+    (re.compile(r"^end behavior: (.+ over .+); x to (-?inf); options (.+)$"), rf_ends),
+)
+
+# The asymptote sets are read at the half-steps from -60 to 60 and at the
+# zeros found, so every key must be a lone half-step there.
+for path in sorted(LIB.glob("rational-functions-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "solutions":
+            continue
+        where = f"rational-functions L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
+                problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
+
+# --- Polynomial Division ------------------------------------------------------
+#
+# P is read from the text into exact coefficients and divided again by long
+# division, from the top term down: each step takes the leading term over x,
+# multiplies x - c back and subtracts. That is a different route from the
+# synthetic division the generator uses. A remainder, a factor and k are
+# settled from that division; every zero comes from the rational root search
+# of the Rational Equations section, with nothing irrational left over.
+
+def pd_long(P: list, c: Fraction) -> tuple:
+    """Quotient (from x^0 up) and remainder of P / (x - c), by long division."""
+    rest = list(P)
+    q = [Fraction(0)] * max(len(P) - 1, 1)
+    for p in range(len(P) - 1, 0, -1):
+        lead = rest[p]
+        q[p - 1] = lead
+        rest[p] -= lead           # lead x^(p-1) times x
+        rest[p - 1] += lead * c   # lead x^(p-1) times -c, taken away
+    return qe_trim(q), rest[0]
+
+
+def pd_divisor(d: str) -> Fraction:
+    m = re.fullmatch(r"x ([+-]) (\d+)", d)
+    assert m, f"divisor {d}"
+    return Fraction(int(m[2])) * (1 if m[1] == "-" else -1)
+
+
+def pd_parse_quotient(body: str) -> tuple:
+    m = re.fullmatch(r"(.+), remainder (-?\d+)", body)
+    return rf_poly(m[1]), Fraction(int(m[2]))
+
+
+def pd_long_choice(src: str, d: str, listing: str) -> str:
+    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    return rf_pick(listing, lambda body: pd_parse_quotient(body) == (q, r))
+
+
+def pd_synthetic(src: str, d: str, listing: str) -> str:
+    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    row = [*reversed(q), r]
+
+    def fits(body):
+        nums, rem = body.split(" r ")
+        return [Fraction(int(v)) for v in nums.split(", ")] + [Fraction(int(rem))] == row
+    return rf_pick(listing, fits)
+
+
+def pd_remainder(src: str, d: str) -> Fraction:
+    return pd_long(rf_poly(src), pd_divisor(d))[1]
+
+
+def pd_is_factor(src: str, d: str, listing: str) -> str:
+    r = pd_long(rf_poly(src), pd_divisor(d))[1]
+    return rf_pick(listing, lambda body: body == ("yes" if r == 0 else "no"))
+
+
+def pd_k(src: str, d: str) -> Fraction:
+    # The remainder is linear in k: read it at k = 0 and k = 1, and solve for 0.
+    c = pd_divisor(d)
+    r0, r1 = (pd_long(rf_poly(re.sub(r"\bk", f"({v})", src)), c)[1] for v in (0, 1))
+    assert r1 != r0, "k does not move the remainder"
+    return -r0 / (r1 - r0)
+
+
+def pd_zeros(src: str, given: str) -> OnGrid:
+    P = rf_poly(src)
+    assert qe_at(P, Fraction(int(given))) == 0, f"{given} is not a zero"
+    found = qe_zeros(P)
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+# requiem: catalogue/content/quotient-typed-when-exact
+def pd_quotient(src: str, d: str, form: str) -> str:
+    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    if r != 0:
+        return f"leaves a remainder of {r}, so it does not divide exactly"
+    return "ok" if rf_poly(form) == q else f"is not the quotient {q}"
+
+
+EXPR_RULES += (
+    (re.compile(r"^quotient: (.+); (x [+-] \d+)$"), pd_quotient),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^long division: (.+); (x [+-] \d+); options (.+)$"), pd_long_choice),
+    (re.compile(r"^synthetic: (.+); (x [+-] \d+); options (.+)$"), pd_synthetic),
+    (re.compile(r"^is factor: (.+); (x [+-] \d+); options (.+)$"), pd_is_factor),
+)
+
+BY_RULE += (
+    (re.compile(r"^remainder: (.+); (x [+-] \d+)$"), pd_remainder),
+    (re.compile(r"^factor k: (.+); (x [+-] \d+)$"), pd_k),
+)
+
+SET_RULES += (
+    (re.compile(r"^all zeros: (.+); given (-?\d+)$"), pd_zeros),
+)
+
+for path in sorted(LIB.glob("poly-division-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "solutions":
+            continue
+        where = f"poly-division L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
+                problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
 
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one

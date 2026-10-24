@@ -452,6 +452,32 @@ Every answer but the excluded values is judged by value, so any finished
 form is right; Unlike Denominators includes denominators that share a
 factor, so the common one is not always their product.
 
+`rational-eq` is built, in the plan's five levels and All Together. Clear
+Denominators depends on rational expressions' Unlike Denominators and
+equations' Two Steps, Extraneous on rational expressions' Excluded Values
+and quadratic equations' By Factoring, Proportions With x on quadratic
+equations' Rearrange to Zero First, Inverse Variation on proportional
+relationships' Using y = kx, and Work & Rate on writing equations' Two
+Things Equal and ratio's Unit Rate. As in radical-eq, the Extraneous level
+keeps one answer in about three rows of five, both in one and neither in
+one.
+
+`rational-functions` is built, in the plan's five levels and All
+Together. Vertical Asymptotes depends on rational expressions' Excluded
+Values and domain and range's Domain of √ and Fractions, Horizontal by
+Degree on polynomials' Degree and Standard Form and exponential
+functions' The Asymptote, Holes on rational expressions' Simplify, and
+Oblique on polynomial division's Long Division. End Behavior builds on
+this skill's own asymptote levels.
+
+`poly-division` is built, in the plan's five levels and All Together.
+Long Division depends on monomials' Dividing and polynomials' Binomial
+Times Binomial, Remainder Theorem on using expressions' Substitute a
+Negative, Factor Theorem on quadratic equations' Zero Product, and All
+Zeros From One on quadratic equations' By Factoring. A quotient is typed,
+and judged by value, only when the division is exact; otherwise every
+answer is a choice, a number or a set of zeros.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

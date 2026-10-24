@@ -13,6 +13,44 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Polynomial Division**, a new skill under Expressions, in six levels:
+Long Division (a quotient typed when the division is exact, judged by
+value, and otherwise the quotient and remainder chosen together), Synthetic
+(the bottom row), Remainder Theorem, Factor Theorem (whether x − c is a
+factor, or the k that makes it one), All Zeros From One (divide out the
+zero given and factor what is left, with rows whose quadratic has no real
+zeros), then All Together. The wrong options are the slips the method
+invites: dividing by x + c, leaving out a missing power's 0, bringing the
+numbers down unchanged, the remainder's sign turned round.
+`check-answers.py` divides again by long division from the top term down.
+Rational Functions' Oblique level now depends on Long Division.
+
+**Rational Functions**, a new skill under Functions, in six levels:
+Vertical Asymptotes (two, one with the other factor cancelling to a hole,
+or none, for a bottom that is never 0 or whose only factor cancels),
+Horizontal by Degree, Holes (the point, its height from the cancelled
+form), Oblique (the slant line from dividing), End Behavior (towards 0, a
+number or ±∞ as x → ∞ or −∞), then All Together. Vertical asymptotes are
+a set in the solutions input, a hole is a point, and the rest are chosen
+from four options whose wrong ones are real slips: the ratio of the
+constant terms, a sign turned in the division, the remainder kept in the
+line. `check-answers.py` compares how many times each zero of the bottom
+divides the top and the bottom, and evaluates f exactly far out instead of
+comparing degrees.
+
+**Rational Equations**, a new skill under Equations, in six levels:
+Clear Denominators (numbers under x, and x under numbers), Extraneous
+(clearing gives two answers that may each land on an excluded value, so
+one, both or neither stand, and a linear one whose only answer is
+excluded), Proportions With x (cross-multiplying, some to a quadratic),
+Inverse Variation (in symbols and in stories), Work & Rate (working
+together, one alone, a fill against a drain, and a current), then All
+Together. The equations take a set in the solutions input; variation and
+work take a number. `check-answers.py` puts both sides over one
+denominator, finds the numerator's zeros by the rational root theorem,
+and keeps those where the question as written divides by nothing that is
+0; it writes its own equation for each variation and work question.
+
 **Review fixes to Trig Equations, Radical Equations, Domain & Range and
 Combining Functions.** General Solutions printed its + 4πk decoy as
 + 2πk, so the right answer appeared twice; periods now print as
@@ -75,8 +113,10 @@ neither of the two candidates), Both Sides Radical (a root each side, a
 multiple of one, and √(x + k) = √x + m squared twice), Cube Roots,
 Rational Exponents (x^(p/q) = c raised to q/p, ± for an even p, nothing
 for a negative under an even root), then All Together. Every answer is a
-set typed in the solutions input. `check-answers.py` finds the solutions
-by trying every whole number from −1000 to 1000 in the original equation.
+set typed in the solutions input, and every prompt allows for no
+solution. `check-answers.py` finds the solutions by
+trying every whole number from −1000 to 1000 in the original equation,
+and asserts every key is one of them.
 
 **Inverse Functions**, a new skill under Functions, in six levels: Undo a
 Function (f⁻¹ of a number from a rule, a cube, a table, or f's steps
