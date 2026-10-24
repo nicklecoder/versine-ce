@@ -32,7 +32,7 @@ export const LEVELS = [
   { name: 'Domain in Context', slug: 'domain-in-context', libraryCap: 400,
     blurb: 'A count takes whole numbers and a measure every value between; the story says where it starts and stops.' },
   { name: 'All Together', slug: 'all-together', libraryCap: 600,
-    blurb: 'Every domain and range mixed: formulas, graphs, parents and stories. Clear this against the clock to finish the skill for the day.' },
+    blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;

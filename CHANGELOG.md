@@ -30,23 +30,21 @@ and gaps), Ranges of Parents (shifted and stretched), Piecewise (a value
 from a table of rules or from a graph, the boundary owned by one piece),
 Step Functions (floor, ceiling, and charges by the started hour or
 ounce), Domain in Context (counted against measured, both ways for every
-setting, and an end worked out from the story), then All Together, which
-draws on the levels whose answer is a set. Every set is typed in the
-solutions input. `check-answers.py` finds each domain on a grid of
+setting, and an end worked out from the story), then All Together. Every
+set is typed in the solutions input. `check-answers.py` finds each domain on a grid of
 twelfths and each range by sampling, without the generator's tables, and
 checks that every graph is drawn as its text describes.
 
 **Trig Equations**, a new skill under Identities, in six levels:
-arcsin, arccos and arctan (exact values as multiples of π, sin⁻¹(sin θ)
-outside the range, and cos(sin⁻¹(3/5)) from a triangle, all fractions in
-one box), Solve in Degrees, Solve on [0, 2π), General Solutions (more than
+arcsin, arccos and arctan (exact values in radians and in degrees,
+sin⁻¹(sin θ) outside the range, cos(sin⁻¹(3/5)) from a triangle, and the
+calculator), Solve in Degrees, Solve on [0, 2π), General Solutions (more than
 one turn, and multiple angles such as sin 2x),
 Quadratic-Type (factoring, a square, a common factor never divided away,
 and the Pythagorean identity first), then All Together. A set of angles is
 typed in degrees, where the solutions input holds each one, and a typed
 30° now reads as 30; in radians the set, and every general solution, is
-chosen from four. All Together draws on the four solving levels, which
-share that box. `check-answers.py` finds every root numerically on a
+chosen from four. `check-answers.py` finds every root numerically on a
 quarter-degree grid, with no table of special angles.
 
 **Trig Identities**, a new skill under Identities, in nine levels:

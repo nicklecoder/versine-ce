@@ -5803,6 +5803,8 @@ CHOICE_RULES += (
 # exactly those roots, an option set the one of four that is, and a general
 # solution's members over two turns either way must be the roots there.
 
+from decimal import Decimal, ROUND_HALF_UP  # noqa: E402
+
 TE_DEG = {
     "sin": lambda t: math.sin(math.radians(t)), "cos": lambda t: math.cos(math.radians(t)),
     "tan": lambda t: math.tan(math.radians(t)), "sqrt": math.sqrt,
@@ -5911,6 +5913,12 @@ def te_inverse(unit: str, fn: str, written: str) -> Fraction:
     return Fraction(d)
 
 
+def te_calc(unit: str, fn: str, x: str, places: int) -> Fraction:
+    t = TE_INV[fn](float(x))
+    v = t if unit == "rad" else math.degrees(t)
+    return Fraction(Decimal(repr(v)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+
+
 def te_undo(unit: str, fn: str, angle) -> Fraction:
     """sin⁻¹(sin θ) by the calculator: the inverse of the value, not θ."""
     angle = str(angle)
@@ -5954,6 +5962,7 @@ CHOICE_RULES += (
 
 BY_RULE += (
     (re.compile(r"^inverse (rad|deg): a(sin|cos|tan)\((.+)\)$"), te_inverse),
+    (re.compile(r"^inverse calc (rad|deg): a(sin|cos|tan)\((-?[\d.]+)\) to (\d) dp$"), te_calc),
     (re.compile(r"^undo (rad|deg): a(sin|cos|tan)\((?:sin|cos|tan)\((-?\d+(?:/\d+ pi)?)\)\)$"), te_undo),
     (re.compile(r"^compose: (sin|cos|tan)\(a(sin|cos|tan)\((-?\d+)/(\d+)\)\)$"), te_compose),
 )

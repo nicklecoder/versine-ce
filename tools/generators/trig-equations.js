@@ -20,7 +20,7 @@
 import * as T from '../terms.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/trig-equations.js';
 import { fracAnswer, reduce } from './chance.js';
-import { rootText, piText, exactTrig } from './trig.js';
+import { rootText, piText, exactTrig, safeRound, roundedAnswer, roundedText, placeWords, placeText, at4 } from './trig.js';
 
 const optionIds = ['a', 'b', 'c', 'd'];
 const minus = (s) => String(s).replace(/-/g, '−');
@@ -177,11 +177,34 @@ function inverse(rng) {
   const fn = rng.pick(['sin', 'cos', 'tan']);
   const name = rng.chance(0.5) ? `${fn}⁻¹` : `arc${fn}`;
   // requiem: catalogue/content/one-input-per-level
-  // Every answer is a fraction: the coefficient of π, or a ratio from a
-  // triangle. Degrees and calculator values would each want another box.
-  const kind = rng.pick(['rad', 'rad', 'undo', 'compose']);
+  // Each shape keeps one box: radians as a multiple of π and triangle ratios
+  // as fractions, degrees as whole numbers, calculator values as decimals.
+  // The question names the unit and the rounding, so no box says more.
+  const kind = rng.pick(['rad', 'rad', 'deg', 'undo', 'undo', 'compose', 'compose', 'calc']);
   if (kind === 'undo') return undo(rng, fn, name);
   if (kind === 'compose') return compose(rng, fn, name);
+  if (kind === 'calc') {
+    for (;;) {
+      const x = fn === 'tan' ? rng.int(-50, 50) / 10 : rng.int(-95, 95) / 100;
+      if ([0, 0.5, -0.5, 1, -1].includes(x) || (fn === 'tan' && Math.abs(x) <= 1)) continue;
+      const radians = rng.chance(0.4);
+      const places = radians ? 2 : 1;
+      const t = { sin: Math.asin, cos: Math.acos, tan: Math.atan }[fn](x);
+      const val = radians ? t : (t * 180) / Math.PI;
+      const q = safeRound(val, places);
+      if (q === null) continue;
+      const unit = radians ? 'radians' : 'degrees';
+      return {
+        prompt: [T.prose(`Use a calculator to find ${name}(${minus(x)}) in ${unit}, ${placeWords(places)}.`)],
+        text: `inverse calc ${radians ? 'rad' : 'deg'}: a${fn}(${x})${placeText(places)}`,
+        answer: roundedAnswer(q, places),
+        visual: null,
+        explain: `With the calculator in ${unit} mode, ${name}(${minus(x)}) ≈ ${at4(val)}, which is ${minus(roundedText(q, places))} ${placeWords(places)}. `
+          + `It is ${RANGE_WORDS[fn]}, as every ${name} is. `
+          + `(${radians ? 'In degree mode the same keys give degrees: check the mode before trusting the number.' : `${name}(${minus(x)}) is an angle, not 1/${fn}(${minus(x)}): the −1 is not a power.`}) So ${minus(roundedText(q, places))}${radians ? '' : '°'}.`,
+      };
+    }
+  }
   const v = rng.pick(fn === 'tan' ? TAN : SIN_COS);
   const t = principal(fn, v);
   const ref = Math.abs(fn === 'cos' && v.n < 0 ? 180 - t : t);
@@ -217,7 +240,7 @@ function undo(rng, fn, name) {
   let deg;
   do deg = rng.pick([30, 45, 60, 120, 135, 150, 210, 225, 240, 300, 315, 330, -30, -45, -60, 0, 90, 180]);
   while (exactTrig(fn, deg) === null);
-  const radians = true;
+  const radians = rng.chance(0.6);
   const A = (d) => (radians ? piText(d, 180) : degText(d));
   const v = exactTrig(fn, deg);
   const t = principal(fn, v);
@@ -564,9 +587,7 @@ const CONTENT = [inverse, solveDegrees, solveRadians, general, quadraticType];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
-  // All Together draws on the solving levels, whose answers share one box;
-  // the inverse values are used inside every one of them.
-  const p = CONTENT[level >= LAST_LEVEL ? rng.int(1, LAST_LEVEL - 1) : level](rng);
+  const p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
   p.parSeconds = PAR_SECONDS[level];
   return p;
 }

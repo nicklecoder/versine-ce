@@ -397,7 +397,8 @@ Together. Domain in Context is added for F-IF.5: whether the input is
 counted or measured, and where a story starts and stops. From a Graph
 depends on functions' Domain and Range, and Ranges of Parents on
 transforming functions' Combined. Piecewise and Step Functions ask for
-a value, so All Together leaves them out and keeps one answer box.
+a value, typed as a number, where the other levels ask for a set; the
+question says which, so All Together mixes them.
 
 `composition` is built, as (f + g)(x) · f(g(2)) · f(g(x)) · Not
 Commutative · Decompose · All Together. Its first level depends on

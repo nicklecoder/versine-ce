@@ -553,15 +553,13 @@ function context(rng) {
 
 const CONTENT = [domains, fromGraph, parents, piecewise, steps, context];
 
-// requiem: catalogue/content/one-input-per-level
-// The mixed level deals from the levels whose answer is a set, typed in the
-// solutions box: a value of a piecewise or step function is a number, and
-// mixing the two boxes would say which kind of question each one is.
-const MIXED = [domains, fromGraph, parents, context];
-
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
-  const p = (level >= LAST_LEVEL ? rng.pick(MIXED) : CONTENT[level])(rng);
+  // requiem: catalogue/content/one-input-per-level
+  // The mixed level deals from every level. A set goes in the solutions box
+  // and a value in a number box, but the question already says which it
+  // wants, "what is the domain" or "find f(3)", so the box gives nothing away.
+  const p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
   p.parSeconds = PAR_SECONDS[level];
   return p;
 }

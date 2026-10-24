@@ -1577,7 +1577,7 @@
       }
     }
   },
-  "sources": "4025af19933ca8be383d2dddb5d28102347c4c19dd88b5c58f2e2e903ab26f6d",
+  "sources": "4bd97e387738ef0e5bf032d78705fcf2c182843e23f1019a188e94f19333622e",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6904,8 +6904,8 @@
       "level": 0,
       "slug": "arcsin-arccos-arctan",
       "name": "arcsin, arccos, arctan",
-      "count": 198,
-      "exhaustive": true,
+      "count": 400,
+      "exhaustive": false,
       "signed": true,
       "file": "trig-equations-0.json"
     },
