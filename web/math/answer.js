@@ -299,8 +299,11 @@ function lineIn(text, letter, hints) {
 /** m·letter + b as written: 3/4x − 2, −n, 5. */
 function lineText({ m, b }, letter) {
   if (m.n === 0) return fracText(b);
-  const size = fracText({ n: Math.abs(m.n), d: m.d });
-  const slope = `${m.n < 0 ? '−' : ''}${size === '1' ? '' : size}${letter}`;
+  // requiem: play/answers/fractional-slope-written-over
+  // A fractional slope is written 3x/2, never 3/2x: on one line that reads
+  // as 3 over 2x, and the answer shown on reveal must not be ambiguous.
+  const top = Math.abs(m.n) === 1 ? letter : `${Math.abs(m.n)}${letter}`;
+  const slope = `${m.n < 0 ? '−' : ''}${top}${m.d === 1 ? '' : `/${m.d}`}`;
   if (b.n === 0) return slope;
   return `${slope} ${b.n < 0 ? '−' : '+'} ${fracText({ n: Math.abs(b.n), d: b.d })}`;
 }
