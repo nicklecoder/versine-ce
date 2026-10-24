@@ -3791,6 +3791,132 @@ CHOICE_RULES += (
     (re.compile(r"^classify quadrilateral: (.+)$"), quadrilateral_kind),
 )
 
+# --- Circles -----------------------------------------------------------------
+#
+# Arcs and sectors are the angle's share of 360° of the circumference 2πr
+# or the area πr², kept as a multiple of π or taken with π as 3.14. The
+# angle rules are the inscribed angle theorem and its consequences; the
+# tangent rules are the right angle at the radius and equal tangents; the
+# plane rules read h, k and r² from (x − h)² + (y − k)² = r², completing the
+# square first when the equation comes expanded.
+
+def circle_parts(listing: str) -> dict:
+    out = {}
+    for item in listing.split(", "):
+        m = re.fullmatch(r"(angle [A-Z]{1,3}|[A-Z]{2,3}) (.+)", item)
+        assert m, item
+        out[m[1]] = quad_expr(m[2])
+    return out
+
+
+def circle_part(kind: str, key: str, size: str, angle: int, how: str) -> Fraction:
+    r = Fraction(size) / (2 if key == "d" else 1)
+    whole = 2 * r if kind == "arc" else r * r            # times π
+    share = Fraction(angle, 360) * whole
+    return share if how == "(pi)" else half_up(share * Fraction(314, 100), 1)
+
+
+def circle_angle_back(kind: str, r: int, coeff: str) -> Fraction:
+    whole = 2 * r if kind == "arc" else r * r
+    return Fraction(coeff) / whole * 360
+
+
+def circle_radius_back(kind: str, angle: int, coeff: str) -> Fraction:
+    whole = Fraction(coeff) * 360 / angle                 # 2r for an arc, r² for a sector
+    return whole / 2 if kind == "arc" else fraction_root(Fraction(whole), 2)
+
+
+def inscribed_angle(listing: str, target: str) -> Fraction:
+    vals = circle_parts(listing.replace("arc AB", "AOB"))
+    # Central = 2 × inscribed on the same arc, from the major-arc side.
+    return quad_relation(vals, [("AOB", 1), ("ACB", -2)], 0, target)
+
+
+CIRCLE_PART = r"(x|angle [A-Z]{1,3}|[A-Z]{2,3})"
+
+BY_RULE += (
+    (re.compile(r"^(arc|sector): (r|d) (\d+), angle (\d+) (\(pi\)|\(3\.14\) to 1 dp)$"), circle_part),
+    (re.compile(r"^(arc|sector) angle: r (\d+), (?:length|area) ([\d.]+) pi$"), circle_angle_back),
+    (re.compile(r"^(arc|sector) radius: angle (\d+), (?:length|area) ([\d.]+) pi$"), circle_radius_back),
+    (re.compile(rf"^inscribed: (.+); find {CIRCLE_PART}$"), inscribed_angle),
+    # From the minor-arc side the angle stands on the major arc, 360° less the central angle.
+    (re.compile(r"^inscribed minor: central AOB (\d+); find ADB$"), lambda c: Fraction(360 - c, 2)),
+    (re.compile(rf"^semicircle: AB diameter; (.+); find {CIRCLE_PART}$"),
+     lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1)], 90, target) if "ACB" in listing
+     else 90 - circle_parts(listing)[next(iter(circle_parts(listing)))][1]),
+    (re.compile(rf"^cyclic quadrilateral: (.+); find {CIRCLE_PART}$"),
+     lambda listing, target: (lambda v: quad_relation(v, [(n, 1) for n in v], 180, target) if len(v) == 2
+                              else 180 - next(iter(v.values()))[1])(circle_parts(listing))),
+    (re.compile(rf"^same arc: (.+); find {CIRCLE_PART}$"),
+     lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1), ("angle ADB", -1)], 0, target)),
+    (re.compile(rf"^tangent: (.+); find {CIRCLE_PART}$"), lambda listing, target: tangent_side(circle_parts(listing), target)),
+    # The tangent's right angle at T leaves 90° for the other two angles of △OTP.
+    (re.compile(r"^tangent angle: angle (TOP|TPO) (\d+); find angle (TOP|TPO)$"), lambda g, v, t: Fraction(90 - v)),
+    (re.compile(rf"^two tangents: (.+); find {CIRCLE_PART}$"), lambda listing, target: two_tangents(circle_parts(listing), target)),
+    (re.compile(r"^circle radius: (.+) = (\d+)$"), lambda left, rr: fraction_root(Fraction(Fraction(rr)), 2)),
+    (re.compile(rf"^circle through: center ({GRID_POINT}), point ({GRID_POINT}); find r\^2$"),
+     lambda c, cx, cy, p, px, py: Fraction((int(px) - int(cx)) ** 2 + (int(py) - int(cy)) ** 2)),
+    (re.compile(r"^circle general: (.+) = 0; find radius$"), lambda eq: circle_from_general(eq)[1]),
+)
+
+
+def tangent_side(vals: dict, target: str) -> Fraction:
+    # The radius meets the tangent at a right angle: OT² + PT² = OP².
+    v = {n: vals[n][1] for n in vals}
+    if target == "OP":
+        return fraction_root(Fraction(v["OT"] ** 2 + v["PT"] ** 2), 2)
+    other = "PT" if target == "OT" else "OT"
+    return fraction_root(Fraction(v["OP"] ** 2 - v[other] ** 2), 2)
+
+
+def two_tangents(vals: dict, target: str) -> Fraction:
+    if "PA" in vals:
+        return quad_relation(vals, [("PA", 1), ("PB", -1)], 0, target)   # tangents from one point are equal
+    # Two right angles at A and B: the other two angles of OAPB add to 180°.
+    (name, (_, v)), = vals.items()
+    return 180 - v
+
+
+def circle_center_of(eq: str) -> tuple:
+    m = re.fullmatch(r"(x\^2|\(x ([+-]) (\d+)\)\^2) \+ (y\^2|\(y ([+-]) (\d+)\)\^2)", eq)
+    assert m, eq
+    h = 0 if m[2] is None else (-int(m[3]) if m[2] == "+" else int(m[3]))
+    k = 0 if m[5] is None else (-int(m[6]) if m[5] == "+" else int(m[6]))
+    return Fraction(h), Fraction(k)
+
+
+def circle_from_general(eq: str) -> tuple:
+    """a·x² + a·y² + D·x + E·y + F = 0, read term by term, then the square completed."""
+    terms = re.findall(r"([+-]?)\s*(\d*)(x\^2|y\^2|x|y|)", eq.replace(" ", " "))
+    coef = {"x^2": 0, "y^2": 0, "x": 0, "y": 0, "": 0}
+    for sign, n, var in terms:
+        if not n and not var:
+            continue
+        c = int(n) if n else 1
+        coef[var] += -c if sign == "-" else c
+    a = coef["x^2"]
+    assert a == coef["y^2"] and a != 0, eq
+    D, E, F = (Fraction(coef[v], a) for v in ("x", "y", ""))
+    h, k = -D / 2, -E / 2
+    return (h, k), fraction_root(Fraction(h * h + k * k - F), 2)
+
+
+PAIR_RULES += (
+    (re.compile(r"^circle center: (.+) = \d+$"), circle_center_of),
+    (re.compile(r"^circle general: (.+) = 0; find center$"), lambda eq: circle_from_general(eq)[0]),
+)
+
+
+def circle_point(eq: str, rr: str, px: str, py: str) -> str:
+    h, k = circle_center_of(eq)
+    d2 = (int(px) - h) ** 2 + (int(py) - k) ** 2
+    return "on" if d2 == int(rr) else "inside" if d2 < int(rr) else "outside"
+
+
+CHOICE_RULES += (
+    (re.compile(r"^circle point: (.+) = (\d+); point \((-?\d+), (-?\d+)\)$"), circle_point),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

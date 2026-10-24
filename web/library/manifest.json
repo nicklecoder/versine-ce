@@ -1,5 +1,5 @@
 {
-  "built": 429,
+  "built": 437,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -542,6 +542,16 @@
       "trapezoids-and-kites",
       "triangle-midsegment",
       "verify-on-coordinates",
+      "all-together"
+    ],
+    "circles": [
+      "arc-length",
+      "sector-area",
+      "central-and-inscribed-angles",
+      "semicircles-and-cyclic-quadrilaterals",
+      "tangents",
+      "equation-of-a-circle",
+      "complete-the-square-for-center",
       "all-together"
     ]
   },
@@ -1208,9 +1218,34 @@
           "coord-geometry"
         ]
       }
+    },
+    "circles": {
+      "dependsOn": [
+        "area",
+        "pythagoras",
+        "quadratic-formula",
+        "triangle-angles"
+      ],
+      "levels": {
+        "arc-length": [
+          "area"
+        ],
+        "sector-area": [
+          "area"
+        ],
+        "tangents": [
+          "pythagoras"
+        ],
+        "equation-of-a-circle": [
+          "pythagoras"
+        ],
+        "complete-the-square-for-center": [
+          "quadratic-formula"
+        ]
+      }
     }
   },
-  "sources": "2a8b202ea6ebc93ef69d8c5af8c8a26cb3ecdfdcba2d1efe45a6e7e4293f5dc3",
+  "sources": "7e54348308791e802f6e586e98714246741a5bd074ff3c071f7d4fd097c74499",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5501,6 +5536,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "quadrilaterals-7.json"
+    },
+    {
+      "skill": "circles",
+      "level": 0,
+      "slug": "arc-length",
+      "name": "Arc Length",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-0.json"
+    },
+    {
+      "skill": "circles",
+      "level": 1,
+      "slug": "sector-area",
+      "name": "Sector Area",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-1.json"
+    },
+    {
+      "skill": "circles",
+      "level": 2,
+      "slug": "central-and-inscribed-angles",
+      "name": "Central & Inscribed Angles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-2.json"
+    },
+    {
+      "skill": "circles",
+      "level": 3,
+      "slug": "semicircles-and-cyclic-quadrilaterals",
+      "name": "Semicircles & Cyclic Quadrilaterals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-3.json"
+    },
+    {
+      "skill": "circles",
+      "level": 4,
+      "slug": "tangents",
+      "name": "Tangents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "circles-4.json"
+    },
+    {
+      "skill": "circles",
+      "level": 5,
+      "slug": "equation-of-a-circle",
+      "name": "Equation of a Circle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "circles-5.json"
+    },
+    {
+      "skill": "circles",
+      "level": 6,
+      "slug": "complete-the-square-for-center",
+      "name": "Complete the Square for Center",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "circles-6.json"
+    },
+    {
+      "skill": "circles",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "circles-7.json"
     }
   ]
 }

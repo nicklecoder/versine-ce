@@ -229,6 +229,12 @@ and kite angles beside the triangle midsegment. Which Special Quadrilateral
 asks what a list of facts proves (TEKS G.6E), including when it proves
 nothing; every naming question gives the same answer under the inclusive
 and exclusive definitions of trapezoid and kite.
+`circles` is built, as Arc Length · Sector Area · Central & Inscribed
+Angles · Semicircles & Cyclic Quadrilaterals · Tangents · Equation of a
+Circle · Complete the Square for Center · All Together. Semicircles and
+cyclic quadrilaterals get a level of their own (G-C.3), as the inscribed
+angle theorem's two consequences. Like area, each arc and sector question
+says whether π is kept or taken as 3.14, and a 3.14 answer is to 1 dp.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

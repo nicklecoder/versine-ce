@@ -13,6 +13,14 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Circles**, a new skill under Shapes, in eight levels: arc length and sector area as
+the central angle's share of the circle, and back to the angle or radius; central and
+inscribed angles; angles in a semicircle, on the same arc and in a cyclic
+quadrilateral; tangents, by the right angle at the radius and equal tangents from a
+point; the equation of a circle; and its center and radius found by completing the
+square. `check-answers.py` re-derives every answer from the circle's rules and the
+equations themselves.
+
 **Quadrilaterals**, a new skill under Shapes, in eight levels: the sides and angles of a
 parallelogram; diagonals that bisect each other, are equal in a rectangle and
 perpendicular in a rhombus; chasing angles with diagonals; which special quadrilateral
