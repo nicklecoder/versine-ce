@@ -63,7 +63,21 @@ const shownRoots = (v, a, b, c) => formatRoots({ letter: v, roots: rootsOf(a, b,
 function solve(src) {
   const r = previewOf(src);
   if (!r.ok) throw new Error(`quadratic-formula: cannot draw "${src}" — ${r.error}`);
-  return [T.prose('Solve'), ...r.terms, T.prose('.')];
+  // Exactly: a decimal is not what these levels want, and saying so up front
+  // beats marking 0.65 wrong.
+  return [T.prose('Solve'), ...r.terms, T.prose('exactly.')];
+}
+/** The equation and a question about it, with no "Solve" in front. */
+function asked(src, ask) {
+  const r = previewOf(src);
+  if (!r.ok) throw new Error(`quadratic-formula: cannot draw "${src}" — ${r.error}`);
+  return [...r.terms, T.prose(ask)];
+}
+/** √n, and its simplest form when that is different: √45 = 3√5. */
+function rootShown(n) {
+  const [k, m] = squarePart(n);
+  if (k === 1) return `√${n}`;
+  return m === 1 ? `√${n} = ${k}` : `√${n} = ${k}√${m}`;
 }
 
 /** What makes x² + bx a square: (b/2)². */
@@ -98,7 +112,8 @@ function completing(rng) {
     visual: null,
     explain: `Move the number across: ${said(1, b, 0, v)} = ${minus(-c)}. `
       + `Add half of ${minus(b)}, squared, to both sides: ${sq(h)} = ${h * h}, so ${said(1, b, h * h, v)} = ${k}, `
-      + `which is (${inner})² = ${k}. Root both sides: ${inner} = ±√${k}. So ${shownRoots(v, 1, b, c)}.`,
+      + `which is (${inner})² = ${k}. Root both sides: ${inner} = ±√${k}`
+      + `${squarePart(k)[0] > 1 ? `, and ${rootShown(k)}` : ''}. So ${shownRoots(v, 1, b, c)}.`,
   };
 }
 
@@ -107,23 +122,31 @@ function formulaWorking(a, b, c, v) {
   const D = b * b - 4 * a * c;
   return `a = ${minus(a)}, b = ${minus(b)}, c = ${minus(c)}. `
     + `b² − 4ac = ${b * b} − 4 × ${signed(a)} × ${signed(c)} = ${minus(D)}. `
-    + `${v} = (${minus(-b)} ± √${D}) / ${2 * a}`;
+    + `Into the formula: ${v} = (−(${minus(b)}) ± √${D}) / (2 × ${signed(a)}) = (${minus(-b)} ± √${D}) / ${2 * a}`;
 }
 
 function formula(rng) {
   const v = rng.pick(LETTERS);
   const a = rng.pick([1, 2, 2, 3, 3, 4, 5]), b = rng.nonZero(-9, 9), c = rng.nonZero(-9, 9);
   const D = b * b - 4 * a * c;
-  // Not a perfect-square discriminant every time, nor one that simplifies:
-  // that finishing is the next level but one.
-  if (D <= 0 || squarePart(D)[0] > 1 || gcd(gcd(a, b), c) !== 1) return formula(rng);
+  // A root that simplifies is the next level but one, so √D is either
+  // square-free or whole. Whole roots let an even b in, which a square-free
+  // D never does (an even b makes D a multiple of 4).
+  const whole = isSquare(D);
+  if (D <= 0 || (!whole && squarePart(D)[0] > 1) || gcd(gcd(a, b), c) !== 1) return formula(rng);
+  if (whole && rng.chance(0.6)) return formula(rng);
   const src = `${quad(a, b, c, v)} = 0`;
+  const r = Math.sqrt(D);
+  const finish = whole
+    ? `, and √${D} = ${r}: ${v} = (${minus(-b)} + ${r}) / ${2 * a} = ${minus(-b + r)}/${2 * a}`
+      + ` or ${v} = (${minus(-b)} − ${r}) / ${2 * a} = ${minus(-b - r)}/${2 * a}. So, in lowest terms, ${shownRoots(v, a, b, c)}.`
+    : `. Nothing divides out, so ${shownRoots(v, a, b, c)}.`;
   return {
     prompt: solve(src),
     text: `roots: ${src}`,
     answer: answerOf(v, a, b, c),
     visual: null,
-    explain: `${formulaWorking(a, b, c, v)}${isSquare(D) ? `, and √${D} = ${Math.sqrt(D)}` : ''}. So ${shownRoots(v, a, b, c)}.`,
+    explain: `${formulaWorking(a, b, c, v)}${finish}`,
   };
 }
 
@@ -161,12 +184,32 @@ function exact(rng) {
   if (D <= 0 || isSquare(D) || gcd(gcd(a, b), c) !== 1) return exact(rng);
   const [k, m] = squarePart(D);
   if (k === 1) return exact(rng);
-  const g = gcd(gcd(b, k), 2 * a);
   const src = `${quad(a, b, c, v)} = 0`;
+  // requiem: catalogue/library/exact-levels-require-simplest
+  const answer = { ...answerOf(v, a, b, c), requireSimplest: true };
+  if (b === 0) {
+    // No term in the letter: square roots, not the formula. Only when the
+    // square comes out whole, so the root to simplify is of a whole number.
+    if (c % a !== 0) return exact(rng);
+    const n = -c / a;
+    const [p, q] = squarePart(n);
+    // Square roots straight away leave nothing to simplify in √11: the
+    // level is the simplifying, so only roots that have some are kept.
+    if (p === 1) return exact(rng);
+    return {
+      prompt: solve(src),
+      text: `roots: ${src}`,
+      answer,
+      visual: null,
+      explain: `No term in ${v}, so no formula needed: ${a === 1 ? '' : `divide by ${a}: `}${v}² = ${n}, and ${v} = ±√${n}. `
+        + `Simplify the root: √${n} = √(${p * p} × ${q}) = ${p}√${q}. So ${shownRoots(v, a, b, c)}.`,
+    };
+  }
+  const g = gcd(gcd(b, k), 2 * a);
   return {
     prompt: solve(src),
     text: `roots: ${src}`,
-    answer: answerOf(v, a, b, c),
+    answer,
     visual: null,
     explain: `${formulaWorking(a, b, c, v)}. Simplify the root: √${D} = √(${k * k} × ${m}) = ${k}√${m}, `
       + `so ${v} = (${minus(-b)} ± ${k}√${m}) / ${2 * a}`
@@ -181,30 +224,58 @@ const METHODS = [
   { id: 'formula', label: 'The formula' },
 ];
 
+/**
+ * Which way is least work. Every choice has to be read off the equation's
+ * structure, not off a surface feature: there are non-monic equations that
+ * factor and monic ones with an odd middle that do not, so neither "a > 1
+ * means the formula" nor "a = 1 means factor" scores. Every equation here
+ * has real roots, since one with none needs no method at all.
+ */
+// requiem: catalogue/library/strategy-not-from-surface
 function whichMethod(rng, again = null) {
   const v = rng.pick(LETTERS);
   const id = again ?? rng.pick(METHODS).id;
   let a = 1, b, c, why;
+  const retry = () => whichMethod(rng, id);
   if (id === 'roots') {
     a = rng.int(1, 5); b = 0; c = -rng.int(2, 60);
     why = `No term in ${v}: ${v}² on its own, then root both sides.`;
   } else if (id === 'factor') {
-    const p = rng.nonZero(-12, 12), q = rng.nonZero(-12, 12);
-    [b, c] = [p + q, p * q];
-    if (b === 0) return whichMethod(rng, id);
-    why = `It factors: ${minus(Math.min(p, q))} and ${minus(Math.max(p, q))} multiply to ${minus(c)} and add to ${minus(b)}.`;
+    if (rng.chance(0.5)) {
+      const p = rng.nonZero(-12, 12), q = rng.nonZero(-12, 12);
+      [b, c] = [p + q, p * q];
+      if (b === 0) return retry();
+      why = `It factors: ${minus(Math.min(p, q))} and ${minus(Math.max(p, q))} multiply to ${minus(c)} and add to ${minus(b)}.`;
+    } else {
+      // (p·v + q)(r·v + s) with something in front: it still factors.
+      const p = rng.int(2, 5), q = rng.nonZero(-9, 9), r = rng.int(1, 3), s = rng.nonZero(-9, 9);
+      if (gcd(p, q) !== 1 || gcd(r, s) !== 1) return retry();
+      [a, b, c] = [p * r, p * s + q * r, q * s];
+      if (b === 0 || gcd(gcd(a, b), c) !== 1) return retry();
+      const bracket = (m, n) => `(${m === 1 ? '' : m}${v} ${n < 0 ? '−' : '+'} ${Math.abs(n)})`;
+      why = `It factors, even with ${a}${v}² in front: ${said(a, b, c, v)} = ${bracket(p, q)}${bracket(r, s)}. Two quick equations from there.`;
+    }
   } else if (id === 'complete') {
     b = 2 * rng.nonZero(-8, 8); c = rng.nonZero(-20, 20);
-    if (isSquare(b * b - 4 * c)) return whichMethod(rng, id);
-    why = `It does not factor, but ${v}² stands alone and ${minus(b)} is even: half of it is a whole number, so the square is quick to complete.`;
+    const D = b * b - 4 * c;
+    if (D <= 0 || isSquare(D)) return retry();
+    why = `It does not factor (b² − 4ac = ${D} is not a square), but ${v}² stands alone and ${minus(b)} is even: half of it is a whole number, so the square is quick to complete.`;
   } else {
-    a = rng.int(2, 5); b = rng.pick([1, 3, 5, 7, 9]) * (rng.chance(0.5) ? -1 : 1); c = rng.nonZero(-9, 9);
-    if (isSquare(b * b - 4 * a * c) || gcd(gcd(a, b), c) !== 1) return whichMethod(rng, id);
-    why = `It does not factor, and with ${a}${v}² in front and an odd middle, completing the square means fractions. The formula does it in one go.`;
+    // Either a monic one with an odd middle, or one with a number in front.
+    const monic = rng.chance(0.4);
+    a = monic ? 1 : rng.int(2, 5);
+    b = monic ? rng.pick([1, 3, 5, 7, 9, 11]) * rng.sign() : rng.nonZero(-9, 9);
+    c = rng.nonZero(-12, 12);
+    const D = b * b - 4 * a * c;
+    if (D <= 0 || isSquare(D) || gcd(gcd(a, b), c) !== 1) return retry();
+    why = `It does not factor (b² − 4ac = ${D} is not a square), and `
+      + (monic ? `the middle, ${minus(b)}, is odd, so completing the square means halves all the way through.`
+        : `with ${a}${v}² in front, completing the square means dividing by ${a} first, and fractions.`)
+      + ' The formula does it in one go.';
   }
   const src = `${quad(a, b, c, v)} = 0`;
   return {
-    prompt: [...solve(src).slice(0, -1), T.prose('— which way is least work?')],
+    prompt: asked(src, '— which method is least work?'),
     text: `quickest: ${src}`,
     answer: { type: 'choice', value: id, options: METHODS },
     visual: null,

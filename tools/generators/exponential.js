@@ -48,14 +48,39 @@ const PLANE = { xRange: [-SPAN, SPAN], yRange: [-SPAN, SPAN], grid: 1 };
 const LINE = 'var(--vec-1)';
 const MARK = 'var(--vec-2)';
 
-function curve(f, step = 0.05) {
-  const pts = [];
-  for (let x = -SPAN; x <= SPAN + 1e-9; x += step) {
-    const y = f(x);
-    if (y >= -SPAN - 1 && y <= SPAN + 1) pts.push([+x.toFixed(2), +y.toFixed(3)]);
+/**
+ * y = f(x) as the polylines that lie inside the grid, each ending exactly on
+ * the window's edge: one polyline of the in-window samples would join across
+ * a stretch that left the window, and a sample kept past the edge runs the
+ * line beyond the plot frame.
+ */
+// requiem: catalogue/visuals/curves-split-at-window
+function curves(f, step = 0.05) {
+  const inside = (y) => Number.isFinite(y) && Math.abs(y) <= SPAN;
+  // The x between one inside and one outside sample where the curve leaves.
+  const edge = (xIn, xOut) => {
+    for (let i = 0; i < 40; i++) {
+      const mid = (xIn + xOut) / 2;
+      if (inside(f(mid))) xIn = mid; else xOut = mid;
+    }
+    return xIn;
+  };
+  const point = (x) => [+x.toFixed(3), +Math.max(-SPAN, Math.min(SPAN, f(x))).toFixed(3)];
+  const out = [];
+  let run = [], prev = null;
+  const n = Math.round((2 * SPAN) / step);
+  for (let i = 0; i <= n; i++) {
+    const x = -SPAN + i * step;
+    const now = inside(f(x));
+    if (now && prev !== null && !inside(f(prev))) run.push(point(edge(x, prev)));
+    if (now) run.push(point(x));
+    if (!now && prev !== null && inside(f(prev))) { run.push(point(edge(prev, x))); out.push(run); run = []; }
+    prev = x;
   }
-  return pts;
+  out.push(run);
+  return out.filter((r) => r.length > 1);
 }
+const paths = (f, tone, extra = {}) => curves(f).map((points) => ({ kind: 'path', points, tone, ...extra }));
 
 /** A base as it is written after a number: 2, 0.5, (1/2). */
 const baseText = (b, asFraction = false) => ((asFraction || !decimal(b, 6)) && b.d !== 1 ? `(${b.n}/${b.d})` : said(b).replace('−', '-'));
@@ -104,7 +129,7 @@ function growthOrDecay(rng) {
     prompt: equation(src, '— growth or decay?'),
     text: `grows or decays: ${src}`,
     answer: { type: 'choice', value: grows ? 'growth' : 'decay', options: KINDS },
-    visual: small ? { kind: 'plane', ...PLANE, marks: [], answer: [{ kind: 'path', points: curve(f), tone: LINE }] } : null,
+    visual: small ? { kind: 'plane', ...PLANE, marks: [], answer: paths(f, LINE) } : null,
     explain: `${why}, so each step ${grows ? 'multiplies it up' : 'cuts it down'}: ${grows ? 'growth' : 'decay'}.`
       + `${num(a) !== 1 ? ` The ${said(a)} in front is only where it starts.` : ''}`,
   };
@@ -147,8 +172,11 @@ function readAB(rng) {
   };
 }
 
-const RISING = ['A town’s population', 'A savings balance', 'The number of users of an app', 'A price'];
-const FALLING = ['A car’s value', 'The number of fish in a lake', 'A phone’s battery charge', 'The amount of a medicine in the blood'];
+/** What changes, and over what step of time it does. */
+const RISING = [['A town’s population', 'year'], ['A savings balance', 'year'], ['The number of users of an app', 'month'],
+  ['A price', 'year']];
+const FALLING = [['A car’s value', 'year'], ['The number of fish in a lake', 'year'], ['A phone’s battery charge', 'hour'],
+  ['The amount of a medicine in the blood', 'hour']];
 
 function percentFactor(rng) {
   const up = rng.chance(0.5);
@@ -156,9 +184,9 @@ function percentFactor(rng) {
   const r = rng.chance(0.4) ? rng.int(1, 9) : up ? rng.pick([rng.int(10, 60), 75, 100, 150]) : rng.int(10, 90);
   const b = Q(100 + (up ? r : -r), 100);
   if (rng.chance(0.5)) {
-    const thing = rng.pick(up ? RISING : FALLING);
+    const [thing, step] = rng.pick(up ? RISING : FALLING);
     return {
-      prompt: [T.prose(`${thing} ${up ? 'grows' : 'falls'} by ${r}% each year. Written as y = a · bᵗ, what is b?`)],
+      prompt: [T.prose(`${thing} ${up ? 'grows' : 'falls'} by ${r}% each ${step}. Written as y = a · bᵗ, what is b?`)],
       text: `factor for: ${up ? 'up' : 'down'} ${r}`,
       answer: answerOf(b),
       visual: null,
@@ -180,14 +208,15 @@ function percentFactor(rng) {
 
 function compound(rng) {
   const up = rng.chance(0.6);
-  const P = rng.pick(up ? [100, 200, 400, 500, 800, 1000, 1500, 2000, 2500, 4000, 5000, 8000, 10000]
+  const P = rng.pick(up ? [100, 200, 300, 400, 500, 600, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000]
     : [2000, 4000, 5000, 8000, 10000, 12000, 15000, 16000, 20000, 25000]);
-  const r = rng.pick(up ? [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 50] : [5, 10, 15, 20, 25, 40, 50]);
+  // Savings at the rates a bank pays; a car can lose much more.
+  const r = rng.pick(up ? [1, 2, 3, 4, 5, 6, 8, 10, 12] : [5, 10, 15, 20, 25, 40, 50]);
   const t = rng.pick([2, 2, 3]);
   const b = Q(100 + (up ? r : -r), 100);
   const want = mul(Q(P), pow(b, t));
   // Whole cents, and no more than three steps of long multiplication.
-  if (!decimal(want, 2) || (t === 3 && ![10, 20, 50].includes(r))) return compound(rng);
+  if (!decimal(want, 2) || (t === 3 && ![1, 10, 20, 50].includes(r))) return compound(rng);
   const steps = [];
   for (let i = 1, v = Q(P); i <= t; i++) { v = mul(v, b); steps.push(said(v)); }
   const prompt = up
@@ -300,7 +329,8 @@ function linearOrExp(rng, again = null) {
   // A sequence must be the kind it was made as and no other: 5, 5, 5, 5 is both.
   const kind = same(d) ? 'linear' : same(r) ? 'exponential' : 'neither';
   if (kind !== id || same(d) && same(r)) return linearOrExp(rng, id);
-  const list = (xs) => xs.map(said).join(', ');
+  // All decimals, or all fractions when any of them would not end.
+  const list = (xs) => (xs.every((x) => decimal(x, 6)) ? xs.map(said) : xs.map((x) => (x.d === 1 ? minus(x.n) : `${minus(x.n)}/${x.d}`))).join(', ');
   return {
     prompt: [T.prose(`At x = 0, 1, 2, 3, y is ${list(s)}. Linear or exponential?`)],
     text: `table kind: ${s.map((v) => baseText(v)).join(', ')}`,
@@ -316,6 +346,9 @@ function asymptote(rng) {
   const a = Q(rng.pick([1, 2, 3, 4, -1, -2, -3]));
   const b = rng.pick([Q(2), Q(3), Q(1, 2), Q(1, 3)]);
   const k = rng.int(-6, 6);
+  // The curve crosses the y-axis at a + k: on the grid, with room for its
+  // label, or the point the answer names is drawn off the picture.
+  if (Math.abs(num(a) + k) > 7) return asymptote(rng);
   const fraction = rng.chance(0.6);
   const src = `${model(a, b, { fraction })}${k ? ` ${k < 0 ? '-' : '+'} ${Math.abs(k)}` : ''}`;
   const askLine = rng.chance(0.6);
@@ -330,7 +363,7 @@ function asymptote(rng) {
     prompt: equation(src, askLine ? '— the line it gets ever closer to is y = ?' : '— it crosses the y-axis at y = ?'),
     text: `${askLine ? 'asymptote' : 'y-intercept'}: ${src}`,
     answer: answerOf(askLine ? Q(k) : add(a, Q(k))),
-    visual: { kind: 'plane', ...PLANE, marks: [], answer: [{ kind: 'path', points: curve(f), tone: LINE },
+    visual: { kind: 'plane', ...PLANE, marks: [], answer: [...paths(f, LINE),
       ...(askLine ? line : [{ kind: 'point', at: [0, num(a) + k], label: `(0, ${minus(num(a) + k)})`, tone: MARK }])] },
     explain: askLine
       ? `${pretty(model(a, b, { fraction }))} gets ever closer to 0 ${flat}, and never reaches it. `

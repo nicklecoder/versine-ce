@@ -85,6 +85,18 @@ function zeroProduct(rng) {
   if (shape === 'lead' && gcd(factors[0][0][0], factors[0][1][0]) !== 1) return zeroProduct(rng);
   const src = `${factors.map((f) => (f.length === 1 ? v : `(${write(f, v)})`)).join('')} = 0`;
   const steps = factors.map((f) => (f.length === 1 ? { r: root(0), step: `${v} = 0` } : zeroOf(f, v)));
+  const twice = factors.length === 2 && factors[0].length === 2 && write(factors[0], v) === write(factors[1], v);
+  if (twice) {
+    // (x + 8)(x + 8): one factor twice, so one equation and one solution.
+    return {
+      prompt: solve(src),
+      text: `quadratic: ${src}`,
+      answer: answerOf(v, [steps[0].r]),
+      visual: null,
+      explain: `Both factors are ${pretty(factors[0], v)}, so this is (${pretty(factors[0], v)})² = 0, and only 0 squares to 0: `
+        + `${steps[0].step}. The one solution counts twice, a double root. So ${said(v, [steps[0].r])}.`,
+    };
+  }
   return {
     prompt: solve(src),
     text: `quadratic: ${src}`,
@@ -202,7 +214,7 @@ function squareRoots(rng) {
     const k = rng.chance(0.5) ? rng.int(1, 12) ** 2 : rng.int(1, 50);
     src = rng.chance(0.5) ? `${v}^2 + ${k} = 0` : `${v}^2 = -${k}`;
     roots = [];
-    how = `${v}² = −${k}, but no number squared is negative`;
+    how = `${v}² = −${k}, but no real number squared is negative`;
   }
   return {
     prompt: solve(src),
@@ -216,7 +228,7 @@ function squareRoots(rng) {
 const METHODS = [
   { id: 'roots', label: 'Take square roots' },
   { id: 'factor', label: 'Factor it' },
-  { id: 'neither', label: 'Neither works yet' },
+  { id: 'neither', label: 'Neither will do it' },
 ];
 
 function whichMethod(rng, again = null) {
@@ -225,15 +237,13 @@ function whichMethod(rng, again = null) {
   const id = again ?? rng.pick(METHODS).id;
   let src, why;
   if (id === 'roots') {
-    const shape = rng.pick(['plain', 'shifted', 'squares']);
+    // Not x² − k² = 0: that factors as quickly as it roots, so neither
+    // answer would be the one right one.
+    const shape = rng.pick(['plain', 'shifted']);
     if (shape === 'shifted') {
       const h = rng.nonZero(-9, 9), k = rng.int(2, 40);
       src = `(${write(linear(1, -h), v)})^2 = ${k}`;
       why = 'A square equal to a number: root both sides, and nothing needs multiplying out.';
-    } else if (shape === 'squares') {
-      const r = rng.int(2, 12);
-      src = `${v}^2 - ${r * r} = 0`;
-      why = `There is no term in ${v}, so it is ${v}² = ${r * r}: square roots in one step. It factors too, but that is the long way.`;
     } else {
       const a = rng.int(1, 5), k = rng.int(2, 60);
       src = `${a === 1 ? '' : a}${v}^2 = ${k}`;
@@ -258,7 +268,7 @@ function whichMethod(rng, again = null) {
         + 'It needs completing the square or the quadratic formula.';
   }
   return {
-    prompt: [...solve(src).slice(0, -1), T.prose('— which way is quickest?')],
+    prompt: [...previewOf(src).terms, T.prose('— which method is quickest?')],
     text: `method: ${src}`,
     answer: { type: 'choice', value: id, options: METHODS },
     visual: null,

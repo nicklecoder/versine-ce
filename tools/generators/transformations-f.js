@@ -22,14 +22,39 @@ const PLANE = { xRange: [-SPAN, SPAN], yRange: [-SPAN, SPAN], grid: 1 };
 const LINE = 'var(--vec-1)';
 const FAINT = 'var(--vec-2)';
 
-function curve(f, step = 0.05) {
-  const pts = [];
-  for (let x = -SPAN; x <= SPAN + 1e-9; x += step) {
-    const y = f(x);
-    if (Number.isFinite(y) && y >= -SPAN - 1 && y <= SPAN + 1) pts.push([+x.toFixed(2), +y.toFixed(3)]);
+/**
+ * y = f(x) as the polylines that lie inside the grid, each ending exactly on
+ * the window's edge: one polyline of the in-window samples would join across
+ * a stretch that left the window, and a sample kept past the edge runs the
+ * line beyond the plot frame.
+ */
+// requiem: catalogue/visuals/curves-split-at-window
+function curves(f, step = 0.05) {
+  const inside = (y) => Number.isFinite(y) && Math.abs(y) <= SPAN;
+  // The x between one inside and one outside sample where the curve leaves.
+  const edge = (xIn, xOut) => {
+    for (let i = 0; i < 40; i++) {
+      const mid = (xIn + xOut) / 2;
+      if (inside(f(mid))) xIn = mid; else xOut = mid;
+    }
+    return xIn;
+  };
+  const point = (x) => [+x.toFixed(3), +Math.max(-SPAN, Math.min(SPAN, f(x))).toFixed(3)];
+  const out = [];
+  let run = [], prev = null;
+  const n = Math.round((2 * SPAN) / step);
+  for (let i = 0; i <= n; i++) {
+    const x = -SPAN + i * step;
+    const now = inside(f(x));
+    if (now && prev !== null && !inside(f(prev))) run.push(point(edge(x, prev)));
+    if (now) run.push(point(x));
+    if (!now && prev !== null && inside(f(prev))) { run.push(point(edge(prev, x))); out.push(run); run = []; }
+    prev = x;
   }
-  return pts;
+  out.push(run);
+  return out.filter((r) => r.length > 1);
 }
+const paths = (f, tone, extra = {}) => curves(f).map((points) => ({ kind: 'path', points, tone, ...extra }));
 
 /** The four families, each as text around an inside and as a function. */
 const PARENTS = {
@@ -68,17 +93,20 @@ function eq(src) {
 }
 
 /**
- * Two graphs by their equations, and what took one to the other. The one it
- * started from is drawn faint once it is answered, the moved one bold.
+ * Two graphs by their equations, and what took one to the other. The prompt
+ * names which is the start -- "compared with" left it open, and read the
+ * other way round every answer flips. The one it started from is drawn faint
+ * once it is answered, the moved one bold.
  */
 function compare(base, g, ask, options, value, why, prefix) {
   return {
-    prompt: [...eq(g.src), T.prose('compared with'), ...eq(base.src), T.prose(`— ${ask}`)],
+    // Each equation one piece, so neither is broken across lines.
+    prompt: [T.prose('Start from'), T.math(eq(base.src)), T.prose(`— ${ask} to give`), T.math(eq(g.src)), T.prose('?')],
     text: `${prefix}: ${base.src} -> ${g.src}`,
     answer: { type: 'choice', value, options },
     visual: { kind: 'plane', ...PLANE, marks: [], answer: [
-      { kind: 'path', points: curve(base.f), tone: FAINT, dashed: true },
-      { kind: 'path', points: curve(g.f), tone: LINE },
+      ...paths(base.f, FAINT, { dashed: true }),
+      ...paths(g.f, LINE),
     ] },
     explain: why,
   };
@@ -111,7 +139,7 @@ function image(rng, { a = 1, k = 1, h = 0, v = 0 }, why) {
     text: `image of ${p}, ${q}: ${front(a)}f(${u})${tail(v)}`,
     answer: { type: 'pair', value: { x: { n: X, d: 1 }, y: { n: Y, d: 1 } } },
     visual: null,
-    explain: `${why} So ${at([p, q])} lands on ${at([X, Y])}.`,
+    explain: `${typeof why === 'function' ? why(p, q, X, Y) : why} So ${at([p, q])} lands on ${at([X, Y])}.`,
   };
 }
 
@@ -125,12 +153,13 @@ function start(rng, { shift = true, lift = true } = {}) {
 function upDown(rng) {
   const dv = rng.nonZero(-6, 6);
   if (rng.chance(0.5)) {
-    return image(rng, { v: dv }, `Adding ${minus(dv)} outside changes every height by ${minus(dv)} and no x.`);
+    return image(rng, { v: dv }, (p, q, X, Y) => `${dv > 0 ? `Adding ${dv}` : `Taking away ${-dv}`} outside moves every height `
+      + `${dv > 0 ? 'up' : 'down'} ${Math.abs(dv)}, and leaves x as it is: y → ${minus(q)} ${dv > 0 ? '+' : '−'} ${Math.abs(dv)} = ${minus(Y)}.`);
   }
   const s = start(rng);
   // Both graphs turn on the grid, so the move can be seen once it is answered.
   if (Math.abs(s.v + dv) > 6) return upDown(rng);
-  return compare(moved(s.family, s), moved(s.family, { ...s, v: s.v + dv }), 'how is it moved?',
+  return compare(moved(s.family, s), moved(s.family, { ...s, v: s.v + dv }), 'how is the graph moved',
     DIRECTIONS(Math.abs(dv)), dv > 0 ? 'up' : 'down',
     `Only the number outside changed, by ${minus(dv)}, and that is added to every height: `
     + `${dv > 0 ? 'up' : 'down'} ${Math.abs(dv)}, as it reads.`, 'moved');
@@ -145,7 +174,7 @@ function leftRight(rng) {
   const s = start(rng);
   if (Math.abs(s.c + h) > 6) return leftRight(rng);
   const base = moved(s.family, s), g = moved(s.family, { ...s, c: s.c + h });
-  return compare(base, g, 'how is it moved?', DIRECTIONS(Math.abs(h)), h > 0 ? 'right' : 'left',
+  return compare(base, g, 'how is the graph moved', DIRECTIONS(Math.abs(h)), h > 0 ? 'right' : 'left',
     `Only the number inside changed, ${h > 0 ? `${Math.abs(h)} more taken from` : `${Math.abs(h)} more added to`} x. `
     + `The new graph reaches each height when x is ${Math.abs(h)} ${h > 0 ? 'more' : 'less'}, so it moves `
     + `${h > 0 ? 'right' : 'left'} ${Math.abs(h)}: against the sign.`, 'moved');
@@ -173,7 +202,7 @@ function stretch(rng) {
     { id: 'h-stretch', label: `Stretched sideways, × ${n}` }, { id: 'h-squash', label: `Squashed sideways, × 1/${n}` },
   ];
   const value = outside ? (factor > 1 ? 'v-stretch' : 'v-squash') : (factor > 1 ? 'h-squash' : 'h-stretch');
-  return compare(base, g, 'how is it changed?', options, value, outside
+  return compare(base, g, 'how is the graph changed', options, value, outside
     ? `The ${fracText(factor)} is outside, multiplying every height: ${factor > 1 ? `stretched upward × ${n}` : `squashed down × 1/${n}`}.`
     : `The ${fracText(factor)} multiplies x, inside, and works against itself: each height now comes at `
       + `${fracText(1 / factor)} times the x, so it is ${factor > 1 ? `squashed sideways × 1/${n}` : `stretched sideways × ${n}`}.`,
@@ -209,42 +238,61 @@ function reflect(rng, again = null) {
     : kind === 'y-axis'
       ? 'x is replaced by −x, inside: each height now comes at the opposite x, reflected in the y-axis.'
       : 'x is replaced by −x, which reflects it in the y-axis, but this graph is the same on both sides of the y-axis: the same graph.';
-  return compare(base, g, 'how is it changed?', FLIPS, kind, why, 'reflected');
+  return compare(base, g, 'how is the graph changed', FLIPS, kind, why, 'reflected');
 }
 
 function combined(rng) {
   const a = rng.pick([1, -1, 2, -2, 3, -3, 1 / 2, -1 / 2]);
   const h = rng.nonZero(-5, 5), v = rng.nonZero(-6, 6);
-  const step = `Inside first: x moves ${h > 0 ? 'right' : 'left'} ${Math.abs(h)}. Then outside: the height is `
-    + `${a === 1 ? '' : a === -1 ? 'turned to its opposite, ' : `multiplied by ${a < 0 ? '−' : ''}${fracText(Math.abs(a))}, `}`
-    + `then ${v > 0 ? 'raised' : 'lowered'} ${Math.abs(v)}.`;
-  return image(rng, { a, h, v }, step);
+  const by = a === 1 ? '' : a === -1 ? 'turned to its opposite, then ' : `multiplied by ${a < 0 ? '−' : ''}${fracText(Math.abs(a))}, then `;
+  const times = (q) => (a === 1 ? minus(q) : a === -1 ? (q <= 0 ? `−(${minus(q)})` : `−${q}`) : `${a < 0 ? '−' : ''}${fracText(Math.abs(a))} × ${q < 0 ? `(${minus(q)})` : q}`);
+  return image(rng, { a, h, v }, (p, q, X, Y) => `Inside first: x moves ${h > 0 ? 'right' : 'left'} ${Math.abs(h)}, `
+    + `x → ${minus(p)} ${h > 0 ? '+' : '−'} ${Math.abs(h)} = ${minus(X)}. Then outside: the height is ${by}${v > 0 ? 'raised' : 'lowered'} ${Math.abs(v)}, `
+    + `y → ${times(q)} ${v > 0 ? '+' : '−'} ${Math.abs(v)} = ${minus(Y)}.`);
 }
 
 const FAMILIES = FAMILY.map((id) => ({ id, label: PARENTS[id].label }));
+// requiem: catalogue/library/explanation-true-for-its-row
 const LOOKS = {
-  quadratic: 'A U shape, curved at the bottom and the same on both sides of its turning point: a parabola, y = x² moved.',
-  abs: 'A V with a sharp corner and straight sides: y = |x| moved.',
-  sqrt: 'It starts at a point and runs off one way, rising ever more slowly: y = √x moved.',
-  cubic: 'It runs from one corner to the opposite, flattening as it passes through its middle point: y = x³ moved.',
+  quadratic: (up) => (up
+    ? 'A U shape, curved at the bottom and the same on both sides of its turning point: a parabola, y = x² moved.'
+    : 'An upside-down U, curved at the top and the same on both sides of its turning point: a parabola, y = x² flipped and moved.'),
+  abs: (up) => (up
+    ? 'A V with a sharp corner at the bottom and straight sides: y = |x| moved.'
+    : 'An upside-down V, with a sharp corner at the top and straight sides: y = |x| flipped and moved.'),
+  sqrt: (up) => `It starts at a point and runs off to the right, ${up ? 'rising' : 'falling'} ever more slowly: y = √x ${up ? '' : 'flipped and '}moved.`,
+  cubic: (up) => `It runs from the ${up ? 'bottom left to the top right' : 'top left to the bottom right'}, flattening as it passes `
+    + `through its middle point: y = x³ ${up ? '' : 'flipped and '}moved.`,
 };
 const CORE = { quadratic: 'a bracket squared', abs: 'absolute value bars', sqrt: 'a square root', cubic: 'a bracket cubed' };
+/** What there is to take away from a·P(x − c) + v, naming only what is there. */
+function strip({ a, c, v }) {
+  const parts = [];
+  if (a !== 1) parts.push(a === -1 ? 'the minus in front' : `the ${a < 0 ? '−' : ''}${fracText(Math.abs(a))} in front`);
+  if (c !== 0) parts.push('the shift inside');
+  if (v !== 0) parts.push(`the ${v > 0 ? '+' : '−'} ${Math.abs(v)} at the end`);
+  return parts.length < 2 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
 
 function nameParent(rng) {
   const family = rng.pick(FAMILY);
   const a = rng.pick([1, -1, 2, -2, 3, 1 / 2, -3]);
-  const g = moved(family, { a, c: rng.int(-4, 4), v: rng.int(-5, 5) });
+  const c = rng.int(-4, 4), v = rng.int(-5, 5);
+  const g = moved(family, { a, c, v });
   const graph = rng.chance(0.4);
-  if (graph && curve(g.f).length < 30) return nameParent(rng);
+  const drawn = paths(g.f, LINE);
+  if (graph && drawn.reduce((n, m) => n + m.points.length, 0) < 30) return nameParent(rng);
+  const rest = strip({ a, c, v });
   return {
     prompt: graph ? [T.prose('Which family is this graph from?')] : [...eq(g.src), T.prose('— which family is it from?')],
     text: `parent: ${g.src}`,
     answer: { type: 'choice', value: family, options: FAMILIES },
     // Once answered, the parent it came from is drawn faint beside it.
-    visual: graph ? { kind: 'plane', ...PLANE, marks: [{ kind: 'path', points: curve(g.f), tone: LINE }],
-      answer: [{ kind: 'path', points: curve(PARENTS[family].f), tone: FAINT, dashed: true }] } : null,
-    explain: graph ? LOOKS[family]
-      : `Take away the number in front, the number added and the shift inside, and what is left is ${CORE[family]}: ${PARENTS[family].label}.`,
+    visual: graph ? { kind: 'plane', ...PLANE, marks: drawn,
+      answer: paths(PARENTS[family].f, FAINT, { dashed: true }) } : null,
+    explain: graph ? LOOKS[family](a > 0)
+      : rest ? `Strip off ${rest}, and what is left is ${CORE[family]}: ${PARENTS[family].label}.`
+        : `It is ${PARENTS[family].label} itself.`,
   };
 }
 
@@ -282,6 +330,10 @@ function evenOdd(rng, again = null) {
   const f = (x) => valueAt(src, x);
   const kind = [1, 2, 3].every((x) => f(-x) === f(x)) ? 'even' : [1, 2, 3].every((x) => f(-x) === -f(x)) ? 'odd' : 'neither';
   if (kind !== want) return evenOdd(rng, want);
+  // requiem: catalogue/library/explanation-true-for-its-row
+  // The test point for "neither" must show it: at x = 2, x³ − 4x is 0 and
+  // x³ − 4x + 5 gives the same value at ±2, which says nothing.
+  const t = [2, 1, 3, 4].find((x) => want !== 'neither' || (f(-x) !== f(x) && f(-x) !== -f(x)));
   return {
     // f(x) by hand: the parser would read it as f times x.
     prompt: [{ t: 'juxt', terms: [T.letter('f'), T.group([T.letter('x')])] }, T.op('='), ...previewOf(drawable(src)).terms,
@@ -289,10 +341,13 @@ function evenOdd(rng, again = null) {
     text: `parity: ${src}`,
     answer: { type: 'choice', value: want, options: PARITIES },
     visual: null,
-    explain: `Try x = 2 and x = −2: f(2) = ${minus(f(2))} and f(−2) = ${minus(f(-2))}. `
-      + (want === 'even' ? 'The same, as for every x: x only ever comes in even powers, or inside |x|. Even, and symmetric in the y-axis.'
-        : want === 'odd' ? 'Opposites, as for every x: every power of x is odd. Odd, and symmetric about the origin.'
-          : `Neither the same nor opposites, so neither.${shape === 1 ? ' The odd powers alone would be odd, but the number added does not change sign.' : ''}`),
+    explain: want === 'even' ? `x only ever comes in even powers, or inside |x|, so f(−x) = f(x) for every x: `
+      + `for example f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}. Even, and symmetric in the y-axis.`
+      : want === 'odd' ? `Every power of x is odd, so f(−x) = −f(x) for every x: `
+        + `for example f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}. Odd, and symmetric about the origin.`
+        : `Try x = ${t} and x = −${t}: f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}, neither the same nor opposites.`
+          + `${shape === 1 ? ' The odd powers alone would be odd, but the number added does not change sign.' : ''}`
+          + ' One pair that does not match is enough to rule out even and odd, though one that matches would never prove either. So neither.',
   };
 }
 

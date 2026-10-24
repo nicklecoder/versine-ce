@@ -1605,6 +1605,8 @@ def method_of(equation: str) -> str:
     cs = coefficients(f"({left}) - ({right})")
     c, b, a = (cs + [Fraction(0)] * 3)[:3]
     if b == 0:
+        # x² − 16 = 0 factors as fast as it roots: no one method is right.
+        assert not (right == "0" and c < 0 and is_square(-c / a)), f"{equation} is a difference of squares"
         return "roots"
     return "factor" if is_square(b * b - 4 * a * c) else "neither"
 
@@ -1652,6 +1654,8 @@ def roots_hold(equation: str, value) -> str:
 
 def quickest(equation: str) -> str:
     a, b, c = abc(equation)
+    # With no real roots there is nothing to solve, so no method is right.
+    assert b * b - 4 * a * c >= 0, f"{equation} has no real roots to find"
     if b == 0:
         return "roots"
     if is_square(b * b - 4 * a * c):
@@ -1686,7 +1690,8 @@ def vertex_of(src: str):
     return h, a * h * h + b * h + c
 
 
-VERTEX_FORM = re.compile(r"^-?\d*\(x [+-] [1-9]\d*\)\^2(?: [+-] [1-9]\d*)?$")
+# A 1 written in front, or a k of 0 written as + 0, is still the form.
+VERTEX_FORM = re.compile(r"^-?\d*\(x [+-] [1-9]\d*\)\^2(?: [+-] \d+)?$")
 
 
 def in_vertex_form(src: str, answer: str) -> str:
@@ -1715,9 +1720,16 @@ WAY_TO = {
     "standard": {"vertex": "formula", "zeros": "solve", "y-intercept": "read"},
 }
 
+def way_to(ask: str, src: str) -> str:
+    # The way to the zeros of a parabola that has none is no way at all.
+    c, b, a = (coefficients(src) + [Fraction(0)] * 3)[:3]
+    assert ask != "zeros" or b * b - 4 * a * c >= 0, f"{src} has no zeros to find"
+    return WAY_TO[form_of(src)][ask]
+
+
 CHOICE_RULES += (
     (re.compile(r"^opens: (.+)$"), lambda src: "up" if coefficients(src)[2] > 0 else "down"),
-    (re.compile(r"^quickest (vertex|zeros|y-intercept): (.+)$"), lambda ask, src: WAY_TO[form_of(src)][ask]),
+    (re.compile(r"^quickest (vertex|zeros|y-intercept): (.+)$"), lambda ask, src: way_to(ask, src)),
 )
 
 PAIR_RULES += (

@@ -21,15 +21,40 @@ const PLANE = { xRange: [-SPAN, SPAN], yRange: [-SPAN, SPAN], grid: 1 };
 const LINE = 'var(--vec-1)';
 const MARK = 'var(--vec-2)';
 
-/** Points along y = f(x), kept to the part inside the grid. */
-function curve(f, step = 0.1) {
-  const pts = [];
-  for (let x = -SPAN; x <= SPAN + 1e-9; x += step) {
-    const y = f(x);
-    if (y >= -SPAN - 1 && y <= SPAN + 1) pts.push([+x.toFixed(2), +Math.max(-SPAN - 1, Math.min(SPAN + 1, y)).toFixed(3)]);
+/**
+ * y = f(x) as the polylines that lie inside the grid. Where the curve leaves
+ * the window the line stops exactly at the edge and a new one starts where it
+ * comes back: one polyline would join the last point before the vertex to
+ * the first after it with a straight line, and a parabola whose vertex is off
+ * the grid would be drawn with a flat floor it does not have.
+ */
+// requiem: catalogue/visuals/curves-split-at-window
+function curves(f, step = 0.1) {
+  const inside = (y) => Number.isFinite(y) && Math.abs(y) <= SPAN;
+  // The x between one inside and one outside sample where the curve crosses the edge.
+  const edge = (xIn, xOut) => {
+    for (let i = 0; i < 40; i++) {
+      const mid = (xIn + xOut) / 2;
+      if (inside(f(mid))) xIn = mid; else xOut = mid;
+    }
+    return xIn;
+  };
+  const point = (x) => [+x.toFixed(3), +Math.max(-SPAN, Math.min(SPAN, f(x))).toFixed(3)];
+  const out = [];
+  let run = [], prev = null;
+  const n = Math.round((2 * SPAN) / step);
+  for (let i = 0; i <= n; i++) {
+    const x = -SPAN + i * step;
+    const now = inside(f(x));
+    if (now && prev !== null && !inside(f(prev))) run.push(point(edge(x, prev)));
+    if (now) run.push(point(x));
+    if (!now && prev !== null && inside(f(prev))) { run.push(point(edge(prev, x))); out.push(run); run = []; }
+    prev = x;
   }
-  return pts;
+  out.push(run);
+  return out.filter((r) => r.length > 1);
 }
+const paths = (f, tone, extra = {}) => curves(f).map((points) => ({ kind: 'path', points, tone, ...extra }));
 
 /** a, or a written in front of a bracket: 2, −, nothing. */
 const lead = (a) => (a === 1 ? '' : a === -1 ? '-' : String(a));
@@ -60,7 +85,7 @@ const pairOf = (x, y) => ({ type: 'pair', value: { x: { n: x, d: 1 }, y: { n: y,
 const at = ([x, y]) => `(${minus(x)}, ${minus(y)})`;
 /** The parabola and its vertex, revealed with the answer. */
 const graph = (f, points) => ({ kind: 'plane', ...PLANE, marks: [],
-  answer: [{ kind: 'path', points: curve(f), tone: LINE },
+  answer: [...paths(f, LINE),
     ...points.map((p) => ({ kind: 'point', at: p, tone: MARK,
       // Two zeros close together would print their labels over each other.
       ...(points.length > 1 && Math.abs(points[1][0] - points[0][0]) < 5 ? {} : { label: at(p) }) }))] });
@@ -80,12 +105,12 @@ function upOrDown(rng) {
   } else if (shape === 'factored') {
     const p = rng.int(-6, 6), q = rng.int(-6, 6);
     src = factoredForm(a, p, q);
-    why = `Multiplied out, the x² term is ${pretty(lead(a) || '1')}x²`;
+    why = `Multiplied out, the x² term is ${pretty(lead(a))}x²`;
   } else if (shape === 'hidden') {
     // (p − x)(x + q): the minus is on the x inside the bracket.
     const p = rng.int(1, 6), q = rng.int(-6, 6);
     src = `(${p} - x)${bracket(q)}`;
-    why = `The x² term comes from −x × x = −x²: the minus is hiding inside the first bracket`;
+    why = `The minus is hiding inside the first bracket. The x² term comes from −x × x = −x²`;
     return finishUpDown(src, -1, why);
   } else if (shape === 'constant-first') {
     const c = rng.int(1, 9);
@@ -130,12 +155,13 @@ function zeros(rng) {
   const roots = [Math.min(p, q), Math.max(p, q)];
   const f = (x) => a * (x - p) * (x - q);
   return {
-    prompt: equation(src, '— where does it cross the x-axis?'),
+    // The x-values are asked for, not the points: the answer is the zeros.
+    prompt: equation(src, '— at what values of x does it cross the x-axis?'),
     text: `zeros: ${src}`,
     answer: { type: 'solutions', value: { letter: 'x', parts: roots.map((r) => ({ lo: { n: r, d: 1 }, loIn: true, hi: { n: r, d: 1 }, hiIn: true })) } },
     visual: graph(f, roots.map((r) => [r, 0])),
     explain: `It crosses the x-axis where y = 0, and a product is 0 when a factor is: `
-      + `${roots.map((r) => (r === 0 ? 'x = 0' : `${pretty(bracket(r).slice(1, -1))} = 0 at x = ${minus(r)}`)).join(', ')}`
+      + `${roots.map((r) => (r === 0 ? 'the factor x is 0 at x = 0' : `${pretty(bracket(r).slice(1, -1))} = 0 at x = ${minus(r)}`)).join(', and ')}`
       + `${a !== 1 ? `. The ${minus(a)} in front changes the height, not the zeros` : ''}. So x = ${minus(roots[0])} or x = ${minus(roots[1])}.`,
   };
 }
@@ -155,6 +181,18 @@ function fromStandard(rng) {
   };
 }
 
+/**
+ * Every way of writing a(x − h)² + k that is the same form: a 1 or −1 in
+ * front written out, and a k of 0 written as + 0. The expression type does
+ * not fold a factor of ±1 or a + 0, and −1(x − 5)² + 12 is how many
+ * students write it.
+ */
+function spellings(a, h, k) {
+  const leads = Math.abs(a) === 1 ? [lead(a), a < 0 ? '-1' : '1'] : [lead(a)];
+  const tails = k === 0 ? [plusK(k), ' + 0'] : [plusK(k)];
+  return leads.flatMap((l) => tails.map((t) => `${l}${bracket(h)}^2${t}`)).filter((f) => f !== vertexForm(a, h, k));
+}
+
 function intoVertex(rng) {
   const a = rng.pick([1, 1, 1, 2, 3, -1]), h = rng.nonZero(-6, 6), k = rng.int(-12, 12);
   const b = -2 * a * h, c = a * h * h + k;
@@ -165,7 +203,7 @@ function intoVertex(rng) {
   return {
     prompt: [...r.terms, T.op('='), T.blank(), T.prose('in vertex form')],
     text: `vertex form: ${src}`,
-    answer: { type: 'expr', value: ans },
+    answer: { type: 'expr', value: ans, accept: spellings(a, h, k) },
     visual: null,
     explain: `${inside}Half of ${minus(b / a)} is ${minus(-h)}, and ${pretty(standardForm(1, b / a, 0))} + ${h * h} = ${pretty(bracket(h))}². `
       + `${a === 1 ? `That added ${h * h}` : `Adding ${h * h} inside the bracket adds ${minus(a * h * h)} in all`}, so take it away again: `
@@ -173,20 +211,29 @@ function intoVertex(rng) {
   };
 }
 
+/** A number with at most two decimal places, as the decimal answer holds it. */
+const hundredths = (x) => { const n = Math.round(x * 100); if (Math.abs(n - x * 100) > 1e-9) throw new Error(`${x} is not in hundredths`); const d = n % 10 ? 100 : n % 100 ? 10 : 1; return { n: n / (100 / d), d }; };
+
 /** The vertex of a situation, asked for in words. */
 function context(rng) {
   const shape = rng.pick(['ball', 'ball', 'fence', 'revenue']);
   let src, ask, value, prompt, why;
   if (shape === 'ball') {
-    const t = rng.int(1, 5), s = 2 * rng.int(0, 20);
-    const v = 32 * t, top = 16 * t * t + s;
-    src = standardForm(-16, v, s).replace(/x/g, 't');
+    // In feet, h = −16t² + vt + s; in metres, −5t² (g rounded to 10). The
+    // launch speed is any multiple that puts the top at a half second, so
+    // the answer is not always a whole number of seconds.
+    const metric = rng.chance(0.5);
+    const g = metric ? 5 : 16, k = rng.int(1, metric ? 8 : 10);
+    const s = metric ? rng.int(0, 12) : 2 * rng.int(0, 20);
+    const v = g * k, t = k / 2, top = g * t * t + s;
+    const unit = metric ? 'metres' : 'feet';
+    src = standardForm(-g, v, s).replace(/x/g, 't');
     ask = rng.chance(0.5) ? 'max' : 'when';
     value = ask === 'max' ? top : t;
-    prompt = `A ball is thrown upward. Its height after t seconds is h = ${pretty(src)} feet. `
-      + `${ask === 'max' ? 'How high does it go, in feet?' : 'After how many seconds is it highest?'}`;
-    why = `The highest point is the vertex: t = −b/2a = ${minus(-v)}/(−32) = ${t} seconds`
-      + `${ask === 'max' ? `, and h = −16 × ${t}² + ${v} × ${t}${s ? ` + ${s}` : ''} = ${top} feet` : ''}.`;
+    prompt = `A ball is thrown upward. Its height after t seconds is h = ${pretty(src)} ${unit}. `
+      + `${ask === 'max' ? `How high does it go, in ${unit}?` : 'After how many seconds is it highest?'}`;
+    why = `The highest point is the vertex: t = −b/2a = ${minus(-v)}/(${minus(-2 * g)}) = ${t} second${t === 1 ? '' : 's'}`
+      + `${ask === 'max' ? `, and h = −${g} × ${t}² + ${v} × ${t}${s ? ` + ${s}` : ''} = ${top} ${unit}` : ''}.`;
   } else if (shape === 'fence' && rng.chance(0.5)) {
     const m = rng.int(3, 30), P = 4 * m;
     // A pen against a wall: two sides of x and one of P − 2x.
@@ -211,10 +258,11 @@ function context(rng) {
     const n = rng.int(1, 5), top = 10 * rng.int(4, 20);
     if ((top / n) % 2) return context(rng);
     const best = top / (2 * n);
-    src = `x(${top} - ${n}x)`;
+    const nx = n === 1 ? 'x' : `${n}x`;
+    src = `x(${top} - ${nx})`;
     ask = rng.chance(0.5) ? 'max' : 'when';
     value = ask === 'max' ? best * (top - n * best) : best;
-    prompt = `At a price of x dollars, a shop sells ${top} − ${n}x mugs a day, so its takings are x(${top} − ${n}x) dollars. `
+    prompt = `At a price of x dollars, a shop sells ${top} − ${nx} mugs a day, so its takings are x(${top} − ${nx}) dollars. `
       + `${ask === 'max' ? 'What are the most it can take in a day, in dollars?' : 'What price, in dollars, brings in the most?'}`;
     why = `The takings are 0 at x = 0 and x = ${top / n}; the vertex is halfway, at x = ${best}`
       + `${ask === 'max' ? `, where they are ${best} × ${top - n * best} = ${value} dollars` : ''}.`;
@@ -222,7 +270,10 @@ function context(rng) {
   return {
     prompt: [T.prose(prompt)],
     text: `${ask === 'max' ? 'max of' : 'max at'}: ${src.replace(/t/g, 'x')}`,
-    answer: { type: 'int', value },
+    // requiem: catalogue/library/consistent-answer-type-in-level
+    // A ball's answers can be halves, so every row here takes a decimal and
+    // the box does not say which kind is coming.
+    answer: { type: 'decimal', value: hundredths(value) },
     visual: null,
     explain: why,
   };
@@ -262,12 +313,21 @@ function whichForm(rng, again = null) {
   const [form, feature] = again ?? rng.pick(rng.pick(BY_WAY));
   const a = rng.pick([1, 2, -1, -2, 3]);
   let src;
-  if (form === 'vertex') src = vertexForm(a, rng.nonZero(-6, 6), rng.nonZero(-9, 9));
-  else if (form === 'factored') {
+  if (form === 'vertex') {
+    const h = rng.nonZero(-6, 6), k = rng.nonZero(-9, 9);
+    // Asked the way to its zeros, a parabola must have some: one that turns
+    // above the axis and opens up never reaches it.
+    if (feature === 'zeros' && Math.sign(a) === Math.sign(k)) return whichForm(rng, [form, feature]);
+    src = vertexForm(a, h, k);
+  } else if (form === 'factored') {
     const p = rng.nonZero(-6, 6), q = rng.nonZero(-6, 6);
     if (p === q) return whichForm(rng, [form, feature]);
     src = factoredForm(a, Math.min(p, q), Math.max(p, q));
-  } else src = standardForm(a, rng.nonZero(-9, 9), rng.nonZero(-9, 9));
+  } else {
+    const b = rng.nonZero(-9, 9), c = rng.nonZero(-9, 9);
+    if (feature === 'zeros' && b * b - 4 * a * c < 0) return whichForm(rng, [form, feature]);
+    src = standardForm(a, b, c);
+  }
   return {
     prompt: equation(src, `— the quickest way to its ${feature}?`),
     text: `quickest ${feature}: ${src}`,
