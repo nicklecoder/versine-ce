@@ -195,9 +195,12 @@ function partAndWhole(rng) {
 
 /** What one is worth, which every other rate question is answered through. */
 const RATES = [
+  // requiem: catalogue/content/units-both-systems
   { many: 'km', per: 'hours', ask: 'How far in one hour?', unit: 'km' },
+  { many: 'miles', per: 'hours', ask: 'How far in one hour?', unit: 'miles' },
   { many: 'pages', per: 'minutes', ask: 'How many in one minute?', unit: 'pages' },
   { many: 'liters', per: 'tanks', ask: 'How much in one tank?', unit: 'liters' },
+  { many: 'gallons', per: 'tanks', ask: 'How much in one tank?', unit: 'gallons' },
   { many: 'words', per: 'lines', ask: 'How many on one line?', unit: 'words' },
   { many: 'grams', per: 'scoops', ask: 'How much in one scoop?', unit: 'grams' },
 ];

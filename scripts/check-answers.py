@@ -619,7 +619,7 @@ def graph_proportional(text: str) -> str:
 # with itself.
 PER = {("m", "cm"): 100, ("km", "m"): 1000, ("kg", "g"): 1000, ("L", "mL"): 1000,
        ("h", "min"): 60, ("min", "s"): 60, ("ft", "in"): 12, ("yd", "ft"): 3,
-       ("day", "h"): 24, ("cm", "mm"): 10}
+       ("day", "h"): 24, ("cm", "mm"): 10, ("lb", "oz"): 16, ("gal", "qt"): 4}
 
 
 def convert(amount_: str, a: str, b: str) -> Fraction:
