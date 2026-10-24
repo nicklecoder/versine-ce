@@ -5803,6 +5803,8 @@ CHOICE_RULES += (
 # exactly those roots, an option set the one of four that is, and a general
 # solution's members over two turns either way must be the roots there.
 
+from decimal import Decimal, ROUND_HALF_UP  # noqa: E402
+
 TE_DEG = {
     "sin": lambda t: math.sin(math.radians(t)), "cos": lambda t: math.cos(math.radians(t)),
     "tan": lambda t: math.tan(math.radians(t)), "sqrt": math.sqrt,
@@ -5911,6 +5913,12 @@ def te_inverse(unit: str, fn: str, written: str) -> Fraction:
     return Fraction(d)
 
 
+def te_calc(unit: str, fn: str, x: str, places: int) -> Fraction:
+    t = TE_INV[fn](float(x))
+    v = t if unit == "rad" else math.degrees(t)
+    return Fraction(Decimal(repr(v)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+
+
 def te_undo(unit: str, fn: str, angle) -> Fraction:
     """sin⁻¹(sin θ) by the calculator: the inverse of the value, not θ."""
     angle = str(angle)
@@ -5954,6 +5962,7 @@ CHOICE_RULES += (
 
 BY_RULE += (
     (re.compile(r"^inverse (rad|deg): a(sin|cos|tan)\((.+)\)$"), te_inverse),
+    (re.compile(r"^inverse calc (rad|deg): a(sin|cos|tan)\((-?[\d.]+)\) to (\d) dp$"), te_calc),
     (re.compile(r"^undo (rad|deg): a(sin|cos|tan)\((?:sin|cos|tan)\((-?\d+(?:/\d+ pi)?)\)\)$"), te_undo),
     (re.compile(r"^compose: (sin|cos|tan)\(a(sin|cos|tan)\((-?\d+)/(\d+)\)\)$"), te_compose),
 )
@@ -6401,6 +6410,355 @@ def idn_fails_where(equation: str, options: str) -> str:
 CHOICE_RULES += (
     (re.compile(r"^identity or not: (.+? = .+?)(?:; fails at (.+))?$"), idn_identity),
     (re.compile(r"^fails where: (.+? = .+?); options (.+)$"), idn_fails_where),
+)
+
+# --- Inverse Functions --------------------------------------------------------
+#
+# f is read from the text and undone here by a route of this section's own:
+# solving f(x) = c by trying inputs, or composing f with the answer and
+# asking that only x is left, in exact rationals where f has no root and in
+# floats to a billionth where it does. A table and a graph are read backwards
+# from their own entries.
+
+def iv_into(outer: str, inner: str) -> str:
+    return re.sub(r"x", f"({inner})", outer)
+
+
+def iv_float(expr: str, x: float) -> float:
+    """expr at x in floats, for formulas with a square root in them."""
+    py = expr.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(s])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(s])", ")*", py)
+    return eval(py, {"__builtins__": {}, "sqrt": math.sqrt, "x": x})  # noqa: S307 -- our own text
+
+
+IV_TRY = [Fraction(n, 2) for n in range(-240, 241)]
+
+
+def iv_solve(f: str, c, ok=lambda x: True) -> Fraction:
+    """The one input, among halves from -120 to 120, that f sends to c."""
+    hits = []
+    for x in IV_TRY:
+        if not ok(x):
+            continue
+        try:
+            y = at(f, {"x": x}) if "sqrt" not in f else iv_float(f, float(x))
+        except (ValueError, ZeroDivisionError):
+            continue
+        if abs(y - Fraction(c)) < 1e-9:
+            hits.append(x)
+    assert len(hits) == 1, f"{f} = {c} at {hits}"
+    return hits[0]
+
+
+def iv_value(f: str, c: str) -> Fraction:
+    return iv_solve(f, int(c))
+
+
+def iv_table(xs: str, fs: str, c: str) -> Fraction:
+    pairs = [(int(a), int(b)) for a, b in zip(xs.split(", "), fs.split(", "))]
+    hits = [a for a, b in pairs if b == int(c)]
+    assert len(hits) == 1, f"{c} appears {len(hits)} times in the table"
+    return Fraction(hits[0])
+
+
+IV_OPS = {"plus": lambda v, k: v + k, "minus": lambda v, k: v - k,
+          "times": lambda v, k: v * k, "divide": lambda v, k: v / k}
+
+
+def iv_run(steps: str, v: Fraction) -> Fraction:
+    for step in steps.split(", "):
+        op, k = step.split(" ")
+        v = IV_OPS[op](v, Fraction(int(k)))
+    return v
+
+
+def iv_steps(f: str, listing: str) -> str:
+    fit = [oid for oid, body in te_options(listing).items()
+           if all(iv_run(body, iv_run(f, Fraction(v))) == v for v in (-7, -1, 0, 2, 5, 11))]
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options undo {f}"
+
+
+IV_POINTS = [Fraction(n, 3) for n in range(-24, 25)]
+
+
+def iv_undoes(f: str, g: str) -> bool:
+    """g(f(x)) = x and f(g(x)) = x wherever both are defined, at enough points."""
+    agreed = 0
+    for x in IV_POINTS:
+        try:
+            if at(iv_into(f, g), {"x": x}) != x or at(iv_into(g, f), {"x": x}) != x:
+                return False
+        except ZeroDivisionError:
+            continue
+        agreed += 1
+    return agreed >= 20
+
+
+# requiem: catalogue/content/inverse-formula-forms-listed
+def iv_formula(f: str, answer: str) -> str:
+    return "ok" if iv_undoes(f, answer) else f"does not undo {f}"
+
+
+def iv_pair(f: str, g: str) -> str:
+    return "a" if iv_undoes(f, g) else "b"
+
+
+def iv_compose(f: str, g: str, answer: str) -> str:
+    return same_polynomial(iv_into(f, g), answer)
+
+
+def iv_in(branch: str):
+    m = re.fullmatch(r"x (>=|<=) (-?\d+)", branch)
+    if branch == "all":
+        return lambda x: True
+    lim = int(m[2])
+    return (lambda x: x >= lim) if m[1] == ">=" else (lambda x: x <= lim)
+
+
+def iv_restricted(f: str, branch: str, c: str) -> Fraction:
+    return iv_solve(f, int(c), iv_in(branch))
+
+
+def iv_one_to_one(f: str, listing: str) -> str:
+    fit = []
+    for oid, body in te_options(listing).items():
+        seen = {}
+        inside = [x for x in IV_TRY if iv_in(body)(x)]
+        if all(seen.setdefault(at(f, {"x": x}), x) == x for x in inside):
+            fit.append(oid)
+    return fit[0] if len(fit) == 1 else f"{len(fit)} domains are one-to-one"
+
+
+def iv_restricted_formula(f: str, branch: str, listing: str) -> str:
+    keep = iv_in(branch)
+    # f's outputs: the values it takes on its own domain.
+    outputs = sorted({float(at(f, {"x": x})) for x in IV_TRY if keep(x)})[:60]
+    fit = []
+    for oid, body in te_options(listing).items():
+        good = True
+        for y in outputs:
+            try:
+                back = iv_float(body, y)
+            except ValueError:
+                good = False
+                break
+            if not keep(Fraction(back).limit_denominator(10 ** 6)) or abs(iv_float(f, back) - y) > 1e-9:
+                good = False
+                break
+        if good:
+            fit.append(oid)
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options undo {f} on {branch}"
+
+
+IV_PT = re.compile(r"\((-?\d+), (-?\d+)\)")
+
+
+def iv_graph(listing: str, k: str) -> Fraction:
+    pts = [(int(a), int(b)) for a, b in IV_PT.findall(listing)]
+    k = Fraction(int(k))
+    hits = set()
+    for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+        if min(y1, y2) <= k <= max(y1, y2) and y1 != y2:
+            hits.add(x1 + (k - y1) * Fraction(x2 - x1, y2 - y1))
+    assert len(hits) == 1, f"height {k} reached at {hits}"
+    return hits.pop()
+
+
+BY_RULE += (
+    (re.compile(r"^inverse value: f\(x\) = (.+); at (-?\d+)$"), iv_value),
+    (re.compile(r"^inverse table: x ([-\d, ]+) \| f ([-\d, ]+); at (-?\d+)$"), iv_table),
+    (re.compile(r"^restricted inverse: f\(x\) = (.+); (x (?:>=|<=) -?\d+); at (-?\d+)$"), iv_restricted),
+    (re.compile(r"^graph inverse: ((?:\(-?\d+, -?\d+\) ?)+); at (-?\d+)$"), iv_graph),
+)
+
+EXPR_RULES += (
+    (re.compile(r"^inverse formula: f\(x\) = (.+)$"), iv_formula),
+    (re.compile(r"^inverse compose: f\(x\) = (.+); g\(x\) = (.+); f\(g\(x\)\)$"), iv_compose),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^undo steps: (.+?); options (.+)$"), iv_steps),
+    (re.compile(r"^inverse pair: f\(x\) = (.+); g\(x\) = (.+); options a: inverses \| b: not inverses$"), iv_pair),
+    (re.compile(r"^one-to-one: f\(x\) = (.+); options (.+)$"), iv_one_to_one),
+    (re.compile(r"^restricted formula: f\(x\) = (.+); (x (?:>=|<=) -?\d+); options (.+)$"), iv_restricted_formula),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^reflect point: \((-?\d+), (-?\d+)\)$"), lambda a, b: (b, a)),
+    (re.compile(r"^reflect value: f\((-?\d+)\) = (-?\d+)$"), lambda a, b: (b, a)),
+)
+
+# The graph is the student's only copy of f: it must be the path the text
+# lists, its two ends filled dots.
+for path in sorted(LIB.glob("inverses-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        m = re.match(r"^graph inverse: ((?:\(-?\d+, -?\d+\) ?)+); at -?\d+$", p["text"])
+        if not m:
+            continue
+        where = f"inverses L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        corners = [[float(a), float(b)] for a, b in IV_PT.findall(m[1])]
+        marks = p["visual"]["marks"]
+        if not any(mk["kind"] == "path" and mk["points"] == corners for mk in marks):
+            problems.append(f"{where}: the graph drawn is not {corners}")
+        dots = sorted(mk["at"] for mk in marks if mk["kind"] == "point")
+        if dots != sorted([corners[0], corners[-1]]):
+            problems.append(f"{where}: end dots {dots}, not at {corners[0]} and {corners[-1]}")
+
+# --- Radical Equations --------------------------------------------------------
+#
+# Each equation is read as written, sqrt(), root(3, ) and ^(p/q) included,
+# and its solutions are found by trying every whole number from -1000 to
+# 1000 in the original equation: an extraneous answer is left out because it
+# fails there, not because a rule says so. A real power is taken the way the
+# textbook does: an odd root of a negative is negative, an even one is not a
+# real number. A sign change between two whole numbers, where neither is a
+# solution, would mean a solution off the grid, and fails the check.
+
+def re_pow(base: float, p: int, q: int) -> float:
+    if base < 0:
+        if q % 2 == 0:
+            raise ValueError("even root of a negative")
+        return (-((-base) ** (1 / q))) ** p
+    return (base ** (1 / q)) ** p
+
+
+def re_cbrt(v: float) -> float:
+    return -((-v) ** (1 / 3)) if v < 0 else v ** (1 / 3)
+
+
+def re_side(src: str):
+    py = src.replace("root(3, ", "cbrt(")
+    py = re.sub(r"(\([^()]*\)|x)\^\((\d+)/(\d+)\)", r"rpow(\1, \2, \3)", py)
+    py = py.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(scr])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(])", ")*", py)
+    fn = eval(f"lambda x: {py}", {"__builtins__": {}, "sqrt": math.sqrt, "cbrt": re_cbrt, "rpow": re_pow})  # noqa: S307
+    return fn
+
+
+RE_GRID = [Fraction(n) for n in range(-1000, 1001)]
+
+
+# requiem: catalogue/content/extraneous-level-mixes-outcomes
+def re_solutions(lhs: str, rhs: str) -> OnGrid:
+    L, R = re_side(lhs), re_side(rhs)
+
+    def gap(x):
+        try:
+            return L(x) - R(x)
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    hits, prev = set(), None
+    for x in range(-1000, 1001):
+        g = gap(float(x))
+        if g is not None and abs(g) < 1e-7 * max(1.0, abs(R(float(x)))):
+            hits.add(Fraction(x))
+        elif g is not None and prev is not None and prev[1] is not None and abs(prev[1]) >= 1e-7 and (g > 0) != (prev[1] > 0):
+            raise AssertionError(f"{lhs} = {rhs} changes sign between {prev[0]} and {x}")
+        prev = (x, g)
+    return on_grid(hits, RE_GRID)
+
+
+SET_RULES += (
+    (re.compile(r"^radical: (.+) = (.+)$"), re_solutions),
+)
+
+# --- Rational Expressions -----------------------------------------------------
+#
+# The question's expression and the answer are compared by value at rational
+# points, skipping any that divide by zero, and the answer must be finished:
+# one fraction whose top and bottom share no factor (their polynomial gcd is a
+# constant), or a polynomial written expanded. Excluded values are the zeros
+# of every denominator in the question as written, found by trying it.
+
+RA_POINTS = [Fraction(n, 7) for n in range(-70, 71)]
+
+
+def ra_equal(a: str, b: str) -> bool:
+    agreed = 0
+    for x in RA_POINTS:
+        try:
+            u, v = at(a, {"x": x}), at(b, {"x": x})
+        except ZeroDivisionError:
+            continue
+        if u != v:
+            return False
+        agreed += 1
+    return agreed >= 40
+
+
+def ra_split(expr: str):
+    """expr as (top, bottom) at its last division outside every bracket, or (expr, None)."""
+    depth, cut = 0, None
+    for i, ch in enumerate(expr):
+        depth += ch == "("
+        depth -= ch == ")"
+        if ch == "/" and depth == 0:
+            cut = i
+    if cut is None:
+        return expr, None
+    return expr[:cut], expr[cut + 1:]
+
+
+def ra_coefficients(src: str) -> list:
+    return coefficients(src) if re.search(r"[a-z]", src) else [evaluate(src)]
+
+
+def ra_trim(r: list) -> list:
+    while r and r[-1] == 0:
+        r = r[:-1]
+    return r
+
+
+def ra_gcd_degree(p: list, q: list) -> int:
+    """The degree of gcd(p, q), coefficients lowest power first, by Euclid."""
+    p, q = ra_trim(list(p)), ra_trim(list(q))
+    while q:
+        r = list(p)
+        while len(r) >= len(q):
+            k, shift = r[-1] / q[-1], len(r) - len(q)
+            for i, c in enumerate(q):
+                r[i + shift] -= k * c
+            r = ra_trim(r)
+        p, q = q, r
+    return len(p) - 1
+
+
+# requiem: catalogue/content/rational-answer-lowest-terms
+def ra_finished(answer: str) -> bool:
+    top, bottom = ra_split(answer.strip())
+    if bottom is None:
+        return expanded(answer) or bool(re.fullmatch(r"-?\d+", answer.strip()))
+    if not re.search(r"x", bottom):
+        return False
+    return ra_gcd_degree(ra_coefficients(top), ra_coefficients(bottom)) == 0
+
+
+def ra_simplified(src: str, answer: str) -> str:
+    if not ra_equal(src, answer):
+        return f"is not equal to {src}"
+    return "ok" if ra_finished(answer) else "is not simplified: its top and bottom share a factor"
+
+
+def ra_excluded(src: str) -> frozenset:
+    # Where any denominator written in the question is zero, evaluating it divides by zero.
+    zeros = set()
+    for x in SAMPLES_ON_LINE:
+        try:
+            at(src, {"x": x})
+        except ZeroDivisionError:
+            zeros.add(x)
+    return frozenset(zeros)
+
+
+EXPR_RULES += (
+    (re.compile(r"^rational: (.+)$"), ra_simplified),
+)
+
+SET_RULES += (
+    (re.compile(r"^excluded: (.+)$"), ra_excluded),
 )
 
 # requiem: catalogue/library/every-level-checked

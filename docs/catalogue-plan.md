@@ -397,7 +397,8 @@ Together. Domain in Context is added for F-IF.5: whether the input is
 counted or measured, and where a story starts and stops. From a Graph
 depends on functions' Domain and Range, and Ranges of Parents on
 transforming functions' Combined. Piecewise and Step Functions ask for
-a value, so All Together leaves them out and keeps one answer box.
+a value, typed as a number, where the other levels ask for a set; the
+question says which, so All Together mixes them.
 
 `composition` is built, as (f + g)(x) · f(g(2)) · f(g(x)) · Not
 Commutative · Decompose · All Together. Its first level depends on
@@ -405,6 +406,30 @@ functions' Function Notation and polynomials' Binomial Times Binomial.
 f(g(2)) is typed in the expression box like every other answer, so All
 Together deals from all five levels. Inverse functions, F-BF.4, are not
 here: they are `inverses`, next in the plan, whose Check by Composing builds on this.
+
+`inverses` is built, as Undo a Function · Solve for x ↔ y · Check by
+Composing · Restrict the Domain · Graph Reflection · All Together. Undo a
+Function depends on functions' Function Notation, Solve for x ↔ y on
+equations' Two Steps, Check by Composing on composition's f(g(x)),
+Restrict the Domain on functions' Vertical Line Test and quadratic graphs'
+Vertex Form, and Graph Reflection on functions' Reading f off a Graph. A
+number goes in the fraction box, a formula in the expression box and a
+reflected point in the pair box; the question says which.
+
+`radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
+Radical · Cube Roots · Rational Exponents · All Together. Isolate & Square
+depends on equations' Two Steps and roots' Perfect Squares, Extraneous
+Roots on quadratic equations' By Factoring, Cube Roots on roots' Cubes and
+Cube Roots, and Rational Exponents on rational exponents' Root, Then
+Power. Every answer is a set, so a row whose candidates are all
+extraneous is answered "no solution".
+
+`rational-expr` is built, as Simplify · Excluded Values · Multiply &
+Divide · Common Denominator · Unlike Denominators · Complex Fractions ·
+All Together. Simplify depends on factoring's x² + bx + c, Excluded
+Values on quadratic equations' Zero Product, Multiply & Divide on
+fraction multiplication's Dividing Fractions, and the two adding levels on
+fraction addition's Same Denominator and Unlike Denominators.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

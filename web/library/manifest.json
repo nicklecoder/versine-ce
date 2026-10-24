@@ -1,5 +1,5 @@
 {
-  "built": 551,
+  "built": 570,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -696,6 +696,31 @@
       "f-of-g-of-x",
       "not-commutative",
       "decompose",
+      "all-together"
+    ],
+    "inverses": [
+      "undo-a-function",
+      "solve-for-x-y",
+      "check-by-composing",
+      "restrict-the-domain",
+      "graph-reflection",
+      "all-together"
+    ],
+    "radical-eq": [
+      "isolate-and-square",
+      "extraneous-roots",
+      "both-sides-radical",
+      "cube-roots",
+      "rational-exponents",
+      "all-together"
+    ],
+    "rational-expr": [
+      "simplify",
+      "excluded-values",
+      "multiply-and-divide",
+      "common-denominator",
+      "unlike-denominators",
+      "complex-fractions",
       "all-together"
     ]
   },
@@ -1575,9 +1600,83 @@
           "polynomials"
         ]
       }
+    },
+    "inverses": {
+      "dependsOn": [
+        "composition",
+        "equations",
+        "functions",
+        "quadratic-graphs"
+      ],
+      "levels": {
+        "undo-a-function": [
+          "functions"
+        ],
+        "solve-for-x-y": [
+          "equations"
+        ],
+        "check-by-composing": [
+          "composition"
+        ],
+        "restrict-the-domain": [
+          "functions",
+          "quadratic-graphs"
+        ],
+        "graph-reflection": [
+          "functions"
+        ]
+      }
+    },
+    "radical-eq": {
+      "dependsOn": [
+        "equations",
+        "quadratic-eq",
+        "rational-exponents",
+        "roots"
+      ],
+      "levels": {
+        "isolate-and-square": [
+          "equations",
+          "roots"
+        ],
+        "extraneous-roots": [
+          "quadratic-eq"
+        ],
+        "cube-roots": [
+          "roots"
+        ],
+        "rational-exponents": [
+          "rational-exponents"
+        ]
+      }
+    },
+    "rational-expr": {
+      "dependsOn": [
+        "factoring",
+        "frac-addsub",
+        "frac-muldiv",
+        "quadratic-eq"
+      ],
+      "levels": {
+        "simplify": [
+          "factoring"
+        ],
+        "excluded-values": [
+          "quadratic-eq"
+        ],
+        "multiply-and-divide": [
+          "frac-muldiv"
+        ],
+        "common-denominator": [
+          "frac-addsub"
+        ],
+        "unlike-denominators": [
+          "frac-addsub"
+        ]
+      }
     }
   },
-  "sources": "4025af19933ca8be383d2dddb5d28102347c4c19dd88b5c58f2e2e903ab26f6d",
+  "sources": "eb1ac3b1585ad53d1ebff9c6ce519295c8ea2a882a44cedf6375d41eb271a976",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6904,8 +7003,8 @@
       "level": 0,
       "slug": "arcsin-arccos-arctan",
       "name": "arcsin, arccos, arctan",
-      "count": 198,
-      "exhaustive": true,
+      "count": 400,
+      "exhaustive": false,
       "signed": true,
       "file": "trig-equations-0.json"
     },
@@ -7088,6 +7187,196 @@
       "exhaustive": false,
       "signed": false,
       "file": "composition-5.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 0,
+      "slug": "undo-a-function",
+      "name": "Undo a Function",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-0.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 1,
+      "slug": "solve-for-x-y",
+      "name": "Solve for x ↔ y",
+      "count": 288,
+      "exhaustive": true,
+      "signed": false,
+      "file": "inverses-1.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 2,
+      "slug": "check-by-composing",
+      "name": "Check by Composing",
+      "count": 504,
+      "exhaustive": true,
+      "signed": false,
+      "file": "inverses-2.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 3,
+      "slug": "restrict-the-domain",
+      "name": "Restrict the Domain",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-3.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 4,
+      "slug": "graph-reflection",
+      "name": "Graph Reflection",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-4.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-5.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 0,
+      "slug": "isolate-and-square",
+      "name": "Isolate & Square",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-0.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 1,
+      "slug": "extraneous-roots",
+      "name": "Extraneous Roots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-1.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 2,
+      "slug": "both-sides-radical",
+      "name": "Both Sides Radical",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-2.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 3,
+      "slug": "cube-roots",
+      "name": "Cube Roots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-3.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 4,
+      "slug": "rational-exponents",
+      "name": "Rational Exponents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-4.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-5.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 0,
+      "slug": "simplify",
+      "name": "Simplify",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-0.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 1,
+      "slug": "excluded-values",
+      "name": "Excluded Values",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-expr-1.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 2,
+      "slug": "multiply-and-divide",
+      "name": "Multiply & Divide",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-2.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 3,
+      "slug": "common-denominator",
+      "name": "Common Denominator",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-3.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 4,
+      "slug": "unlike-denominators",
+      "name": "Unlike Denominators",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-expr-4.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 5,
+      "slug": "complex-fractions",
+      "name": "Complex Fractions",
+      "count": 323,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-expr-5.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-expr-6.json"
     }
   ]
 }

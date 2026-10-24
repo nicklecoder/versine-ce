@@ -13,6 +13,37 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Rational Expressions**, a new skill under Expressions, in seven levels:
+Simplify (cancelling a shared factor, a number, or a factor with its sign
+reversed), Excluded Values (including one whose factor cancels), Multiply
+& Divide, Common Denominator (subtraction taking away the whole second
+numerator, and sums that cancel to a number), Unlike Denominators,
+Complex Fractions, then All Together. Excluded values are a set in the
+solutions input and everything else an expression, accepted with the
+denominator factored or multiplied out. `check-answers.py` compares each
+answer with the question by value and requires its top and bottom to
+share no factor.
+
+**Radical Equations**, a new skill under Equations, in six levels:
+Isolate & Square (with a root that would have to be negative, so no
+solution), Extraneous Roots (√(px + q) = x + s, keeping one, both or
+neither of the two candidates), Both Sides Radical (a root each side, a
+multiple of one, and √(x + k) = √x + m squared twice), Cube Roots,
+Rational Exponents (x^(p/q) = c raised to q/p, ± for an even p, nothing
+for a negative under an even root), then All Together. Every answer is a
+set typed in the solutions input. `check-answers.py` finds the solutions
+by trying every whole number from −1000 to 1000 in the original equation.
+
+**Inverse Functions**, a new skill under Functions, in six levels: Undo a
+Function (f⁻¹ of a number from a rule, a cube, a table, or f's steps
+undone in reverse order), Solve for x ↔ y (swap and solve, every form of
+the answer accepted), Check by Composing (whether a pair are inverses, and
+f(g(x)) worked out), Restrict the Domain (a parabola cut at its vertex,
+f⁻¹ of a number, and which domain and which square root), Graph
+Reflection (a point reflected in y = x, and f⁻¹ read from a graph), then
+All Together. `check-answers.py` undoes f by its own route, trying inputs
+or composing the answer with f, and checks each graph is drawn as listed.
+
 **Combining Functions**, a new skill under Functions, in six levels:
 (f + g)(x) (sums, differences that take away all of g, and products),
 f(g(2)) (from formulas or from a table, inside out), f(g(x)) (every x
@@ -30,23 +61,21 @@ and gaps), Ranges of Parents (shifted and stretched), Piecewise (a value
 from a table of rules or from a graph, the boundary owned by one piece),
 Step Functions (floor, ceiling, and charges by the started hour or
 ounce), Domain in Context (counted against measured, both ways for every
-setting, and an end worked out from the story), then All Together, which
-draws on the levels whose answer is a set. Every set is typed in the
-solutions input. `check-answers.py` finds each domain on a grid of
+setting, and an end worked out from the story), then All Together. Every
+set is typed in the solutions input. `check-answers.py` finds each domain on a grid of
 twelfths and each range by sampling, without the generator's tables, and
 checks that every graph is drawn as its text describes.
 
 **Trig Equations**, a new skill under Identities, in six levels:
-arcsin, arccos and arctan (exact values as multiples of π, sin⁻¹(sin θ)
-outside the range, and cos(sin⁻¹(3/5)) from a triangle, all fractions in
-one box), Solve in Degrees, Solve on [0, 2π), General Solutions (more than
+arcsin, arccos and arctan (exact values in radians and in degrees,
+sin⁻¹(sin θ) outside the range, cos(sin⁻¹(3/5)) from a triangle, and the
+calculator), Solve in Degrees, Solve on [0, 2π), General Solutions (more than
 one turn, and multiple angles such as sin 2x),
 Quadratic-Type (factoring, a square, a common factor never divided away,
 and the Pythagorean identity first), then All Together. A set of angles is
 typed in degrees, where the solutions input holds each one, and a typed
 30° now reads as 30; in radians the set, and every general solution, is
-chosen from four. All Together draws on the four solving levels, which
-share that box. `check-answers.py` finds every root numerically on a
+chosen from four. `check-answers.py` finds every root numerically on a
 quarter-degree grid, with no table of special angles.
 
 **Trig Identities**, a new skill under Identities, in nine levels:
