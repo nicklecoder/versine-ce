@@ -99,6 +99,8 @@ Phase 2 has begun:
 - **Factoring** (Expressions): a common factor out, x² + bx + c, negatives inside,
   difference of squares, perfect squares, and a strategy level on which pattern to look
   for first, including the polynomials that do not factor.
+- **Factoring II** (Expressions): a leading number by trial and by the AC method, factoring
+  completely, grouping four terms, and sums and differences of cubes.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

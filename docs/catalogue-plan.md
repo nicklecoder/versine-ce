@@ -111,7 +111,9 @@ between the right answer and the rule-for-rule slips) and All Together; and
 Negative Fractional Powers · Radical to Power · Rules With Fractions · Combine
 First (strategy, on real-numbers' Sums and Products); and `polynomials`, with
 Taking Away for subtracting and All Together; and `factoring`, with Which
-Pattern? (strategy, on polynomials' Special Products) and All Together.
+Pattern? (strategy, on polynomials' Special Products) and All Together; and
+`factoring-2`, as ax² + bx + c · The AC Method · Factor Completely · Grouping
+Four Terms · Sums and Differences of Cubes · All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

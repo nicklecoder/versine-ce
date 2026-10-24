@@ -1,5 +1,5 @@
 {
-  "built": 290,
+  "built": 296,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -273,6 +273,14 @@
       "difference-of-squares",
       "perfect-squares",
       "which-pattern",
+      "all-together"
+    ],
+    "factoring-2": [
+      "ax2-bx-c",
+      "the-ac-method",
+      "factor-completely",
+      "grouping-four-terms",
+      "sums-and-differences-of-cubes",
       "all-together"
     ],
     "evaluate": [
@@ -745,6 +753,12 @@
         ]
       }
     },
+    "factoring-2": {
+      "dependsOn": [
+        "factoring"
+      ],
+      "levels": {}
+    },
     "evaluate": {
       "dependsOn": [
         "int-muldiv",
@@ -871,7 +885,7 @@
       }
     }
   },
-  "sources": "f53d65203a5cca5fb5cfbde66af259fb784ef4b592081ea58e1fd61e9f39e44b",
+  "sources": "7475984e4548358285d70e408671075336aec201406a374d34ad8d1a97fb349d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3032,6 +3046,66 @@
       "exhaustive": false,
       "signed": false,
       "file": "factoring-6.json"
+    },
+    {
+      "skill": "factoring-2",
+      "level": 0,
+      "slug": "ax2-bx-c",
+      "name": "ax² + bx + c",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-2-0.json"
+    },
+    {
+      "skill": "factoring-2",
+      "level": 1,
+      "slug": "the-ac-method",
+      "name": "The AC Method",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-2-1.json"
+    },
+    {
+      "skill": "factoring-2",
+      "level": 2,
+      "slug": "factor-completely",
+      "name": "Factor Completely",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-2-2.json"
+    },
+    {
+      "skill": "factoring-2",
+      "level": 3,
+      "slug": "grouping-four-terms",
+      "name": "Grouping Four Terms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-2-3.json"
+    },
+    {
+      "skill": "factoring-2",
+      "level": 4,
+      "slug": "sums-and-differences-of-cubes",
+      "name": "Sums and Differences of Cubes",
+      "count": 144,
+      "exhaustive": true,
+      "signed": false,
+      "file": "factoring-2-4.json"
+    },
+    {
+      "skill": "factoring-2",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-2-5.json"
     },
     {
       "skill": "evaluate",
