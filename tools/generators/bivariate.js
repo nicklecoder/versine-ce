@@ -155,7 +155,170 @@ const ptsAsc = (pts) => pts.map(([x, y]) => `(${asc(x)}, ${asc(y)})`).join(' ');
 
 // ── Association ─────────────────────────────────────────────────────────
 
+// ── Pattern features: curves, clusters and outliers (8.SP.1) ───────────
+
+// requiem: catalogue/content/scatter-features-from-points
+// A quarter of Association asks which pattern a scatter plot shows: one
+// straight line, a curve, two clusters, or a line with one outlier. Each
+// plot is drawn so that only its own feature shows, tested on the points:
+// no x gap wider than an eighth of the range unless it is the clusters' gap,
+// a quadratic fitting far better than a line only for a curve, and one point
+// far from the curve through the others only for an outlier.
+const FEATURE_OPTIONS = [
+  { id: 'linear', label: 'One straight-line pattern, with no gap or outlier' },
+  { id: 'curved', label: 'A curved (nonlinear) pattern' },
+  { id: 'clusters', label: 'Two separate clusters' },
+  { id: 'outlier', label: 'A straight-line pattern with one outlier' },
+];
+const CURVES = [
+  { xName: 'speed (mph)', yName: 'stopping distance (ft)', x: [20, 70], f: (x) => 0.055 * x * x + 1.1 * x, step: 1, sd: 6,
+    how: 'rise slowly at first and then more and more steeply' },
+  { xName: 'time (s)', yName: 'height of a thrown ball (ft)', x: [0, 4], f: (x) => 5 + 64 * x - 16 * x * x, step: 1, sd: 2.5,
+    how: 'rise and then fall again' },
+  { xName: 'age of a puppy (months)', yName: 'weight (lb)', x: [0, 12], f: (x) => 4 + 56 * (1 - Math.exp(-x / 3.5)), step: 1, sd: 1.5,
+    how: 'rise quickly and then level off' },
+  { xName: 'time (min)', yName: 'temperature of a cup of tea (°F)', x: [0, 40], f: (x) => 70 + 110 * Math.exp(-x / 12), step: 1, sd: 2,
+    how: 'fall quickly and then level off' },
+];
+const CLUSTERS = [
+  { xName: 'weight (lb)', yName: 'height (in)', who: 'small dogs and large dogs', a: { x: [8, 25], y: [9, 15] }, b: { x: [60, 90], y: [22, 28] }, xs: 1, ys: 0.5, x: [0, 100] },
+  { xName: 'wait before an eruption (min)', yName: 'eruption length (min)', who: 'short and long eruptions of a geyser', a: { x: [45, 58], y: [1.6, 2.4] }, b: { x: [72, 92], y: [3.8, 4.9] }, xs: 1, ys: 0.1, x: [40, 100] },
+  { xName: 'screen size (in)', yName: 'price ($)', who: 'phones and tablets', a: { x: [5, 6.8], y: [200, 500] }, b: { x: [10, 13], y: [450, 900] }, xs: 0.1, ys: 10, x: [4, 14] },
+  { xName: 'hours of practice a week', yName: 'score (points)', who: 'beginners and club players', a: { x: [0, 3], y: [40, 58] }, b: { x: [8, 12], y: [78, 95] }, xs: 0.5, ys: 1, x: [0, 12] },
+];
+
+/** Least-squares polynomial of degree 1 or 2 through pts: its value at x. */
+function polyFit(pts, deg) {
+  const k = deg + 1;
+  const A = Array.from({ length: k }, () => Array(k + 1).fill(0));
+  for (const [x, y] of pts) {
+    for (let i = 0; i < k; i++) {
+      for (let j = 0; j < k; j++) A[i][j] += x ** (i + j);
+      A[i][k] += y * x ** i;
+    }
+  }
+  for (let i = 0; i < k; i++) {
+    const p = A[i][i];
+    for (let j = i; j <= k; j++) A[i][j] /= p;
+    for (let r = 0; r < k; r++) if (r !== i) { const f = A[r][i]; for (let j = i; j <= k; j++) A[r][j] -= f * A[i][j]; }
+  }
+  const c = A.map((row) => row[k]);
+  return (x) => c.reduce((s, ci, i) => s + ci * x ** i, 0);
+}
+const sse = (pts, f) => pts.reduce((s, [x, y]) => s + (y - f(x)) ** 2, 0);
+/** How much better a curve fits than a line: quadratic error over linear error. */
+const curveRatio = (pts) => sse(pts, polyFit(pts, 2)) / sse(pts, polyFit(pts, 1));
+/** The widest x gap, as a share of the x range. */
+const widestGap = (pts) => {
+  const xs = pts.map((p) => p[0]).sort((p, q) => p - q);
+  return Math.max(...xs.slice(1).map((x, i) => x - xs[i])) / (xs[xs.length - 1] - xs[0]);
+};
+/** The point furthest from the curve through the others, and how far, in RMS misses of the others. */
+function loneOut(pts) {
+  let best = { i: -1, z: 0 };
+  pts.forEach((p, i) => {
+    const rest = pts.filter((_, j) => j !== i), f = polyFit(rest, 2);
+    const rms = Math.sqrt(sse(rest, f) / rest.length) || 1e-9;
+    const z = Math.abs(p[1] - f(p[0])) / rms;
+    if (z > best.z) best = { i, z };
+  });
+  return best;
+}
+const ySpan = (pts) => Math.max(...pts.map((p) => p[1])) - Math.min(...pts.map((p) => p[1]));
+/** x values spread over [x0, x1] with no gap of more than two of sixteen steps. */
+function spreadXs(rng, x0, x1) {
+  const grid = stepsOf(x0, x1, (x1 - x0) / 16);
+  const keep = grid.filter((_, i) => i % 2 === 0 || rng.chance(0.5));
+  return keep;
+}
+
+function feature(rng) {
+  const kind = rng.pick(['linear', 'curved', 'clusters', 'outlier']);
+  for (;;) {
+    let pts, xName, yName, xr, detail = {};
+    if (kind === 'curved') {
+      const C = rng.pick(CURVES);
+      pts = spreadXs(rng, ...C.x).map((x) => [x, clean(Math.round((C.f(x) + normal(rng) * C.sd) / C.step) * C.step)]);
+      ({ xName, yName } = C); xr = C.x; detail = C;
+    } else if (kind === 'clusters') {
+      const K = rng.pick(CLUSTERS);
+      const box = (B, n) => Array.from({ length: n }, () => [
+        clean(Math.round((B.x[0] + rng.float() * (B.x[1] - B.x[0])) / K.xs) * K.xs),
+        clean(Math.round((B.y[0] + rng.float() * (B.y[1] - B.y[0])) / K.ys) * K.ys)]);
+      pts = [...box(K.a, rng.int(5, 7)), ...box(K.b, rng.int(5, 7))].sort((p, q) => p[0] - q[0]);
+      ({ xName, yName } = K); xr = K.x; detail = K;
+    } else {
+      const M = rng.pick(MODELS);
+      const line = lineOf(rng, M);
+      const [x0, x1] = M.x;
+      const spread = Math.abs(line.m) * (x1 - x0) * 0.04 + M.yStep * 0.5;
+      pts = spreadXs(rng, x0, x1).map((x) => [x, clean(Math.round((line.m * x + line.b + normal(rng) * spread) / M.yStep) * M.yStep)]);
+      if (kind === 'outlier') {
+        // One point well inside the range moved far off the line, up or down.
+        const i = rng.int(2, pts.length - 3), off = Math.abs(line.m) * (x1 - x0) * rng.int(35, 50) / 100;
+        const [x, y] = pts[i];
+        pts[i] = [x, clean(Math.round((y + (y - off < 0 && !M.signed ? 1 : rng.sign()) * off) / M.yStep) * M.yStep)];
+        detail = { at: pts[i] };
+      }
+      if (!M.signed && pts.some(([, y]) => y <= 0)) continue;
+      ({ xName, yName } = M); xr = M.x;
+    }
+    if (new Set(pts.map((p) => `${p[0]},${p[1]}`)).size < pts.length) continue;
+    // Each plot shows its own feature and no other, by the tests the checker repeats with its own margins.
+    const gap = widestGap(pts), ratio = curveRatio(pts), lone = loneOut(pts);
+    if (kind === 'clusters' ? gap < 0.3 : gap > 0.13) continue;
+    if (kind !== 'clusters') {
+      if (kind === 'curved' ? ratio > 0.2 : ratio < 0.6) continue;
+      if (kind === 'outlier' ? lone.z < 8 || Math.abs(pts[lone.i][1] - polyFit(pts.filter((_, j) => j !== lone.i), 1)(pts[lone.i][0])) < 0.25 * ySpan(pts) : lone.z > 3.5) continue;
+      if (kind === 'linear' && Math.abs(pearson(pts)) < 0.9) continue;
+    }
+    const yAxis = niceAxis(Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[1])), 6);
+    const xAxis = niceAxis(xr[0], xr[1], 8, xr[0] === 0);
+    const c = chart({ x: xAxis, y: yAxis, titles: { x: xName, y: yName } });
+    for (const p of pts) c.spec.marks.push({ kind: 'point', at: c.at(p), tone: DOT });
+    const x0 = Math.min(...pts.map((p) => p[0])), x1 = Math.max(...pts.map((p) => p[0]));
+    const xBare = xName.replace(/ \(.*\)$/, ''), yBare = yName.replace(/ \(.*\)$/, '');
+    let how;
+    // Revealed: the curve or line the points follow, the two groups, or the lone point.
+    if (kind === 'curved') {
+      const f = polyFit(pts, 2);
+      c.spec.answer.push({ kind: 'path', points: stepsOf(x0, x1, (x1 - x0) / 24).map((x) => c.at([x, f(x)])), dashed: true });
+      how = `The points ${detail.how}, so no one straight line runs through them all. (${cap(xBare)} and ${yBare} are still related, just not along a line: that is a nonlinear association.)`;
+    } else if (kind === 'clusters') {
+      const lo = pts.filter((p) => p[0] <= detail.a.x[1]), hi = pts.filter((p) => p[0] >= detail.b.x[0]);
+      for (const g of [lo, hi]) {
+        const gx = g.map((p) => p[0]), gy = g.map((p) => p[1]);
+        const [a, b, d, e] = [Math.min(...gx), Math.max(...gx), Math.min(...gy), Math.max(...gy)];
+        const px = (xAxis[1] - xAxis[0]) * 0.03, py = (yAxis[1] - yAxis[0]) * 0.05;
+        c.spec.answer.push({ kind: 'path', points: [[a - px, d - py], [b + px, d - py], [b + px, e + py], [a - px, e + py], [a - px, d - py]].map(c.at), dashed: true });
+      }
+      const gapLo = Math.max(...lo.map((p) => p[0])), gapHi = Math.min(...hi.map((p) => p[0]));
+      how = `The points fall into two groups, with nothing between ${xBare} ${said(gapLo)} and ${said(gapHi)}. (Each group is a cluster; here they are ${detail.who}.)`;
+    } else {
+      const rest = kind === 'outlier' ? pts.filter((p) => p !== detail.at) : pts;
+      const f = polyFit(rest, 1);
+      c.spec.answer.push({ kind: 'segment', from: c.at([x0, f(x0)]), to: c.at([x1, f(x1)]), dashed: true });
+      if (kind === 'outlier') {
+        c.spec.answer.push({ kind: 'text', at: c.at([detail.at[0], detail.at[1] + (detail.at[1] > f(detail.at[0]) ? 1 : -1) * (yAxis[1] - yAxis[0]) * 0.09]), label: 'outlier' });
+        how = `All the points but one follow a straight line; the point (${said(detail.at[0])}, ${said(detail.at[1])}) sits far from it. (One point far from the pattern is an outlier; the others still make a line.)`;
+      } else {
+        how = `The points ${f(x1) > f(x0) ? 'rise' : 'fall'} along one straight line, with no gap splitting them and none far from the rest. (A straight-line pattern is a linear association.)`;
+      }
+    }
+    const label = FEATURE_OPTIONS.find((o) => o.id === kind).label;
+    return {
+      prompt: [T.prose(`The scatter plot shows ${yBare} against ${xBare}. Which best describes the pattern?`)],
+      text: `scatter feature: ${ptsAsc(pts)}`,
+      answer: { type: 'choice', value: kind, options: FEATURE_OPTIONS },
+      visual: c.spec,
+      explain: `${how} So ${label.charAt(0).toLowerCase()}${label.slice(1)}.`,
+    };
+  }
+}
+
 function association(rng) {
+  // requiem: catalogue/content/scatter-features-from-points
+  if (rng.chance(0.25)) return feature(rng);
   const kind = rng.pick(['positive', 'negative', 'none']);
   let pts, xName, yName, xr;
   if (kind === 'none') {
