@@ -16,7 +16,8 @@
  * shorter sides must together be longer than the longest, or they lie flat.
  *
  * Every number answer is whole, typed in the integer box; Triangle
- * Inequality is a yes or no.
+ * Inequality is mostly a yes or no, beside the range a third side can take,
+ * asked as its longest or shortest whole length.
  */
 
 export const LEVELS = [
@@ -27,14 +28,18 @@ export const LEVELS = [
   // Capped so the 132 whole-number cases are not drowned by the ones in x.
   { name: 'Isosceles Triangles', slug: 'isosceles-triangles', libraryCap: 400,
     blurb: 'Two equal sides, two equal base angles. Equilateral: all 60°.' },
-  { name: 'Polygon Angle Sum', slug: 'polygon-angle-sum',
+  // Capped so the sum, and the sides from the sum, are not drowned by the
+  // missing angle: there are only so many polygons to sum.
+  { name: 'Polygon Angle Sum', slug: 'polygon-angle-sum', libraryCap: 500,
     blurb: 'n sides cut into n − 2 triangles: (n − 2) × 180°.' },
-  { name: 'Regular Polygons', slug: 'regular-polygons',
+  // Capped near the size of its core, the angles of the 21 regular polygons
+  // whose angles are whole, so the polygons meeting at a point stay a fifth.
+  { name: 'Regular Polygons', slug: 'regular-polygons', libraryCap: 185,
     blurb: 'Equal angles: share the sum out, or turn 360° ÷ n at each corner.' },
   { name: 'The Exterior Sum', slug: 'the-exterior-sum',
-    blurb: 'Walk round any polygon and you turn once: the exterior angles add to 360°.' },
+    blurb: 'Walk around any polygon and you turn once: the exterior angles add to 360°.' },
   { name: 'Triangle Inequality', slug: 'triangle-inequality',
-    blurb: 'The two shorter sides must add to more than the longest, or they lie flat.' },
+    blurb: 'The two shorter sides must add to more than the longest. A third side is between the difference and the sum.' },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];
