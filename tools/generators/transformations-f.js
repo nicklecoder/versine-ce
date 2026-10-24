@@ -245,7 +245,7 @@ function combined(rng) {
   const a = rng.pick([1, -1, 2, -2, 3, -3, 1 / 2, -1 / 2]);
   const h = rng.nonZero(-5, 5), v = rng.nonZero(-6, 6);
   const by = a === 1 ? '' : a === -1 ? 'turned to its opposite, then ' : `multiplied by ${a < 0 ? '−' : ''}${fracText(Math.abs(a))}, then `;
-  const times = (q) => (a === 1 ? minus(q) : a === -1 ? `−(${minus(q)})` : `${a < 0 ? '−' : ''}${fracText(Math.abs(a))} × ${q < 0 ? `(${minus(q)})` : q}`);
+  const times = (q) => (a === 1 ? minus(q) : a === -1 ? (q <= 0 ? `−(${minus(q)})` : `−${q}`) : `${a < 0 ? '−' : ''}${fracText(Math.abs(a))} × ${q < 0 ? `(${minus(q)})` : q}`);
   return image(rng, { a, h, v }, (p, q, X, Y) => `Inside first: x moves ${h > 0 ? 'right' : 'left'} ${Math.abs(h)}, `
     + `x → ${minus(p)} ${h > 0 ? '+' : '−'} ${Math.abs(h)} = ${minus(X)}. Then outside: the height is ${by}${v > 0 ? 'raised' : 'lowered'} ${Math.abs(v)}, `
     + `y → ${times(q)} ${v > 0 ? '+' : '−'} ${Math.abs(v)} = ${minus(Y)}.`);
@@ -345,9 +345,9 @@ function evenOdd(rng, again = null) {
       + `for example f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}. Even, and symmetric in the y-axis.`
       : want === 'odd' ? `Every power of x is odd, so f(−x) = −f(x) for every x: `
         + `for example f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}. Odd, and symmetric about the origin.`
-        : `Try x = ${t} and x = −${t}: f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}, neither the same nor opposites, so neither.`
+        : `Try x = ${t} and x = −${t}: f(${t}) = ${minus(f(t))} and f(−${t}) = ${minus(f(-t))}, neither the same nor opposites.`
           + `${shape === 1 ? ' The odd powers alone would be odd, but the number added does not change sign.' : ''}`
-          + ' One pair that matches never proves even or odd; one that does not match is enough to rule it out.',
+          + ' One pair that does not match is enough to rule out even and odd, though one that matches would never prove either. So neither.',
   };
 }
 

@@ -105,7 +105,7 @@ function upOrDown(rng) {
   } else if (shape === 'factored') {
     const p = rng.int(-6, 6), q = rng.int(-6, 6);
     src = factoredForm(a, p, q);
-    why = `Multiplied out, the x² term is ${pretty(lead(a) || '1')}x²`;
+    why = `Multiplied out, the x² term is ${pretty(lead(a))}x²`;
   } else if (shape === 'hidden') {
     // (p − x)(x + q): the minus is on the x inside the bracket.
     const p = rng.int(1, 6), q = rng.int(-6, 6);

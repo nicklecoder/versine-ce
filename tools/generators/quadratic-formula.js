@@ -193,6 +193,9 @@ function exact(rng) {
     if (c % a !== 0) return exact(rng);
     const n = -c / a;
     const [p, q] = squarePart(n);
+    // Square roots straight away leave nothing to simplify in √11: the
+    // level is the simplifying, so only roots that have some are kept.
+    if (p === 1) return exact(rng);
     return {
       prompt: solve(src),
       text: `roots: ${src}`,
