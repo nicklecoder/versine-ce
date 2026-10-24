@@ -2261,8 +2261,11 @@ CHOICE_RULES += (
     (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
     (re.compile(r"^sign of (.+)$"), sign_of),
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
+    # One step when either is a whole number of lots of the other: 4 of 12
+    # is the price divided by 3, as surely as 24 of 12 is it doubled.
     (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
-     lambda have, need: "scale" if int(need) % int(have) == 0 else "unit"),
+     lambda have, need: "scale" if int(have) != int(need) and (int(need) % int(have) == 0
+                                                                or int(have) % int(need) == 0) else "unit"),
     (re.compile(r"^(.+[.?])$"), judged),
 )
 

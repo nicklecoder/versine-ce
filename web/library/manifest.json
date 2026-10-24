@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "50b592c220d41643c85568e36d532b1a1d89a79762a3db98677716479d1262b1",
+  "sources": "776da5cd7013ea68aababb94cf8a2797c55310702a2228943107e405585760d2",
   "levels": [
     {
       "skill": "int-addsub",
@@ -1089,7 +1089,7 @@
       "level": 0,
       "slug": "sign-rules",
       "name": "Sign Rules",
-      "count": 128,
+      "count": 192,
       "exhaustive": true,
       "signed": true,
       "file": "int-muldiv-0.json"
