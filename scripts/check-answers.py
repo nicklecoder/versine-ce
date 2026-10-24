@@ -800,6 +800,12 @@ def relation_of(e1: str, e2: str) -> str:
 def form_for(key: str) -> str:
     if re.match(r"slope \S+, y-intercept", key):
         return "slope-intercept"
+    # Parallel to a line already in slope-intercept form, with b given: m is
+    # read off the given line and b is told, so y = mx + b is written at once.
+    m = re.match(r"parallel to (y = .+), y-intercept -?\d+$", key)
+    if m:
+        slope_intercept(m[1].removeprefix("y = "))  # the given line must be one
+        return "slope-intercept"
     if re.match(r"slope \S+, point|points ", key):
         return "point-slope"
     if key.startswith("intercepts of"):
