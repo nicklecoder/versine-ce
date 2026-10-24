@@ -3051,6 +3051,169 @@ CHOICE_RULES += (
     (re.compile(rf"^classify triangle: ({GRID_POINT}, {GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: triangle_kind(listing)),
 )
 
+# --- Congruent Triangles -----------------------------------------------------
+#
+# Worked from the letters: a congruence statement pairs corners by position
+# in the name, a criterion is read from where the marked angle or side sits
+# (between the other two parts or not), the missing fact is whichever one
+# remaining part completes the named criterion, and the equations come from
+# setting matched parts equal. Lengths and angles in x are a·x + b.
+
+TRI_SIDES = {frozenset("AB"): "AB", frozenset("BC"): "BC", frozenset("CA"): "CA"}
+LINEAR_X = re.compile(r"^(\d*)x(?: ([+-]) (\d+))?$")
+
+
+def lin_x(s: str) -> tuple:
+    m = LINEAR_X.match(s.strip())
+    assert m, s
+    a = int(m[1]) if m[1] else 1
+    b = 0 if m[2] is None else (int(m[3]) if m[2] == "+" else -int(m[3]))
+    return Fraction(a), Fraction(b)
+
+
+def equate(e1: tuple, e2: tuple) -> Fraction:
+    (a1, b1), (a2, b2) = e1, e2
+    assert a1 != a2, (e1, e2)
+    return (b2 - b1) / (a1 - a2)
+
+
+def partner_of(statement: str, part: str) -> str:
+    """The second triangle's part matching one of ABC's, named in the second's letters."""
+    pairs = dict(zip("ABC", statement))
+    if part.startswith("angle "):
+        return "angle " + pairs[part[-1]]
+    return "".join(pairs[c] for c in part)
+
+
+def same_part(p: str, q: str) -> bool:
+    if p.startswith("angle ") or q.startswith("angle "):
+        return p == q
+    return set(p) == set(q)
+
+
+def corresponding_side(statement: str, ab: int, bc: int, ca: int, asked: str) -> int:
+    back = {c: "ABC"[i] for i, c in enumerate(statement)}
+    return {"AB": ab, "BC": bc, "CA": ca}[TRI_SIDES[frozenset(back[c] for c in asked)]]
+
+
+def corresponding_angle(statement: str, v1: str, a1: int, v2: str, a2: int, asked: str) -> int:
+    known = {v1: a1, v2: a2}
+    own = "ABC"[statement.index(asked)]
+    return known.get(own, 180 - a1 - a2)
+
+
+def named_congruence(kind: str, first: str, second: str) -> str:
+    def counts(listing):
+        return {name: int(n) for name, n in (item.split(" ") for item in listing.split(", "))}
+    one, two = counts(first), counts(second)
+    if kind == "angles":
+        by = lambda marks: {v: n for v, n in marks.items()}
+        key1, key2 = by(one), by(two)
+    else:
+        # A corner is known by the marks on the two sides that meet at it.
+        corner = lambda marks: {c: frozenset(n for s, n in marks.items() if c in s)
+                                for c in {c for s in marks for c in s}}
+        key1, key2 = corner(one), corner(two)
+    found = "".join(next(c for c, k in key2.items() if k == key1[v]) for v in "ABC")
+    assert len(set(found)) == 3, (first, second)
+    return found
+
+
+def criterion_of(listing: str) -> str:
+    parts = listing.split(", ")
+    sides = {frozenset(p) for p in parts if not p.startswith(("angle", "right"))}
+    angles = {p[-1] for p in parts if p.startswith(("angle", "right"))}
+    right = next((p[-1] for p in parts if p.startswith("right angle ")), None)
+    if right is not None and len(sides) == 2 and len(angles) == 1 and frozenset("ABC") - {right} in sides:
+        return "hl"
+    if len(sides) == 3:
+        return "sss"
+    if len(sides) == 2 and len(angles) == 1:
+        a, b = sides
+        return "sas" if a & b == set(angles) else "none"
+    if len(sides) == 1 and len(angles) == 2:
+        (s,) = sides
+        return "asa" if s == frozenset(angles) else "aas"
+    return "none"
+
+
+def missing_fact(crit: str, listing: str) -> str:
+    given = listing.split(", ")
+    right = next((p[-1] for p in given if p.startswith("right angle ")), None)
+    pool = ["AB", "BC", "CA"] + [f"angle {v}" for v in "ABC" if v != right]
+    fits = [p for p in pool if p not in given and criterion_of(", ".join(given + [p])) == crit.lower()]
+    assert len(fits) == 1, (crit, listing, fits)
+    return fits[0]
+
+
+def parts_in_x(listing: str) -> list:
+    out = []
+    for item in listing.split(", "):
+        m = re.match(r"^(angle [A-Z]|[A-Z]{2}) (.+)$", item)
+        out.append((m[1], lin_x(m[2])))
+    return out
+
+
+def isosceles_sides(e1: str, e2: str, pairs: str, asked: str) -> Fraction:
+    have = dict(parts_in_x(pairs.rsplit(", ", 1)[0]))
+    x = equate(have[e1], have[e2])
+    assert len(set(e1) & set(e2)) == 1, (e1, e2)                 # the two legs meet at the apex
+    if asked == "x":
+        return x
+    a, b = have[asked]
+    return a * x + b
+
+
+def isosceles_angles(v1: str, v2: str, listing: str, asked: str) -> Fraction:
+    have = parts_in_x(listing)
+    legs = [next(e for name, e in have if v not in name) for v in (v1, v2)]   # the side facing each equal angle
+    x = equate(*legs)
+    if asked == "x":
+        return x
+    a, b = next(e for name, e in have if set(name) == set(asked))
+    return a * x + b
+
+
+def equilateral(listing: str, asked: str) -> Fraction:
+    have = parts_in_x(listing)
+    if have[0][0].startswith("angle"):
+        x = equate(have[0][1], (Fraction(0), Fraction(60)))       # every angle is 180 / 3
+    else:
+        x = equate(have[0][1], have[1][1])
+    if asked == "x":
+        return x
+    a, b = have[0][1]
+    return a * x + b
+
+
+def use_congruence(statement: str, listing: str, asked: str) -> Fraction:
+    (own, e1), *rest = parts_in_x(listing)
+    match = partner_of(statement, own)
+    pick = [e for name, e in rest if same_part(name, match)]
+    assert len(pick) == 1, (statement, listing)
+    x = equate(e1, pick[0])
+    if asked == "x":
+        return x
+    a, b = next(e for name, e in rest if same_part(name, asked))
+    return a * x + b
+
+
+BY_RULE += (
+    (re.compile(r"^corresponding: ABC = ([A-Z]{3}); AB (\d+), BC (\d+), CA (\d+); find ([A-Z]{2})$"), corresponding_side),
+    (re.compile(r"^corresponding: ABC = ([A-Z]{3}); angle ([ABC]) (\d+), angle ([ABC]) (\d+); find angle ([A-Z])$"),
+     corresponding_angle),
+    (re.compile(r"^isosceles sides: ([A-C]{2}) = ([A-C]{2}); (.+); find (x|[A-C]{2})$"), isosceles_sides),
+    (re.compile(r"^isosceles angles: ([ABC]) = ([ABC]); (.+); find (x|[A-C]{2})$"), isosceles_angles),
+    (re.compile(r"^equilateral: (.+); find (x|side)$"), equilateral),
+    (re.compile(r"^use congruence: ABC = ([A-Z]{3}); (.+); find (x|angle [A-Z]|[A-Z]{2})$"), use_congruence),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^name the congruence: (sides|angles) ([^;]+); (.+)$"), named_congruence),
+    (re.compile(r"^(?:criterion|enough): ABC = [A-Z]{3}; (.+)$"), criterion_of),
+    (re.compile(r"^missing for (SSS|SAS|ASA|AAS|HL): ABC = [A-Z]{3}; (.+)$"), missing_fact),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

@@ -178,6 +178,12 @@ the Parallelogram · All Together. The distance formula is practised as
 perimeters, since a lone distance is pythagoras's Distance Between Points
 level; classifying triangles and completing a parallelogram are where
 slopes and lengths prove things about a shape (G-GPE.4).
+`congruence` is built, as Corresponding Parts · Name the Congruence · Which
+Criterion · Enough or Not · The Missing Fact · Isosceles & Equilateral · Use
+the Congruence · All Together. Not Enough (SSA) became Enough or Not, which
+mixes SSA and AAA with the criteria that do work, so the choice is a real
+one; its SSA triangles are always the ambiguous case. Naming the congruence
+and the missing fact are added for TEKS G.6B's applying the criteria.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

@@ -1,5 +1,5 @@
 {
-  "built": 397,
+  "built": 405,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -502,6 +502,16 @@
       "slopes-in-shapes",
       "classify-a-triangle",
       "complete-the-parallelogram",
+      "all-together"
+    ],
+    "congruence": [
+      "corresponding-parts",
+      "name-the-congruence",
+      "which-criterion",
+      "enough-or-not",
+      "the-missing-fact",
+      "isosceles-and-equilateral",
+      "use-the-congruence",
       "all-together"
     ]
   },
@@ -1118,9 +1128,15 @@
         "pythagoras"
       ],
       "levels": {}
+    },
+    "congruence": {
+      "dependsOn": [
+        "triangle-angles"
+      ],
+      "levels": {}
     }
   },
-  "sources": "1177930b11a3ebbf8b2bfe76d971060c173949a857365b8206817acfe4930bfd",
+  "sources": "4aa5eb1c119b60ddbacecde55095b042b66a88f76cc70a74805946b13894324d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5091,6 +5107,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "coord-geometry-7.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 0,
+      "slug": "corresponding-parts",
+      "name": "Corresponding Parts",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-0.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 1,
+      "slug": "name-the-congruence",
+      "name": "Name the Congruence",
+      "count": 432,
+      "exhaustive": true,
+      "signed": false,
+      "file": "congruence-1.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 2,
+      "slug": "which-criterion",
+      "name": "Which Criterion",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-2.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 3,
+      "slug": "enough-or-not",
+      "name": "Enough or Not",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-3.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 4,
+      "slug": "the-missing-fact",
+      "name": "The Missing Fact",
+      "count": 990,
+      "exhaustive": true,
+      "signed": false,
+      "file": "congruence-4.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 5,
+      "slug": "isosceles-and-equilateral",
+      "name": "Isosceles & Equilateral",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-5.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 6,
+      "slug": "use-the-congruence",
+      "name": "Use the Congruence",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-6.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-7.json"
     }
   ]
 }

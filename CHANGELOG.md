@@ -170,6 +170,13 @@ with the other order worked out when it differs; and naming a move from its pict
 calling a rule or a sequence congruent, similar or neither. Each corner is asked about on a
 drawn triangle, and the image arrives with the answer.
 
+**Congruent Triangles**, the first skill under Shapes, in eight levels: corresponding
+sides and angles read from a congruence statement, the second triangle turned and often
+flipped; naming the congruence from tick and arc marks; choosing SSS, SAS, ASA, AAS or HL;
+telling those from SSA and AAA, which prove nothing; the one fact still needed for a named
+criterion; equal sides and equal angles in isosceles and equilateral triangles, solved
+for x; and equations from corresponding parts.
+
 **Coordinate Geometry** (Coordinates), in eight levels: midpoints, and an end from the
 midpoint; perimeters on the grid, each slanted side by the distance formula, exact or to
 one decimal place; a point that splits a segment in a ratio or a fraction of the way;
