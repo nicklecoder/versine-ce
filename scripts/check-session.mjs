@@ -439,6 +439,26 @@ for (const skill of SKILLS) {
   }
 }
 
+// requiem: play/answers/symbols-typed-on-a-keyboard
+// Every symbol an answer box needs has a keyboard spelling, and the box shows
+// it: a type that reads ≤, ≥, ≠, ± or √ lists the stand-in it is typed as.
+{
+  const sets = getType('solutions');
+  const want = sets.parse('x ≠ 2').value;
+  for (const raw of ['x != 2', 'x =/= 2', 'x /= 2', 'x <> 2']) {
+    const r = sets.parse(raw);
+    if (!r.ok || !sets.equals(r.value, want)) fail.push(`solutions: "${raw}" was not read as x ≠ 2`);
+  }
+  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'] };
+  for (const [id, typed] of Object.entries(shown)) {
+    const keys = (getType(id).keys ?? []).map(([t]) => t);
+    for (const t of typed) if (!keys.includes(t)) fail.push(`${id}: the box does not show how to type ${t}`);
+  }
+  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)']]) {
+    if (!getType(id).parse(sample).ok) fail.push(`${id}: the shown spelling "${sample}" is refused`);
+  }
+}
+
 // requiem: play/answers/set-comma-after-not-equal
 // requiem: play/answers/set-all-but-points-shown
 // requiem: play/answers/set-complement-told
