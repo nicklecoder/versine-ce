@@ -1267,6 +1267,7 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
    rather than removed. Nothing goes red until an answer is committed. */
 .free__preview.is-stale { opacity: .45; }
 .free__hint { font-size: .74rem; color: var(--hot); min-height: 1em; }
+.answer--decimal { width: 9ch; max-width: 100%; }
 .answer--free { width: 16ch; max-width: 100%; font-size: clamp(1.2rem, 4.5vw, 1.6rem); }
 
 /* A product written without a sign is set without a gap. */

@@ -10,6 +10,7 @@
  *      expressions are not.
  *   4. Nonsense is refused, with something a person could act on.
  */
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -23,7 +24,7 @@ globalThis.document = { createElement: stub, createTextNode: (t) => ({ t }) };
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { parseExpression, canonical } = await import(join(ROOT, 'web/math/parse.js'));
 const { previewOf } = await import(join(ROOT, 'web/ui/express.js'));
-const { promptText } = await import(join(ROOT, 'web/ui/prompt.js'));
+const { promptText, answerTerm } = await import(join(ROOT, 'web/ui/prompt.js'));
 
 const fail = [];
 const canon = (s) => { const r = parseExpression(s); return r.ok ? canonical(r.ast) : null; };
@@ -92,6 +93,17 @@ for (const src of ['2+', '(1+2', 'sqrt 4', '2^', 'sqrtx', '1.2.3', '2)', 'sqrt(1
   const r = parseExpression(src);
   if (r.ok) fail.push(`"${src}" was accepted`);
   else if (!r.error || r.error.length < 8) fail.push(`"${src}" refused without a reason`);
+}
+
+// An answer filling the blank in its question is drawn in its own type's
+// notation: a decimal held as {n, d} is 0.25, never "[object Object]".
+for (const file of readdirSync(join(ROOT, 'web/library')).filter((f) => /-\d+\.json$/.test(f))) {
+  const { problems } = JSON.parse(readFileSync(join(ROOT, 'web/library', file), 'utf8'));
+  const p = problems[0];
+  // A choice fills no blank, and its id may well be the word "undefined".
+  if (p.answer.type === 'choice') continue;
+  const drawn = promptText([answerTerm(p.answer.type, p.answer.value)].flat());
+  if (/\[object|undefined|NaN/.test(drawn)) fail.push(`${file}: the answer ${p.answer.accept[0]} was drawn as "${drawn}"`);
 }
 
 if (fail.length) {

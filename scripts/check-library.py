@@ -204,6 +204,9 @@ if "--floor" in sys.argv:
 problems: list[str] = []
 
 
+BOX_LENGTH = {"int": 7, "decimal": 12}
+
+
 def fail(msg: str) -> None:
     problems.append(msg)
 
@@ -268,6 +271,12 @@ for entry in levels:
             fail(f"{where}: answer has no accepted forms")
         elif any(not isinstance(a, str) or not a.strip() for a in accept):
             fail(f"{where}: an accepted form is empty or not a string")
+        # requiem: catalogue/library/answer-fits-its-box
+        # The number boxes stop typing at a length (web/ui/answerinput.js): an
+        # answer longer than that could never be entered.
+        room = BOX_LENGTH.get(ans.get("type"))
+        if room and isinstance(accept, list) and accept and len(str(accept[0]).replace("\u2212", "-")) > room:
+            fail(f"{where}: {accept[0]} is longer than the {room} characters its box takes")
         if ans.get("type") == "choice":
             opts = ans.get("options") or []
             ids = [o.get("id") for o in opts if isinstance(o, dict)]

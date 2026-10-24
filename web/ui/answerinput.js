@@ -68,7 +68,12 @@ function decimalInput(spec, opts = {}) {
   const w = intInput(spec, opts);
   w.node.setAttribute('inputmode', opts.signed ? 'text' : 'decimal');
   w.node.setAttribute('pattern', '-?[0-9]*\\.?[0-9]*');
-  w.node.setAttribute('maxlength', '9');
+  // requiem: catalogue/library/answer-fits-its-box
+  // −0.00000276 is eleven characters, and scientific notation read back
+  // needs every one of them.
+  w.node.setAttribute('maxlength', '12');
+  // Wide enough to show a long one whole: 14062.5, −0.000056.
+  w.node.classList.add('answer--decimal');
   return w;
 }
 

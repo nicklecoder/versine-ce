@@ -250,7 +250,9 @@ export function answerTerm(type, value) {
     case 'linear':
     case 'halfplane':
     case 'rule': return exprTerms(getType(type).format(value).replace(/−/g, '-'));
-    case 'pair': return { t: 'num', v: getType('pair').format(value) };
+    case 'pair':
+    // A decimal is held as an exact {n, d}, so it is written out, not stringified.
+    case 'decimal': return { t: 'num', v: getType(type).format(value) };
     case 'solutions': return setTerms(value);
     case 'roots': return rootTerms(value);
     case 'frac': return { t: 'frac', n: value.n, d: value.d };
