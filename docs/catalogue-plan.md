@@ -255,6 +255,26 @@ Together. Shape & Center is added for S-ID.3: skew is named for its tail, and
 a tail pulls the mean past the median. Normal-curve questions stay at whole
 numbers of standard deviations, using the 68-95-99.7 rule. The standard
 deviation divides by n, and every set comes out whole.
+`probability` is built, as Likelihood · Single Event · Complement · Sample
+Spaces · Independent "And" · Expected Frequency · Experimental vs
+Theoretical · All Together. Likelihood is added for 7.SP.5, and asks only
+about probabilities clear of the edge between likely and unlikely. Fractions
+are accepted in any equivalent form, since simplifying is taught by the
+fractions skills.
+`counting` is built, as Multiplication Principle · Factorials · Permutations ·
+Combinations · Does Order Matter? (strategy) · Restrictions · Probability by
+Counting · All Together. Does Order Matter? depends on probability's Sample
+Spaces, where heads then tails first counts apart from tails then heads.
+Restrictions is added for S-CP.9's harder counts: fill the limited place
+first. No level has a visual; three numbers multiplied teach the count better
+than a tree too big to draw.
+`probability-2` is built, as Venn Diagrams · Addition Rule · Conditional From
+a Table · Without Replacement · P(A | B) · Independent or Not · All
+Together. Venn Diagrams is added, for S-CP.1's unions, intersections and
+complements, and its library is capped at 500 to keep the diagrams cheap.
+Conditional From a Table depends on bivariate's Two-Way Tables. Its tables
+have no column of row totals, so the revealed working column fits a phone.
+With it, Phase 3 is built.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

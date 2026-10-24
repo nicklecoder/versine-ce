@@ -4454,6 +4454,296 @@ CHOICE_RULES += (
      lambda listing: "iqr" if dist_outlying([int(v) for v in listing.split()]) else "sd"),
 )
 
+# --- Probability ------------------------------------------------------------
+#
+# Equally likely outcomes, counted again: the outcomes are listed in the text,
+# the event is named by a code read with the definitions here, and the
+# probability is the count over the whole. Two dice and n coins are listed
+# out in full here rather than trusted to a formula.
+
+def chance_test(code: str):
+    m = re.fullmatch(r"(gt|lt|at least|at most|multiple of) (\d+)", code)
+    if m:
+        k = int(m[2])
+        return {"gt": lambda x: int(x) > k, "lt": lambda x: int(x) < k, "at least": lambda x: int(x) >= k,
+                "at most": lambda x: int(x) <= k, "multiple of": lambda x: int(x) % k == 0}[m[1]]
+    m = re.fullmatch(r"is (\w+)(?: or (\w+))?", code)
+    if m:
+        return lambda x: x in (m[1], m[2])
+    return {"even": lambda x: int(x) % 2 == 0, "odd": lambda x: int(x) % 2 == 1,
+            "prime": lambda x: int(x) > 1 and all(int(x) % k for k in range(2, int(x)))}[code]
+
+
+def chance_of(outcomes: str, code: str) -> Fraction:
+    xs = outcomes.split()
+    return Fraction(sum(1 for x in xs if chance_test(code)(x)), len(xs))
+
+
+def chance_likely(n: str, d: str) -> str:
+    p = Fraction(int(n), int(d))
+    if p == 0:
+        return "impossible"
+    if p == 1:
+        return "certain"
+    if p == Fraction(1, 2):
+        return "even"
+    assert abs(p - Fraction(1, 2)) >= Fraction(1, 5), p
+    return "likely" if p > Fraction(1, 2) else "unlikely"
+
+
+def chance_dice(ask: str) -> Fraction:
+    rolls = [(a, b) for a in range(1, 7) for b in range(1, 7)]
+    m = re.fullmatch(r"sum (at least |at most )?(\d+)", ask)
+    if m:
+        k = int(m[2])
+        ok = [r for r in rolls if {"at least ": sum(r) >= k, "at most ": sum(r) <= k, None: sum(r) == k}[m[1]]]
+    else:
+        assert ask == "doubles"
+        ok = [r for r in rolls if r[0] == r[1]]
+    return Fraction(len(ok), len(rolls))
+
+
+def chance_coins(n, how: str, k) -> Fraction:
+    import itertools
+    flips = list(itertools.product("HT", repeat=int(n)))
+    heads = [f.count("H") for f in flips]
+    ok = [h for h in heads if (h >= int(k) if how == "at least" else h == int(k))]
+    return Fraction(len(ok), len(flips))
+
+
+def chance_results(listing: str) -> dict:
+    return {face: int(c) for face, c in (item.split(":") for item in listing.split())}
+
+
+BY_RULE += (
+    (re.compile(r"^single: ([\w ]+); event (.+)$"), chance_of),
+    (re.compile(r"^complement: (\d+)/(\d+)$"), lambda n, d: 1 - Fraction(n, d)),
+    (re.compile(r"^complement: (\d+)%$"), lambda p: 100 - p),
+    (re.compile(r"^complement: (0\.\d+)$"), lambda p: 1 - Fraction(p)),
+    (re.compile(r"^complement: ([\w ]+); event (.+)$"), lambda xs, code: 1 - chance_of(xs, code)),
+    (re.compile(r"^sample space: (\d+) x (\d+)$"), lambda a, b: a * b),
+    (re.compile(r"^sample space: (\d+) x (\d+) x (\d+)$"), lambda a, b, c: a * b * c),
+    (re.compile(r"^two dice: (sum (?:at (?:least|most) )?\d+|doubles)$"), chance_dice),
+    (re.compile(r"^coins (\d+): (exactly|at least) (\d+) heads$"), chance_coins),
+    (re.compile(r"^and: ([\w ]+); event (.+?) \| ([\w ]+); event (.+)$"),
+     lambda a, ea, b, eb: chance_of(a, ea) * chance_of(b, eb)),
+    (re.compile(r"^with replacement: ([\w ]+); (\w+) then (\w+)$"),
+     lambda xs, first, second: chance_of(xs, f"is {first}") * chance_of(xs, f"is {second}")),
+    (re.compile(r"^expected: ([\w ]+); event (.+); trials (\d+)$"), lambda xs, code, n: chance_of(xs, code) * int(n)),
+    (re.compile(r"^expected from results: (\d+) of (\d+); trials (\d+)$"), lambda k, m, n: Fraction(k * n, m)),
+    (re.compile(r"^experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
+     lambda listing, face: Fraction(chance_results(listing)[str(face)], sum(chance_results(listing).values()))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^likelihood: (\d+)/(\d+)$"), chance_likely),
+    (re.compile(r"^compare experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
+     lambda listing, face: (lambda r: {1: "higher", -1: "lower", 0: "equal"}[
+         (r[face] * len(r) > sum(r.values())) - (r[face] * len(r) < sum(r.values()))])(chance_results(listing))),
+    (re.compile(r"^more trials: .+; options (.+)$"),
+     lambda listing: next(k for k, v in (item.split("=") for item in listing.split(", ")) if v == "closer")),
+)
+
+# --- Counting ---------------------------------------------------------------
+# requiem: catalogue/content/counting-restricted-counts-listed
+#
+# The plain counts are counted with math's own perm and comb; everything with
+# a restriction, and every probability, is counted by listing each
+# arrangement or group with itertools and testing it, so a slip in the
+# explanation's shortcut cannot hide behind the same shortcut here.
+
+def count_product(choices: str) -> int:
+    return math.prod(int(c) for c in choices.split())
+
+
+def count_factorial_ratio(n, k) -> int:
+    return math.factorial(n) // math.factorial(k)
+
+
+def count_code(length, repeat: str, rules: str) -> int:
+    import itertools
+    pool = itertools.product(range(10), repeat=length) if repeat == "repeat" else itertools.permutations(range(10), length)
+    tests = {"first not zero": lambda c: c[0] != 0, "ends even": lambda c: c[-1] % 2 == 0, "ends odd": lambda c: c[-1] % 2 == 1}
+    wanted = [tests[r] for r in rules.split(", ") if r]
+    return sum(1 for c in pool if all(t(c) for t in wanted))
+
+
+def count_small_code(length, top, repeat: str, parity: str) -> int:
+    import itertools
+    digits = range(1, top + 1)
+    pool = itertools.product(digits, repeat=length) if repeat == "repeat" else itertools.permutations(digits, length)
+    return sum(1 for c in pool if c[-1] % 2 == (0 if parity == "even" else 1))
+
+
+def count_row(n, rule: str) -> int:
+    import itertools
+    # Person 0 is A and person 1 is B.
+    tests = {"A first": lambda r: r[0] == 0, "A at an end": lambda r: 0 in (r[0], r[-1]),
+             "A and B together": lambda r: abs(r.index(0) - r.index(1)) == 1,
+             "A and B apart": lambda r: abs(r.index(0) - r.index(1)) > 1}
+    return sum(1 for r in itertools.permutations(range(n)) if tests[rule](r))
+
+
+def count_committee(n, r, rule: str) -> int:
+    import itertools
+    test = {"includes A": lambda c: 0 in c, "excludes A": lambda c: 0 not in c}[rule]
+    return sum(1 for c in itertools.combinations(range(n), r) if test(c))
+
+
+def count_chance_pair(n, r) -> Fraction:
+    import itertools
+    groups = list(itertools.combinations(range(n), r))
+    return Fraction(sum(1 for c in groups if 0 in c and 1 in c), len(groups))
+
+
+def count_chance_seniors(g, j, r, k) -> Fraction:
+    import itertools
+    groups = list(itertools.combinations(range(g + j), r))
+    return Fraction(sum(1 for c in groups if sum(1 for x in c if x < g) == k), len(groups))
+
+
+def count_chance_lottery(r, n) -> Fraction:
+    import itertools
+    draws = list(itertools.combinations(range(1, n + 1), r))
+    return Fraction(sum(1 for c in draws if c == tuple(range(1, r + 1))), len(draws))
+
+
+def count_chance_row(n) -> Fraction:
+    import itertools
+    rows = list(itertools.permutations(range(n)))
+    return Fraction(sum(1 for r in rows if abs(r.index(0) - r.index(1)) == 1), len(rows))
+
+
+def count_chance_race(n) -> Fraction:
+    import itertools
+    finishes = list(itertools.permutations(range(n), 2))
+    return Fraction(sum(1 for f in finishes if f == (0, 1)), len(finishes))
+
+
+BY_RULE += (
+    (re.compile(r"^multiply choices: ([\d ]+)$"), count_product),
+    (re.compile(r"^(?:factorial|arrange) (\d+)(?:; \w+)?$"), math.factorial),
+    (re.compile(r"^factorial ratio (\d+) (\d+)$"), count_factorial_ratio),
+    (re.compile(r"^permutations (\d+) (\d+); \w+$"), math.perm),
+    (re.compile(r"^combinations (\d+) (\d+); \w+$"), math.comb),
+    (re.compile(r"^code: length (\d+), digits, (repeat|no repeat)(?:, )?(.*)$"), count_code),
+    (re.compile(r"^code: length (\d+), digits 1 to (\d+), (repeat|no repeat), ends (even|odd)$"), count_small_code),
+    (re.compile(r"^row: (\d+) people, (A first|A at an end|A and B together|A and B apart)$"), count_row),
+    (re.compile(r"^committee: (\d+) people, (\d+) chosen, (includes A|excludes A)$"), count_committee),
+    (re.compile(r"^committee chance: (\d+) people, (\d+) chosen, includes A and B$"), count_chance_pair),
+    (re.compile(r"^committee chance: (\d+) seniors (\d+) juniors, (\d+) chosen, exactly (\d+) seniors$"), count_chance_seniors),
+    (re.compile(r"^lottery: (\d+) of (\d+)$"), count_chance_lottery),
+    (re.compile(r"^row chance: (\d+) people, A and B together$"), count_chance_row),
+    (re.compile(r"^race chance: (\d+) runners, A first and B second$"), count_chance_race),
+)
+
+# Whether a selection's order matters is a property of what is chosen: a
+# place or a job makes it a permutation, a group with no first a combination.
+COUNT_ORDERED = {"ranked", "roles", "row", "sequence", "route"}
+COUNT_UNORDERED = {"committee", "toppings", "group", "set", "hand"}
+
+CHOICE_RULES += (
+    (re.compile(r"^order matters: n \d+ r \d+; selection is (\w+)$"),
+     lambda what: "perm" if what in COUNT_ORDERED else ("comb" if what in COUNT_UNORDERED else None)),
+)
+
+# --- Compound probability ---------------------------------------------------
+#
+# Venn regions and table cells are summed by which events each one belongs
+# to, the deck is all 52 cards listed, two draws from a bag are every ordered
+# pair of different marbles, and independence is tested by multiplying.
+
+def compound_venn(counts: str, ask: str) -> Fraction:
+    # The regions in order: A only, both, B only, neither, as (in A, in B).
+    regions = list(zip(((True, False), (True, True), (False, True), (False, False)), map(int, counts.split())))
+    test = {"or": lambda a, b: a or b, "and": lambda a, b: a and b, "neither": lambda a, b: not a and not b,
+            "only": lambda a, b: a and not b, "not": lambda a, b: not a}[ask]
+    return Fraction(sum(n for (a, b), n in regions if test(a, b)), sum(n for _, n in regions))
+
+
+def compound_deck():
+    suits = ("heart", "diamond", "club", "spade")
+    ranks = ("ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king")
+    return [(s, r) for s in suits for r in ranks]
+
+
+def compound_card(code: str):
+    if code in ("heart", "diamond", "club", "spade"):
+        return lambda c: c[0] == code
+    if code == "red":
+        return lambda c: c[0] in ("heart", "diamond")
+    if code == "black":
+        return lambda c: c[0] in ("club", "spade")
+    if code == "face":
+        return lambda c: c[1] in ("jack", "queen", "king")
+    return lambda c: c[1] == str(code)
+
+
+def compound_deck_or(x, y) -> Fraction:
+    deck = compound_deck()
+    return Fraction(sum(1 for c in deck if compound_card(x)(c) or compound_card(y)(c)), len(deck))
+
+
+def compound_deck_two(code) -> Fraction:
+    import itertools
+    pairs = list(itertools.permutations(compound_deck(), 2))
+    return Fraction(sum(1 for p in pairs if all(compound_card(code)(c) for c in p)), len(pairs))
+
+
+def compound_bag_two(bag: str, ask: str) -> Fraction:
+    import itertools
+    marbles = [color for item in bag.split() for color in [item.split(":")[0]] * int(item.split(":")[1])]
+    pairs = list(itertools.permutations(range(len(marbles)), 2))
+    drawn = [(marbles[i], marbles[j]) for i, j in pairs]
+    m = re.fullmatch(r"(\w+) then (\w+)", ask)
+    if m:
+        ok = [d for d in drawn if d == (m[1], m[2])]
+    elif ask.startswith("both "):
+        ok = [d for d in drawn if d == (ask[5:], ask[5:])]
+    else:
+        m = re.fullmatch(r"one (\w+) one (\w+)", ask)
+        ok = [d for d in drawn if sorted(d) == sorted((m[1], m[2]))]
+    return Fraction(len(ok), len(drawn))
+
+
+def compound_table(a, b, d, e, want: str, given: str) -> Fraction:
+    cells = {("r1", "c1"): a, ("r1", "c2"): b, ("r2", "c1"): d, ("r2", "c2"): e}
+    inside = lambda key, label: label == "all" or label in key
+    wanted = lambda key: all(part in key for part in want.split())
+    whole = sum(n for k, n in cells.items() if inside(k, given))
+    return Fraction(sum(n for k, n in cells.items() if inside(k, given) and wanted(k)), whole)
+
+
+def compound_independent(pa, pb, pab) -> str:
+    return "yes" if Fraction(pa) * Fraction(pb) == Fraction(pab) else "no"
+
+
+def compound_independent_table(a, b, d, e) -> str:
+    # Independent when the first column's share is the same in both rows.
+    a, b, d, e = map(int, (a, b, d, e))
+    return "yes" if Fraction(a, a + b) == Fraction(d, d + e) else "no"
+
+
+BY_RULE += (
+    (re.compile(r"^venn: ([\d ]+); ask (or|and|neither|only|not)$"), compound_venn),
+    (re.compile(r"^deck: (\w+) or (\w+)$"), compound_deck_or),
+    (re.compile(r"^or counts: total (\d+), a (\d+), b (\d+), both (\d+)$"), lambda t, a, b, k: Fraction(a + b - k, t)),
+    (re.compile(r"^or exclusive: ([\d.]+) ([\d.]+)$"), lambda pa, pb: Fraction(pa) + Fraction(pb)),
+    (re.compile(r"^or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, pab: Fraction(pa) + Fraction(pb) - Fraction(pab)),
+    (re.compile(r"^both from or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, por: Fraction(pa) + Fraction(pb) - Fraction(por)),
+    (re.compile(r"^table chance: (\d+) (\d+) / (\d+) (\d+); want ([rc]\d(?: [rc]\d)?) given (r\d|c\d|all)$"), compound_table),
+    (re.compile(r"^deck two: both (\w+)$"), compound_deck_two),
+    (re.compile(r"^without replacement: ((?:\w+:\d+ ?)+); (.+)$"), compound_bag_two),
+    (re.compile(r"^conditional: ([\d.]+) ([\d.]+)$"), lambda pab, pb: Fraction(pab) / Fraction(pb)),
+    (re.compile(r"^and from conditional: ([\d.]+) ([\d.]+)$"), lambda pb, q: Fraction(pb) * Fraction(q)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^independent: ([\d.]+) ([\d.]+) ([\d.]+)$"), compound_independent),
+    (re.compile(r"^independent given: ([\d.]+) ([\d.]+)$"), lambda pa, pagb: "yes" if Fraction(pa) == Fraction(pagb) else "no"),
+    (re.compile(r"^independent table: (\d+) (\d+) / (\d+) (\d+)$"), compound_independent_table),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

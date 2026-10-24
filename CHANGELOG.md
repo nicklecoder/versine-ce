@@ -13,6 +13,34 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Compound Probability**, a new skill under Probability, in seven levels: Venn
+diagrams; the addition rule, with counts, probabilities and a deck of cards;
+conditional probability from a two-way table; drawing without replacement;
+P(A | B) from P(A and B) and P(B), and back; and testing independence by the
+product, by P(A | B) against P(A), and from a table. `check-answers.py` lists
+the 52 cards and every ordered pair of marbles drawn, and sums Venn regions
+and table cells by membership.
+
+**Counting**, a new skill under Probability, in eight levels: the multiplication
+principle; factorials and their quotients; permutations; combinations, as the
+ordered count divided by r!; a strategy level, Does Order Matter?, that asks
+whether swapping two of the chosen makes a different outcome; restrictions on a
+digit, a place in a row, or a committee seat; and probability by counting.
+`check-answers.py` counts every restricted arrangement and every probability by
+listing all of them with itertools.
+
+**Probability**, a new skill under Probability, in eight levels: likelihood on the
+scale from 0 to 1; the probability of a single event with dice, spinners, cards,
+marbles and letter tiles; complements, as fractions, decimals and percents; sample
+spaces of two or three steps, two dice and several coins; independent events,
+including picks put back; expected counts; and experimental against theoretical
+probability. Fractions are accepted in any equivalent form. `check-answers.py`
+counts every event again from the listed outcomes with its own definitions, and
+lists out two dice and n coins in full.
+
+The two-way tables in Two-Variable Data that reveal a working column now drop
+their row-total column, so they stay four columns wide and fit a phone.
+
 **Distributions**, a new skill under Statistics, in eight levels: reading box plots,
 the share of data between any two of the five numbers, and the 1.5 × IQR rule;
 histograms, counted bar by bar, as percents, and for the interval that holds the
