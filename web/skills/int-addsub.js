@@ -18,7 +18,7 @@
 export const LEVELS = [
   { name: 'First Steps', slug: 'first-steps',           blurb: 'Positive second number. Find your feet on the line.' },
   { name: 'Adding Negatives', slug: 'adding-negatives',      blurb: 'Adding a negative walks you backwards.' },
-  { name: 'Subtracting Negatives', slug: 'subtracting-negatives', blurb: 'The tricky one: two minus signs make a plus.' },
+  { name: 'Subtracting Negatives', slug: 'subtracting-negatives', blurb: 'The tricky one: subtracting a negative adds. Some take away a positive, so look first.' },
   { name: 'Mixed Integers', slug: 'mixed-integers',        blurb: 'Both operations, both signs, bigger numbers.' },
   {
     name: 'Above and Below Zero', slug: 'above-and-below-zero',

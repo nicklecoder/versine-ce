@@ -9,7 +9,7 @@
 export const LEVELS = [
   {
     name: 'Sign Rules', slug: 'sign-rules',
-    blurb: 'One negative flips the answer negative.',
+    blurb: 'One negative flips the answer negative. With none, it stays positive.',
     // Knowing how a negative number behaves comes first.
     dependsOn: [{ skill: 'int-addsub', level: 1 }],
   },

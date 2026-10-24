@@ -27,7 +27,10 @@ function twoTerm(rng, level) {
     case 0: {                                   // one negative, small tables
       const x = rng.int(2, 9);
       const y = rng.int(2, 9);
-      [a, b] = rng.chance(0.5) ? [-x, y] : [x, -y];
+      // A few with no negative at all, so the sign is a decision rather than
+      // something every answer in the level has: when all of them came out
+      // negative, writing a minus first was the whole lesson.
+      [a, b] = rng.chance(0.2) ? [x, y] : rng.chance(0.5) ? [-x, y] : [x, -y];
       op = '×';
       break;
     }
@@ -117,7 +120,7 @@ function chain(rng) {
     text: `${minus(a)} ${ops[0]} ${signed(b)} ${ops[1]} ${signed(c)}`,
     answer: { type: 'int', value: answer },
     visual: model(values, ops, answer),
-    explain: `Count the negatives: ${negatives} of them, so the answer is `
+    explain: `Count the negatives: ${negatives === 0 ? 'there are none' : negatives === 1 ? 'there is one' : `there are ${negatives}`}, so the answer is `
       + `${negatives % 2 === 0 ? 'positive' : 'negative'}. `
       + `Ignoring signs, ${Math.abs(a)} ${ops[0]} ${Math.abs(b)} ${ops[1]} ${Math.abs(c)} `
       + `= ${Math.abs(answer)}, so the answer is ${minus(answer)}.`,
@@ -137,18 +140,24 @@ function chain(rng) {
  * keeps its symbols and this level does not pretend otherwise.
  */
 const REPEATS = [
-  { who: 'Someone', each: (n) => `owes £${n}`, over: (k) => `to each of ${k} people`,
-    total: 'What is the total owed, as a change to the balance?', unit: '£',
-    share: (t, k) => `A balance changed by £${t} over ${k} equal payments. What was each?` },
+  // The question asks for a change, so it says so: "the total owed" is £63
+  // and the change to the balance is −£63, and asking for both at once left
+  // a student who typed 63 marked wrong for answering the first.
+  { who: 'Someone', each: (n) => `pays out £${n}`, over: (k) => `to each of ${k} people`,
+    total: 'By how much does their balance change, in pounds?', unit: '£',
+    share: (t, k) => `A balance changed by ${t.replace(/^(−?)/, '$1£')} over ${k} equal payments. `
+      + 'What was the change to the balance each time, in pounds?' },
   { who: 'The temperature', each: (n) => `falls ${n} degrees`,
     over: (k) => `each hour for ${k} hours`,
     total: 'What is the total change in temperature?', unit: '°',
     share: (t, k) => `The temperature changed by ${t}° over ${k} equal hours. `
       + 'What was the change each hour?' },
+  // Height, not depth: depth counts downwards, so a diver going down has a
+  // depth that grows, and "the change in depth is −20" was wrong as worded.
   { who: 'A diver', each: (n) => `descends ${n} m`,
     over: (k) => `each minute for ${k} minutes`,
-    total: 'What is the total change in depth?', unit: 'm',
-    share: (t, k) => `A diver's depth changed by ${t} m over ${k} equal minutes. `
+    total: 'What is the total change in their height, in metres?', unit: 'm',
+    share: (t, k) => `A diver's height changed by ${t} m over ${k} equal minutes. `
       + 'What was the change each minute?' },
 ];
 
