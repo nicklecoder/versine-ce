@@ -1217,13 +1217,25 @@ def words_set(text: str) -> frozenset:
     return solve_set(rel)
 
 
-def answer_set(value) -> frozenset:
+def answer_set(value, samples=None) -> frozenset:
+    """The answer's set at the sample points: the number line's halves, or
+    the grid a rule names when its numbers lie elsewhere (angles to 360°)."""
     def inside(p, x):
         lo, hi = p["lo"], p["hi"]
         ok_lo = lo is None or (x >= as_fraction(lo) if p["loIn"] else x > as_fraction(lo))
         ok_hi = hi is None or (x <= as_fraction(hi) if p["hiIn"] else x < as_fraction(hi))
         return ok_lo and ok_hi
-    return frozenset(x for x in SAMPLES_ON_LINE if any(inside(p, x) for p in value["parts"]))
+    return frozenset(x for x in (samples or SAMPLES_ON_LINE) if any(inside(p, x) for p in value["parts"]))
+
+
+class OnGrid(frozenset):
+    """A rule's set at its own sample points, which it carries as .samples."""
+
+
+def on_grid(points, samples) -> OnGrid:
+    out = OnGrid(points)
+    out.samples = samples
+    return out
 
 
 def extent(which: str, corners: str) -> frozenset:
@@ -5601,6 +5613,170 @@ CHOICE_RULES += (
     (re.compile(r"^exact choice: (sin|cos|tan) (-?\d+(?:/\d+ pi)?); options (.+)$"), id_exact_choice),
 )
 
+# --- Trig Equations ----------------------------------------------------------
+#
+# Every root is found here numerically, with no table of special angles: the
+# equation is evaluated in degrees at every 2.5° (where each exact solution
+# falls), and between every 0.25° a change of sign that is not a jump across
+# tangent's asymptote is narrowed to a root by bisection. A typed set must be
+# exactly those roots, an option set the one of four that is, and a general
+# solution's members over two turns either way must be the roots there.
+
+TE_DEG = {
+    "sin": lambda t: math.sin(math.radians(t)), "cos": lambda t: math.cos(math.radians(t)),
+    "tan": lambda t: math.tan(math.radians(t)), "sqrt": math.sqrt,
+}
+# Every quarter degree in one turn: each exact solution, and any slip near one.
+TE_TURN = [Fraction(k, 4) for k in range(1440)]
+
+
+def te_f(equation: str):
+    lhs, rhs = equation.split(" = ")
+    assert re.fullmatch(r"[\w\s+\-*/().^]+", equation.replace("=", "")), equation
+    assert set(re.findall(r"[a-z]+", equation)) <= set(TE_DEG) | {"x"}, equation
+    src = f"lambda x: ({lhs}) - ({rhs})".replace("^", "**")
+    return eval(src, {"__builtins__": {}, **TE_DEG})
+
+
+def te_roots(equation: str, lo: float, hi: float) -> list:
+    f = te_f(equation)
+    roots = []
+    add = lambda r: roots.append(r) if not any(abs(r - s) < 1e-6 for s in roots) else None
+    k = math.ceil(lo / 2.5)
+    while k * 2.5 < hi:
+        if abs(f(k * 2.5)) < 1e-9:
+            add(k * 2.5)
+        k += 1
+    step = 0.25
+    a = lo
+    while a < hi - 1e-12:
+        b = min(a + step, hi)
+        fa, fb = f(a), f(b)
+        if fa * fb < 0 and abs(fa - fb) < 10:
+            x0, x1 = a, b
+            for _ in range(60):
+                m = (x0 + x1) / 2
+                if f(x0) * f(m) <= 0:
+                    x1 = m
+                else:
+                    x0 = m
+            if lo <= x0 < hi:
+                add(x0)
+        a = b
+    return sorted(roots)
+
+
+def te_on_turn(equation: str) -> OnGrid:
+    roots = te_roots(equation, 0, 360)
+    hits = {g for g in TE_TURN if any(abs(float(g) - r) < 1e-6 for r in roots)}
+    assert len(hits) == len(roots), f"{equation}: a root off the quarter-degree grid in {roots}"
+    return on_grid(hits, TE_TURN)
+
+
+def te_options(listing: str) -> dict:
+    out = {}
+    for part in listing.split(" | "):
+        oid, body = part.split(": ", 1)
+        out[oid] = body
+    return out
+
+
+def te_radians(equation: str, listing: str) -> str:
+    roots = te_roots(equation, 0, 360)
+    fit = []
+    for oid, body in te_options(listing).items():
+        xs = [] if body == "none" else sorted(float(Fraction(c)) * 180 for c in body.split(", "))
+        if len(xs) == len(roots) and all(abs(a - b) < 1e-6 for a, b in zip(xs, roots)):
+            fit.append(oid)
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options are the roots {roots}"
+
+
+def te_general(equation: str, listing: str) -> str:
+    roots = te_roots(equation, -720, 720)
+    fit = []
+    for oid, body in te_options(listing).items():
+        members = set()
+        for fam in body.split(", "):
+            b, p = fam.split("@")
+            base, period = float(Fraction(b)) * 180, float(Fraction(p)) * 180
+            x = base - 8 * 360
+            while x < 720 - 1e-9:
+                if x >= -720 - 1e-9:
+                    members.add(round(x, 6))
+                x += period
+        xs = sorted(members)
+        if len(xs) == len(roots) and all(abs(a - b) < 1e-6 for a, b in zip(xs, roots)):
+            fit.append(oid)
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options are the roots {roots}"
+
+
+TE_INV = {"sin": math.asin, "cos": math.acos, "tan": math.atan}
+
+
+def te_value(written) -> float:
+    written = str(written)
+    assert re.fullmatch(r"[-\d*/()sqrt]+", written), written
+    return eval(written, {"__builtins__": {}, "sqrt": math.sqrt})
+
+
+def te_inverse(unit: str, fn: str, written: str) -> Fraction:
+    t = TE_INV[fn](te_value(written))
+    if unit == "rad":
+        k = Fraction(t / math.pi).limit_denominator(12)
+        assert abs(float(k) * math.pi - t) < 1e-9, f"a{fn}({written}) is not a multiple of π"
+        return k
+    d = round(math.degrees(t))
+    assert abs(math.degrees(t) - d) < 1e-9, f"a{fn}({written}) is not a whole degree"
+    return Fraction(d)
+
+
+def te_undo(unit: str, fn: str, angle) -> Fraction:
+    """sin⁻¹(sin θ) by the calculator: the inverse of the value, not θ."""
+    angle = str(angle)
+    t = float(Fraction(angle[:-3])) * math.pi if angle.endswith(" pi") else math.radians(int(angle))
+    v = {"sin": math.sin, "cos": math.cos, "tan": math.tan}[fn](t)
+    out = TE_INV[fn](v)
+    if unit == "rad":
+        k = Fraction(out / math.pi).limit_denominator(12)
+        assert abs(float(k) * math.pi - out) < 1e-9, f"a{fn}({fn}({angle})) is not a multiple of π"
+        return k
+    d = round(math.degrees(out))
+    assert abs(math.degrees(out) - d) < 1e-9
+    return Fraction(d)
+
+
+def te_compose(outer: str, fn: str, n, d) -> Fraction:
+    v = {"sin": math.sin, "cos": math.cos, "tan": math.tan}[outer](TE_INV[fn](int(n) / int(d)))
+    out = Fraction(v).limit_denominator(1000)
+    assert abs(float(out) - v) < 1e-9, f"{outer}(a{fn}({n}/{d})) is not rational"
+    return out
+
+
+def te_on_window(lo: str, hi: str, equation: str) -> OnGrid:
+    """The roots from lo to hi degrees, on that window's quarter degrees."""
+    grid = [Fraction(k, 4) for k in range(4 * int(lo), 4 * int(hi))]
+    roots = te_roots(equation, int(lo), int(hi))
+    hits = {g for g in grid if any(abs(float(g) - r) < 1e-6 for r in roots)}
+    assert len(hits) == len(roots), f"{equation}: a root off the quarter-degree grid in {roots}"
+    return on_grid(hits, grid)
+
+
+SET_RULES += (
+    (re.compile(r"^solve degrees: (.+)$"), te_on_turn),
+    (re.compile(r"^solve degrees from (-?\d+) to (-?\d+): (.+)$"), te_on_window),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^solve radians: (.+); options (.+)$"), te_radians),
+    (re.compile(r"^general: (.+); options (.+)$"), te_general),
+)
+
+BY_RULE += (
+    (re.compile(r"^inverse (rad|deg): a(sin|cos|tan)\((.+)\)$"), te_inverse),
+    (re.compile(r"^undo (rad|deg): a(sin|cos|tan)\((?:sin|cos|tan)\((-?\d+(?:/\d+ pi)?)\)\)$"), te_undo),
+    (re.compile(r"^compose: (sin|cos|tan)\(a(sin|cos|tan)\((-?\d+)/(\d+)\)\)$"), te_compose),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -5712,7 +5888,7 @@ for path in sorted(LIB.glob("*.json")):
             if rule:
                 checked += 1
                 want = rule[1](*rule[0].match(text).groups())
-                if answer_set(answer["value"]) != want:
+                if answer_set(answer["value"], getattr(want, "samples", None)) != want:
                     problems.append(f"{where}: {text} is not {answer['value']}")
             continue
 

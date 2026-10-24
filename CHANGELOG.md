@@ -13,6 +13,19 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Trig Equations**, a new skill under Identities, in six levels:
+arcsin, arccos and arctan (exact values as multiples of π, sin⁻¹(sin θ)
+outside the range, and cos(sin⁻¹(3/5)) from a triangle, all fractions in
+one box), Solve in Degrees, Solve on [0, 2π), General Solutions (more than
+one turn, and multiple angles such as sin 2x),
+Quadratic-Type (factoring, a square, a common factor never divided away,
+and the Pythagorean identity first), then All Together. A set of angles is
+typed in degrees, where the solutions input holds each one, and a typed
+30° now reads as 30; in radians the set, and every general solution, is
+chosen from four. All Together draws on the four solving levels, which
+share that box. `check-answers.py` finds every root numerically on a
+quarter-degree grid, with no table of special angles.
+
 **Trig Identities**, a new skill under Identities, in eight levels:
 Pythagorean, reciprocal and quotient, even and odd, cofunction, sum and
 difference, double angle, Next Step in a Proof, then All Together. Each

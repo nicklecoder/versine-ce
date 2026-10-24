@@ -1,5 +1,5 @@
 {
-  "built": 531,
+  "built": 537,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -670,6 +670,14 @@
       "sum-and-difference",
       "double-angle",
       "next-step-in-a-proof",
+      "all-together"
+    ],
+    "trig-equations": [
+      "arcsin-arccos-arctan",
+      "solve-in-degrees",
+      "solve-on-0-2pi",
+      "general-solutions",
+      "quadratic-type",
       "all-together"
     ]
   },
@@ -1506,9 +1514,27 @@
           "trig-ratios"
         ]
       }
+    },
+    "trig-equations": {
+      "dependsOn": [
+        "identities",
+        "trig-graphs",
+        "unit-circle"
+      ],
+      "levels": {
+        "solve-in-degrees": [
+          "unit-circle"
+        ],
+        "general-solutions": [
+          "trig-graphs"
+        ],
+        "quadratic-type": [
+          "identities"
+        ]
+      }
     }
   },
-  "sources": "2609f40cb461ec9382f4805a27c3aa0db61755f9c6defdd78fe48c879a897433",
+  "sources": "d31d90ca8c3e96d3e0c9154bad9eea6466d6ff45c373be7b289c57ed59706a92",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6819,6 +6845,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "identities-7.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 0,
+      "slug": "arcsin-arccos-arctan",
+      "name": "arcsin, arccos, arctan",
+      "count": 198,
+      "exhaustive": true,
+      "signed": true,
+      "file": "trig-equations-0.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 1,
+      "slug": "solve-in-degrees",
+      "name": "Solve in Degrees",
+      "count": 500,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-equations-1.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 2,
+      "slug": "solve-on-0-2pi",
+      "name": "Solve on [0, 2π)",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-equations-2.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 3,
+      "slug": "general-solutions",
+      "name": "General Solutions",
+      "count": 500,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-equations-3.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 4,
+      "slug": "quadratic-type",
+      "name": "Quadratic-Type",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-equations-4.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-equations-5.json"
     }
   ]
 }

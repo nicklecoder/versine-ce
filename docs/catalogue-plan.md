@@ -357,6 +357,13 @@ Together, in the plan's levels. Cofunction depends on trig-ratios'
 Complementary sin/cos, so the skill depends on trig-ratios as well as the
 unit circle. Exact values with two radicals are asked as choices, since the
 roots input holds one, and Next Step in a Proof is capped at 300 problems.
+`trig-equations` is built, as arcsin, arccos, arctan · Solve in Degrees ·
+Solve on [0, 2π) · General Solutions · Quadratic-Type · All Together. Solve
+in Degrees is added: a set of angles is typed only in degrees, where each
+is a number the solutions input reads, and on [0, 2π) the set is chosen
+from four, as is every general solution. Solve in Degrees depends on the
+unit circle's Around the Circle, General Solutions on the graphs' Period,
+and Quadratic-Type on the identities' Pythagorean.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

@@ -147,7 +147,9 @@ export function parseSet(raw) {
     .replace(/±|\+\/-/g, '+-').replace(/∞|infinity/g, 'inf').replace(/∪/g, ' u ')
     .replace(/\s+/g, ' ')
     // "x = ± 3" is x = ±3, and a sentence's full stop is not part of it.
-    .replace(/\+- /g, '+-').replace(/\.$/, '');
+    .replace(/\+- /g, '+-').replace(/\.$/, '')
+    // An angle asked in degrees may be typed with its sign: 30° is 30.
+    .replace(/°/g, '');
   if (!text) return { ok: false };
   if (NOTHING.test(text)) return { ok: true, value: { letter: 'x', parts: [] } };
   if (EVERYTHING.test(text)) return { ok: true, value: { letter: 'x', parts: ALL } };
