@@ -1,5 +1,5 @@
 {
-  "built": 551,
+  "built": 557,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -696,6 +696,14 @@
       "f-of-g-of-x",
       "not-commutative",
       "decompose",
+      "all-together"
+    ],
+    "inverses": [
+      "undo-a-function",
+      "solve-for-x-y",
+      "check-by-composing",
+      "restrict-the-domain",
+      "graph-reflection",
       "all-together"
     ]
   },
@@ -1575,9 +1583,35 @@
           "polynomials"
         ]
       }
+    },
+    "inverses": {
+      "dependsOn": [
+        "composition",
+        "equations",
+        "functions",
+        "quadratic-graphs"
+      ],
+      "levels": {
+        "undo-a-function": [
+          "functions"
+        ],
+        "solve-for-x-y": [
+          "equations"
+        ],
+        "check-by-composing": [
+          "composition"
+        ],
+        "restrict-the-domain": [
+          "functions",
+          "quadratic-graphs"
+        ],
+        "graph-reflection": [
+          "functions"
+        ]
+      }
     }
   },
-  "sources": "4bd97e387738ef0e5bf032d78705fcf2c182843e23f1019a188e94f19333622e",
+  "sources": "09488764c82ed8dee7ceab6c58c3c779628beab38ba3fc58644501d8ddf2f283",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7088,6 +7122,66 @@
       "exhaustive": false,
       "signed": false,
       "file": "composition-5.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 0,
+      "slug": "undo-a-function",
+      "name": "Undo a Function",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-0.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 1,
+      "slug": "solve-for-x-y",
+      "name": "Solve for x ↔ y",
+      "count": 288,
+      "exhaustive": true,
+      "signed": false,
+      "file": "inverses-1.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 2,
+      "slug": "check-by-composing",
+      "name": "Check by Composing",
+      "count": 504,
+      "exhaustive": true,
+      "signed": false,
+      "file": "inverses-2.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 3,
+      "slug": "restrict-the-domain",
+      "name": "Restrict the Domain",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-3.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 4,
+      "slug": "graph-reflection",
+      "name": "Graph Reflection",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-4.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-5.json"
     }
   ]
 }

@@ -6412,6 +6412,199 @@ CHOICE_RULES += (
     (re.compile(r"^fails where: (.+? = .+?); options (.+)$"), idn_fails_where),
 )
 
+# --- Inverse Functions --------------------------------------------------------
+#
+# f is read from the text and undone here by a route of this section's own:
+# solving f(x) = c by trying inputs, or composing f with the answer and
+# asking that only x is left, in exact rationals where f has no root and in
+# floats to a billionth where it does. A table and a graph are read backwards
+# from their own entries.
+
+def iv_into(outer: str, inner: str) -> str:
+    return re.sub(r"x", f"({inner})", outer)
+
+
+def iv_float(expr: str, x: float) -> float:
+    """expr at x in floats, for formulas with a square root in them."""
+    py = expr.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(s])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(s])", ")*", py)
+    return eval(py, {"__builtins__": {}, "sqrt": math.sqrt, "x": x})  # noqa: S307 -- our own text
+
+
+IV_TRY = [Fraction(n, 2) for n in range(-240, 241)]
+
+
+def iv_solve(f: str, c, ok=lambda x: True) -> Fraction:
+    """The one input, among halves from -120 to 120, that f sends to c."""
+    hits = []
+    for x in IV_TRY:
+        if not ok(x):
+            continue
+        try:
+            y = at(f, {"x": x}) if "sqrt" not in f else iv_float(f, float(x))
+        except (ValueError, ZeroDivisionError):
+            continue
+        if abs(y - Fraction(c)) < 1e-9:
+            hits.append(x)
+    assert len(hits) == 1, f"{f} = {c} at {hits}"
+    return hits[0]
+
+
+def iv_value(f: str, c: str) -> Fraction:
+    return iv_solve(f, int(c))
+
+
+def iv_table(xs: str, fs: str, c: str) -> Fraction:
+    pairs = [(int(a), int(b)) for a, b in zip(xs.split(", "), fs.split(", "))]
+    hits = [a for a, b in pairs if b == int(c)]
+    assert len(hits) == 1, f"{c} appears {len(hits)} times in the table"
+    return Fraction(hits[0])
+
+
+IV_OPS = {"plus": lambda v, k: v + k, "minus": lambda v, k: v - k,
+          "times": lambda v, k: v * k, "divide": lambda v, k: v / k}
+
+
+def iv_run(steps: str, v: Fraction) -> Fraction:
+    for step in steps.split(", "):
+        op, k = step.split(" ")
+        v = IV_OPS[op](v, Fraction(int(k)))
+    return v
+
+
+def iv_steps(f: str, listing: str) -> str:
+    fit = [oid for oid, body in te_options(listing).items()
+           if all(iv_run(body, iv_run(f, Fraction(v))) == v for v in (-7, -1, 0, 2, 5, 11))]
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options undo {f}"
+
+
+IV_POINTS = [Fraction(n, 3) for n in range(-24, 25)]
+
+
+def iv_undoes(f: str, g: str) -> bool:
+    """g(f(x)) = x and f(g(x)) = x wherever both are defined, at enough points."""
+    agreed = 0
+    for x in IV_POINTS:
+        try:
+            if at(iv_into(f, g), {"x": x}) != x or at(iv_into(g, f), {"x": x}) != x:
+                return False
+        except ZeroDivisionError:
+            continue
+        agreed += 1
+    return agreed >= 20
+
+
+# requiem: catalogue/content/inverse-formula-forms-listed
+def iv_formula(f: str, answer: str) -> str:
+    return "ok" if iv_undoes(f, answer) else f"does not undo {f}"
+
+
+def iv_pair(f: str, g: str) -> str:
+    return "a" if iv_undoes(f, g) else "b"
+
+
+def iv_compose(f: str, g: str, answer: str) -> str:
+    return same_polynomial(iv_into(f, g), answer)
+
+
+def iv_in(branch: str):
+    m = re.fullmatch(r"x (>=|<=) (-?\d+)", branch)
+    if branch == "all":
+        return lambda x: True
+    lim = int(m[2])
+    return (lambda x: x >= lim) if m[1] == ">=" else (lambda x: x <= lim)
+
+
+def iv_restricted(f: str, branch: str, c: str) -> Fraction:
+    return iv_solve(f, int(c), iv_in(branch))
+
+
+def iv_one_to_one(f: str, listing: str) -> str:
+    fit = []
+    for oid, body in te_options(listing).items():
+        seen = {}
+        inside = [x for x in IV_TRY if iv_in(body)(x)]
+        if all(seen.setdefault(at(f, {"x": x}), x) == x for x in inside):
+            fit.append(oid)
+    return fit[0] if len(fit) == 1 else f"{len(fit)} domains are one-to-one"
+
+
+def iv_restricted_formula(f: str, branch: str, listing: str) -> str:
+    keep = iv_in(branch)
+    # f's outputs: the values it takes on its own domain.
+    outputs = sorted({float(at(f, {"x": x})) for x in IV_TRY if keep(x)})[:60]
+    fit = []
+    for oid, body in te_options(listing).items():
+        good = True
+        for y in outputs:
+            try:
+                back = iv_float(body, y)
+            except ValueError:
+                good = False
+                break
+            if not keep(Fraction(back).limit_denominator(10 ** 6)) or abs(iv_float(f, back) - y) > 1e-9:
+                good = False
+                break
+        if good:
+            fit.append(oid)
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options undo {f} on {branch}"
+
+
+IV_PT = re.compile(r"\((-?\d+), (-?\d+)\)")
+
+
+def iv_graph(listing: str, k: str) -> Fraction:
+    pts = [(int(a), int(b)) for a, b in IV_PT.findall(listing)]
+    k = Fraction(int(k))
+    hits = set()
+    for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+        if min(y1, y2) <= k <= max(y1, y2) and y1 != y2:
+            hits.add(x1 + (k - y1) * Fraction(x2 - x1, y2 - y1))
+    assert len(hits) == 1, f"height {k} reached at {hits}"
+    return hits.pop()
+
+
+BY_RULE += (
+    (re.compile(r"^inverse value: f\(x\) = (.+); at (-?\d+)$"), iv_value),
+    (re.compile(r"^inverse table: x ([-\d, ]+) \| f ([-\d, ]+); at (-?\d+)$"), iv_table),
+    (re.compile(r"^restricted inverse: f\(x\) = (.+); (x (?:>=|<=) -?\d+); at (-?\d+)$"), iv_restricted),
+    (re.compile(r"^graph inverse: ((?:\(-?\d+, -?\d+\) ?)+); at (-?\d+)$"), iv_graph),
+)
+
+EXPR_RULES += (
+    (re.compile(r"^inverse formula: f\(x\) = (.+)$"), iv_formula),
+    (re.compile(r"^inverse compose: f\(x\) = (.+); g\(x\) = (.+); f\(g\(x\)\)$"), iv_compose),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^undo steps: (.+?); options (.+)$"), iv_steps),
+    (re.compile(r"^inverse pair: f\(x\) = (.+); g\(x\) = (.+); options a: inverses \| b: not inverses$"), iv_pair),
+    (re.compile(r"^one-to-one: f\(x\) = (.+); options (.+)$"), iv_one_to_one),
+    (re.compile(r"^restricted formula: f\(x\) = (.+); (x (?:>=|<=) -?\d+); options (.+)$"), iv_restricted_formula),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^reflect point: \((-?\d+), (-?\d+)\)$"), lambda a, b: (b, a)),
+    (re.compile(r"^reflect value: f\((-?\d+)\) = (-?\d+)$"), lambda a, b: (b, a)),
+)
+
+# The graph is the student's only copy of f: it must be the path the text
+# lists, its two ends filled dots.
+for path in sorted(LIB.glob("inverses-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        m = re.match(r"^graph inverse: ((?:\(-?\d+, -?\d+\) ?)+); at -?\d+$", p["text"])
+        if not m:
+            continue
+        where = f"inverses L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        corners = [[float(a), float(b)] for a, b in IV_PT.findall(m[1])]
+        marks = p["visual"]["marks"]
+        if not any(mk["kind"] == "path" and mk["points"] == corners for mk in marks):
+            problems.append(f"{where}: the graph drawn is not {corners}")
+        dots = sorted(mk["at"] for mk in marks if mk["kind"] == "point")
+        if dots != sorted([corners[0], corners[-1]]):
+            problems.append(f"{where}: end dots {dots}, not at {corners[0]} and {corners[-1]}")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

@@ -13,6 +13,16 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Inverse Functions**, a new skill under Functions, in six levels: Undo a
+Function (f⁻¹ of a number from a rule, a cube, a table, or f's steps
+undone in reverse order), Solve for x ↔ y (swap and solve, every form of
+the answer accepted), Check by Composing (whether a pair are inverses, and
+f(g(x)) worked out), Restrict the Domain (a parabola cut at its vertex,
+f⁻¹ of a number, and which domain and which square root), Graph
+Reflection (a point reflected in y = x, and f⁻¹ read from a graph), then
+All Together. `check-answers.py` undoes f by its own route, trying inputs
+or composing the answer with f, and checks each graph is drawn as listed.
+
 **Combining Functions**, a new skill under Functions, in six levels:
 (f + g)(x) (sums, differences that take away all of g, and products),
 f(g(2)) (from formulas or from a table, inside out), f(g(x)) (every x

@@ -407,6 +407,15 @@ f(g(2)) is typed in the expression box like every other answer, so All
 Together deals from all five levels. Inverse functions, F-BF.4, are not
 here: they are `inverses`, next in the plan, whose Check by Composing builds on this.
 
+`inverses` is built, as Undo a Function · Solve for x ↔ y · Check by
+Composing · Restrict the Domain · Graph Reflection · All Together. Undo a
+Function depends on functions' Function Notation, Solve for x ↔ y on
+equations' Two Steps, Check by Composing on composition's f(g(x)),
+Restrict the Domain on functions' Vertical Line Test and quadratic graphs'
+Vertex Form, and Graph Reflection on functions' Reading f off a Graph. A
+number goes in the fraction box, a formula in the expression box and a
+reflected point in the pair box; the question says which.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 
