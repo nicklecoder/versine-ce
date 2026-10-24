@@ -5492,7 +5492,7 @@
       "level": 3,
       "slug": "which-special-quadrilateral",
       "name": "Which Special Quadrilateral",
-      "count": 250,
+      "count": 460,
       "exhaustive": true,
       "signed": false,
       "file": "quadrilaterals-3.json"

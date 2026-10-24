@@ -3736,6 +3736,9 @@ def diagonal_angle(shape: str, given: str, value: int, asked: str) -> Fraction:
 def special_name(name: str, listing: str) -> str:
     facts = set(listing.split(", "))
     parallelogram = bool(facts & {"opp-par", "opp-eq", "diag-bis", "pair-eq-par", "opp-ang", "all-right", "all-eq"})
+    # A parallel pair makes neighboring angles co-interior, so one equal pair of
+    # opposite angles brings the other pair with it.
+    parallelogram |= {"pair-par", "pair-opp-ang"} <= facts
     rectangle = "all-right" in facts or (parallelogram and bool(facts & {"right", "diag-eq"}))
     rhombus = "all-eq" in facts or (parallelogram and bool(facts & {"adj-eq", "diag-perp", "diag-bis-ang"}))
     if rectangle and rhombus:
@@ -3748,7 +3751,9 @@ def special_name(name: str, listing: str) -> str:
         return "parallelogram"
     if "one-par" in facts:
         return "trapezoid"
-    if "kite-sides" in facts:
+    # A diagonal bisected at right angles by the other has it as its perpendicular
+    # bisector: two pairs of equal neighboring sides.
+    if "kite-sides" in facts or {"one-diag-bis", "diag-perp"} <= facts:
         return "kite"
     return "none"
 

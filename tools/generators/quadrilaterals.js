@@ -20,7 +20,7 @@ import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
 import {
   LINE, GIVEN, ASKED, FRAME, RAD, r2, fit, outline, centroid, sideLabel, text, toward, linear, ascii, sized,
-  cornerNames, ticks, arcs, cornerText, cornerAt, under, dirTo,
+  cornerNames, ticks, arcs, cornerText, cornerAt, under, dirTo, fromSides, cornerLabel, clearLabel, namePoints, pointNames, phoneUnit,
 } from './figures.js';
 import { solve } from './congruence.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/quadrilaterals.js';
@@ -62,6 +62,8 @@ function turned(P, t) {
 const mid = (P, Q) => [r2((P[0] + Q[0]) / 2), r2((P[1] + Q[1]) / 2)];
 /** The corner of a quadrilateral, between its two sides. */
 const at4 = (P, v) => [P[v], P[(v + 1) % 4], P[(v + 3) % 4]];
+/** An angle's label at corner v of ABCD, written as the prompt writes it and fitted inside the corner, or just outside. */
+const angleLabel = (P, v, label, tone = GIVEN, k = 1.15) => cornerLabel(...at4(P, NAMES.indexOf(v)), label, tone, { k, away: centroid(P) });
 const answerAt = (P, label) => text(under(P), label, RESULT);
 const draw = (marks, reveal, k = 1.15) => fit({ ...FRAME, marks, answer: reveal }, k);
 /** E, where the diagonals cross, lettered in the gap at E furthest from every other label. */
@@ -106,6 +108,8 @@ function paraSides(rng) {
   for (;;) {
     const L1 = rng.int(6, 40), L2 = rng.int(6, 40);
     if (Math.abs(L1 - L2) < 4) continue;
+    // Drawn to scale: a ratio past 4.6 : 2.2 would have its shorter side stretched.
+    if (Math.max(L1, L2) / Math.min(L1, L2) > 2.05) continue;
     const pair = rng.pick(SIDE_PAIRS), [s1, s2] = rng.chance(0.5) ? pair : [pair[1], pair[0]];
     const V = pair[0] === 'AB' ? L1 : L2, W = pair[0] === 'AB' ? L2 : L1;
     const x = xFor(rng, [V, W]);
@@ -185,7 +189,7 @@ function paraAngles(rng) {
         + `${ask === 'x' ? 'What is x?' : `What is ∠${ask}, in degrees?`}`)],
       text: `parallelogram: ${shown.map(([n, e]) => `angle ${n} ${exA(e)}`).join(', ')}; find ${ask === 'x' ? 'x' : `angle ${ask}`}`,
       answer: { type: 'int', value: want },
-      visual: draw([...outline(P), ...cornerNames(P, NAMES), label(v, `${ex(e1)}°`), label(u, `${ex(e2)}°`),
+      visual: draw([...outline(P), ...cornerNames(P, NAMES), ...angleLabel(P, v, exDeg(e1)), ...angleLabel(P, u, exDeg(e2)),
         ...(ask === 'x' || ask === v || ask === u ? [] : askMark(ask))],
       [answerAt(P, ask === 'x' ? `x = ${x}` : `∠${ask} = ${deg(want)}`)]),
       explain: `${setUp}${then}${trap} So ${ask === 'x' ? `x = ${x}` : `∠${ask} = ${deg(want)}`}.`,
@@ -230,7 +234,7 @@ function diagonals(rng) {
         prompt: [T.prose(`ABCD is a rhombus whose diagonals meet at E, and ∠${name} = ${sized(e)}. What is x?`)],
         text: `diagonals: rhombus ABCD, E; angle ${name} ${ascii(...e)}; find x`,
         answer: { type: 'int', value: x },
-        visual: (() => { const marks = [...base, angleText(E, P[corner], P[(corner + 1) % 4], `${linear(...e)}°`, GIVEN)];
+        visual: (() => { const marks = [...base, ...cornerLabel(E, P[corner], P[(corner + 1) % 4], sized(e), GIVEN, { k: 1.15, min: 0.65 })];
           return draw([...marks, letterE(P, E, marks)], [answerAt(P, `x = ${x}`)]); })(),
         explain: `The diagonals of a rhombus are perpendicular, so ∠${name} = 90°: ${s.work} Check: ${putX(e, x)} = 90. `
           + `(The diagonals of a rhombus need not be equal; what is fixed is the right angle where they cross.) So x = ${x}.`,
@@ -268,18 +272,19 @@ function diagonals(rng) {
     const then = ask === 'x' ? `Check: ${n1} = ${putX(e1, x)} = ${v1} and ${n2} = ${putX(e2, x)} = ${v2}. `
       : ask === n1 ? `Then ${n1} = ${putX(e1, x)} = ${v1}. `
         : `So ${n1} = ${putX(e1, x)} = ${v1}, and ${ask} is ${HALF[ask][1] === HALF[n1][1] ? 'equal to it' : HALF[ask][1] > HALF[n1][1] ? 'twice that' : 'half of that'}: ${want}. `;
-    const segLabel = (n, e) => {
+    // Each half's length beside its own half, clear of every other line and
+    // label: two halves in one small triangle otherwise stack up in it.
+    const segLabel = (n, e, others) => {
       const [a, b] = ENDS[n].map(pt);
       if (HALF[n][1] === 2) return [];
-      const other = n[0] === 'A' || n[1] === 'C' ? P[1] : P[0];
-      return [sideLabel(a, b, ex(e), other, GIVEN, 0.38)];
+      return [clearLabel(a, b, ex(e), others, GIVEN, { gaps: [0.2, 0.35, 0.5] })];
     };
     return {
       prompt: [T.prose(`ABCD is ${shapeWords} whose diagonals meet at E. ${n1} = ${ex(e1)} and ${n2} = ${ex(e2)}. `
         + `${ask === 'x' ? 'What is x?' : `How long is ${ask}?`}`)],
       text: `diagonals: ${shape} ABCD, E; ${n1} ${exA(e1)}, ${n2} ${exA(e2)}; find ${ask}`,
       answer: { type: 'int', value: want },
-      visual: (() => { const marks = [...base, ...segLabel(n1, e1), ...segLabel(n2, e2)];
+      visual: (() => { const l1 = segLabel(n1, e1, base), marks = [...base, ...l1, ...segLabel(n2, e2, [...base, ...l1])];
         return draw([...marks, letterE(P, E, marks)], [answerAt(P, ask === 'x' ? `x = ${x}` : `${ask} = ${want}`)]); })(),
       explain: `${why}${doubled}${s.work} ${then}${trap} So ${ask === 'x' ? `x = ${x}` : `${ask} = ${want}`}.`,
     };
@@ -400,6 +405,10 @@ const FACT = {
   'one-par': 'one pair of opposite sides is parallel and the other pair is not',
   'kite-sides': 'it has two pairs of equal adjacent sides, but not all four sides are equal',
   'par-other-eq': 'one pair of opposite sides is parallel and the other pair is equal',
+  'pair-par': 'one pair of opposite sides is parallel',
+  'pair-opp-ang': 'one pair of opposite angles is equal',
+  'base-ang': 'the two angles at one of the parallel sides are equal',
+  'one-diag-bis': 'one diagonal cuts the other in half, but not the other way round',
 };
 const SHAPES = [
   { id: 'square', label: 'Square' }, { id: 'rectangle', label: 'Rectangle' }, { id: 'rhombus', label: 'Rhombus' },
@@ -436,8 +445,27 @@ const SCENARIOS = [
   [['right'], 'none', 'Plenty of four-sided shapes have one right angle without anything else: a right trapezoid, or a kite. Nothing is certain.'],
   [['adj-eq'], 'none', 'Two equal neighboring sides is true of a kite and of a rhombus, and of shapes that are neither: nothing is certain.'],
   [['right', 'diag-eq'], 'none', 'A(0, 0), B(4, 0), C(3, 4), D(0, 3) has a right angle at A and diagonals AC = BD = 5, yet no parallel sides: not enough.'],
+  [['pair-opp-ang'], 'none', 'A kite has one pair of opposite angles equal, and so does a parallelogram: either fits, so neither is certain.'],
+  [['pair-par', 'pair-opp-ang'], 'parallelogram', 'The parallel pair makes the angles along each of the other two sides co-interior, adding to 180°. So the neighbors of the two equal angles are each 180° minus an equal angle, and equal too: both pairs of opposite angles are equal, so it is a parallelogram. Nothing more is fixed.'],
+  [['opp-eq', 'right'], 'rectangle', 'Equal opposite sides make a parallelogram, and in a parallelogram one right angle makes all four right: a rectangle. No side is said to equal its neighbor, so not necessarily a square.'],
+  [['diag-bis', 'right'], 'rectangle', 'Diagonals that bisect each other make a parallelogram, and in a parallelogram one right angle makes all four right: a rectangle. Not necessarily a square.'],
+  [['opp-ang', 'right'], 'rectangle', 'Equal opposite angles make a parallelogram; the right angle’s opposite is right too, and the other two are 180° − 90° = 90°: a rectangle. Not necessarily a square.'],
+  [['opp-eq', 'adj-eq'], 'rhombus', 'Equal opposite sides make a parallelogram, and two equal neighbors then make all four sides equal: a rhombus. No angle is fixed, so not necessarily a square.'],
+  [['pair-eq-par', 'diag-perp'], 'rhombus', 'One pair of sides both equal and parallel makes a parallelogram, whose diagonals bisect each other; perpendicular as well, each is the perpendicular bisector of the other, so neighboring sides are equal: a rhombus. Not necessarily a square.'],
+  [['opp-ang', 'adj-eq'], 'rhombus', 'Equal opposite angles make a parallelogram, whose opposite sides are equal, so two equal neighbors make all four equal: a rhombus. Not necessarily a square.'],
+  [['all-eq', 'diag-eq'], 'square', 'Four equal sides is a rhombus, which is a parallelogram, and a parallelogram with equal diagonals is a rectangle; a rhombus that is a rectangle is a square.'],
+  [['all-right', 'diag-perp'], 'square', 'Four right angles is a rectangle, which is a parallelogram, and a parallelogram with perpendicular diagonals is a rhombus; both at once is a square.'],
+  [['one-par', 'right'], 'trapezoid', 'Exactly one pair of parallel sides is a trapezoid (with a right angle, a right trapezoid). It cannot be a parallelogram, so it cannot be a rectangle either.'],
+  [['one-par', 'base-ang'], 'trapezoid', 'Exactly one pair of parallel sides is a trapezoid, and equal angles at one of the parallel sides make it an isosceles one. It cannot be a parallelogram.'],
+  [['one-par', 'diag-perp'], 'trapezoid', 'Exactly one pair of parallel sides is a trapezoid, whatever its diagonals do. Without a second parallel pair it cannot be a rhombus.'],
+  [['one-par', 'adj-eq'], 'trapezoid', 'Exactly one pair of parallel sides is a trapezoid. Two equal neighboring sides add no second parallel pair, so it cannot be a rhombus.'],
+  [['kite-sides', 'right'], 'kite', 'Two pairs of equal neighboring sides is a kite, and a right angle does not change that. With the sides not all equal, it is not a rhombus or a square.'],
+  [['kite-sides', 'diag-perp'], 'kite', 'Two pairs of equal neighboring sides is a kite, and every kite has perpendicular diagonals, so that adds nothing. With the sides not all equal, it is not a rhombus.'],
+  [['kite-sides', 'diag-bis-ang'], 'kite', 'Two pairs of equal neighboring sides is a kite, and a kite’s line of symmetry always bisects the angles at its ends, so that adds nothing. With the sides not all equal, it is not a rhombus.'],
+  [['one-diag-bis', 'diag-perp'], 'kite', 'The diagonal that is cut in half at right angles has the other diagonal as its perpendicular bisector, so each end of the other is as far from one of its ends as from the other: two pairs of equal neighboring sides, a kite. The other diagonal is not cut in half, so it is no parallelogram, and no rhombus.'],
 ];
-const LETTERS = ['ABCD', 'PQRS', 'WXYZ', 'JKLM', 'EFGH'];
+// Ten sets of letters, so each set of facts comes round ten times before it repeats.
+const LETTERS = ['ABCD', 'PQRS', 'WXYZ', 'JKLM', 'EFGH', 'KLMN', 'RSTU', 'MNOP', 'DEFG', 'QRST'];
 
 // requiem: catalogue/content/quadrilateral-names-both-readings
 function whichSpecial(rng) {
@@ -448,7 +476,9 @@ function whichSpecial(rng) {
     prompt: [T.prose(`All that is known about quadrilateral ${name}: ${shown.length === 1 ? FACT[shown[0]]
       : `${shown.slice(0, -1).map((f) => FACT[f]).join('; ')}; and ${FACT[shown[shown.length - 1]]}`}. `
       + 'What is the most specific name it must have?')],
-    text: `special quadrilateral ${name}: ${shown.join(', ')}`,
+    // The facts in the order the table lists them, so one set of facts under one name is one
+    // problem however its facts are shuffled, and each set comes round equally often.
+    text: `special quadrilateral ${name}: ${facts.join(', ')}`,
     answer: { type: 'choice', value: answer, options: SHAPES },
     visual: null,
     explain: `${why} (A shape that could be drawn to look like more is not proved to be more: only the facts count.) `
@@ -523,7 +553,8 @@ function isoTrap(rng) {
   const idx = (v) => NAMES.indexOf(v);
   const label = (v, l, tone = GIVEN) => cornerText(...at4(P, idx(v)), l, tone);
   const base = [...outline(P), ...cornerNames(P, NAMES), ...ticks(P[0], P[3], 1), ...ticks(P[1], P[2], 1)];
-  const intro = 'In an isosceles trapezoid the angles at each base are equal: ∠A = ∠B and ∠C = ∠D. And AB ∥ DC makes ∠A and ∠D co-interior, so they add to 180°. ';
+  const bases = 'In an isosceles trapezoid the angles at each base are equal: ∠A = ∠B and ∠C = ∠D. ';
+  const intro = `${bases}And AB ∥ DC makes ∠A and ∠D co-interior, so they add to 180°. `;
   if (rng.chance(0.55)) {
     const v = rng.pick([...NAMES]), t = rng.pick([...NAMES].filter((u) => u !== v));
     const gv = val(v), want = val(t);
@@ -548,9 +579,9 @@ function isoTrap(rng) {
       prompt: [T.prose(`ABCD is an isosceles trapezoid with AB ∥ DC and AD = BC. ∠${v} = ${sized(e1)} and ∠${u} = ${sized(e2)}. What is x?`)],
       text: `isosceles trapezoid: AB par DC, AD = BC; angle ${v} ${ascii(...e1)}, angle ${u} ${ascii(...e2)}; find x`,
       answer: { type: 'int', value: x },
-      visual: draw([...base, label(v, `${linear(...e1)}°`), label(u, `${linear(...e2)}°`)], [answerAt(P, `x = ${x}`)]),
-      explain: `${intro}${equal ? `∠${v} and ∠${u} share a base, so they are equal: ${s.work}`
-        : `∠${v} and ∠${u} are on the same leg, so they add to 180°: (${ex(e1)}) + (${ex(e2)}) = 180 gathers to ${s.work}`} `
+      visual: draw([...base, ...angleLabel(P, v, sized(e1)), ...angleLabel(P, u, sized(e2))], [answerAt(P, `x = ${x}`)]),
+      explain: `${bases}${equal ? `∠${v} and ∠${u} share a base, so they are equal: ${s.work}`
+        : `∠${v} and ∠${u} are at the two ends of leg ${v}${u}, and AB ∥ DC makes them co-interior, so they add to 180°: (${ex(e1)}) + (${ex(e2)}) = 180 gathers to ${s.work}`} `
         + `Check: ${putX(e1, x)} = ${val(v)} and ${putX(e2, x)} = ${val(u)}. `
         + `${equal ? '(Adding them to 180° would treat them as co-interior; they are base angles.)' : '(Setting them equal would make them base angles; they are on one leg.)'} So x = ${x}.`,
     };
@@ -581,7 +612,7 @@ function kite(rng) {
         prompt: [T.prose(`ABCD is a kite with AB = AD and CB = CD. ∠A = ${deg(al)}, ∠B = ${sized(e1)} and ∠D = ${sized(e2)}. What is x?`)],
         text: `kite: AB = AD, CB = CD; angle A ${al}, angle B ${ascii(...e1)}, angle D ${ascii(...e2)}; find x`,
         answer: { type: 'int', value: x },
-        visual: draw([...base, label('A', deg(al)), label('B', `${linear(...e1)}°`), label('D', `${linear(...e2)}°`)], [answerAt(P, `x = ${x}`)]),
+        visual: draw([...base, label('A', deg(al)), ...angleLabel(P, 'B', sized(e1)), ...angleLabel(P, 'D', sized(e2))], [answerAt(P, `x = ${x}`)]),
         explain: `${intro}So ${s.work} Check: both come to ${be}°. (∠A is between the two equal sides; it is not one of the matching pair.) So x = ${x}.`,
       };
     }
@@ -659,15 +690,20 @@ function triangleMidsegment(rng) {
         const [a, b, cc] = [...sides].sort((p, q) => p - q);
         const total = sides[0] + sides[1] + sides[2];
         if (a + b <= cc + 2 || total % 2) continue;
+        // requiem: catalogue/content/labelled-figures-to-scale
+        // Drawn from its own three sides, so the side labelled longest is drawn longest.
+        const Q = turned(fromSides(sides[0], sides[1], sides[2], 4.8).map((q) => q.map(r2)), rng.int(-12, 12)), cq = centroid(Q);
+        const corner = (i) => { const [u, v] = [Q[(i + 1) % 3], Q[(i + 2) % 3]].map((q) => dirTo(Q[i], q)); return Math.abs(((u - v + 540) % 360) - 180); };
+        if (Math.min(corner(0), corner(1), corner(2)) < 22) continue;
         return {
           prompt: [T.prose(`△ABC has AB = ${sides[0]}, BC = ${sides[1]} and CA = ${sides[2]}. D, E and F are the midpoints of its sides. What is the perimeter of △DEF?`)],
           text: `midpoint triangle: AB ${sides[0]}, BC ${sides[1]}, CA ${sides[2]}; find perimeter`,
           answer: { type: 'int', value: total / 2 },
           visual: (() => {
-            const F = mid(P[1], P[2]), D0 = mid(P[0], P[1]), E0 = mid(P[0], P[2]);
-            return draw([...outline(P), ...cornerNames(P, TRI), ...outline([D0, F, E0], GIVEN),
-              sideLabel(P[0], P[1], `${sides[0]}`, c), sideLabel(P[1], P[2], `${sides[1]}`, c), sideLabel(P[2], P[0], `${sides[2]}`, c)],
-            [answerAt(P, `perimeter ${total / 2}`)]);
+            const F = mid(Q[1], Q[2]), D0 = mid(Q[0], Q[1]), E0 = mid(Q[0], Q[2]);
+            return draw([...outline(Q), ...cornerNames(Q, TRI), ...outline([D0, F, E0], GIVEN),
+              sideLabel(Q[0], Q[1], `${sides[0]}`, cq), sideLabel(Q[1], Q[2], `${sides[1]}`, cq), sideLabel(Q[2], Q[0], `${sides[2]}`, cq)],
+            [answerAt(Q, `perimeter ${total / 2}`)]);
           })(),
           explain: `Each side of △DEF joins two midpoints, so it is half the side of △ABC it is parallel to. `
             + `Its perimeter is half of ABC’s: (${sides.join(' + ')}) ÷ 2 = ${total} ÷ 2 = ${total / 2}. `
@@ -807,8 +843,15 @@ function verify(rng) {
       prompt: [T.prose(`Quadrilateral ABCD has ${listed}. What is the most specific name for it?`)],
       text: `classify quadrilateral: ${P.map(ascii2).join(', ')}`,
       answer: { type: 'choice', value: want, options: SHAPES.map((s) => (s.id === 'none' ? { id: 'none', label: 'None of these' } : s)) },
-      visual: { ...framed(P), marks: [{ kind: 'path', points: [...P, P[0]], tone: LINE }, ...P.map((p, i) => ({ kind: 'point', at: p, label: NAMES[i], tone: LINE }))],
-        answer: P.map((p, i) => sideLabel(p, P[(i + 1) % 4], `m = ${m[i]}`, centroid(P), RESULT, 0.7)) },
+      visual: (() => {
+        // requiem: catalogue/content/point-names-outside-the-shape
+        const v = namePoints({ ...framed(P), marks: [{ kind: 'path', points: [...P, P[0]], tone: LINE },
+          ...P.map((p, i) => ({ kind: 'point', at: p, label: NAMES[i], tone: LINE }))], answer: [] });
+        // Each slope beside its side, out from the shape, clear of the names and the axes.
+        const at = P.map((p, i) => [(p[0] + P[(i + 1) % 4][0]) / 2, (p[1] + P[(i + 1) % 4][1]) / 2]);
+        return { ...v, answer: pointNames(at.map((a, i) => ({ at: a, name: `m = ${m[i]}`, tone: RESULT, near: [] })), v.marks,
+          { middle: centroid(P), unit: phoneUnit(v) }) };
+      })(),
       explain: `${why}So ${want === 'none' ? 'none of these' : `a ${label.toLowerCase()}`}.`,
     };
   }
