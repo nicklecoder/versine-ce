@@ -104,7 +104,12 @@ export class Session {
     const parsed = type.parse(raw);
     if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? type.hint };
 
-    if (!type.equals(parsed.value, spec.value)) return this.#wrong();
+    // requiem: play/answers/accepted-forms-judged
+    // The stored value, or any other form the level lists as accepted:
+    // (x + 3)² and (x + 3)(x + 3) are both a finished factorisation, and
+    // comparing canonical forms alone cannot see that a power is a product.
+    const forms = [spec.value, ...(spec.accept ?? []).map((a) => type.parse(a)).filter((r) => r.ok).map((r) => r.value)];
+    if (!forms.some((v) => type.equals(parsed.value, v))) return this.#wrong();
 
     // Right value, wrong form. Levels that ask for simplest form mean it, and
     // saying so precisely is more use than a bare "not quite".

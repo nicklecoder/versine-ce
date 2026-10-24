@@ -162,6 +162,25 @@ for (const skill of SKILLS) {
   if (half.parse('y = 2x + 1').ok) fail.push('halfplane: an equation was accepted as a region');
 }
 
+// requiem: play/answers/accepted-forms-judged
+// A second accepted form is right: (x + 3)(x + 3) for (x + 3)². The loop
+// above only ever types the stored value.
+{
+  const skill = SKILLS.find((s) => s.id === 'factoring');
+  const lib = libOf(skill, 4);
+  const deck = dealer(lib.problems.filter((p) => p.answer.accept.length > 1), () => 0.5);
+  const session = new Session({ skill, level: 4, mode: MODES.practice, seed: 7, deal: () => deck.next() });
+  session.start();
+  const p = session.problem;
+  const other = p.answer.accept.find((a) => a !== p.answer.value);
+  const res = session.submit(other);
+  if (res.status !== 'correct') fail.push(`accept: "${other}" for "${p.text}" was judged ${res.status}`);
+  session.nextProblem();
+  const q = session.problem;
+  const wrong = q.answer.value.replace('^2', '').replace(/\)$/, ')(x)');
+  if (session.submit(wrong).status === 'correct') fail.push(`accept: "${wrong}" was accepted for "${q.text}"`);
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

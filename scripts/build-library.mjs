@@ -168,11 +168,9 @@ function buildLevel(skill, level) {
       ...p,
       answer: {
         ...p.answer,
-        // Acceptable surface forms. Today every answer type has exactly one
-        // canonical rendering, so this is a single entry; it exists as a list
-        // because expression answers will have several (factored as well as
-        // expanded) and the format should not have to change then.
-        accept: [type.format(p.answer.value)],
+        // Acceptable surface forms: the answer's own rendering first, then
+        // any others the generator lists -- (x + 3)(x + 3) beside (x + 3)².
+        accept: [...new Set([type.format(p.answer.value), ...(p.answer.accept ?? [])])],
       },
     });
     sinceNew = 0;
