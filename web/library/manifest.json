@@ -1,5 +1,5 @@
 {
-  "built": 592,
+  "built": 598,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -749,6 +749,14 @@
       "remainder-theorem",
       "factor-theorem",
       "all-zeros-from-one",
+      "all-together"
+    ],
+    "poly-functions": [
+      "zeros-and-multiplicity",
+      "end-behavior",
+      "sketch-from-factors",
+      "turning-points",
+      "polynomial-inequalities",
       "all-together"
     ]
   },
@@ -1801,9 +1809,39 @@
           "quadratic-eq"
         ]
       }
+    },
+    "poly-functions": {
+      "dependsOn": [
+        "compound-ineq",
+        "factoring",
+        "functions",
+        "polynomials",
+        "quadratic-eq",
+        "quadratic-graphs"
+      ],
+      "levels": {
+        "zeros-and-multiplicity": [
+          "factoring",
+          "quadratic-graphs"
+        ],
+        "end-behavior": [
+          "polynomials",
+          "quadratic-graphs"
+        ],
+        "sketch-from-factors": [
+          "functions"
+        ],
+        "turning-points": [
+          "quadratic-graphs"
+        ],
+        "polynomial-inequalities": [
+          "compound-ineq",
+          "quadratic-eq"
+        ]
+      }
     }
   },
-  "sources": "0462da5e6e6ec3b630386eb202f88c3c601519f9d0e91bca23e7e5cd80d69fb9",
+  "sources": "f1ebdf2a0bffeb182626665b270dbc14a983d0b76fb99b841ed0b470f3a5b08d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7724,6 +7762,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "poly-division-5.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 0,
+      "slug": "zeros-and-multiplicity",
+      "name": "Zeros & Multiplicity",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-0.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 1,
+      "slug": "end-behavior",
+      "name": "End Behavior",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-functions-1.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 2,
+      "slug": "sketch-from-factors",
+      "name": "Sketch From Factors",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-functions-2.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 3,
+      "slug": "turning-points",
+      "name": "Turning Points",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-functions-3.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 4,
+      "slug": "polynomial-inequalities",
+      "name": "Polynomial & Quadratic Inequalities",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-4.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-5.json"
     }
   ]
 }

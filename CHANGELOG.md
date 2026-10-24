@@ -13,6 +13,19 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Polynomial Functions**, a new skill under Functions, in six levels:
+Zeros & Multiplicity (every zero, one zero's multiplicity, and whether
+the graph crosses or touches there), End Behavior (the two ends chosen
+from four), Sketch From Factors (a drawn graph matched to its factored
+formula, against a flipped sign, a power changed and a zero mirrored),
+Turning Points (the most a formula allows, and the count or least degree
+a drawn graph shows), Polynomial & Quadratic Inequalities (solved as a
+set, with rows that hold for every x or for none, so every prompt allows
+for no solution), then All Together. `check-answers.py` reads a drawn
+graph only from the heights its text lists: it rebuilds the polynomial
+by interpolation, takes the option that hits every height, and counts
+turning points from the sign changes of the derivative.
+
 **Polynomial Division**, a new skill under Expressions, in six levels:
 Long Division (a quotient typed when the division is exact, judged by
 value, and otherwise the quotient and remainder chosen together), Synthetic

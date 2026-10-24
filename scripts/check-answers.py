@@ -7276,6 +7276,148 @@ for path in sorted(LIB.glob("poly-division-*.json")):
             if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
                 problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
 
+# --- Polynomial Functions -----------------------------------------------------
+#
+# A formula is read into exact coefficients: its zeros from the rational root
+# search, a multiplicity by dividing out x - a until it no longer goes, the
+# ends from its sign at x = +-10^9, and an inequality from its sign at every
+# half-step from -60 to 60. A drawn graph is read from the heights at the
+# whole numbers its text lists: an option is the graph only if it takes
+# every one of those heights, and for turning points the polynomial is
+# rebuilt from the heights by interpolation and the sign changes of its
+# derivative are counted. None of this uses the factors the generator chose.
+
+PF_PT = re.compile(r"\((-?\d+), (-?\d+)\)")
+
+
+def pf_readings(listing: str) -> list:
+    return [(Fraction(int(x)), Fraction(int(y))) for x, y in PF_PT.findall(listing)]
+
+
+def pf_interpolate(pts: list) -> list:
+    """The polynomial of least degree through every point, by Lagrange."""
+    total = [Fraction(0)]
+    for i, (xi, yi) in enumerate(pts):
+        term = [yi]
+        for j, (xj, _) in enumerate(pts):
+            if j != i:
+                term = qe_times(term, [-xj / (xi - xj), 1 / (xi - xj)])
+        total = qe_plus(total, term)
+    return qe_trim(total)
+
+
+def pf_turns(c: list, lo: Fraction, hi: Fraction) -> int:
+    d = qe_trim([i * a for i, a in enumerate(c)][1:]) if len(c) > 1 else [Fraction(0)]
+    signs = []
+    steps = int((hi - lo) * 100)
+    for k in range(steps + 1):
+        v = qe_at(d, lo + Fraction(k, 100))
+        if v != 0:
+            signs.append(v > 0)
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
+def pf_zeros(src: str) -> OnGrid:
+    found = qe_zeros(rf_poly(src))
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+def pf_multiplicity(src: str, a) -> Fraction:
+    c = rf_poly(src)
+    m = rf_times(c, Fraction(int(a)))
+    assert m > 0, f"{a} is not a zero"
+    return Fraction(m)
+
+
+def pf_cross(src: str, a, listing: str) -> str:
+    m = rf_times(rf_poly(src), Fraction(int(a)))
+    assert m > 0, f"{a} is not a zero"
+    return rf_pick(listing, lambda body: body == ("crosses" if m % 2 else "touches"))
+
+
+def pf_end_sign(c: list, x: int) -> str:
+    return "up" if qe_at(c, Fraction(x)) > 0 else "down"
+
+
+def pf_ends(src: str, listing: str) -> str:
+    c = rf_poly(src)
+    said = f"{pf_end_sign(c, -(10 ** 9))} {pf_end_sign(c, 10 ** 9)}"
+    return rf_pick(listing, lambda body: body == said)
+
+
+def pf_sketch(listing: str, options: str) -> str:
+    pts = pf_readings(listing)
+    return rf_pick(options, lambda body: all(qe_at(rf_poly(body), x) == y for x, y in pts))
+
+
+def pf_most(src: str) -> Fraction:
+    return Fraction(len(rf_poly(src)) - 2)
+
+
+def pf_count(listing: str) -> Fraction:
+    pts = pf_readings(listing)
+    return Fraction(pf_turns(pf_interpolate(pts), pts[0][0], pts[-1][0]))
+
+
+def pf_least(listing: str) -> Fraction:
+    pts = pf_readings(listing)
+    c = pf_interpolate(pts)
+    n = pf_turns(c, pts[0][0], pts[-1][0]) + 1
+    same_way = pf_end_sign(c, -(10 ** 9)) == pf_end_sign(c, 10 ** 9)
+    if (n % 2 == 0) != same_way:
+        n += 1
+    return Fraction(n)
+
+
+PF_TEST = {">": lambda v: v > 0, "<": lambda v: v < 0, ">=": lambda v: v >= 0, "<=": lambda v: v <= 0}
+
+
+def pf_inequality(src: str, op: str) -> frozenset:
+    c = rf_poly(src)
+    return frozenset(x for x in SAMPLES_ON_LINE if PF_TEST[op](qe_at(c, x)))
+
+
+SET_RULES += (
+    (re.compile(r"^poly zeros: (.+)$"), pf_zeros),
+    (re.compile(r"^poly ineq: (.+) (>=|<=|>|<) 0$"), pf_inequality),
+)
+
+BY_RULE += (
+    (re.compile(r"^multiplicity: (.+); at (-?\d+)$"), pf_multiplicity),
+    (re.compile(r"^most turning points: (.+)$"), pf_most),
+    (re.compile(r"^turning count: graph ((?:\(-?\d+, -?\d+\) ?)+)$"), pf_count),
+    (re.compile(r"^least degree: graph ((?:\(-?\d+, -?\d+\) ?)+)$"), pf_least),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^cross or touch: (.+); at (-?\d+); options (.+)$"), pf_cross),
+    (re.compile(r"^poly ends: (.+); options (.+)$"), pf_ends),
+    (re.compile(r"^sketch: graph ((?:\(-?\d+, -?\d+\) ?)+); options (.+)$"), pf_sketch),
+)
+
+# The graph is the student's only copy of P: every height the text lists
+# must be on the drawn curve, the zeros must be the labelled dots, and the
+# set answers' ends must be half-steps the sets above are read at.
+for path in sorted(LIB.glob("poly-functions-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"poly-functions L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        if p["answer"]["type"] == "solutions":
+            for part in p["answer"]["value"]["parts"]:
+                for end in (part["lo"], part["hi"]):
+                    if end is not None and as_fraction(end) not in QE_LINE:
+                        problems.append(f"{where}: key end {end} is not a half-step from -60 to 60")
+        m = re.match(r"^(?:sketch|turning count|least degree): graph ((?:\(-?\d+, -?\d+\) ?)+)", p["text"])
+        if not m:
+            continue
+        drawn_pts = {(round(a, 1), round(b, 1)) for mk in p["visual"]["marks"] if mk["kind"] == "path" for a, b in mk["points"]}
+        for x, y in pf_readings(m[1]):
+            if (float(x), float(y)) not in drawn_pts:
+                problems.append(f"{where}: ({x}, {y}) is in the text but not on the curve drawn")
+        dots = sorted(mk["at"][0] for mk in p["visual"]["marks"] if mk["kind"] == "point")
+        zeros_read = sorted(float(x) for x, y in pf_readings(m[1]) if y == 0)
+        if dots != zeros_read:
+            problems.append(f"{where}: zero dots {dots}, but the heights are 0 at {zeros_read}")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

@@ -478,6 +478,16 @@ Zeros From One on quadratic equations' By Factoring. A quotient is typed,
 and judged by value, only when the division is exact; otherwise every
 answer is a choice, a number or a set of zeros.
 
+`poly-functions` is built, in the plan's five levels and All Together.
+Zeros & Multiplicity depends on graphs of quadratics' Zeros From Factored
+Form and factoring's Common Factor Out, End Behavior on polynomials'
+Degree and Standard Form and graphs of quadratics' Up or Down, Sketch
+From Factors on functions' Reading f off a Graph, Turning Points on
+graphs of quadratics' Vertex From −b/2a, and Polynomial & Quadratic
+Inequalities on compound inequalities' Either Side and quadratic
+equations' By Factoring. Graphs are drawn with every whole-number height
+in the window listed, and the checker reads them from those heights.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 
