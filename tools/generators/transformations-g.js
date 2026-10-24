@@ -15,7 +15,7 @@
  * the coordinates alone: same size, same way round, same direction.
  *
  * Each question is drawn: the triangle, its letters, the mirror or the
- * centre, and on reveal the image, primed.
+ * center, and on reveal the image, primed.
  */
 import * as T from '../terms.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/transformations-g.js';
@@ -25,7 +25,8 @@ const SPAN = 9;
 const PLANE = { kind: 'plane', xRange: [-SPAN, SPAN], yRange: [-SPAN, SPAN], grid: 1 };
 
 const minus = (n) => (n < 0 ? `−${-n}` : `${n}`);
-const pt = ([x, y]) => `(${minus(x)}, ${minus(y)})`;
+/** A point as it is written, held on one line: a pair broken after its comma reads as two numbers. */
+const pt = ([x, y]) => `(${minus(x)},\u00a0${minus(y)})`;
 const ascii = ([x, y]) => `(${x}, ${y})`;
 const pairAnswer = ([x, y]) => ({ type: 'pair', value: { x: { n: x, d: 1 }, y: { n: y, d: 1 } } });
 const fits = (P, lim = SPAN - 1) => P.every(([x, y]) => Math.abs(x) <= lim && Math.abs(y) <= lim);
@@ -49,10 +50,23 @@ function triangle(rng, lim = 6) {
   }
 }
 
+/**
+ * A corner's letter, just outside the triangle: pushed out from its middle,
+ * and turned off an axis it would sit on, where the axis numbers are.
+ */
+function letterAt(p, P, label, tone) {
+  const c = [(P[0][0] + P[1][0] + P[2][0]) / 3, (P[0][1] + P[1][1] + P[2][1]) / 3];
+  const base = Math.atan2(p[1] - c[1], p[0] - c[0]);
+  const at = (a) => [Math.round((p[0] + 0.62 * Math.cos(a)) * 100) / 100, Math.round((p[1] + 0.62 * Math.sin(a)) * 100) / 100];
+  // Of the ways out, the first that keeps clear of both axes.
+  const ways = [0, 0.6, -0.6, 1.2, -1.2].map((t) => at(base + t));
+  const best = ways.find(([x, y]) => Math.abs(x) > 0.45 && Math.abs(y) > 0.45) ?? ways[0];
+  return { kind: 'text', at: best, label, tone };
+}
 /** The marks for a triangle: its sides and its lettered corners. */
 function shape(P, tone, names, asked = -1) {
   return [{ kind: 'path', points: [...P, P[0]], tone },
-    ...P.map((p, i) => ({ kind: 'point', at: p, label: names[i], tone: i === asked ? ASKED : tone }))];
+    ...P.flatMap((p, i) => [{ kind: 'point', at: p, tone: i === asked ? ASKED : tone }, letterAt(p, P, names[i], i === asked ? ASKED : tone)])];
 }
 /** A mirror line across the whole grid. */
 function mirror(kind, k = 0) {
@@ -61,14 +75,14 @@ function mirror(kind, k = 0) {
     'y = x': [[-e, -e], [e, e]], 'y = -x': [[-e, e], [e, -e]] }[kind];
   return { kind: 'segment', from: ends[0], to: ends[1], tone: GIVEN, dashed: true };
 }
-const centre = (c) => ({ kind: 'point', at: c, label: c[0] === 0 && c[1] === 0 ? 'O' : 'centre', tone: GIVEN });
+const center = (c) => ({ kind: 'point', at: c, label: c[0] === 0 && c[1] === 0 ? 'O' : 'center', tone: GIVEN });
 
 /** The figure for one corner's image: the triangle, what it moves by, and the image on reveal. */
 function figure(P, image, asked, extra = []) {
   return { ...PLANE, marks: [...extra, ...shape(P, LINE, NAMES, asked)],
-    answer: [{ kind: 'point', at: image[asked], label: prime(NAMES[asked]), tone: 'var(--result)' },
-      { kind: 'path', points: [...image, image[0]], tone: 'var(--result)' },
-      ...image.map((p, i) => (i === asked ? null : { kind: 'point', at: p, label: prime(NAMES[i]), tone: 'var(--result)' })).filter(Boolean)] };
+    answer: [{ kind: 'point', at: image[asked], tone: RESULT }, letterAt(image[asked], image, prime(NAMES[asked]), RESULT),
+      { kind: 'path', points: [...image, image[0]], tone: RESULT },
+      ...image.flatMap((p, i) => (i === asked ? [] : [{ kind: 'point', at: p, tone: RESULT }, letterAt(p, image, prime(NAMES[i]), RESULT)]))] };
 }
 
 /**
@@ -139,10 +153,13 @@ const REFLECT = {
 };
 const lineMove = (kind, k) => (kind === 'x =' ? ([x, y]) => [2 * k - x, y] : ([x, y]) => [x, 2 * k - y]);
 
+// requiem: catalogue/content/origin-cases-first
+// An axis is the mirror most of the time; a line like x = 2 is the stretch,
+// at most a third of the level.
 function reflectAxis(rng) {
-  const roll = rng.int(0, 9);
-  if (roll >= 6) {
-    const kind = roll >= 8 ? 'y =' : 'x =';
+  const roll = rng.int(0, 19);
+  if (roll >= 17) {
+    const kind = roll === 19 || (roll === 18 && rng.chance(0.5)) ? 'y =' : 'x =';
     const k = rng.nonZero(-4, 4);
     const move = lineMove(kind, k);
     const { P, image, asked } = setUp(rng, move);
@@ -160,9 +177,9 @@ function reflectAxis(rng) {
         + `(Just changing the sign, to ${minus(-Q[i])}, reflects over ${kind[0]} = 0, the ${kind === 'x =' ? 'y' : 'x'}-axis, not over this line.) So ${pt(R)}.`,
     };
   }
-  const kind = roll < 3 ? 'x-axis' : 'y-axis';
+  const kind = roll % 2 ? 'x-axis' : 'y-axis';
   const { move, said } = REFLECT[kind];
-  const { P, image, asked } = setUp(rng, move);
+  const { P, image, asked } = setUp(rng, move, 8);
   const Q = P[asked], R = image[asked];
   const keep = kind === 'x-axis' ? 'x' : 'y', flip = kind === 'x-axis' ? 'y' : 'x';
   return {
@@ -180,7 +197,7 @@ function reflectAxis(rng) {
 function reflectDiagonal(rng) {
   const kind = rng.chance(0.6) ? 'y = x' : 'y = -x';
   const { move, said } = REFLECT[kind];
-  const { P, image, asked } = setUp(rng, move);
+  const { P, image, asked } = setUp(rng, move, 8);
   const Q = P[asked], R = image[asked];
   return {
     prompt: ask(P, asked, `reflected over ${said}`),
@@ -209,20 +226,21 @@ const about = (move, [h, k]) => ([x, y]) => { const [a, b] = move([x - h, y - k]
 function rotate(rng) {
   const turnKind = rng.pick(['90 ccw', '90 ccw', '180', '90 cw', '90 cw', '270 ccw']);
   const { move, said, rule } = ROTATE[turnKind];
-  const c = rng.chance(0.2) ? [rng.nonZero(-3, 3), rng.nonZero(-3, 3)] : [0, 0];
+  // About the origin most of the time; another center is the stretch.
+  const c = rng.chance(0.12) ? [rng.nonZero(-3, 3), rng.nonZero(-3, 3)] : [0, 0];
   const atOrigin = c[0] === 0 && c[1] === 0;
-  const { P, image, asked } = setUp(rng, about(move, c), atOrigin ? 6 : 5);
+  const { P, image, asked } = setUp(rng, about(move, c), atOrigin ? 8 : 5);
   const Q = P[asked], R = image[asked], rel = [Q[0] - c[0], Q[1] - c[1]], relR = move(rel);
-  const fig = figure(P, image, asked, [centre(c), { kind: 'segment', from: c, to: Q, tone: GIVEN, dashed: true }]);
+  const fig = figure(P, image, asked, [center(c), { kind: 'segment', from: c, to: Q, tone: GIVEN, dashed: true }]);
   fig.answer.push({ kind: 'segment', from: c, to: R, tone: 'var(--result)', dashed: true });
   return {
     prompt: ask(P, asked, `rotated ${said} about ${atOrigin ? 'the origin' : pt(c)}`),
     text: `rotate ${ascii(Q)} by ${turnKind} about ${ascii(c)}`,
     answer: pairAnswer(R),
     visual: fig,
-    explain: (atOrigin ? '' : `Measured from the centre ${pt(c)}, ${NAMES[asked]} is ${pt(rel)} away. `)
+    explain: (atOrigin ? '' : `Measured from the center ${pt(c)}, ${NAMES[asked]} is ${pt(rel)} away. `)
       + `A turn of ${said} is ${rule}${turnKind === '270 ccw' ? ', the same as 90° clockwise' : ''}: ${pt(rel)} → ${pt(relR)}. `
-      + (atOrigin ? '' : `Add the centre back: ${pt(relR)} + ${pt(c)} = ${pt(R)}. `)
+      + (atOrigin ? '' : `Add the center back: ${pt(relR)} + ${pt(c)} = ${pt(R)}. `)
       + (turnKind === '180' ? '(A half turn changes both signs and swaps nothing.) '
         : `(Check the direction with (1, 0): this turn takes it to ${pt(move([1, 0]))}. The rule ${turnKind === '90 ccw' ? '(y, −x)' : '(−y, x)'} turns the other way.) `)
       + `So ${pt(R)}.`,
@@ -231,14 +249,16 @@ function rotate(rng) {
 
 // ── Dilate ──────────────────────────────────────────────────────────────
 
-const FACTORS = [[2, 1], [2, 1], [3, 1], [1, 2], [1, 2], [3, 2], [1, 3]];
+const FACTORS = [[2, 1], [2, 1], [3, 1], [4, 1], [1, 2], [1, 2], [3, 2], [1, 3], [1, 4], [2, 3]];
 
 function dilate(rng) {
   const [n, d] = rng.pick(FACTORS);
-  const c = rng.chance(0.3) ? [rng.int(-3, 3), rng.int(-3, 3)] : [0, 0];
+  // About the origin, multiply the coordinates: the case that builds the
+  // idea, so most of the level. Another center is the stretch.
+  const c = rng.chance(0.08) ? [rng.int(-3, 3), rng.int(-3, 3)] : [0, 0];
   const atOrigin = c[0] === 0 && c[1] === 0;
   for (;;) {
-    // Every corner a whole number of steps of d from the centre, so the image is on the grid.
+    // Every corner a whole number of steps of d from the center, so the image is on the grid.
     const raw = triangle(rng, n > d ? 4 : 8);
     const P = raw.map(([x, y]) => [c[0] + Math.round((x - c[0]) / d) * d, c[1] + Math.round((y - c[1]) / d) * d]);
     if (Math.abs(turn(P)) < 6 || !fits(P) || P.some((p, i) => P.findIndex((q) => q[0] === p[0] && q[1] === p[1]) !== i)) continue;
@@ -250,7 +270,7 @@ function dilate(rng) {
     const asked = rng.pick(moved), Q = P[asked], R = image[asked], rel = [Q[0] - c[0], Q[1] - c[1]];
     const k = kSaid([n, d]);
     const times = (v) => `${minus(v)} × ${k}`;
-    const fig = figure(P, image, asked, [centre(c)]);
+    const fig = figure(P, image, asked, [center(c)]);
     return {
       prompt: ask(P, asked, `dilated by a scale factor of ${k} about ${atOrigin ? 'the origin' : pt(c)}`),
       text: `dilate ${ascii(Q)} by ${kText([n, d])} about ${ascii(c)}`,
@@ -258,9 +278,9 @@ function dilate(rng) {
       visual: fig,
       explain: (atOrigin
         ? `About the origin, a dilation multiplies both coordinates by the scale factor: (${times(Q[0])}, ${times(Q[1])}) = ${pt(R)}. `
-        : `Measure from the centre first: ${NAMES[asked]} is ${pt(rel)} from ${pt(c)}. Multiply that by ${k}: ${pt(rel.map((v) => (v * n) / d))}, `
-          + `then add the centre back: ${pt(R)}. (Multiplying ${pt(Q)} itself would dilate about the origin instead.) `)
-      + (n < d ? `A factor under 1 shrinks the triangle towards the centre. ` : `A factor over 1 stretches the triangle away from the centre. `)
+        : `Measure from the center first: ${NAMES[asked]} is ${pt(rel)} from ${pt(c)}. Multiply that by ${k}: ${pt(rel.map((v) => (v * n) / d))}, `
+          + `then add the center back: ${pt(R)}. (Multiplying ${pt(Q)} itself would dilate about the origin instead.) `)
+      + (n < d ? `A factor under 1 shrinks the triangle toward the center. ` : `A factor over 1 stretches the triangle away from the center. `)
       + `So ${pt(R)}.`,
     };
   }
@@ -344,7 +364,7 @@ const MOVES = [
 
 function whichMove(rng, want = rng.pick(['translation', 'reflection', 'rotation', 'dilation'])) {
   // `reveal` draws, with the answer, what does the moving: the slide, the
-  // mirror, the centre of the turn or of the dilation.
+  // mirror, the center of the turn or of the dilation.
   let move, how, reveal, n = 1, d = 1;
   if (want === 'translation') {
     const a = rng.int(-6, 6), b = rng.int(-6, 6);
@@ -362,13 +382,13 @@ function whichMove(rng, want = rng.pick(['translation', 'reflection', 'rotation'
     const t = rng.pick(['90 ccw', '180', '90 cw']);
     const c = rng.chance(0.3) ? [rng.int(-2, 2), rng.int(-2, 2)] : [0, 0];
     move = about(ROTATE[t].move, c);
-    reveal = (P, image) => [{ ...centre(c), tone: RESULT, label: `turned ${ROTATE[t].said}` },
+    reveal = (P, image) => [{ ...center(c), tone: RESULT, label: `turned ${ROTATE[t].said}` },
       { kind: 'segment', from: c, to: P[0], tone: RESULT, dashed: true }, { kind: 'segment', from: c, to: image[0], tone: RESULT, dashed: true }];
   } else {
     [n, d] = rng.pick([[2, 1], [3, 1], [1, 2]]);
     move = ([x, y]) => [(x * n) / d, (y * n) / d];
-    // Rays from the centre through each corner and its image.
-    reveal = (P, image) => [{ ...centre([0, 0]), tone: RESULT, label: `× ${n > d ? n : `1/${d}`}` },
+    // Rays from the center through each corner and its image.
+    reveal = (P, image) => [{ ...center([0, 0]), tone: RESULT, label: `× ${n > d ? n : `1/${d}`}` },
       ...P.map((p, i) => ({ kind: 'segment', from: [0, 0], to: n > d ? image[i] : p, tone: RESULT, dashed: true }))];
   }
   for (let tries = 0; tries < 200; tries++) {
