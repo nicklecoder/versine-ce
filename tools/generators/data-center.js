@@ -58,6 +58,8 @@ const SETS = [
   { what: (n) => `Maya’s last ${n} quiz scores, out of 20`, lo: 6, hi: 20 },
   { what: (n) => `The goals a team scored in its last ${n} games`, lo: 0, hi: 7 },
   { what: (n) => `The low temperatures on ${n} winter nights, in °C`, lo: -9, hi: 6 },
+  { what: (n) => `The low temperatures on ${n} winter nights, in °F`, lo: -6, hi: 28 },
+  { what: (n) => `The weights of ${n} pumpkins at a fair, in pounds`, lo: 6, hi: 40 },
   { what: (n) => `The minutes ${n} students spent on homework last night`, lo: 5, hi: 75 },
   { what: (n) => `The heights of ${n} seedlings, in cm`, lo: 3, hi: 24 },
   { what: (n) => `The books ${n} students read over the summer`, lo: 0, hi: 14 },
@@ -227,7 +229,9 @@ function quartiles(rng) {
     const lines = ask === 'q1' ? lowerLine : ask === 'q3' ? upperLine : `${lowerLine}, and ${upperLine}`;
     working = `${split}: ${lines}.`
       + (ask === 'iqr' ? ` The IQR is Q3 − Q1 = ${said(q3)} − ${after(q1)} = ${said(iqr)}. `
-        + `(Not the range, ${minus(ys[n - 1])} − ${signedText(ys[0])} = ${ys[n - 1] - ys[0]}: the IQR leaves out the top and bottom quarters.)` : '');
+        // The range is named as the slip only where it would give another answer.
+        + (ys[n - 1] - ys[0] === num(iqr) ? ''
+          : `(Not the range, ${minus(ys[n - 1])} − ${signedText(ys[0])} = ${ys[n - 1] - ys[0]}: the IQR leaves out the top and bottom quarters.)`) : '');
   }
   return {
     prompt: [T.prose(`${at.what(n)}: ${listed(xs)}. What is ${PHRASE[ask]}?`)],
@@ -250,7 +254,9 @@ function mad(rng) {
   if (!decimal(d) || sum(dist) === 0) return mad(rng);
   const below = Math.min(...xs);
   return {
-    prompt: [T.prose(`${at.what(n)}: ${listed(xs)}. What is the mean absolute deviation?`)],
+    // The values are in the table, where their distances are written on the
+    // reveal; listing them in the sentence too says them twice.
+    prompt: [T.prose(`${at.what(n)}${at.what(n).includes(',') ? ',' : ''} are in the table. What is the mean absolute deviation?`)],
     text: `mad: ${ascii(xs)}`,
     answer: answerOf(d),
     visual: { kind: 'table', cols: ['Value'], rows: xs.map((x) => [minus(x)]),

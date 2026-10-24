@@ -33,7 +33,7 @@ export const LEVELS = [
   { name: 'The Median', slug: 'the-median',
     blurb: 'Put them in order first. The middle one, or halfway between the middle two.' },
   { name: 'Missing Value for a Mean', slug: 'missing-value-for-a-mean',
-    blurb: 'A mean of 12 over 5 numbers is a total of 60. Work from the total.' },
+    blurb: 'A mean of 12 over 5 numbers is a total of 60. Work from the total, to find one that is missing or the mean once one more joins.' },
   { name: 'Quartiles and the IQR', slug: 'quartiles-and-the-iqr',
     blurb: 'The medians of the lower and upper halves; the IQR is the gap between them.' },
   { name: 'Mean Absolute Deviation', slug: 'mean-absolute-deviation',
