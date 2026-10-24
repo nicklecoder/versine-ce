@@ -1962,10 +1962,29 @@ CHOICE_RULES += (
 )
 
 
+# requiem: catalogue/library/every-level-checked
+# A level none of whose texts any rule reads would pass by saying nothing:
+# a prefix spelled one way in the generator and another here does that.
+# These levels were built before the rule and have no reader yet. The list
+# only shrinks: a level on it that gains a reader must come off it.
+NOT_YET_READ = frozenset((
+    "coords L1", "coords L2", "coords L3", "coords L4", "coords L5", "coords L6", "coords L7",
+    "decimals L1", "decimals L6", "decimals L7", "equations L6", "equations-both L6",
+    "exponents L1", "exponents L2", "exponents L3", "exponents L4", "exponents L5", "exponents L6",
+    "exponents L7", "factors L1", "factors L3", "factors L6", "frac-equiv L7", "frac-mixed L1",
+    "frac-mixed L2", "frac-mixed L3", "frac-mixed L4", "frac-mixed L5", "frac-mixed L7",
+    "frac-signed L7", "inequalities L6", "int-addsub L5", "int-muldiv L5", "order-ops L4",
+    "percents L1", "percents L2", "percents L3", "percents L4", "percents L5", "ratio L7",
+    "roots L1", "roots L2", "roots L3", "roots L4", "roots L5", "roots L6", "roots L7",
+    "rounding L5", "simplify L1", "simplify L2", "simplify L3", "simplify L4", "simplify L5",
+    "simplify L6", "simplify L7",
+))
+unread = []
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
     lib = json.loads(path.read_text())
+    checked_before = checked
     for i, p in enumerate(lib["problems"]):
         text, answer = p["text"], p["answer"]
         where = f"{lib['skill']} L{lib['level'] + 1} row {i}"
@@ -2147,6 +2166,14 @@ for path in sorted(LIB.glob("*.json")):
             checked += 1
             if want != got:
                 problems.append(f"{where}: {text} is {want}, not {got}")
+    if checked == checked_before:
+        unread.append(f"{lib['skill']} L{lib['level'] + 1}")
+
+for line in unread:
+    if line not in NOT_YET_READ:
+        problems.append(f"{line}: no rule re-derives any of its answers")
+for line in sorted(NOT_YET_READ - set(unread)):
+    problems.append(f"{line}: is read now, so take it off NOT_YET_READ")
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")
@@ -2156,4 +2183,5 @@ if problems:
         print(f"  ... and {len(problems) - 15} more")
     sys.exit(1)
 
-print(f"answers: {checked:,} re-derived independently — all correct")
+print(f"answers: {checked:,} re-derived independently — all correct "
+      f"({len(NOT_YET_READ)} older levels not yet read)")
