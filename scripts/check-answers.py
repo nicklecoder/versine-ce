@@ -4669,11 +4669,11 @@ def count_chance_race(n) -> Fraction:
 
 
 BY_RULE += (
-    (re.compile(r"^multiply choices: ([\d ]+)$"), count_product),
+    (re.compile(r"^multiply choices: ([\d ]+); (?:menu|code|plate|pegs|quiz|coins)$"), lambda choices: count_product(choices)),
     (re.compile(r"^(?:factorial|arrange) (\d+)(?:; \w+)?$"), math.factorial),
     (re.compile(r"^factorial ratio (\d+) (\d+)$"), count_factorial_ratio),
-    (re.compile(r"^permutations (\d+) (\d+); \w+$"), math.perm),
-    (re.compile(r"^combinations (\d+) (\d+); \w+$"), math.comb),
+    (re.compile(r"^permutations (\d+) (\d+); (\w+)$"), lambda n, r, what: math.perm(n, r) if what in COUNT_ORDERED else None),
+    (re.compile(r"^combinations (\d+) (\d+); (\w+)$"), lambda n, r, what: math.comb(n, r) if what in COUNT_UNORDERED else None),
     (re.compile(r"^code: length (\d+), digits, (repeat|no repeat)(?:, )?(.*)$"), count_code),
     (re.compile(r"^code: length (\d+), digits 1 to (\d+), (repeat|no repeat), ends (even|odd)$"), count_small_code),
     (re.compile(r"^row: (\d+) people, (A first|A at an end|A and B together|A and B apart)$"), count_row),
@@ -4687,8 +4687,9 @@ BY_RULE += (
 
 # Whether a selection's order matters is a property of what is chosen: a
 # place or a job makes it a permutation, a group with no first a combination.
-COUNT_ORDERED = {"ranked", "roles", "row", "sequence", "route"}
-COUNT_UNORDERED = {"committee", "toppings", "group", "set", "hand"}
+# Each setting comes both ways: medals in a race and the runners who qualify.
+COUNT_ORDERED = {"medals", "officers", "chairs", "row", "sequence", "ranking", "seats", "shelf", "deal", "route"}
+COUNT_UNORDERED = {"qualify", "planners", "committee", "trip", "download", "toppings", "group", "set", "hand", "passes"}
 
 CHOICE_RULES += (
     (re.compile(r"^order matters: n \d+ r \d+; selection is (\w+)$"),

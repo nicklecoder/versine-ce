@@ -38,37 +38,60 @@ const MENUS = [
   [['flavors of ice cream', 'flavor'], ['toppings', 'topping'], ['cone types', 'cone']],
   [['routes from home to the library', 'route'], ['routes from the library to the park', 'route'], ['routes from the park to school', 'route']],
 ];
+const nOf = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+// requiem: catalogue/content/counting-multiply-kinds
+// Menus, codes, plates, colored pegs, quizzes and coins with a die, each
+// named in the text, so the library keeps every kind and not mostly menus.
 function multiply(rng) {
-  const kind = rng.pick(['menu', 'menu', 'code', 'mixed']);
+  const kind = rng.pick(['menu', 'menu', 'code', 'plate', 'pegs', 'quiz', 'coins']);
   let counts, prompt, why;
   if (kind === 'menu') {
     const menu = rng.pick(MENUS);
     const k = rng.pick([2, 3]);
-    counts = Array.from({ length: k }, () => rng.int(2, 9));
+    counts = Array.from({ length: k }, () => rng.int(2, k === 2 ? 9 : 5));
     const list = counts.map((c, i) => `${c} ${menu[i][0]}`);
     prompt = `There are ${list.slice(0, -1).join(', ')}${k > 2 ? ',' : ''} and ${list[k - 1]}. Choosing one of each, how many different ways are there to choose?`;
     why = `Each of the ${counts[0]} ${menu[0][0]} can go with each of the ${counts[1]} ${menu[1][0]}${k > 2 ? `, and each of those pairs with each of the ${counts[2]} ${menu[2][0]}` : ''}`;
   } else if (kind === 'code') {
-    const L = rng.int(2, 4);
-    const letters = rng.int(0, Math.min(2, L - 1));
+    const L = rng.int(2, 6);
+    const letters = rng.int(0, Math.min(3, L - 1));
     counts = [...Array(letters).fill(26), ...Array(L - letters).fill(10)];
     prompt = letters
-      ? `A code is ${letters === 1 ? '1 letter' : `${letters} letters`} (A to Z) followed by ${L - letters === 1 ? '1 digit' : `${L - letters} digits`} (0 to 9). Letters and digits may repeat. How many codes are possible?`
+      ? `A code is ${nOf(letters, 'letter')} (A to Z) followed by ${nOf(L - letters, 'digit')} (0 to 9). Letters and digits may repeat. How many codes are possible?`
       : `A lock code is ${L} digits, each from 0 to 9, and digits may repeat. How many codes are possible?`;
     why = `Each place is a step with its own choices: ${letters ? '26 for each letter and 10 for each digit' : '10 for each digit'}`;
+  } else if (kind === 'plate') {
+    const a = rng.int(2, 3), b = rng.int(2, 4), first = rng.chance(0.5);
+    counts = first ? [...Array(a).fill(26), ...Array(b).fill(10)] : [...Array(b).fill(10), ...Array(a).fill(26)];
+    prompt = `A license plate is ${first ? `${nOf(a, 'letter')} followed by ${nOf(b, 'digit')}` : `${nOf(b, 'digit')} followed by ${nOf(a, 'letter')}`}, and any letter (A to Z) or digit (0 to 9) may repeat. How many plates are possible?`;
+    why = 'Each place on the plate is a step: 26 choices for a letter and 10 for a digit';
+  } else if (kind === 'pegs') {
+    const c = rng.int(3, 8), L = rng.int(3, 5);
+    counts = Array(L).fill(c);
+    prompt = `A secret code is a row of ${L} pegs, and each peg can be any of ${c} colors. Colors may repeat. How many codes are possible?`;
+    why = `Each of the ${L} pegs is a step with ${c} choices`;
+  } else if (kind === 'quiz') {
+    const tf = rng.chance(0.4), n = tf ? rng.int(4, 10) : rng.int(3, 7), c = tf ? 2 : rng.int(3, 5);
+    counts = Array(n).fill(c);
+    prompt = tf
+      ? `A quiz has ${n} true-or-false questions. How many different ways are there to fill in the answer sheet, answering every question?`
+      : `A quiz has ${n} multiple-choice questions, each with ${c} choices. How many different ways are there to fill in the answer sheet, answering every question?`;
+    why = `Each question is a step with ${c} choices`;
   } else {
     const coins = rng.int(1, 3);
-    const die = rng.pick([4, 6, 8, 10]);
+    const die = rng.pick([4, 6, 8, 10, 12, 20]);
     counts = [...Array(coins).fill(2), die];
     prompt = `${coins === 1 ? 'A coin is' : `${coins} coins are`} flipped and a ${die}-sided die is rolled. How many outcomes are possible?`;
     why = `Each coin has 2 outcomes and the die has ${die}, and every result of one goes with every result of the others`;
   }
   const total = counts.reduce((a, b) => a * b, 1);
+  // At most seven digits, the width of the answer box.
+  if (total >= 1e7) return multiply(rng);
   const sum = counts.reduce((a, b) => a + b, 0);
   return {
     prompt: [T.prose(prompt)],
-    text: `multiply choices: ${counts.join(' ')}`,
+    text: `multiply choices: ${counts.join(' ')}; ${kind}`,
     answer: int(total),
     visual: null,
     explain: `${why}, so multiply: ${counts.join(' × ')} = ${fmt(total)}. `
@@ -84,23 +107,37 @@ const LINES = [
   (n) => `In how many orders can ${n} runners finish a race, if there are no ties?`,
   (n) => `How many ways can ${n} songs be ordered on a playlist?`,
   (n, rng) => `How many different arrangements are there of the letters in ${rng.pick(WORDS[n])}? (No letter repeats in the word.)`,
+  (n) => `How many ways can ${n} paintings be hung in a row along a wall?`,
+  (n) => `${n} friends sit in a row of ${n} seats at the movies. How many different seating orders are there?`,
+  (n) => `A teacher calls on each of ${n} students once, one at a time. In how many orders can she call on them?`,
 ];
+const LINE_CODES = ['books', 'line', 'race', 'playlist', 'letters', 'paintings', 'seats', 'turns'];
 
 function factorials(rng) {
-  const kind = rng.pick(['value', 'ratio', 'ratio', 'arrange', 'arrange']);
+  const kind = rng.pick(['value', 'ratio', 'ratio', 'arrange', 'arrange', 'arrange']);
   if (kind === 'value') {
-    const n = rng.int(3, 8);
+    const n = rng.int(0, 10);
+    if (n <= 1) {
+      return {
+        prompt: [T.prose(`What is ${n}!?`)],
+        text: `factorial ${n}`,
+        answer: int(1),
+        visual: null,
+        explain: `${n === 1 ? '1! is just 1: one thing has one order.' : '0! is 1 by definition: there is exactly one way to arrange nothing, and it keeps n! = n × (n − 1)! true at n = 1.'} `
+          + `(${n === 0 ? 'It is not 0: nothing is multiplied, and an empty product is 1.' : 'It is not 0 or 2.'}) So 1.`,
+      };
+    }
     return {
       prompt: [T.prose(`What is ${n}!?`)],
       text: `factorial ${n}`,
       answer: int(fact(n)),
       visual: null,
       explain: `${n}! multiplies every whole number from ${n} down to 1: ${steps(n, n)} = ${fmt(fact(n))}. `
-        + `(It is not ${n} × 1 or ${n} + ${n - 1} + … ; every factor down to 1 is multiplied.) So ${fmt(fact(n))}.`,
+        + `(It is not ${n} × 1 or ${n} + ${n - 1} + …: every factor down to 1 is multiplied.) So ${fmt(fact(n))}.`,
     };
   }
   if (kind === 'ratio') {
-    const k = rng.int(2, 12);
+    const k = rng.int(2, 15);
     const n = k + rng.int(1, 3);
     const v = fact(n) / fact(k);
     return {
@@ -112,12 +149,12 @@ function factorials(rng) {
         + `(It is not (${n} ÷ ${k})! or ${n - k}!: the factors from ${k} down cancel, and the ones above ${k} stay.) So ${fmt(v)}.`,
     };
   }
-  const n = rng.int(3, 7);
   const line = rng.int(0, LINES.length - 1);
+  const n = line === 4 ? rng.int(3, 7) : rng.int(3, 8);
   const ask = LINES[line](n, rng);
   return {
     prompt: [T.prose(ask)],
-    text: `arrange ${n}; ${['books', 'line', 'race', 'playlist', 'letters'][line]}`,
+    text: `arrange ${n}; ${LINE_CODES[line]}`,
     answer: int(fact(n)),
     visual: null,
     explain: `There are ${n} choices for the first place, then ${n - 1} left for the second, and so on down to 1: ${n}! = ${steps(n, n)} = ${fmt(fact(n))}. `
@@ -125,14 +162,69 @@ function factorials(rng) {
   };
 }
 
-// ── Permutations ────────────────────────────────────────────────────────
+// ── Permutations and combinations ───────────────────────────────────────
 
-const ORDERED = [
-  { code: 'ranked', make: (n, r) => [`${n} runners are in a race. ${r === 2 ? 'Gold and silver medals' : r === 3 ? 'Gold, silver and bronze medals' : `Prizes for 1st to ${r}th place`} are given out. How many ways can the ${r === 2 || r === 3 ? 'medals' : 'prizes'} be awarded?`, 'first place', 'second'] },
-  { code: 'roles', make: (n, r) => [`A club of ${n} members elects a ${['president', 'vice president', 'treasurer', 'secretary'].slice(0, r).join(', ').replace(/, ([^,]+)$/, ' and $1')}. No one holds two jobs. How many ways can the jobs be filled?`, 'president', 'vice president'] },
-  { code: 'row', make: (n, r) => [`${r} of ${n} students are chosen to stand in a row for a photo, left to right. How many different rows are possible?`, 'the left end', 'the next spot'] },
-  { code: 'sequence', make: (n, r) => [`A playlist will play ${r} of ${n} songs, one after another, with no song twice. How many different playlists are possible?`, 'the first song', 'the second'] },
-  { code: 'route', make: (n, r) => [`A tour visits ${r} of ${n} cities, one after another, never the same city twice. How many different tours are possible?`, 'the first city', 'the second'] },
+// requiem: catalogue/content/order-matters-both-ways
+// Every context comes in an ordered and an unordered version, so the
+// setting (a club, a race, books) never gives the answer away: only whether
+// swapping two of the chosen makes a different outcome does.
+const PLACES = ['1st', '2nd', '3rd', '4th'];
+const JOBS = ['president', 'vice president', 'treasurer', 'secretary'];
+const SEATS = { 2: 'the front and back seats', 3: 'the front, middle and back seats', 4: 'the four seats, front to back,' };
+const PLAYERS = ['Ana', 'Ben', 'Cal', 'Dee'];
+const andList = (xs) => (xs.length === 2 ? xs.join(' and ') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+const CONTEXTS = [
+  { id: 'race',
+    perm: { code: 'medals', make: (n, r) => [`${n} runners are in a race. ${r === 2 ? 'Gold and silver medals are' : r === 3 ? 'Gold, silver and bronze medals are' : `Prizes for 1st to ${r}th place are`} given out. How many ways can the ${r <= 3 ? 'medals' : 'prizes'} be awarded?`, 'first place', 'second'],
+      swap: 'Swapping the gold and silver winners gives a different result' },
+    comb: { code: 'qualify', make: (n, r) => `${n} runners are in a race, and the first ${r} to finish all move on to the final. How many different groups of runners could move on?`,
+      swap: 'The same runners moving on, in whatever order they crossed the line, are the same group' } },
+  { id: 'club',
+    perm: { code: 'officers', make: (n, r) => [`A club of ${n} members elects a ${andList(JOBS.slice(0, r))}. No one holds two jobs. How many ways can the jobs be filled?`, 'president', 'vice president'],
+      swap: 'Swapping the president and vice president gives a different result' },
+    comb: { code: 'planners', make: (n, r) => `A club of ${n} members picks ${r} of them to plan a party together, all with the same job. How many different teams of planners are possible?`,
+      swap: 'The same members picked in another order are the same team' } },
+  { id: 'committee',
+    perm: { code: 'chairs', make: (n, r) => [`A committee of ${r} is chosen from ${n} people: ${andList(['a chair', 'a secretary', 'a treasurer', 'a recorder'].slice(0, r))}. How many different committees are possible?`, 'chair', 'secretary'],
+      swap: 'Swapping the chair and the secretary gives a different committee' },
+    comb: { code: 'committee', make: (n, r) => `A committee of ${r} is chosen from ${n} people. How many different committees are possible?`,
+      swap: 'Listing the same people in another order is the same committee' } },
+  { id: 'students',
+    perm: { code: 'row', make: (n, r) => [`${r} of ${n} students are chosen to stand in a row for a photo, left to right. How many different rows are possible?`, 'the left end', 'the next spot'],
+      swap: 'Swapping two students in the row gives a different photo' },
+    comb: { code: 'trip', make: (n, r) => `${r} of ${n} students are chosen to go on a field trip. How many different groups of students could go?`,
+      swap: 'The same students chosen in another order are the same group' } },
+  { id: 'songs',
+    perm: { code: 'sequence', make: (n, r) => [`A playlist will play ${r} of ${n} songs, one after another, with no song twice. How many different playlists are possible?`, 'the first song', 'the second'],
+      swap: 'Swapping two songs gives a different playlist' },
+    comb: { code: 'download', make: (n, r) => `You pick ${r} of your ${n} favorite songs to save on your phone for a trip. How many different choices of songs are possible?`,
+      swap: 'The same songs saved in another order are the same choice' } },
+  { id: 'pizza',
+    perm: { code: 'ranking', make: (n, r) => [`A pizza contest asks each judge to rank ${r} of the shop's ${n} toppings as ${andList(PLACES.slice(0, r))} favorite. How many different rankings are possible?`, '1st favorite', '2nd'],
+      swap: 'Swapping the 1st and 2nd favorites gives a different ranking' },
+    comb: { code: 'toppings', make: (n, r) => `A pizza shop has ${n} toppings. How many different pizzas with ${r} different toppings can be made?`,
+      swap: 'The same toppings added in another order are the same pizza' } },
+  { id: 'friends',
+    perm: { code: 'seats', make: (n, r) => [`${r} of your ${n} friends will ride in ${SEATS[r]} of a roller-coaster car. How many different ways can they be seated?`, 'the front seat', 'the next'],
+      swap: 'Swapping two friends between seats gives a different seating' },
+    comb: { code: 'group', make: (n, r) => `You can bring ${r} of your ${n} friends to a show. How many different groups of friends could you bring?`,
+      swap: 'The same friends named in another order are the same group' } },
+  { id: 'books',
+    perm: { code: 'shelf', make: (n, r) => [`You put ${r} of your ${n} books on a shelf, left to right. How many different arrangements are possible?`, 'the left end', 'the next spot'],
+      swap: 'Swapping two books on the shelf gives a different arrangement' },
+    comb: { code: 'set', make: (n, r) => `You take ${r} of your ${n} books on vacation. How many different choices of books are possible?`,
+      swap: 'The same books packed in another order are the same choice' } },
+  { id: 'cards',
+    perm: { code: 'deal', make: (n, r) => [`${r} cards are dealt from ${n} different cards, one each to ${andList(PLAYERS.slice(0, r))}. How many different deals are possible?`, PLAYERS[0], PLAYERS[1]],
+      swap: `Swapping ${PLAYERS[0]}'s and ${PLAYERS[1]}'s cards gives a different deal` },
+    comb: { code: 'hand', make: (n, r) => `A hand of ${r} cards is dealt from ${n} different cards. How many different hands are possible?`,
+      swap: 'The same cards dealt in another order are the same hand' } },
+  { id: 'cities',
+    perm: { code: 'route', make: (n, r) => [`A tour visits ${r} of ${n} cities, one after another, never the same city twice. How many different tours are possible?`, 'the first city', 'the second'],
+      swap: 'Swapping two cities gives a different tour' },
+    comb: { code: 'passes', make: (n, r) => `A prize lets the winner choose ${r} of ${n} cities to get a free hotel night in. How many different choices of cities are possible?`,
+      swap: 'The same cities chosen in another order are the same prize' } },
 ];
 
 function sizes(rng, rMax = 4) {
@@ -140,15 +232,19 @@ function sizes(rng, rMax = 4) {
   const n = r === 4 ? rng.int(6, 9) : rng.int(r + 2, r === 2 ? 15 : 12);
   return [n, r];
 }
+/** The question of one context in one version: [prompt, first, second]. */
+function asked(C, ordered, n, r) {
+  return ordered ? C.perm.make(n, r) : [C.comb.make(n, r)];
+}
 
 function permutations(rng) {
   const [n, r] = sizes(rng);
-  const S = rng.pick(ORDERED);
-  const [prompt, first, second] = S.make(n, r);
+  const C = rng.pick(CONTEXTS);
+  const [prompt, first, second] = asked(C, true, n, r);
   const v = perm(n, r);
   return {
     prompt: [T.prose(prompt)],
-    text: `permutations ${n} ${r}; ${S.code}`,
+    text: `permutations ${n} ${r}; ${C.perm.code}`,
     answer: int(v),
     visual: null,
     explain: `There are ${n} choices for ${first}, then ${n - 1} for ${second}, one fewer at each of the ${r} steps: ${steps(n, r)} = ${fmt(v)}. `
@@ -156,24 +252,14 @@ function permutations(rng) {
   };
 }
 
-// ── Combinations ────────────────────────────────────────────────────────
-
-const GROUPS = [
-  { code: 'committee', make: (n, r) => `A committee of ${r} is chosen from ${n} people. How many different committees are possible?` },
-  { code: 'toppings', make: (n, r) => `A pizza shop has ${n} toppings. How many different pizzas with ${r} different toppings can be made?` },
-  { code: 'group', make: (n, r) => `You can bring ${r} of your ${n} friends to a show. How many different groups of friends could you bring?` },
-  { code: 'set', make: (n, r) => `A reading list has ${n} books, and you must read any ${r} of them. How many different sets of ${r} books could you read?` },
-  { code: 'hand', make: (n, r) => `A hand of ${r} cards is dealt from ${n} different cards. How many different hands are possible?` },
-];
-
 function combinations(rng) {
   const [n, r] = sizes(rng);
-  const S = rng.pick(GROUPS);
+  const C = rng.pick(CONTEXTS);
   const p = perm(n, r);
   const v = comb(n, r);
   return {
-    prompt: [T.prose(S.make(n, r))],
-    text: `combinations ${n} ${r}; ${S.code}`,
+    prompt: [T.prose(asked(C, false, n, r)[0])],
+    text: `combinations ${n} ${r}; ${C.comb.code}`,
     answer: int(v),
     visual: null,
     explain: `Chosen in order there would be ${steps(n, r)} = ${fmt(p)} ways. But order does not matter here: each group of ${r} turned up once for every order of it, ${r}! = ${fact(r)} times. `
@@ -183,18 +269,6 @@ function combinations(rng) {
 
 // ── Does Order Matter? ──────────────────────────────────────────────────
 
-const SWAP = {
-  ranked: 'Swapping the gold and silver winners gives a different result',
-  roles: 'Swapping the president and vice president gives a different result',
-  row: 'Swapping two students in the row gives a different photo',
-  sequence: 'Swapping two songs gives a different playlist',
-  route: 'Swapping two cities gives a different tour',
-  committee: 'Listing the same people in another order is the same committee',
-  toppings: 'The same toppings added in another order are the same pizza',
-  group: 'The same friends named in another order are the same group',
-  set: 'The same books listed in another order are the same set',
-  hand: 'The same cards dealt in another order are the same hand',
-};
 const ORDER_OPTIONS = [
   { id: 'perm', label: 'Order matters: permutations' },
   { id: 'comb', label: 'Order does not matter: combinations' },
@@ -203,15 +277,16 @@ const ORDER_OPTIONS = [
 function doesOrderMatter(rng) {
   const [n, r] = sizes(rng);
   const ordered = rng.chance(0.5);
-  const S = rng.pick(ordered ? ORDERED : GROUPS);
-  const prompt = ordered ? S.make(n, r)[0] : S.make(n, r);
+  const C = rng.pick(CONTEXTS);
+  const V = ordered ? C.perm : C.comb;
+  const prompt = asked(C, ordered, n, r)[0];
   const count = ordered ? `${steps(n, r)} = ${fmt(perm(n, r))}` : `${fmt(perm(n, r))} ÷ ${r}! = ${fmt(comb(n, r))}`;
   return {
     prompt: [T.prose(`${prompt} Before counting: does the order of the ${r} chosen matter?`)],
-    text: `order matters: n ${n} r ${r}; selection is ${S.code}`,
+    text: `order matters: n ${n} r ${r}; selection is ${V.code}`,
     answer: { type: 'choice', value: ordered ? 'perm' : 'comb', options: ORDER_OPTIONS },
     visual: null,
-    explain: `${SWAP[S.code]}, so order ${ordered ? 'matters' : 'does not matter'}, and the count would be ${ordered ? 'a permutation' : 'a combination'}: ${count}. `
+    explain: `${V.swap}, so order ${ordered ? 'matters' : 'does not matter'}, and the count would be ${ordered ? 'a permutation' : 'a combination'}: ${count}. `
       + `(${ordered ? 'Each chosen one has a place or a job, so the order is part of the outcome.' : 'A group has no first or second, so only who is in it counts.'}) So order ${ordered ? 'matters: permutations' : 'does not matter: combinations'}.`,
   };
 }
@@ -240,7 +315,7 @@ function smallCode(rng) {
 
 function digitCode(rng) {
   if (rng.chance(0.5)) return smallCode(rng);
-  const L = rng.int(3, 4);
+  const L = rng.int(3, 5);
   const kind = rng.pick(['first', 'first', 'even', 'odd-first', 'repeat-first']);
   if (kind === 'repeat-first') {
     const v = 9 * 10 ** (L - 1);
@@ -279,7 +354,7 @@ function digitCode(rng) {
 }
 
 function rowRule(rng) {
-  const N = rng.int(4, 7);
+  const N = rng.int(4, 8);
   const [A, B] = rng.shuffle(NAMES).slice(0, 2);
   const kind = rng.pick(['first', 'end', 'together', 'together', 'apart']);
   const all = fact(N);
@@ -313,8 +388,8 @@ function rowRule(rng) {
 }
 
 function committeeRule(rng) {
-  const N = rng.int(6, 10);
-  const R = rng.int(2, 4);
+  const N = rng.int(6, 12);
+  const R = rng.int(2, 5);
   const A = rng.pick(NAMES);
   if (rng.chance(0.5)) {
     const v = comb(N - 1, R - 1);
@@ -363,7 +438,7 @@ function byCounting(rng) {
     P = {
       prompt: `A committee of ${R} is chosen at random from ${N} people, including ${A} and ${B}. What is the probability that both ${A} and ${B} are on it?`,
       text: `committee chance: ${N} people, ${R} chosen, includes A and B`, n: want, d: all,
-      explain: `All committees: ${fmt(all)}. With ${A} and ${B} both on, the other ${R - 2} seat${R - 2 === 1 ? '' : 's'} come${R - 2 === 1 ? 's' : ''} from the other ${N - 2}: ${R === 2 ? '1 way' : `${fmt(want)}`}. `
+      explain: `All committees: ${fmt(all)}. With ${A} and ${B} both on, ${R === 2 ? 'no other seats are left: 1 way' : `the other ${R - 2} seat${R - 2 === 1 ? '' : 's'} come${R - 2 === 1 ? 's' : ''} from the other ${N - 2}: ${fmt(want)}`}. `
         + `So ${fracWork(want, all)}. (Both counts are of committees, without order; mixing an ordered count with an unordered one gives a wrong ratio.) So ${fracText(want, all)}.`,
     };
   } else if (kind === 'all' || kind === 'exactly') {
