@@ -188,14 +188,14 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Forty skills are built so far. They cover pre-algebra -- integer arithmetic
+Forty-one skills are built so far. They cover pre-algebra -- integer arithmetic
 and absolute value, fractions, decimals, ratio and proportional relationships,
 powers, roots, scientific notation and the real numbers, expressions, and
 equations and inequalities, including writing them from a situation, and
 compound inequalities and absolute value -- and all of the
 linear algebra after it: functions, slope, linear equations and their forms,
 linear models, systems of two equations, graphing inequalities, and sequences. Phase 2, polynomials to
-exponentials, has begun with monomials, rational exponents, polynomials and both factoring skills. What comes next, and which standards it answers to, is in
+exponentials, has begun with monomials, rational exponents, polynomials, both factoring skills and quadratic equations. What comes next, and which standards it answers to, is in
 `docs/catalogue-plan.md`.
 
 ```

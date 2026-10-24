@@ -32,6 +32,7 @@ import rationalExponents from '../skills/rational-exponents.js';
 import polynomials from '../skills/polynomials.js';
 import factoring from '../skills/factoring.js';
 import factoring2 from '../skills/factoring-2.js';
+import quadraticEq from '../skills/quadratic-eq.js';
 import evaluate from '../skills/evaluate.js';
 import equations from '../skills/equations.js';
 import equationsBoth from '../skills/equations-both.js';
@@ -45,7 +46,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, inequalities, compoundIneq, absValue, ineqGraphs, sequences];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, inequalities, compoundIneq, absValue, ineqGraphs, sequences];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

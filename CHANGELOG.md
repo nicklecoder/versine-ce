@@ -101,6 +101,9 @@ Phase 2 has begun:
   for first, including the polynomials that do not factor.
 - **Factoring II** (Expressions): a leading number by trial and by the AC method, factoring
   completely, grouping four terms, and sums and differences of cubes.
+- **Quadratic Equations** (Equations): the zero product property, solving by factoring,
+  rearranging to zero first, square roots, and a strategy level on choosing square roots,
+  factoring, or neither.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

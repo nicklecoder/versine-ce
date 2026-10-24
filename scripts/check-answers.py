@@ -1565,6 +1565,55 @@ CHOICE_RULES += (
 )
 
 
+# --- Quadratic Equations -----------------------------------------------------
+#
+# Solved by the discriminant from the equation's coefficients, read as for
+# Polynomials, whatever form it was written in: the roots are compared as an
+# exact set of points with the answer's. Which Method is decided from the
+# equation's shape -- a bracket squared, or no term in the letter, is square
+# roots; otherwise it factors exactly when the discriminant is a square.
+
+def quadratic_roots(equation: str) -> set:
+    left, right = equation.split(" = ")
+    letter = re.search(r"[a-z]", equation)[0]
+    cs = coefficients(f"({left}) - ({right})".replace(letter, "x"))
+    c, b, a = (cs + [Fraction(0)] * 3)[:3]
+    if a == 0:
+        return {-c / b}
+    d = b * b - 4 * a * c
+    if d < 0:
+        return set()
+    root = Fraction(math.isqrt(d.numerator), math.isqrt(d.denominator))
+    assert root * root == d, f"irrational roots in {equation}"
+    return {(-b + root) / (2 * a), (-b - root) / (2 * a)}
+
+
+def answer_points(value):
+    """The answer's solutions as a set of numbers, or None if it holds a range."""
+    out = set()
+    for p in value["parts"]:
+        if p["lo"] is None or p["lo"] != p["hi"] or not (p["loIn"] and p["hiIn"]):
+            return None
+        out.add(as_fraction(p["lo"]))
+    return out
+
+
+def method_of(equation: str) -> str:
+    left, right = equation.split(" = ")
+    if re.fullmatch(r"\([^()]+\)\^2", left) and re.fullmatch(r"-?\d+", right):
+        return "roots"
+    cs = coefficients(f"({left}) - ({right})")
+    c, b, a = (cs + [Fraction(0)] * 3)[:3]
+    if b == 0:
+        return "roots"
+    return "factor" if is_square(b * b - 4 * a * c) else "neither"
+
+
+CHOICE_RULES += (
+    (re.compile(r"^method: (.+)$"), method_of),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1619,6 +1668,14 @@ for path in sorted(LIB.glob("*.json")):
             continue
 
         # A set of numbers: solved again at points along the line, and compared there.
+        if answer["type"] == "solutions" and text.startswith("quadratic: "):
+            checked += 1
+            want, got = quadratic_roots(text[len("quadratic: "):]), answer_points(answer["value"])
+            if got != want:
+                said = lambda xs: ", ".join(str(x) for x in sorted(xs))
+                problems.append(f"{where}: {text} has roots {said(want)}, not {'a range' if got is None else said(got)}")
+            continue
+
         if answer["type"] == "solutions":
             rule = next((r for r in SET_RULES if r[0].match(text)), None)
             if rule:

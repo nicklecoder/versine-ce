@@ -1,5 +1,5 @@
 {
-  "built": 296,
+  "built": 302,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -326,6 +326,14 @@
       "scale-first",
       "none-or-infinitely-many",
       "from-words",
+      "which-method",
+      "all-together"
+    ],
+    "quadratic-eq": [
+      "zero-product",
+      "by-factoring",
+      "rearrange-to-zero-first",
+      "square-roots",
       "which-method",
       "all-together"
     ],
@@ -827,6 +835,17 @@
         ]
       }
     },
+    "quadratic-eq": {
+      "dependsOn": [
+        "equations-both",
+        "factoring"
+      ],
+      "levels": {
+        "which-method": [
+          "factoring"
+        ]
+      }
+    },
     "inequalities": {
       "dependsOn": [
         "equations",
@@ -885,7 +904,7 @@
       }
     }
   },
-  "sources": "7475984e4548358285d70e408671075336aec201406a374d34ad8d1a97fb349d",
+  "sources": "27ba869b77382995e3cfb043243f013663321c56ec9696ed61afb577dabbd791",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3466,6 +3485,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "systems-7.json"
+    },
+    {
+      "skill": "quadratic-eq",
+      "level": 0,
+      "slug": "zero-product",
+      "name": "Zero Product",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-eq-0.json"
+    },
+    {
+      "skill": "quadratic-eq",
+      "level": 1,
+      "slug": "by-factoring",
+      "name": "By Factoring",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-eq-1.json"
+    },
+    {
+      "skill": "quadratic-eq",
+      "level": 2,
+      "slug": "rearrange-to-zero-first",
+      "name": "Rearrange to Zero First",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-eq-2.json"
+    },
+    {
+      "skill": "quadratic-eq",
+      "level": 3,
+      "slug": "square-roots",
+      "name": "Square Roots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-eq-3.json"
+    },
+    {
+      "skill": "quadratic-eq",
+      "level": 4,
+      "slug": "which-method",
+      "name": "Which Method?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadratic-eq-4.json"
+    },
+    {
+      "skill": "quadratic-eq",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-eq-5.json"
     },
     {
       "skill": "inequalities",
