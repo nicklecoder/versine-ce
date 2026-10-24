@@ -349,7 +349,9 @@ function lowestCommonMultiple(rng) {
 // and as few as possible -- because with one answer per object the level
 // was passed by recognizing the object.
 const SITUATIONS = [
-  { text: 'A {a} cm ribbon and a {b} cm ribbon, cut into equal pieces as long as possible.',
+  // requiem: catalogue/content/units-both-systems
+  // Ribbon is sold by the inch and yard; tiles stay in centimeters.
+  { text: 'A {a}-inch ribbon and a {b}-inch ribbon, cut into equal pieces as long as possible.',
     want: 'gcf',
     why: 'The pieces have to fit inside both ribbons, so the answer cannot be bigger than either. '
       + 'That is a common factor, and "as long as possible" makes it the greatest one.' },
@@ -367,7 +369,7 @@ const SITUATIONS = [
     want: 'lcm',
     why: 'The number of pens has to be a whole number of boxes of {a} and also of {b}, so it is a '
       + 'number both counts reach. The fewest is the lowest common multiple.' },
-  { text: 'Ribbons come {a} cm and {b} cm long. Laid end to end, what is the shortest length both '
+  { text: 'Ribbons come {a} inches and {b} inches long. Laid end to end, what is the shortest length both '
       + 'kinds can make exactly?',
     want: 'lcm',
     why: 'The length has to be a whole number of each kind of ribbon, so both counts reach it — '

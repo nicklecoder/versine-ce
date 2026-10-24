@@ -2260,10 +2260,10 @@ def terminates(x: Fraction) -> bool:
 JUDGED = {
     # decimals: a decimal to measure, place or compare; a fraction to stay exact
     "You need to compare # with #.": "decimal",
-    # A price per gram, and a length measured out with a ruler: a ruler is
+    # A price per ounce, and a length measured out with a ruler: a ruler is
     # read in centimeters and millimeters, which are decimals of a meter,
     # whatever fraction of a meter was asked for.
-    "One brand costs $# a gram and another costs $# a gram. You need to say which is cheaper.": "decimal",
+    "One brand costs $# an ounce and another costs $# an ounce. You need to say which is cheaper.": "decimal",
     "You need to measure out #/# of a meter with a ruler.": "decimal",
     # Two measurements with their points lined up; as fractions they would
     # be over 100 and 1000 and need a common bottom first.
@@ -2281,13 +2281,13 @@ JUDGED = {
     # The fewest pens is a count both box sizes reach; the fewest rows is the
     # longest row, which fits inside both colors.
     "Pens come in boxes of # and pencils in boxes of #. What is the fewest pens you can buy and still have exactly as many pencils?": "lcm",
-    "Ribbons come # cm and # cm long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
+    "Ribbons come # inches and # inches long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
     "# red counters and # blue ones, in rows of equal length, no row mixing colors. What is the fewest rows there can be?": "gcf",
     "Two classes of # and # pupils are split into teams of the same size, no team mixing classes. What is the largest team size?": "gcf",
     "Tiles # cm by # cm, laid out to make the smallest possible square.": "lcm",
     "Two buses set off together, then run every # and every # minutes. Next time together?": "lcm",
     "Buns come in packs of # and sausages in packs of #. Fewest packs to have equal numbers?": "lcm",
-    "A # cm ribbon and a # cm ribbon, cut into equal pieces as long as possible.": "gcf",
+    "A #-inch ribbon and a #-inch ribbon, cut into equal pieces as long as possible.": "gcf",
     "The largest square tile that exactly fills a # cm by # cm rectangle.": "gcf",
     "Adding # and # — what should the denominator become?": "lcm",
     # mixed numbers: improper to compute with, mixed to read or report
@@ -2306,8 +2306,8 @@ JUDGED = {
     "You want to know roughly how big # #/# is, at a glance.": "mixed",
     "You need to give #/# m as the answer to a word problem about lengths.": "mixed",
     "You need to give # #/# m as the answer to a word problem about lengths.": "mixed",
-    "There are #/# liters of juice left, and you are telling someone how much.": "mixed",
-    "There are # #/# liters of juice left, and you are telling someone how much.": "mixed",
+    "There are #/# cups of flour left, and you are telling someone how much.": "mixed",
+    "There are # #/# cups of flour left, and you are telling someone how much.": "mixed",
     # roots: exact work wants the simplest radical, a physical length a decimal
     "You need to add √# to √#.": "simplify",
     "You need to add √# to #√#.": "simplify",
@@ -2321,6 +2321,7 @@ JUDGED = {
     # rounding: money handed over and things cut to fit are exact
     "You are splitting a $# bill # ways and paying your share.": "exact",
     "You are cutting a shelf to fit a gap of # meters.": "exact",
+    "You are cutting a board to fit a gap of # feet.": "exact",
     "You are checking that a bill of $# looks right before paying it.": "estimate",
     "You are checking that # × # on your calculator has its decimal point in the right place.": "estimate",
     "You are working out the change from $# and handing it over.": "exact",
