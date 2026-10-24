@@ -1,5 +1,5 @@
 {
-  "built": 501,
+  "built": 509,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -632,6 +632,16 @@
       "which-law",
       "how-many-triangles",
       "half-ab-sin-c",
+      "all-together"
+    ],
+    "radians": [
+      "degrees-to-radians",
+      "radians-to-degrees",
+      "coterminal-angles",
+      "reference-angles",
+      "arc-length",
+      "sector-area",
+      "angular-speed",
       "all-together"
     ]
   },
@@ -1418,9 +1428,23 @@
           "trig-ratios"
         ]
       }
+    },
+    "radians": {
+      "dependsOn": [
+        "circles",
+        "trig-ratios"
+      ],
+      "levels": {
+        "arc-length": [
+          "circles"
+        ],
+        "sector-area": [
+          "circles"
+        ]
+      }
     }
   },
-  "sources": "a0aeabd2a6b12f2ad5349f6622552ab915907ac1521245fbb06bf4d75dcb455d",
+  "sources": "08ae897157d490487beeb4e8f68df81ab5e7abbf839abf1ad2aedeea65a9154e",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6431,6 +6455,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "laws-sines-cosines-7.json"
+    },
+    {
+      "skill": "radians",
+      "level": 0,
+      "slug": "degrees-to-radians",
+      "name": "Degrees to Radians",
+      "count": 80,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-0.json"
+    },
+    {
+      "skill": "radians",
+      "level": 1,
+      "slug": "radians-to-degrees",
+      "name": "Radians to Degrees",
+      "count": 133,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-1.json"
+    },
+    {
+      "skill": "radians",
+      "level": 2,
+      "slug": "coterminal-angles",
+      "name": "Coterminal Angles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-2.json"
+    },
+    {
+      "skill": "radians",
+      "level": 3,
+      "slug": "reference-angles",
+      "name": "Reference Angles",
+      "count": 282,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-3.json"
+    },
+    {
+      "skill": "radians",
+      "level": 4,
+      "slug": "arc-length",
+      "name": "Arc Length s = rθ",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-4.json"
+    },
+    {
+      "skill": "radians",
+      "level": 5,
+      "slug": "sector-area",
+      "name": "Sector Area ½r²θ",
+      "count": 741,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-5.json"
+    },
+    {
+      "skill": "radians",
+      "level": 6,
+      "slug": "angular-speed",
+      "name": "Angular Speed",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-6.json"
+    },
+    {
+      "skill": "radians",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-7.json"
     }
   ]
 }

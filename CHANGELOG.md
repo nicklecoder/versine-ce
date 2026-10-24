@@ -13,6 +13,15 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Radians**, a new skill under the Unit Circle, in eight levels: degrees to
+radians and back, coterminal angles, reference angles on a drawn angle, arc
+length s = rθ, sector area ½r²θ, and angular and linear speed in rpm, radians
+per second, ft/s, m/s, mi/h and km/h. An exact answer is the coefficient of π
+typed as a fraction after a printed π, since radian measures are thirds and
+ninths of π; a rounded one is kept only where 3.1416 for π rounds the same.
+`check-answers.py` converts in exact fractions and finds coterminal and
+reference angles by stepping round the circle.
+
 **Laws of Sines & Cosines**, a new skill under Right Triangles, in eight levels:
 the law of sines for a side and for an angle, the law of cosines for a side and
 for an angle, a strategy level, Which Law?, and How Many Triangles? for two

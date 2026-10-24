@@ -335,6 +335,12 @@ the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
 All Together. Which Law? depends on trig-ratios' Missing Side, where a tool is
 first chosen by the sides in play. How Many Triangles? is added for the
 ambiguous case, and every Sines: Angle question names its triangle.
+`radians` is built, as Degrees to Radians · Radians to Degrees · Coterminal
+Angles · Reference Angles · Arc Length s = rθ · Sector Area ½r²θ · Angular
+Speed · All Together. The plan's Degrees ↔ Radians is two levels, one each
+way, and Sector Area is added beside Arc Length; the two depend on the
+circles skill's Arc Length and Sector Area, where both are taken in degrees. Exact answers are the
+coefficient of π, as a fraction.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

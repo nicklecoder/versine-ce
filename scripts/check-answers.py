@@ -5024,6 +5024,80 @@ CHOICE_RULES += (
     (re.compile(r"^which law: ((?:[ABCabc] \d+(?:, )?)+); want ([ABCabc])$"), laws_which),
 )
 
+# --- Radians -----------------------------------------------------------------
+#
+# A multiple of π is held as its coefficient, a fraction, and converted with
+# 180° = π in exact arithmetic; a turn is 2π, or 360°. A coterminal or
+# reference angle is found by stepping round the circle a degree, or a
+# twelfth of π, at a time rather than by the subtraction the explanation
+# uses. Rounded answers use the calculator's π, worked again with 3.1416
+# (trig_agree).
+
+# requiem: catalogue/content/radian-coefficients-as-fractions
+def rad_coef(written: str) -> Fraction:
+    n, d = written.split("/")
+    return Fraction(int(n), int(d))
+
+
+def rad_coterminal_deg(deg) -> int:
+    hits = [t for t in range(0, 360) if (t - deg) % 360 == 0]
+    assert len(hits) == 1
+    return hits[0]
+
+
+def rad_coterminal_rad(written: str) -> Fraction:
+    k = rad_coef(written)
+    # Every candidate in [0, 2) on a grid fine enough for any denominator here.
+    hits = [Fraction(j, 120) for j in range(240) if (Fraction(j, 120) - k) % 2 == 0]
+    assert len(hits) == 1
+    return hits[0]
+
+
+def rad_reference_deg(deg) -> int:
+    # The angle between the terminal side and the nearer half of the x-axis.
+    return min(abs(deg - 0), abs(deg - 180), abs(deg - 360))
+
+
+def rad_arc(kind: str, r, how: str, value: str) -> Fraction:
+    # θ in radians: a coefficient of π, plain radians, or degrees converted.
+    value = str(value)
+    if how == "degrees":
+        theta = Fraction(int(value), 180)
+    elif value.endswith(" pi"):
+        theta = rad_coef(value[:-3])
+    else:
+        theta = Fraction(value)
+    factor = Fraction(r * r, 2) if kind == "sector area" else Fraction(r)
+    return factor * theta
+
+
+def rad_linear(r, unit, rpm, places) -> Fraction:
+    per = {"in": 12 * 60, "cm": 100 * 60}[unit]
+    return trig_agree(2 * math.pi * r * rpm / per, 2 * 3.1416 * r * rpm / per, places)
+
+
+def rad_wheel(dia, unit, rpm, out, places) -> Fraction:
+    per = {"mi": 63360, "km": 100000}[out]
+    return trig_agree(math.pi * dia * rpm * 60 / per, 3.1416 * dia * rpm * 60 / per, places)
+
+
+BY_RULE += (
+    (re.compile(r"^deg to rad: (\d+)$"), lambda deg: Fraction(deg, 180)),
+    (re.compile(r"^rad to deg: (\d+/\d+) pi$"), lambda k: rad_coef(k) * 180),
+    (re.compile(r"^rad to deg: ([\d.]+) to (\d) dp$"),
+     lambda r, places: trig_agree(float(r) * 180 / math.pi, float(r) * 180 / 3.1416, places)),
+    (re.compile(r"^coterminal deg: (-?\d+)$"), lambda deg: rad_coterminal_deg(int(deg))),
+    (re.compile(r"^coterminal rad: (-?\d+/\d+)$"), rad_coterminal_rad),
+    (re.compile(r"^reference deg: (\d+)$"), rad_reference_deg),
+    (re.compile(r"^reference rad: (\d+/\d+)$"), lambda k: Fraction(rad_reference_deg(rad_coef(k) * 180), 180)),
+    (re.compile(r"^(arc length|sector area): r (\d+), (theta|degrees) ([\d./]+(?: pi)?)$"), rad_arc),
+    (re.compile(r"^arc angle: s (\d+), r (\d+)$"), lambda s, r: Fraction(s, r)),
+    (re.compile(r"^angular: rpm (\d+), want rad per (min|s)$"), lambda rpm, per: Fraction(2 * rpm, 60 if per == "s" else 1)),
+    (re.compile(r"^rim speed: r (\d+), omega (\d+)$"), lambda r, w: r * w),
+    (re.compile(r"^linear speed: r (\d+) (in|cm), rpm (\d+), want (?:ft|m) per s to (\d) dp$"), rad_linear),
+    (re.compile(r"^wheel speed: diameter (\d+) (in|cm), rpm (\d+), want (mi|km) per h to (\d) dp$"), rad_wheel),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
