@@ -160,3 +160,67 @@ export function ellipsePath(c, rx, ry, from = 0, to = 360, { tone = LINE, dashed
   }
   return { kind: 'path', points: pts, tone, ...(dashed ? { dashed: true } : {}) };
 }
+
+// ── Pairs of triangles ─────────────────────────────────────────────────
+
+/** The direction from one point to another, in degrees. */
+export const dirTo = (from, to) => (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI;
+const dist = (P, Q) => Math.hypot(Q[0] - P[0], Q[1] - P[1]);
+
+/** A triangle with angles A at the left of its base, B at the right, C on top, the base `base` long. */
+export function fromAngles(A, B, base = 4.2) {
+  const C = 180 - A - B;
+  const b = (base * Math.sin(B * RAD)) / Math.sin(C * RAD);
+  return [[0, 0], [base, 0], [b * Math.cos(A * RAD), b * Math.sin(A * RAD)]];
+}
+/** A triangle ABC from its sides AB = c, BC = a, CA = b, scaled so its longest side is `longest` long. */
+export function fromSides(c, a, b, longest = 4.6) {
+  const k = longest / Math.max(a, b, c);
+  const cosA = (b * b + c * c - a * a) / (2 * b * c);
+  return [[0, 0], [c * k, 0], [b * k * cosA, b * k * Math.sqrt(1 - cosA * cosA)]];
+}
+/**
+ * The same triangle moved: flipped over an upright line if `flip`, turned by
+ * `turn` degrees, then slid so its leftmost corner is `gap` right of `after`'s
+ * rightmost and their middles level. A congruent copy, placed beside the first.
+ */
+export function beside(P, after, { turn = 0, flip = false, gap = 1.8, scale = 1 } = {}) {
+  const c = centroid(P);
+  const moved = P.map(([x, y]) => {
+    const dx = scale * (flip ? -1 : 1) * (x - c[0]), dy = scale * (y - c[1]);
+    const t = turn * RAD;
+    return [dx * Math.cos(t) - dy * Math.sin(t), dx * Math.sin(t) + dy * Math.cos(t)];
+  });
+  const right = Math.max(...xs(after)), left = Math.min(...xs(moved));
+  const mid = (Math.min(...ys(after)) + Math.max(...ys(after))) / 2, own = (Math.min(...ys(moved)) + Math.max(...ys(moved))) / 2;
+  return moved.map(([x, y]) => [r2(x - left + right + gap), r2(y - own + mid)]);
+}
+/** A triangle's corners lettered just outside it. */
+export const cornerNames = (P, names, tone = LINE) => P.map((p, i) => text(toward(dirTo(centroid(P), p), 0.42, p), names[i], tone));
+/** `n` ticks across the middle of a side: sides with the same number of ticks are equal. */
+export function ticks(P, Q, n, tone = LINE) {
+  const d = dirTo(P, Q), m = [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2];
+  return Array.from({ length: n }, (_, k) => {
+    const at = toward(d, (k - (n - 1) / 2) * 0.16, m);
+    return { kind: 'segment', from: toward(d + 90, 0.2, at), to: toward(d - 90, 0.2, at), tone };
+  });
+}
+/** The angle at V between the directions to U and W, as [from, to] degrees anticlockwise. */
+export function cornerAt(V, U, W) {
+  let a = dirTo(V, U), b = dirTo(V, W);
+  let span = (((b - a) % 360) + 360) % 360;
+  if (span > 180) { [a, b] = [b, a]; span = 360 - span; }
+  return [a, a + span];
+}
+/** `n` arcs at corner V of a triangle VUW: angles with the same number of arcs are equal. */
+export function arcs(V, U, W, n, tone = GIVEN) {
+  const [from, to] = cornerAt(V, U, W), short = Math.min(dist(V, U), dist(V, W));
+  const r0 = Math.min(0.5, 0.2 * short);
+  return Array.from({ length: n }, (_, k) => arc(from, to, r2(r0 + k * 0.1), V, tone));
+}
+/** A label inside the corner at V, along the line halving it, further in for a narrow angle. */
+export function cornerText(V, U, W, label, tone = GIVEN, extra = 0) {
+  const [from, to] = cornerAt(V, U, W), short = Math.min(dist(V, U), dist(V, W));
+  const out = Math.min(0.45 * short, reach(to - from, 0.95)) + extra;
+  return text(toward((from + to) / 2, out, V), label, tone);
+}

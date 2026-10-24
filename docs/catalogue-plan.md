@@ -172,6 +172,23 @@ Over y = x · Rotate · Dilate · Sequences · Which Transformation? · All
 Together. Sequences of moves get a level of their own, and Congruent or
 Similar is asked inside Which Transformation?, beside naming the move, since
 both sort moves by what they keep.
+`coord-geometry` is built, as Midpoint · Perimeter on a Grid · Partition in
+a Ratio · Area on a Grid · Slopes in Shapes · Classify a Triangle · Complete
+the Parallelogram · All Together. The distance formula is practised as
+perimeters, since a lone distance is pythagoras's Distance Between Points
+level; classifying triangles and completing a parallelogram are where
+slopes and lengths prove things about a shape (G-GPE.4).
+`congruence` is built, as Corresponding Parts · Name the Congruence · Which
+Criterion · Enough or Not · The Missing Fact · Isosceles & Equilateral · Use
+the Congruence · All Together. Not Enough (SSA) became Enough or Not, which
+mixes SSA and AAA with the criteria that do work, so the choice is a real
+one; its SSA triangles are always the ambiguous case. Naming the congruence
+and the missing fact are added for TEKS G.6B's applying the criteria.
+`similarity` is built, as Scale Factor · Missing Side · Similar or Not? ·
+Scale Drawings · Area & Volume Scale · Side Splitter · Altitude to
+Hypotenuse · All Together. AA or Not became Similar or Not?, which asks SSS
+and SAS similarity beside AA (G-SRT.5). Only the altitude level
+takes a square root, and it depends on roots' Perfect Squares.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

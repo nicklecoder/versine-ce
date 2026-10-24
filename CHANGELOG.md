@@ -169,6 +169,29 @@ whole and fractional factors about the origin or another point; sequences of two
 with the other order worked out when it differs; and naming a move from its picture, or
 calling a rule or a sequence congruent, similar or neither. Each corner is asked about on a
 drawn triangle, and the image arrives with the answer.
+
+**Similar Figures** (Shapes), in eight levels: the scale factor between similar triangles,
+either way round, from the one pair of sides that matches; a missing side; similar or not,
+by two angles, three side ratios, or two ratios and the angle between; scale drawings,
+maps and models, there and back, and a real area from a plan; areas by k² and volumes by
+k³, and the length factor back from them; the side splitter, by pieces and by the whole
+side; and the altitude to the hypotenuse as a geometric mean.
+
+**Congruent Triangles**, the first skill under Shapes, in eight levels: corresponding
+sides and angles read from a congruence statement, the second triangle turned and often
+flipped; naming the congruence from tick and arc marks; choosing SSS, SAS, ASA, AAS or HL;
+telling those from SSA and AAA, which prove nothing; the one fact still needed for a named
+criterion; equal sides and equal angles in isosceles and equilateral triangles, solved
+for x; and equations from corresponding parts.
+
+**Coordinate Geometry** (Coordinates), in eight levels: midpoints, and an end from the
+midpoint; perimeters on the grid, each slanted side by the distance formula, exact or to
+one decimal place; a point that splits a segment in a ratio or a fraction of the way;
+areas of triangles and tilted squares by the box around them; a missing coordinate that
+makes two sides parallel or perpendicular; triangles classified as right, isosceles,
+both or neither from their sides and slopes; and the fourth corner of a parallelogram.
+Each is drawn on the grid, and the run and rise of every slanted side arrive with the
+answer.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

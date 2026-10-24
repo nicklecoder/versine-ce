@@ -1,5 +1,5 @@
 {
-  "built": 389,
+  "built": 413,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -492,6 +492,36 @@
       "dilate",
       "sequences",
       "which-transformation",
+      "all-together"
+    ],
+    "coord-geometry": [
+      "midpoint",
+      "perimeter-on-a-grid",
+      "partition-in-a-ratio",
+      "area-on-a-grid",
+      "slopes-in-shapes",
+      "classify-a-triangle",
+      "complete-the-parallelogram",
+      "all-together"
+    ],
+    "congruence": [
+      "corresponding-parts",
+      "name-the-congruence",
+      "which-criterion",
+      "enough-or-not",
+      "the-missing-fact",
+      "isosceles-and-equilateral",
+      "use-the-congruence",
+      "all-together"
+    ],
+    "similarity": [
+      "scale-factor",
+      "missing-side",
+      "similar-or-not",
+      "scale-drawings",
+      "area-and-volume-scale",
+      "side-splitter",
+      "altitude-to-hypotenuse",
       "all-together"
     ]
   },
@@ -1101,9 +1131,34 @@
         "coords"
       ],
       "levels": {}
+    },
+    "coord-geometry": {
+      "dependsOn": [
+        "line-forms",
+        "pythagoras"
+      ],
+      "levels": {}
+    },
+    "congruence": {
+      "dependsOn": [
+        "triangle-angles"
+      ],
+      "levels": {}
+    },
+    "similarity": {
+      "dependsOn": [
+        "congruence",
+        "ratio",
+        "roots"
+      ],
+      "levels": {
+        "altitude-to-hypotenuse": [
+          "roots"
+        ]
+      }
     }
   },
-  "sources": "3f1dc6a29a455a6dedc1bc38896b4280844ddd699db0a317e691d6a1d5bce369",
+  "sources": "fcadc56680afbeda2b2383008af643b605331be1e32579af86bec20753adcdd8",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4994,6 +5049,246 @@
       "exhaustive": false,
       "signed": true,
       "file": "transformations-g-7.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 0,
+      "slug": "midpoint",
+      "name": "Midpoint",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-0.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 1,
+      "slug": "perimeter-on-a-grid",
+      "name": "Perimeter on a Grid",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "coord-geometry-1.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 2,
+      "slug": "partition-in-a-ratio",
+      "name": "Partition in a Ratio",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-2.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 3,
+      "slug": "area-on-a-grid",
+      "name": "Area on a Grid",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "coord-geometry-3.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 4,
+      "slug": "slopes-in-shapes",
+      "name": "Slopes in Shapes",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-4.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 5,
+      "slug": "classify-a-triangle",
+      "name": "Classify a Triangle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "coord-geometry-5.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 6,
+      "slug": "complete-the-parallelogram",
+      "name": "Complete the Parallelogram",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-6.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-7.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 0,
+      "slug": "corresponding-parts",
+      "name": "Corresponding Parts",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-0.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 1,
+      "slug": "name-the-congruence",
+      "name": "Name the Congruence",
+      "count": 432,
+      "exhaustive": true,
+      "signed": false,
+      "file": "congruence-1.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 2,
+      "slug": "which-criterion",
+      "name": "Which Criterion",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-2.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 3,
+      "slug": "enough-or-not",
+      "name": "Enough or Not",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-3.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 4,
+      "slug": "the-missing-fact",
+      "name": "The Missing Fact",
+      "count": 990,
+      "exhaustive": true,
+      "signed": false,
+      "file": "congruence-4.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 5,
+      "slug": "isosceles-and-equilateral",
+      "name": "Isosceles & Equilateral",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-5.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 6,
+      "slug": "use-the-congruence",
+      "name": "Use the Congruence",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-6.json"
+    },
+    {
+      "skill": "congruence",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "congruence-7.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 0,
+      "slug": "scale-factor",
+      "name": "Scale Factor",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-0.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 1,
+      "slug": "missing-side",
+      "name": "Missing Side",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-1.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 2,
+      "slug": "similar-or-not",
+      "name": "Similar or Not?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-2.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 3,
+      "slug": "scale-drawings",
+      "name": "Scale Drawings",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-3.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 4,
+      "slug": "area-and-volume-scale",
+      "name": "Area & Volume Scale",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-4.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 5,
+      "slug": "side-splitter",
+      "name": "Side Splitter",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-5.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 6,
+      "slug": "altitude-to-hypotenuse",
+      "name": "Altitude to Hypotenuse",
+      "count": 131,
+      "exhaustive": true,
+      "signed": false,
+      "file": "similarity-6.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-7.json"
     }
   ]
 }

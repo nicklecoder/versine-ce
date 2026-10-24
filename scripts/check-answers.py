@@ -2952,6 +2952,438 @@ CHOICE_RULES += (
      lambda steps: kind_of_map(after_steps(steps))),
 )
 
+# --- Coordinate Geometry -----------------------------------------------------
+#
+# Worked from the coordinates alone: a midpoint is the average of the ends,
+# a partition the start plus m/(m + n) of the trip, a perimeter the sum of
+# the side lengths, an area by the shoelace formula, a missing coordinate
+# from equal or negative-reciprocal slopes, a triangle classified by its
+# squared sides and the dot products at its corners, and a parallelogram's
+# fourth corner as A + C - B. A perimeter that is not whole is rounded from
+# square roots taken in integers, far past the place asked for.
+
+GRID_POINT = r"\((-?\d+), (-?\d+)\)"
+
+
+def grid_points(listing: str) -> list:
+    return [(Fraction(x), Fraction(y)) for x, y in re.findall(GRID_POINT, listing)]
+
+
+def mid_of(listing: str) -> tuple:
+    (ax, ay), (bx, by) = grid_points(listing)
+    return (ax + bx) / 2, (ay + by) / 2
+
+
+def far_end(listing: str) -> tuple:
+    (ax, ay), (mx, my) = grid_points(listing)
+    return 2 * mx - ax, 2 * my - ay
+
+
+def split_at(listing: str, m: int, n: int) -> tuple:
+    (ax, ay), (bx, by) = grid_points(listing)
+    t = Fraction(m, m + n)
+    return ax + t * (bx - ax), ay + t * (by - ay)
+
+
+def perimeter_of(listing: str, rounded) -> Fraction:
+    P = grid_points(listing)
+    squares = [int((P[i][0] - P[i - 1][0]) ** 2 + (P[i][1] - P[i - 1][1]) ** 2) for i in range(len(P))]
+    if rounded is None:
+        roots = [math.isqrt(s) for s in squares]
+        assert all(r * r == s for r, s in zip(roots, squares)), listing       # asked exactly, so every side is whole
+        return Fraction(sum(roots))
+    scale = 10 ** 15
+    total = sum(math.isqrt(s * scale * scale) for s in squares)              # each within 1 of the true root, scaled
+    tenths, rest = divmod(total * 10, scale)
+    # Far from the rounding edge, so the few units of error cannot matter.
+    assert abs(rest - scale // 2) > 100, listing
+    return Fraction(tenths + (1 if rest > scale // 2 else 0), 10)
+
+
+def polygon_area(listing: str) -> Fraction:
+    P = grid_points(listing)
+    twice = sum(P[i - 1][0] * P[i][1] - P[i][0] * P[i - 1][1] for i in range(len(P)))
+    return abs(twice) / 2
+
+
+def missing_k(relation: str, listing: str, x: int) -> Fraction:
+    (ax, ay), (bx, by), (cx, cy) = grid_points(listing)
+    slope = (by - ay) / (bx - ax)
+    want = slope if relation == "parallel" else -1 / slope
+    return cy + want * (Fraction(x) - cx)
+
+
+def triangle_kind(listing: str) -> str:
+    P = grid_points(listing)
+    sq = lambda p, q: (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2
+    sides = {sq(P[0], P[1]), sq(P[1], P[2]), sq(P[2], P[0])}
+    corner = lambda o, p, q: (p[0] - o[0]) * (q[0] - o[0]) + (p[1] - o[1]) * (q[1] - o[1])
+    right = any(corner(P[i], P[i - 1], P[i - 2]) == 0 for i in range(3))
+    isosceles = len(sides) < 3
+    return {(True, True): "right-isosceles", (False, True): "isosceles", (True, False): "right"}.get((right, isosceles), "scalene")
+
+
+def fourth_corner(listing: str) -> tuple:
+    (ax, ay), (bx, by), (cx, cy) = grid_points(listing)
+    return ax + cx - bx, ay + cy - by
+
+
+BY_RULE += (
+    (re.compile(rf"^perimeter: ({GRID_POINT}(?:, {GRID_POINT})+)( to 1 dp)?$"),
+     lambda listing, *rest: perimeter_of(listing, rest[-1])),
+    (re.compile(rf"^area of polygon: ({GRID_POINT}(?:, {GRID_POINT})+)$"), lambda listing, *_: polygon_area(listing)),
+    (re.compile(rf"^k for (parallel|perpendicular): ({GRID_POINT}, {GRID_POINT}, {GRID_POINT}), x = (-?\d+)$"),
+     lambda rel, listing, *rest: missing_k(rel, listing, rest[-1])),
+)
+
+PAIR_RULES += (
+    (re.compile(rf"^midpoint: ({GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: mid_of(listing)),
+    (re.compile(rf"^endpoint: ({GRID_POINT}), midpoint ({GRID_POINT})$"),
+     lambda a, ax, ay, m, mx, my: far_end(f"{a}, {m}")),
+    (re.compile(rf"^partition: ({GRID_POINT}) to ({GRID_POINT}), (\d+):(\d+)$"),
+     lambda a, ax, ay, b, bx, by, m, n: split_at(f"{a}, {b}", int(m), int(n))),
+    (re.compile(rf"^fraction of the way: (\d+)/(\d+) from ({GRID_POINT}) to ({GRID_POINT})$"),
+     lambda p, q, a, ax, ay, b, bx, by: split_at(f"{a}, {b}", int(p), int(q) - int(p))),
+    (re.compile(rf"^fourth vertex: ({GRID_POINT}, {GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: fourth_corner(listing)),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^classify triangle: ({GRID_POINT}, {GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: triangle_kind(listing)),
+)
+
+# --- Congruent Triangles -----------------------------------------------------
+#
+# Worked from the letters: a congruence statement pairs corners by position
+# in the name, a criterion is read from where the marked angle or side sits
+# (between the other two parts or not), the missing fact is whichever one
+# remaining part completes the named criterion, and the equations come from
+# setting matched parts equal. Lengths and angles in x are a·x + b.
+
+TRI_SIDES = {frozenset("AB"): "AB", frozenset("BC"): "BC", frozenset("CA"): "CA"}
+LINEAR_X = re.compile(r"^(\d*)x(?: ([+-]) (\d+))?$")
+
+
+def lin_x(s: str) -> tuple:
+    m = LINEAR_X.match(s.strip())
+    assert m, s
+    a = int(m[1]) if m[1] else 1
+    b = 0 if m[2] is None else (int(m[3]) if m[2] == "+" else -int(m[3]))
+    return Fraction(a), Fraction(b)
+
+
+def equate(e1: tuple, e2: tuple) -> Fraction:
+    (a1, b1), (a2, b2) = e1, e2
+    assert a1 != a2, (e1, e2)
+    return (b2 - b1) / (a1 - a2)
+
+
+def partner_of(statement: str, part: str) -> str:
+    """The second triangle's part matching one of ABC's, named in the second's letters."""
+    pairs = dict(zip("ABC", statement))
+    if part.startswith("angle "):
+        return "angle " + pairs[part[-1]]
+    return "".join(pairs[c] for c in part)
+
+
+def same_part(p: str, q: str) -> bool:
+    if p.startswith("angle ") or q.startswith("angle "):
+        return p == q
+    return set(p) == set(q)
+
+
+def corresponding_side(statement: str, ab: int, bc: int, ca: int, asked: str) -> int:
+    back = {c: "ABC"[i] for i, c in enumerate(statement)}
+    return {"AB": ab, "BC": bc, "CA": ca}[TRI_SIDES[frozenset(back[c] for c in asked)]]
+
+
+def corresponding_angle(statement: str, v1: str, a1: int, v2: str, a2: int, asked: str) -> int:
+    known = {v1: a1, v2: a2}
+    own = "ABC"[statement.index(asked)]
+    return known.get(own, 180 - a1 - a2)
+
+
+def named_congruence(kind: str, first: str, second: str) -> str:
+    def counts(listing):
+        return {name: int(n) for name, n in (item.split(" ") for item in listing.split(", "))}
+    one, two = counts(first), counts(second)
+    if kind == "angles":
+        by = lambda marks: {v: n for v, n in marks.items()}
+        key1, key2 = by(one), by(two)
+    else:
+        # A corner is known by the marks on the two sides that meet at it.
+        corner = lambda marks: {c: frozenset(n for s, n in marks.items() if c in s)
+                                for c in {c for s in marks for c in s}}
+        key1, key2 = corner(one), corner(two)
+    found = "".join(next(c for c, k in key2.items() if k == key1[v]) for v in "ABC")
+    assert len(set(found)) == 3, (first, second)
+    return found
+
+
+def criterion_of(listing: str) -> str:
+    parts = listing.split(", ")
+    sides = {frozenset(p) for p in parts if not p.startswith(("angle", "right"))}
+    angles = {p[-1] for p in parts if p.startswith(("angle", "right"))}
+    right = next((p[-1] for p in parts if p.startswith("right angle ")), None)
+    if right is not None and len(sides) == 2 and len(angles) == 1 and frozenset("ABC") - {right} in sides:
+        return "hl"
+    if len(sides) == 3:
+        return "sss"
+    if len(sides) == 2 and len(angles) == 1:
+        a, b = sides
+        return "sas" if a & b == set(angles) else "none"
+    if len(sides) == 1 and len(angles) == 2:
+        (s,) = sides
+        return "asa" if s == frozenset(angles) else "aas"
+    return "none"
+
+
+def missing_fact(crit: str, listing: str) -> str:
+    given = listing.split(", ")
+    right = next((p[-1] for p in given if p.startswith("right angle ")), None)
+    pool = ["AB", "BC", "CA"] + [f"angle {v}" for v in "ABC" if v != right]
+    fits = [p for p in pool if p not in given and criterion_of(", ".join(given + [p])) == crit.lower()]
+    assert len(fits) == 1, (crit, listing, fits)
+    return fits[0]
+
+
+def parts_in_x(listing: str) -> list:
+    out = []
+    for item in listing.split(", "):
+        m = re.match(r"^(angle [A-Z]|[A-Z]{2}) (.+)$", item)
+        out.append((m[1], lin_x(m[2])))
+    return out
+
+
+def isosceles_sides(e1: str, e2: str, pairs: str, asked: str) -> Fraction:
+    have = dict(parts_in_x(pairs.rsplit(", ", 1)[0]))
+    x = equate(have[e1], have[e2])
+    assert len(set(e1) & set(e2)) == 1, (e1, e2)                 # the two legs meet at the apex
+    if asked == "x":
+        return x
+    a, b = have[asked]
+    return a * x + b
+
+
+def isosceles_angles(v1: str, v2: str, listing: str, asked: str) -> Fraction:
+    have = parts_in_x(listing)
+    legs = [next(e for name, e in have if v not in name) for v in (v1, v2)]   # the side facing each equal angle
+    x = equate(*legs)
+    if asked == "x":
+        return x
+    a, b = next(e for name, e in have if set(name) == set(asked))
+    return a * x + b
+
+
+def equilateral(listing: str, asked: str) -> Fraction:
+    have = parts_in_x(listing)
+    if have[0][0].startswith("angle"):
+        x = equate(have[0][1], (Fraction(0), Fraction(60)))       # every angle is 180 / 3
+    else:
+        x = equate(have[0][1], have[1][1])
+    if asked == "x":
+        return x
+    a, b = have[0][1]
+    return a * x + b
+
+
+def use_congruence(statement: str, listing: str, asked: str) -> Fraction:
+    (own, e1), *rest = parts_in_x(listing)
+    match = partner_of(statement, own)
+    pick = [e for name, e in rest if same_part(name, match)]
+    assert len(pick) == 1, (statement, listing)
+    x = equate(e1, pick[0])
+    if asked == "x":
+        return x
+    a, b = next(e for name, e in rest if same_part(name, asked))
+    return a * x + b
+
+
+BY_RULE += (
+    (re.compile(r"^corresponding: ABC = ([A-Z]{3}); AB (\d+), BC (\d+), CA (\d+); find ([A-Z]{2})$"), corresponding_side),
+    (re.compile(r"^corresponding: ABC = ([A-Z]{3}); angle ([ABC]) (\d+), angle ([ABC]) (\d+); find angle ([A-Z])$"),
+     corresponding_angle),
+    (re.compile(r"^isosceles sides: ([A-C]{2}) = ([A-C]{2}); (.+); find (x|[A-C]{2})$"), isosceles_sides),
+    (re.compile(r"^isosceles angles: ([ABC]) = ([ABC]); (.+); find (x|[A-C]{2})$"), isosceles_angles),
+    (re.compile(r"^equilateral: (.+); find (x|side)$"), equilateral),
+    (re.compile(r"^use congruence: ABC = ([A-Z]{3}); (.+); find (x|angle [A-Z]|[A-Z]{2})$"), use_congruence),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^name the congruence: (sides|angles) ([^;]+); (.+)$"), named_congruence),
+    (re.compile(r"^(?:criterion|enough): ABC = [A-Z]{3}; (.+)$"), criterion_of),
+    (re.compile(r"^missing for (SSS|SAS|ASA|AAS|HL): ABC = [A-Z]{3}; (.+)$"), missing_fact),
+)
+
+# --- Similar Figures ---------------------------------------------------------
+#
+# Worked from the statement and the numbers: the scale factor is one
+# triangle's side over the side it matches, read through the letters; a
+# missing side is its match times that factor; similarity is tested by
+# third angles, by sorted side ratios, or by two side ratios and the angle
+# between; a scale multiplies out and divides back; areas go by k² and
+# volumes by k³; a parallel line splits two sides in one ratio t = AD/AB;
+# and the altitude to the hypotenuse gives CD² = AD·DB and AC² = AD·AB.
+
+NAMED_LENGTH = re.compile(r"^(angle [A-Z]|[A-Z]{2}) (\d+(?:\.\d+)?)$")
+
+
+def named_lengths(listing: str) -> list:
+    out = []
+    for item in listing.split(", "):
+        m = NAMED_LENGTH.match(item)
+        assert m, item
+        out.append((m[1], Fraction(m[2])))
+    return out
+
+
+def in_first(name: str) -> bool:
+    return set(name) <= set("ABC")
+
+
+def factor_from(statement: str, parts: list) -> Fraction:
+    """Second triangle over first, from the one given pair that matches."""
+    pairs = [(v1, v2) for n1, v1 in parts if in_first(n1)
+             for n2, v2 in parts if not in_first(n2) and same_part(partner_of(statement, n1), n2)]
+    assert len(pairs) == 1, (statement, parts)
+    v1, v2 = pairs[0]
+    return v2 / v1
+
+
+def scale_factor(statement: str, listing: str, start: str) -> Fraction:
+    k = factor_from(statement, named_lengths(listing))
+    return k if start == "ABC" else 1 / k
+
+
+def similar_missing(statement: str, listing: str, asked: str) -> Fraction:
+    parts = named_lengths(listing)
+    k = factor_from(statement, parts)
+    if in_first(asked):
+        match = partner_of(statement, asked)
+        return next(v for n, v in parts if same_part(n, match)) / k
+    back = {c: "ABC"[i] for i, c in enumerate(statement)}
+    match = "".join(back[c] for c in asked)
+    return next(v for n, v in parts if same_part(n, match)) * k
+
+
+def similar_by_angles(listing: str) -> str:
+    (a, b), (c, d) = ([int(v) for v in half.split(", ")] for half in listing.split("; "))
+    return "yes" if sorted([a, b, 180 - a - b]) == sorted([c, d, 180 - c - d]) else "no"
+
+
+def similar_by_sides(listing: str) -> str:
+    one, two = (sorted(Fraction(v) for v in half.split(", ")) for half in listing.split("; "))
+    return "yes" if len({q / p for p, q in zip(one, two)}) == 1 else "no"
+
+
+def similar_by_sas(c1, b1, a1, c2, b2, a2) -> str:
+    c1, b1, c2, b2 = (Fraction(v) for v in (c1, b1, c2, b2))
+    if a1 != a2:
+        return "no"
+    # The angle sits between the two sides either way round, so either pairing will do.
+    return "yes" if c2 / c1 == b2 / b1 or c2 / b1 == b2 / c1 else "no"
+
+
+def scale_out_back(per: str, unit: str, length: str, way: str) -> Fraction:
+    per, length = Fraction(per), Fraction(length)
+    return length * per if way == "out" else length / per
+
+
+def scale_model(n: int, model: str, unit: str) -> Fraction:
+    real = Fraction(model) * n
+    return real / 100 if unit == "m" else real
+
+
+def area_scale(what: str, k: str, amount: str, which: str) -> Fraction:
+    power = 2 if what == "area" else 3
+    grow = Fraction(k) ** power
+    return Fraction(amount) * grow if which == "larger" else Fraction(amount) / grow
+
+
+def fraction_root(x: Fraction, n: int) -> Fraction:
+    def r(v):
+        g = round(v ** (1 / n))
+        for c in (g - 1, g, g + 1):
+            if c ** n == v:
+                return c
+        raise AssertionError((x, n))
+    return Fraction(r(x.numerator), r(x.denominator))
+
+
+def length_from(what: str, a: str, b: str, side: str = None) -> Fraction:
+    k = fraction_root(Fraction(b) / Fraction(a), 2 if what == "areas" else 3)
+    return k if side is None else Fraction(side) * k
+
+
+def side_splitter(listing: str, asked: str) -> Fraction:
+    v = dict(named_lengths(listing))
+    if "AD" in v and "DB" in v:
+        t = v["AD"] / (v["AD"] + v["DB"])          # AD/AB, the same for AE/AC and DE/BC
+    else:
+        t = v["DE"] / v["BC"]
+    if asked == "EC":
+        return v["AE"] / t - v["AE"]
+    if asked == "AE":
+        return v["EC"] / (1 - t) * t
+    if asked == "DE":
+        return v["BC"] * t
+    return v["AD"] / t - v["AD"]                  # DB
+
+
+def altitude_part(listing: str, asked: str) -> Fraction:
+    v = dict(named_lengths(listing))
+    sq = lambda x: fraction_root(x, 2)
+    rules = [
+        ("AB", ("AD", "DB"), lambda d: d["AD"] + d["DB"]),
+        ("DB", ("AB", "AD"), lambda d: d["AB"] - d["AD"]),
+        ("AD", ("AB", "DB"), lambda d: d["AB"] - d["DB"]),
+        ("CD", ("AD", "DB"), lambda d: sq(d["AD"] * d["DB"])),
+        ("DB", ("CD", "AD"), lambda d: d["CD"] ** 2 / d["AD"]),
+        ("AD", ("CD", "DB"), lambda d: d["CD"] ** 2 / d["DB"]),
+        ("AC", ("AD", "AB"), lambda d: sq(d["AD"] * d["AB"])),
+        ("AD", ("AC", "AB"), lambda d: d["AC"] ** 2 / d["AB"]),
+        ("BC", ("DB", "AB"), lambda d: sq(d["DB"] * d["AB"])),
+        ("DB", ("BC", "AB"), lambda d: d["BC"] ** 2 / d["AB"]),
+    ]
+    # A length on the way that is not a whole root (CD when only AC is asked)
+    # is left out rather than guessed at; the answer must not need it.
+    tried = set()
+    while asked not in v:
+        found = next(((k, out, fn) for k, (out, ins, fn) in enumerate(rules)
+                      if k not in tried and out not in v and all(i in v for i in ins)), None)
+        assert found, (listing, asked)
+        k, out, fn = found
+        tried.add(k)
+        try:
+            v[out] = fn(v)
+        except AssertionError:
+            continue
+    return v[asked]
+
+
+NUMBER = r"(\d+(?:\.\d+)?)"
+
+BY_RULE += (
+    (re.compile(r"^scale factor: ABC ~ ([A-Z]{3}); (.+); from (ABC|[A-Z]{3})$"), scale_factor),
+    (re.compile(r"^similar missing: ABC ~ ([A-Z]{3}); (.+); find ([A-Z]{2})$"), similar_missing),
+    (re.compile(rf"^scale drawing: 1 cm = {NUMBER} (km|m); {NUMBER} (?:cm|km|m) (out|back)$"), scale_out_back),
+    (re.compile(rf"^scale drawing: (\d+) cm = {NUMBER} (?:km|m); per cm$"), lambda n, real: Fraction(real) / n),
+    (re.compile(rf"^scale model: 1:(\d+); {NUMBER} cm; in (m|cm)$"), scale_model),
+    (re.compile(rf"^scale area: 1 cm = {NUMBER} m; {NUMBER} cm by {NUMBER} cm$"),
+     lambda per, w, h: Fraction(w) * Fraction(per) * Fraction(h) * Fraction(per)),
+    (re.compile(rf"^(area|volume) scale: factor {NUMBER}; (?:area|volume) {NUMBER}; (larger|smaller)$"), area_scale),
+    (re.compile(rf"^length from (areas|volumes): {NUMBER}, {NUMBER}$"), length_from),
+    (re.compile(rf"^side from (areas|volumes): {NUMBER}, {NUMBER}; side {NUMBER}$"), length_from),
+    (re.compile(r"^side splitter: (.+); find (EC|AE|DE|DB)$"), side_splitter),
+    (re.compile(r"^altitude: (.+); find (AD|DB|CD|AC|BC)$"), altitude_part),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^similar aa: (\d+, \d+; \d+, \d+)$"), similar_by_angles),
+    (re.compile(rf"^similar sss: ({NUMBER}, {NUMBER}, {NUMBER}; {NUMBER}, {NUMBER}, {NUMBER})$"),
+     lambda listing, *_: similar_by_sides(listing)),
+    (re.compile(rf"^similar sas: {NUMBER}, {NUMBER}, angle (\d+); {NUMBER}, {NUMBER}, angle (\d+)$"), similar_by_sas),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
