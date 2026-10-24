@@ -96,6 +96,9 @@ Phase 2 has begun:
 - **Polynomials** (Expressions): degree and standard form, adding, taking away, a monomial
   times a polynomial, binomial times binomial, the special products, and trinomial times
   binomial.
+- **Factoring** (Expressions): a common factor out, x² + bx + c, negatives inside,
+  difference of squares, perfect squares, and a strategy level on which pattern to look
+  for first, including the polynomials that do not factor.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.
@@ -111,6 +114,10 @@ following something is always bracketed.
 What a bracket holds is spaced like the rest of the line and kept on one line, a minus on
 a letter is set against it (−n², not − n²), and a prompt with a long bracket or product in
 it is set smaller so it fits the card.
+
+A problem can list more than one accepted answer, and any of them is judged right:
+(x + 3)² and (x + 3)(x + 3) are both a finished factorisation. The expression answer box
+is a little wider.
 
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.

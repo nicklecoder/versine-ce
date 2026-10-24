@@ -1509,6 +1509,62 @@ BY_RULE += (
 )
 
 
+# --- Factoring ---------------------------------------------------------------
+#
+# An answer is a factorisation when it multiplies back to the question --
+# coefficients compared, as for Polynomials -- and is finished: a monomial in
+# front, then brackets, each with no number left to take out and nothing in
+# it that factors again. A bracket of degree two is tested by its
+# discriminant: it factors over the integers exactly when that is a square.
+
+FACTORED = re.compile(r"^(-?\d*(?:[a-z](?:\^\d+)?)?)((?:\([^()]+\)(?:\^\d+)?)+)$")
+
+
+def is_square(n) -> bool:
+    return n >= 0 and math.isqrt(int(n)) ** 2 == n
+
+
+def finished_factor(inner: str) -> bool:
+    cs = coefficients(inner)
+    if len(cs) < 2 or math.gcd(*[int(c) for c in cs]) != 1 or any(c.denominator != 1 for c in cs):
+        return False
+    if len(cs) == 2:
+        return True
+    return len(cs) == 3 and not is_square(cs[1] ** 2 - 4 * cs[2] * cs[0])
+
+
+def factored(src: str, answer: str) -> str:
+    if coefficients(src) != coefficients(answer):
+        return f"does not multiply back to {src}"
+    m = FACTORED.match(answer.replace(" ", ""))
+    if not m:
+        return "is not a product of factors"
+    if not all(finished_factor(g) for g in re.findall(r"\(([^()]+)\)", m[2])):
+        return "has a factor that factors again"
+    return "ok"
+
+
+def pattern_of(src: str) -> str:
+    cs = [int(c) for c in coefficients(src)]
+    if math.gcd(*cs) > 1 or cs[0] == 0:
+        return "common"
+    c, b, a = (cs + [0, 0])[:3]
+    if b == 0 and is_square(abs(a)) and is_square(abs(c)) and a * c < 0:
+        return "squares"
+    if a > 0 and c > 0 and is_square(a) and is_square(c) and b * b == 4 * a * c:
+        return "perfect"
+    return "trinomial" if is_square(b * b - 4 * a * c) else "prime"
+
+
+EXPR_RULES += (
+    (re.compile(r"^factor: (.+)$"), factored),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^pattern: (.+)$"), pattern_of),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1604,10 +1660,12 @@ for path in sorted(LIB.glob("*.json")):
         if answer["type"] == "expr":
             rule = next((r for r in EXPR_RULES if r[0].match(text)), None)
             if rule:
-                checked += 1
-                verdict = rule[1](*rule[0].match(text).groups(), answer["value"])
-                if verdict != "ok":
-                    problems.append(f"{where}: {answer['value']} {verdict}")
+                # Every form the level accepts is held to the same test.
+                for form in dict.fromkeys([answer["value"], *answer.get("accept", [])]):
+                    checked += 1
+                    verdict = rule[1](*rule[0].match(text).groups(), form)
+                    if verdict != "ok":
+                        problems.append(f"{where}: {form} {verdict}")
                 continue
 
         # An expression written from words: read the words independently and

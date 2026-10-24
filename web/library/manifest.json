@@ -1,5 +1,5 @@
 {
-  "built": 283,
+  "built": 290,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -264,6 +264,15 @@
       "binomial-times-binomial",
       "special-products",
       "trinomial-times-binomial",
+      "all-together"
+    ],
+    "factoring": [
+      "common-factor-out",
+      "x2-bx-c",
+      "negatives-inside",
+      "difference-of-squares",
+      "perfect-squares",
+      "which-pattern",
       "all-together"
     ],
     "evaluate": [
@@ -726,6 +735,16 @@
       ],
       "levels": {}
     },
+    "factoring": {
+      "dependsOn": [
+        "polynomials"
+      ],
+      "levels": {
+        "which-pattern": [
+          "polynomials"
+        ]
+      }
+    },
     "evaluate": {
       "dependsOn": [
         "int-muldiv",
@@ -852,7 +871,7 @@
       }
     }
   },
-  "sources": "44841f483aee59649b421f4af012425bd4e5ac239d42770f03f42f2bbeddff63",
+  "sources": "f53d65203a5cca5fb5cfbde66af259fb784ef4b592081ea58e1fd61e9f39e44b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2943,6 +2962,76 @@
       "exhaustive": false,
       "signed": false,
       "file": "polynomials-7.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 0,
+      "slug": "common-factor-out",
+      "name": "Common Factor Out",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-0.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 1,
+      "slug": "x2-bx-c",
+      "name": "x² + bx + c",
+      "count": 260,
+      "exhaustive": true,
+      "signed": false,
+      "file": "factoring-1.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 2,
+      "slug": "negatives-inside",
+      "name": "Negatives Inside",
+      "count": 780,
+      "exhaustive": true,
+      "signed": false,
+      "file": "factoring-2.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 3,
+      "slug": "difference-of-squares",
+      "name": "Difference of Squares",
+      "count": 336,
+      "exhaustive": true,
+      "signed": false,
+      "file": "factoring-3.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 4,
+      "slug": "perfect-squares",
+      "name": "Perfect Squares",
+      "count": 256,
+      "exhaustive": true,
+      "signed": false,
+      "file": "factoring-4.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 5,
+      "slug": "which-pattern",
+      "name": "Which Pattern?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-5.json"
+    },
+    {
+      "skill": "factoring",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "factoring-6.json"
     },
     {
       "skill": "evaluate",
