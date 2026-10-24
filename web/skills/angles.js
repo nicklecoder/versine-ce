@@ -5,7 +5,7 @@
  * right angle add to 90°, angles that make a straight line add to 180°, and
  * angles all the way round a point add to 360°; vertical angles, opposite
  * each other where two lines cross, are equal because each makes a straight
- * line with the same neighbour. The slip each level names is the one people
+ * line with the same neighbor. The slip each level names is the one people
  * make: 180 used for a complement, 180 for a full turn.
  *
  * Parallel lines cut by a transversal make only two sizes of angle, one
@@ -25,15 +25,16 @@
 
 export const LEVELS = [
   // Capped: there are only so many whole-degree complements, and an uncapped
-  // library would fill up with the three-part kind once the two-part ones ran out.
-  { name: 'Complementary', slug: 'complementary', libraryCap: 400,
+  // library would fill up with the three-part kind once the two-part ones ran
+  // out. At these caps every two-part case is in, and three parts are a fifth.
+  { name: 'Complementary', slug: 'complementary', libraryCap: 240,
     blurb: 'Together they make a right angle: 90°. Not 180°.' },
-  { name: 'Supplementary', slug: 'supplementary', libraryCap: 600,
+  { name: 'Supplementary', slug: 'supplementary', libraryCap: 500,
     blurb: 'Together they make a straight line: 180°.' },
   { name: 'Vertical Angles', slug: 'vertical-angles',
-    blurb: 'Where two lines cross, opposite angles are equal and neighbours add to 180°.' },
+    blurb: 'Where two lines cross, opposite angles are equal and neighbors add to 180°.' },
   { name: 'Around a Point', slug: 'around-a-point',
-    blurb: 'All the way round is a full turn: 360°.' },
+    blurb: 'All the way around is a full turn: 360°.' },
   { name: 'Parallel Lines', slug: 'parallel-lines',
     blurb: 'A transversal across parallel lines makes two sizes of angle: equal, or adding to 180°.' },
   { name: 'Solve for x', slug: 'solve-for-x',
