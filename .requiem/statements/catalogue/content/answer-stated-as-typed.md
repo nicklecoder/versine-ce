@@ -3,7 +3,7 @@ id: answer-stated-as-typed
 namespace: catalogue/content
 kind: rule
 modality: should
-status: active
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-24T20:59:01.299421699Z

@@ -121,6 +121,10 @@ export class Session {
       if (spec.percent && parsed.value?.d && type.equals({ n: parsed.value.n * 100, d: parsed.value.d }, spec.value)) {
         return { ...this.#wrong(), hint: `${String(raw).trim()} is the decimal. The question asks for a percent.` };
       }
+      // A wrong answer a type can name -- the opposite set to the one asked
+      // for -- is told what it is. It is still wrong, and costs the attempt.
+      const missed = type.missHint?.(parsed.value, spec);
+      if (missed) return { ...this.#wrong(), hint: missed };
       return this.#wrong();
     }
 
@@ -131,7 +135,9 @@ export class Session {
 
     // Right value, wrong form. Levels that ask for simplest form mean it, and
     // saying so precisely is more use than a bare "not quite".
-    if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value, parsed)) {
+    // The stored value goes too: a type judged by value reads the finished
+    // form from it.
+    if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value, parsed, spec.value)) {
       // Said as typed where the canonical form would already be the finished one.
       const shown = type.unfinished ? String(raw).trim() : type.format(parsed.value);
       return { ...this.#wrong(), hint: `${shown} is right, but it isn't ${type.unfinished ?? 'in lowest terms'} yet.` };

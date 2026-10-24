@@ -13,12 +13,14 @@
 export const LEVELS = [
   { name: 'Undo a Function', slug: 'undo-a-function',
     blurb: 'f(a) = b means f⁻¹(b) = a: find the input that gave the output, from a rule, a table, or its steps undone backwards.',
-    // f(a) = b read as a rule is functions' Function Notation.
-    dependsOn: [{ skill: 'functions', level: 2 }] },
+    // f(a) = b read as a rule is functions' Function Notation; undoing a
+    // cube, x³ + 5 = 13, is roots' Cubes and Cube Roots.
+    dependsOn: [{ skill: 'functions', level: 2 }, { skill: 'roots', level: 4 }] },
   { name: 'Solve for x ↔ y', slug: 'solve-for-x-y',
-    blurb: 'Write y = f(x), swap x and y, and solve for y again: that y is f⁻¹(x).',
-    // Rearranging y = 3x − 5 for x is solving a two-step equation in letters.
-    dependsOn: [{ skill: 'equations', level: 2 }] },
+    blurb: 'Write y = f(x), swap x and y, and solve for y again: that y is f⁻¹(x). A cube is undone by a cube root, and a fraction by multiplying across it.',
+    // Rearranging y = 3x − 5 for x is solving a two-step equation in letters,
+    // and y = x³ + 5 is undone by a cube root.
+    dependsOn: [{ skill: 'equations', level: 2 }, { skill: 'roots', level: 4 }] },
   { name: 'Check by Composing', slug: 'check-by-composing',
     blurb: 'f and g are inverses when f(g(x)) = x and g(f(x)) = x: put one into the other and see if only x is left.',
     dependsOn: [{ skill: 'composition', level: 2 }] },
@@ -49,7 +51,8 @@ export default {
   glyph: 'f⁻¹',
   blurb: 'Undoing a function: its values, its formula, checking by composing, cutting a parabola to half, and the reflection in y = x.',
   answerInput: 'expr',
-  // Notation and graphs from functions; composing from composition.
-  dependsOn: ['functions', 'equations', 'composition', 'quadratic-graphs'],
+  // Notation and graphs from functions; composing from composition; cube
+  // roots from roots.
+  dependsOn: ['functions', 'equations', 'composition', 'quadratic-graphs', 'roots'],
   levels: LEVELS,
 };

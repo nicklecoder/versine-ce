@@ -108,7 +108,12 @@ function relation(text) {
     const pm = r.match(/^\+-(.+)$/);
     const v = number(pm ? pm[1] : r);
     if (!v) return { ok: false };
-    if (pm && op !== '=') return { ok: false, hint: '± goes with =, like x = ±3.' };
+    // x ≠ ±2 leaves out both.
+    if (pm && op === '!=') {
+      const both = [{ n: -v.n, d: v.d }, v].sort(cmp);
+      return { ok: true, letter: l, parts: complement(both.map(point)) };
+    }
+    if (pm && op !== '=') return { ok: false, hint: '± goes with = or ≠, like x = ±3.' };
     const parts = {
       '=': pm ? [point({ n: -v.n, d: v.d }), point(v)] : [point(v)],
       '!=': [{ lo: null, loIn: false, hi: v, hiIn: false }, { lo: v, loIn: false, hi: null, hiIn: false }],
@@ -142,7 +147,7 @@ function relation(text) {
  * @returns {{ok:true, value:{letter:string, parts:Part[]}}|{ok:false, hint?:string}}
  */
 export function parseSet(raw) {
-  const text = String(raw).trim().toLowerCase()
+  let text = String(raw).trim().toLowerCase()
     .replace(/[−–—]/g, '-').replace(/≤|=<|⩽/g, '<=').replace(/≥|=>|⩾/g, '>=').replace(/≠/g, '!=')
     .replace(/±|\+\/-/g, '+-').replace(/∞|infinity/g, 'inf').replace(/∪/g, ' u ')
     .replace(/\s+/g, ' ')
@@ -183,6 +188,16 @@ export function parseSet(raw) {
   // A comma lists solutions -- x = −1, x = 1 -- but between inequalities it
   // could as well mean "and" as "or", and reading it as "or" silently made
   // x > −2, x < 5 every number. So there it is refused with a question back.
+  //
+  // requiem: play/answers/set-comma-after-not-equal
+  // Beside a ≠, though, a comma can only mean "and": x ≠ −2, 6 leaves out
+  // two numbers, and x ≥ −1, x ≠ 1 is a ray with a hole. Read that way when
+  // a ≠ is there and at most one other inequality, so nothing is guessed.
+  const listed = text.split(/\s*[,;]\s*/);
+  if (listed.length > 1 && /!=/.test(text) && !/\bor\b/.test(text)
+    && listed.filter((q) => /[<>]|(^|[^!<>])=/.test(q) && !/!=/.test(q)).length <= 1) {
+    text = listed.join(' and ');
+  }
   const clauses = text.split(/\s*(?:\bor\b|,|;)\s*/);
   if (/,|;/.test(text) && /[<>]|!=/.test(text)) {
     return { ok: false, hint: 'Join inequalities with "and" or "or": a comma could mean either.' };
@@ -199,8 +214,12 @@ export function parseSet(raw) {
     if (pieces.length > 1 && pieces.every((q) => !/[<>]|!=/.test(q))) {
       return { ok: false, hint: 'x cannot be both at once: join the solutions with "or", like x = 3 or x = −3.' };
     }
+    let after = null;
     for (const piece of pieces) {
-      const r = relation(piece.trim());
+      // x ≠ −2 and 6: a number alone after a ≠ is one more left out.
+      const bare = after && /^[+-]?[\d./]+$/.test(piece.trim());
+      const r = relation(bare ? `${after} != ${piece.trim()}` : piece.trim());
+      after = r.ok && /!=/.test(piece) ? r.letter : bare ? after : null;
       if (!r.ok) return { ok: false, hint: r.hint ?? 'Write it like −2 < x ≤ 5, or x < −1 or x > 3.' };
       if (r.letter && letter && r.letter !== letter) return { ok: false, hint: 'Use one letter throughout.' };
       letter = letter ?? r.letter;
@@ -222,6 +241,47 @@ export function combined(value, pieces) {
   return pieces == null || pieces <= Math.max(1, value.parts.length);
 }
 
+/** Every number the parts leave out, as parts. */
+export function complement(parts) {
+  const set = normalize(parts);
+  const out = [];
+  let lo = null, loIn = false;
+  for (const p of set) {
+    if (p.lo !== null) out.push({ lo, loIn, hi: p.lo, hiIn: !p.loIn });
+    if (p.hi === null) return normalize(out);
+    lo = p.hi; loIn = !p.hiIn;
+  }
+  out.push({ lo, loIn, hi: null, hiIn: false });
+  return normalize(out);
+}
+
+/** The points every number but which the set is, or null: x ≠ −2 and x ≠ 6. */
+function allBut(set) {
+  if (set.length < 2 || set[0].lo !== null || set[set.length - 1].hi !== null) return null;
+  const holes = [];
+  for (let i = 0; i < set.length - 1; i++) {
+    const p = set[i], q = set[i + 1];
+    if (p.hiIn || q.loIn || cmp(p.hi, q.lo) !== 0) return null;
+    holes.push(p.hi);
+  }
+  return holes;
+}
+
+/** Whether a set is a few numbers, rather than a stretch of the line. */
+const pointsOnly = (set) => set.length > 0 && set.every((p) => p.lo !== null && p.hi !== null && cmp(p.lo, p.hi) === 0);
+
+/**
+ * Typed exactly the other way round: every number but the excluded ones,
+ * for the excluded ones, or the reverse. Told only where one of the two is
+ * a few numbers -- the hint would hand over the answer to an inequality.
+ */
+// requiem: play/answers/set-complement-told
+export function isComplement(typed, want) {
+  const a = normalize(typed.parts), b = normalize(want.parts);
+  if (!pointsOnly(a) && !pointsOnly(b)) return false;
+  return sameSet({ parts: a }, { parts: complement(b) });
+}
+
 export function sameSet(a, b) {
   const x = normalize(a.parts), y = normalize(b.parts);
   const same = (p, q) => (p === null ? q === null : q !== null && cmp(p, q) === 0);
@@ -241,6 +301,11 @@ const show = (f) => {
 export function formatSet({ letter = 'x', parts }) {
   const set = normalize(parts);
   if (!set.length) return 'no solution';
+  // requiem: play/answers/set-all-but-points-shown
+  // Every number but a few is said as what it is, x ≠ −2 and x ≠ 6, not as
+  // the three rays and gaps between.
+  const holes = allBut(set);
+  if (holes) return holes.map((h) => `${letter} ≠ ${show(h)}`).join(' and ');
   return set.map((p) => {
     if (p.lo === null && p.hi === null) return 'all real numbers';
     if (p.lo === null) return `${letter} ${p.hiIn ? '≤' : '<'} ${show(p.hi)}`;
@@ -257,7 +322,7 @@ export function formatSet({ letter = 'x', parts }) {
 export function setTerms(value) {
   return formatSet(value).split(' ').map((w) => {
     if (/^[a-z]$/.test(w)) return { t: 'var', v: w };
-    if (/^[<>≤≥=]$/.test(w)) return { t: 'op', v: w };
+    if (/^[<>≤≥=≠]$/.test(w)) return { t: 'op', v: w };
     if (/^−?[\d/]+$/.test(w)) return { t: 'num', v: w };
     return { t: 'prose', v: w };
   });

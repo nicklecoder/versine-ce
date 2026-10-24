@@ -3,7 +3,7 @@ id: rational-answer-lowest-terms
 namespace: catalogue/content
 kind: rule
 modality: must
-status: active
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-24T19:29:05.137114021Z

@@ -216,6 +216,16 @@ export function canonical(node) {
   return negative ? `-(${body})` : body;
 }
 
+/** Whether a string's brackets all close within it: -(a)+-(b) is not -( … ). */
+function balanced(t) {
+  let depth = 0;
+  for (const c of t) {
+    depth += c === '(' ? 1 : c === ')' ? -1 : 0;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
 // requiem: play/answers/signs-lifted-out
 /**
  * A node's canonical body, with its sign lifted out to the front.
@@ -271,8 +281,17 @@ function signed(node) {
           }
         };
         gather(node, false);
+        // A sum's sign is lifted out too: −(x + 6) and −x − 6 are one sum,
+        // as −(2x) and −2x are one product. Of the sum and its negation, the
+        // spelling with fewer negative terms is kept (the lesser string at a
+        // tie), so a sum and its negation always land on the same body.
+        const flip = (t) => (t.startsWith('-(') && t.endsWith(')') && balanced(t.slice(2, -1)) ? t.slice(2, -1) : `-(${t})`);
+        const flipped = parts.map(flip).sort();
         parts.sort();
-        return [false, `(${parts.join('+')})`];
+        const negatives = (ps) => ps.filter((t) => t.startsWith('-(')).length;
+        const lift = negatives(flipped) < negatives(parts)
+          || (negatives(flipped) === negatives(parts) && flipped.join('+') < parts.join('+'));
+        return lift ? [true, `(${flipped.join('+')})`] : [false, `(${parts.join('+')})`];
       }
       // A quotient's sign comes out the same way a product's does: −4/x²,
       // −(4/x²) and 4/(−x²) are one answer.

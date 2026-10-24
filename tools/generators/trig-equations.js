@@ -64,7 +64,7 @@ const listed = (items) => (items.length <= 1 ? items.join('') : `${items.slice(0
 const degText = (x) => `${minus(x)}°`;
 const radText = (x) => { const q = reduce(Math.round(x * 2), 360); return piText(q.n, q.d); };
 const anglesText = (xs, radians) => (xs.length ? listed(xs.map(radians ? radText : degText)) : 'none');
-// requiem: catalogue/content/answer-stated-as-typed
+// requiem: catalogue/content/explanation-uses-a-form-the-box-takes
 /** The answer as the solutions box reads it: x = 30° or x = 150°. */
 const orText = (xs, radians) => xs.map((x) => `x = ${radians ? radText(x) : degText(x)}`).join(' or ');
 /** The closing "So …", in that form, or that there is none. */
@@ -344,7 +344,7 @@ function solveDegrees(rng) {
   const eq = linear(rng, fn, v);
   const xs = solveDeg(fn, v);
   return {
-    prompt: [T.prose(`Solve ${eq.show} for 0° ≤ x < 360°. Give every solution in degrees, or say there is none.`)],
+    prompt: [T.prose(`Solve ${eq.show} for 0° ≤ x < 360°. Give every solution in degrees, or none if there is no solution.`)],
     text: `solve degrees: ${eq.ascii}`,
     answer: setAnswer(xs),
     visual: null,
@@ -517,7 +517,7 @@ function multiAngle(rng) {
           : `(Solving for θ in one turn only would find ${one.length} of the ${xs.length}.) `);
     if (!radians) {
       return {
-        prompt: [T.prose(`Solve ${eq.show} for 0° ≤ x < 360°. Give every solution in degrees, or say there is none.`)],
+        prompt: [T.prose(`Solve ${eq.show} for 0° ≤ x < 360°. Give every solution in degrees, or none if there is no solution.`)],
         text: `solve degrees: ${eq.ascii}`,
         answer: setAnswer(xs),
         visual: null,
@@ -652,7 +652,7 @@ function quadraticType(rng) {
     const perWords = q.conds.map(([f, v], i) => (inRange(f, v) ? `${f} x = ${valText(v)} at ${anglesText(sets[i], radians)}` : `${f} x = ${valText(v)} has no solution`));
     if (!radians) {
       return {
-        prompt: [T.prose(`Solve ${q.show} for 0° ≤ x < 360°. Give every solution in degrees, or say there is none.`)],
+        prompt: [T.prose(`Solve ${q.show} for 0° ≤ x < 360°. Give every solution in degrees, or none if there is no solution.`)],
         text: `solve degrees: ${q.ascii}`,
         answer: setAnswer(xs),
         visual: null,

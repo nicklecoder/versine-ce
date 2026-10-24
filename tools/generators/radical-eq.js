@@ -45,7 +45,7 @@ const said = (xs) => (xs.length ? formatSet(setOf(xs).value) : 'no solution');
 function ask(lhs, rhs) {
   const drawn = previewOf(`${lhs} = ${rhs}`);
   if (!drawn.ok) throw new Error(`radical-eq: cannot draw ${lhs} = ${rhs}: ${drawn.error}`);
-  return [T.prose('Solve'), ...drawn.terms, T.prose('.'), T.prose('Give every solution, or say there is none.')];
+  return [T.prose('Solve'), ...drawn.terms, T.prose('.'), T.prose('Give every solution, or none if there is no solution.')];
 }
 const problem = (lhs, rhs, xs, explain) => ({
   prompt: ask(lhs, rhs),

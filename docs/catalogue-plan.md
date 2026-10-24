@@ -423,9 +423,12 @@ Composing · Restrict the Domain · Graph Reflection · All Together. Undo a
 Function depends on functions' Function Notation, Solve for x ↔ y on
 equations' Two Steps, Check by Composing on composition's f(g(x)),
 Restrict the Domain on functions' Vertical Line Test and quadratic graphs'
-Vertex Form, and Graph Reflection on functions' Reading f off a Graph. A
-number goes in the fraction box, a formula in the expression box and a
-reflected point in the pair box; the question says which.
+Vertex Form, and Graph Reflection on functions' Reading f off a Graph;
+Undo a Function and Solve for x ↔ y also on roots' Cubes and Cube Roots,
+since x³ + b and ∛(x − b) undo each other there, beside lines, fractional
+slopes, a − bx and (ax + b)/(cx + d). A number goes in the fraction box, a
+formula in the equivalent box, judged by value, and a reflected point in
+the pair box; the question says which.
 
 `radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
 Radical · Square Twice · Cube Roots · Rational Exponents · All Together.
@@ -441,10 +444,13 @@ none.
 
 `rational-expr` is built, as Simplify · Excluded Values · Multiply &
 Divide · Common Denominator · Unlike Denominators · Complex Fractions ·
-All Together. Simplify depends on factoring's x² + bx + c, Excluded
-Values on quadratic equations' Zero Product, Multiply & Divide on
-fraction multiplication's Dividing Fractions, and the two adding levels on
-fraction addition's Same Denominator and Unlike Denominators.
+Opposite Factors · All Together. Simplify depends on factoring's x² + bx
++ c, Excluded Values on quadratic equations' Zero Product, Multiply &
+Divide on fraction multiplication's Dividing Fractions, and the two adding
+levels on fraction addition's Same Denominator and Unlike Denominators.
+Every answer but the excluded values is judged by value, so any finished
+form is right; Unlike Denominators includes denominators that share a
+factor, so the common one is not always their product.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
