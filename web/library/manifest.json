@@ -1,5 +1,5 @@
 {
-  "built": 577,
+  "built": 583,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -730,6 +730,14 @@
       "proportions-with-x",
       "inverse-variation",
       "work-and-rate",
+      "all-together"
+    ],
+    "rational-functions": [
+      "vertical-asymptotes",
+      "horizontal-by-degree",
+      "holes",
+      "oblique",
+      "end-behavior",
       "all-together"
     ]
   },
@@ -1716,9 +1724,33 @@
           "word-equations"
         ]
       }
+    },
+    "rational-functions": {
+      "dependsOn": [
+        "domain-range",
+        "exponential",
+        "polynomials",
+        "rational-expr"
+      ],
+      "levels": {
+        "vertical-asymptotes": [
+          "domain-range",
+          "rational-expr"
+        ],
+        "horizontal-by-degree": [
+          "exponential",
+          "polynomials"
+        ],
+        "holes": [
+          "rational-expr"
+        ],
+        "oblique": [
+          "polynomials"
+        ]
+      }
     }
   },
-  "sources": "138db5ef0e0046be8957419f9ef813466e98cf957daf9725dd49af7b149e638e",
+  "sources": "8729921e6afe27a7e9ce0e2c319883e58db72d06a506b8957f87e93d37395706",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7489,6 +7521,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "rational-eq-5.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 0,
+      "slug": "vertical-asymptotes",
+      "name": "Vertical Asymptotes",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-functions-0.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 1,
+      "slug": "horizontal-by-degree",
+      "name": "Horizontal by Degree",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-functions-1.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 2,
+      "slug": "holes",
+      "name": "Holes",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-functions-2.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 3,
+      "slug": "oblique",
+      "name": "Oblique",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-functions-3.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 4,
+      "slug": "end-behavior",
+      "name": "End Behavior",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-functions-4.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-functions-5.json"
     }
   ]
 }

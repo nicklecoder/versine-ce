@@ -13,6 +13,19 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Rational Functions**, a new skill under Functions, in six levels:
+Vertical Asymptotes (two, one with the other factor cancelling to a hole,
+or none, for a bottom that is never 0 or whose only factor cancels),
+Horizontal by Degree, Holes (the point, its height from the cancelled
+form), Oblique (the slant line from dividing), End Behavior (towards 0, a
+number or ±∞ as x → ∞ or −∞), then All Together. Vertical asymptotes are
+a set in the solutions input, a hole is a point, and the rest are chosen
+from four options whose wrong ones are real slips: the ratio of the
+constant terms, a sign turned in the division, the remainder kept in the
+line. `check-answers.py` compares how many times each zero of the bottom
+divides the top and the bottom, and evaluates f exactly far out instead of
+comparing degrees.
+
 **Rational Equations**, a new skill under Equations, in six levels:
 Clear Denominators (numbers under x, and x under numbers), Extraneous
 (clearing gives two answers that may each land on an excluded value, so

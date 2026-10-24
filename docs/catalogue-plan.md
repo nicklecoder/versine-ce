@@ -447,6 +447,15 @@ Things Equal and ratio's Unit Rate. As in radical-eq, the Extraneous level
 keeps one answer in about three rows of five, both in one and neither in
 one.
 
+`rational-functions` is built, in the plan's five levels and All
+Together. Vertical Asymptotes depends on rational expressions' Excluded
+Values and domain and range's Domain of √ and Fractions, Horizontal by
+Degree on polynomials' Degree and Standard Form and exponential
+functions' The Asymptote, Holes on rational expressions' Simplify, and
+Oblique on polynomials' Binomial Times Binomial until `poly-division` is
+built, when it moves to Long Division. End Behavior builds on this
+skill's own asymptote levels.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

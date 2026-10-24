@@ -6992,6 +6992,120 @@ for path in sorted(LIB.glob("rational-eq-*.json")):
             if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
                 problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
 
+# --- Rational Functions -------------------------------------------------------
+#
+# f is read from "TOP over BOTTOM" into two exact polynomials. A zero of the
+# bottom is a vertical asymptote when it divides the bottom more times than
+# the top, and a hole otherwise, its height read from both with that factor
+# divided out. Far out f is evaluated, in exact arithmetic, at x = ±10^12:
+# it settles on a number, or it does not, and a slant line is the one that
+# f stays within a hair of at ±10^9. None of this compares degrees, which
+# is the generator's route.
+
+def rf_poly(src: str) -> list:
+    v = QeRat.of(qe_eval(src, QeRat([Fraction(0), Fraction(1)])))
+    assert v.den == [1], f"{src} is not a polynomial"
+    return v.num
+
+
+def rf_split(f: str) -> tuple:
+    top, bottom = f.split(" over ")
+    return rf_poly(top), rf_poly(bottom)
+
+
+def rf_times(c: list, r: Fraction) -> int:
+    k = 0
+    while len(c) > 1 and qe_at(c, r) == 0:
+        c, k = qe_deflate(c, r), k + 1
+    return k
+
+
+# requiem: catalogue/content/asymptote-or-hole-by-multiplicity
+def rf_vertical(f: str) -> OnGrid:
+    top, bottom = rf_split(f)
+    found = {r for r in qe_zeros(bottom) if rf_times(bottom, r) > rf_times(top, r)}
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+def rf_hole(f: str) -> tuple:
+    top, bottom = rf_split(f)
+    shared = [r for r in qe_zeros(bottom) if rf_times(top, r) >= rf_times(bottom, r)]
+    assert len(shared) == 1, f"{len(shared)} holes"
+    r = shared[0]
+    for _ in range(rf_times(bottom, r)):
+        top, bottom = qe_deflate(top, r), qe_deflate(bottom, r)
+    return r, qe_at(top, r) / qe_at(bottom, r)
+
+
+def rf_far(top: list, bottom: list, x: int):
+    """f at x: a Fraction, or 'inf' / '-inf' when it is past any bound."""
+    v = qe_at(top, Fraction(x)) / qe_at(bottom, Fraction(x))
+    if abs(v) > 10 ** 6:
+        return "inf" if v > 0 else "-inf"
+    return v
+
+
+def rf_pick(listing: str, fits) -> str:
+    hits = [oid for oid, body in te_options(listing).items() if fits(body)]
+    assert len(hits) == 1, f"{len(hits)} options fit"
+    return hits[0]
+
+
+def rf_near(v, body: str) -> bool:
+    if isinstance(v, str):
+        return body == v
+    return body not in ("inf", "-inf", "none") and abs(Fraction(body) - v) < Fraction(1, 10 ** 5)
+
+
+def rf_horizontal(f: str, listing: str) -> str:
+    top, bottom = rf_split(f)
+    right, left = rf_far(top, bottom, 10 ** 12), rf_far(top, bottom, -(10 ** 12))
+    if isinstance(right, str) or isinstance(left, str):
+        return rf_pick(listing, lambda body: body == "none")
+    return rf_pick(listing, lambda body: body.startswith("y = ") and rf_near(right, body[4:]) and rf_near(left, body[4:]))
+
+
+def rf_oblique(f: str, listing: str) -> str:
+    top, bottom = rf_split(f)
+
+    def fits(body):
+        line = rf_poly(body[4:])
+        return all(abs(qe_at(top, Fraction(x)) / qe_at(bottom, Fraction(x)) - qe_at(line, Fraction(x))) < Fraction(1, 1000)
+                   for x in (10 ** 9, -(10 ** 9)))
+    return rf_pick(listing, fits)
+
+
+def rf_ends(f: str, way: str, listing: str) -> str:
+    top, bottom = rf_split(f)
+    v = rf_far(top, bottom, 10 ** 12 if way == "inf" else -(10 ** 12))
+    return rf_pick(listing, lambda body: rf_near(v, body))
+
+
+SET_RULES += (
+    (re.compile(r"^vertical asymptotes: (.+ over .+)$"), rf_vertical),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^hole: (.+ over .+)$"), rf_hole),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^horizontal asymptote: (.+ over .+); options (.+)$"), rf_horizontal),
+    (re.compile(r"^oblique asymptote: (.+ over .+); options (.+)$"), rf_oblique),
+    (re.compile(r"^end behavior: (.+ over .+); x to (-?inf); options (.+)$"), rf_ends),
+)
+
+# The asymptote sets are read at the half-steps from -60 to 60 and at the
+# zeros found, so every key must be a lone half-step there.
+for path in sorted(LIB.glob("rational-functions-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "solutions":
+            continue
+        where = f"rational-functions L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
+                problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
