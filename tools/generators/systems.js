@@ -25,6 +25,13 @@ const tm = (s) => s.replace(/-/g, '−');
 const pairAnswer = (x, y) => ({ type: 'pair', value: { x: whole(x), y: whole(y) } });
 /** 3x, −x, x: a coefficient in front of a letter, with the 1 left unwritten. */
 const cx = (k, v = 'x') => `${k === 1 ? '' : k === -1 ? '−' : minus(k)}${v}`;
+/**
+ * k·v = c, then v: "3x = 12, so x = 4", or just "x = 4" when the number in
+ * front is 1 -- "x = 4, so x = 4" says nothing twice.
+ */
+const solved = (k, v, c, value, join = ', so') => (k === 1 ? `${v} = ${minus(value)}`
+  : `${cx(k, v)} = ${minus(c)}${join} ${v} = ${minus(value)}`);
+const gcd3 = (...ns) => ns.reduce((g, n) => { let a = Math.abs(g), b = Math.abs(n); while (b) [a, b] = [b, a % b]; return a; }, 0);
 const sol = (x, y) => `x = ${minus(x)}, y = ${minus(y)}: the point (${minus(x)}, ${minus(y)})`;
 
 /** ax + by = c, in ASCII, with 1s left unwritten and a zero term left out. */
@@ -92,8 +99,8 @@ function substitution(rng) {
     explain: `The first says y is ${tm(e1.slice(4))}, so put that in for y in the second: `
       + `${tm(std(a, 0, 0).split(' = ')[0])} ${b < 0 ? '−' : '+'} ${Math.abs(b) === 1 ? '' : Math.abs(b)}(${tm(e1.slice(4))}) `
       + `= ${minus(c)}. Expand and collect: `
-      + `${cx(coef)}${b * k === 0 ? '' : ` ${b * k < 0 ? '−' : '+'} ${Math.abs(b * k)}`} = ${minus(c)}, `
-      + `${b * k === 0 ? '' : `so ${cx(coef)} = ${minus(rest)} `}and x = ${minus(x)}. `
+      + (b * k === 0 ? `${solved(coef, 'x', c, x)}. `
+        : `${cx(coef)} ${b * k < 0 ? '−' : '+'} ${Math.abs(b * k)} = ${minus(c)}, so ${solved(coef, 'x', rest, x, ' and')}. `)
       + `Back into the first: y = ${minus(m)} × ${signed(x)}${k === 0 ? '' : ` ${k < 0 ? '−' : '+'} ${Math.abs(k)}`} = ${minus(y)}. `
       + `So ${sol(x, y)}.`,
   };
@@ -120,15 +127,16 @@ function elimination(rng) {
   // The first equation with the found letter put in, leaving the other alone.
   const otherCoef = onX ? a1 : b1, other = onX ? 'x' : 'y';
   const known = onX ? b1 * y : a1 * x;
-  const back = `${cx(otherCoef, other)}${known === 0 ? '' : ` ${known < 0 ? '−' : '+'} ${Math.abs(known)}`} = ${minus(c1)}, `
-    + `so ${other} = ${minus(onX ? x : y)}`;
+  const back = known === 0 ? solved(otherCoef, other, c1, onX ? x : y)
+    : `${cx(otherCoef, other)} ${known < 0 ? '−' : '+'} ${Math.abs(known)} = ${minus(c1)}, `
+      + `so ${solved(otherCoef, other, c1 - known, onX ? x : y, ' and')}`;
   return {
     prompt: [T.prose('Solve'), ...both(e1, e2), T.prose('.')],
     text: `system: ${e1}; ${e2}`,
     answer: pairAnswer(x, y),
     visual: null,
     explain: `The ${onX ? 'x' : 'y'} terms are ${add ? 'opposites' : 'the same'}, so ${add ? 'adding' : 'subtracting'} `
-      + `the equations cancels them: ${cx(keptCoef, kept)} = ${minus(keptC)}, so ${kept} = ${minus(keptVal)}. `
+      + `the equations cancels them: ${solved(keptCoef, kept, keptC, keptVal)}. `
       + `Put that into the first: ${back}. So ${sol(x, y)}.`,
   };
 }
@@ -153,8 +161,8 @@ function scaleFirst(rng) {
     answer: pairAnswer(x, y),
     visual: null,
     explain: `Nothing cancels as it stands. Multiply the second equation by ${minus(f)} so its y term matches `
-      + `the first: ${tm(scaled)}. Subtract that from the first: ${minus(a1 - a2 * f)}x = ${minus(c1 - c2 * f)}, `
-      + `so x = ${minus(x)}. Put x back into the second: ${minus(a2)} × ${signed(x)} ${b2 < 0 ? '−' : '+'} y = ${minus(c2)}, `
+      + `the first: ${tm(scaled)}. Subtract that from the first: ${solved(a1 - a2 * f, 'x', c1 - c2 * f, x)}. `
+      + `Put x back into the second: ${minus(a2)} × ${signed(x)} ${b2 < 0 ? '−' : '+'} y = ${minus(c2)}, `
       + `so y = ${minus(y)}. So ${sol(x, y)}.`,
   };
 }
@@ -175,7 +183,7 @@ function noneOrInfinite(rng) {
   if (kind === 'one') { b2 += rng.nonZero(-2, 2); if (a * b2 === a2 * b) return noneOrInfinite(rng); }
   const e1 = std(a, b, c), e2 = std(a2, b2, c2);
   return {
-    prompt: [T.prose('How many solutions does'), ...both(e1, e2), T.prose('have?')],
+    prompt: [T.prose('How many solutions does the system'), ...both(e1, e2), T.prose('have?')],
     text: `solutions of system: ${e1}; ${e2}`,
     answer: { type: 'choice', value: kind, options: COUNTS },
     visual: null,
@@ -249,9 +257,11 @@ const METHODS = [
  * never have a letter with a 1 in front of it, so substitution would mean
  * fractions and is not a fair rival.
  */
-function whichMethod(rng) {
+// requiem: catalogue/library/choice-answers-balanced
+function whichMethod(rng, kind = rng.pick(['substitution', 'elimination', 'scale'])) {
+  // The method is kept through every redraw, so the ones redrawn most do
+  // not end up answering least.
   const [x, y] = point(rng);
-  const kind = rng.pick(['substitution', 'elimination', 'scale']);
   let e1, e2;
   if (kind === 'substitution') {
     const m = rng.nonZero(-4, 4);
@@ -260,15 +270,20 @@ function whichMethod(rng) {
     e2 = std(a, b, a * x + b * y);
   } else if (kind === 'elimination') {
     const k = rng.int(2, 5), p = rng.int(2, 6), q = rng.int(2, 6) * rng.pick([1, -1]);
-    if (p === Math.abs(q)) return whichMethod(rng);
+    if (p === Math.abs(q)) return whichMethod(rng, kind);
     e1 = std(p, k, p * x + k * y);
     const s = rng.pick([1, -1]);
     e2 = std(q, s * k, q * x + s * k * y);
   } else {
     const a1 = rng.int(2, 6), b1 = rng.int(2, 6), a2 = rng.int(2, 6), b2 = -rng.int(2, 6);
-    if (a1 === a2 || b1 === -b2 || a1 * b2 === a2 * b1) return whichMethod(rng);
-    e1 = std(a1, b1, a1 * x + b1 * y);
-    e2 = std(a2, b2, a2 * x + b2 * y);
+    if (a1 === a2 || b1 === -b2 || a1 * b2 === a2 * b1) return whichMethod(rng, kind);
+    // An equation that divides through -- 3x + 3y = 0 is x + y = 0, so
+    // y = −x at once -- makes substitution as quick as scaling, and the key
+    // would be arguable. Such systems are not asked as "scale".
+    const c1 = a1 * x + b1 * y, c2 = a2 * x + b2 * y;
+    if (gcd3(a1, b1, c1) > 1 || gcd3(a2, b2, c2) > 1) return whichMethod(rng, kind);
+    e1 = std(a1, b1, c1);
+    e2 = std(a2, b2, c2);
   }
   return {
     prompt: [T.prose('Which method gets to the solution of'), ...both(e1, e2), T.prose('with the least work?')],

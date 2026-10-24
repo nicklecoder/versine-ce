@@ -26,6 +26,10 @@ const rhsOf = (m, b) => lineText(m, b, { ascii: true }).slice(4);
 /** The slope as it stands in front of x in running text: (1/2)x, not 1/2x. */
 const coef = (m) => (m.d === 1 ? (m.n === 1 ? '' : m.n === -1 ? '−' : minus(m.n)) : `(${show(m)})`);
 const tm = (s) => s.replace(/-/g, '−');
+/** A whole coefficient in front of a letter in running text: 3, −2, and nothing for 1 or just − for −1. */
+const coefOf = (k) => (k === 1 ? '' : k === -1 ? '−' : minus(k));
+/** Ax + By = C as it is written: x − y = 1, not 1x − 1y = 1. */
+const standardText = (A, B, C) => `${A === 1 ? '' : A === -1 ? '-' : A}x ${B < 0 ? '-' : '+'} ${Math.abs(B) === 1 ? '' : Math.abs(B)}y = ${C}`;
 
 /** A slope a student can work with: whole, or over 2, 3 or 4. */
 function slope(rng) {
@@ -69,15 +73,15 @@ function standard(rng) {
   const C = B * b;
   const m = ratio(-A, B);
   const eq = `${A === 1 ? '' : A}x ${B < 0 ? '-' : '+'} ${Math.abs(B) === 1 ? '' : Math.abs(B)}y = ${C}`;
-  const moved = `${minus(B)}y = ${minus(-A)}x${C === 0 ? '' : ` ${C < 0 ? '−' : '+'} ${Math.abs(C)}`}`;
+  const moved = `${coefOf(B)}y = ${coefOf(-A)}x${C === 0 ? '' : ` ${C < 0 ? '−' : '+'} ${Math.abs(C)}`}`;
   return {
     prompt: [T.prose('Write'), ...terms(eq), T.prose('in the form y = mx + b.')],
     text: `standard ${eq}`,
     answer: lineAnswer(m, whole(b)),
     visual: null,
-    explain: `Take ${A === 1 ? '' : A}x from both sides: ${moved.replace(/^1y/, 'y').replace(/^−1y/, '−y')}. `
-      + (B === 1 ? `That already has y on its own: ${lineText(m, whole(b))}.`
-        : `Divide everything by ${minus(B)}: ${lineText(m, whole(b))}.`),
+    explain: B === 1
+      ? `Take ${A === 1 ? '' : A}x from both sides, and y is left on its own: ${lineText(m, whole(b))}.`
+      : `Take ${A === 1 ? '' : A}x from both sides: ${moved}. Divide everything by ${minus(B)}: ${lineText(m, whole(b))}.`,
   };
 }
 
@@ -88,7 +92,7 @@ function flatOrUpright(rng) {
   if (shape === 'horizontal' || shape === 'vertical') {
     const flat = shape === 'horizontal';
     return {
-      prompt: [T.prose(`What is the equation of the ${shape} line through ${pt(p)}?`)],
+      prompt: [T.prose(`What is the equation of the ${shape} line through ${pt(p)}? Write it as y = … or x = ….`)],
       text: `${shape} through ${ptPlain(p)}`,
       answer: flat ? lineAnswer(whole(0), whole(p[1])) : { type: 'linear', value: { x: whole(p[0]) } },
       visual: null,
@@ -102,7 +106,7 @@ function flatOrUpright(rng) {
   const flat = shape === 'same-y';
   const q = flat ? [p[0] + rng.nonZero(-6, 6), p[1]] : [p[0], p[1] + rng.nonZero(-6, 6)];
   return {
-    prompt: [T.prose(`What is the equation of the line through ${pt(p)} and ${pt(q)}?`)],
+    prompt: [T.prose(`What is the equation of the line through ${pt(p)} and ${pt(q)}? Write it as y = … or x = ….`)],
     text: `line through ${ptPlain(p)} ${ptPlain(q)}`,
     answer: flat ? lineAnswer(whole(0), whole(p[1])) : { type: 'linear', value: { x: whole(p[0]) } },
     visual: null,
@@ -127,6 +131,7 @@ function givenLine(rng, m) {
     b: whole(b), standard: true };
 }
 
+// requiem: catalogue/content/prompt-names-wanted-form
 function parallel(rng) {
   const m = slope(rng);
   const base = givenLine(rng, m);
@@ -136,7 +141,8 @@ function parallel(rng) {
   const y = (m.n * x) / m.d + b;
   if (Math.abs(y) > 15) return parallel(rng);
   return {
-    prompt: [T.prose(`Find the line through ${pt([x, y])} that is parallel to`), ...terms(base.eq), T.prose('.')],
+    prompt: [T.prose(`Write the line through ${pt([x, y])} parallel to`), ...terms(base.eq),
+      T.prose('in the form y = mx + b.')],
     text: `parallel to ${base.eq} through ${ptPlain([x, y])}`,
     answer: lineAnswer(m, whole(b)),
     visual: null,
@@ -155,7 +161,8 @@ function perpendicular(rng) {
   const y = (p.n * x) / p.d + b;
   if (Math.abs(y) > 15) return perpendicular(rng);
   return {
-    prompt: [T.prose(`Find the line through ${pt([x, y])} that is perpendicular to`), ...terms(base.eq), T.prose('.')],
+    prompt: [T.prose(`Write the line through ${pt([x, y])} perpendicular to`), ...terms(base.eq),
+      T.prose('in the form y = mx + b.')],
     text: `perpendicular to ${base.eq} through ${ptPlain([x, y])}`,
     answer: lineAnswer(p, whole(b)),
     visual: null,
@@ -180,7 +187,10 @@ const RELATIONS = [
  */
 function relation(rng) {
   const m = slope(rng);
-  const kind = rng.pick(['parallel', 'perpendicular', 'perpendicular', 'flip-only', 'sign-only', 'same-b']);
+  // requiem: catalogue/library/choice-answers-balanced
+  // The answer first, a third each, then which near-miss a "neither" is.
+  const want = rng.pick(['parallel', 'perpendicular', 'neither']);
+  const kind = want === 'neither' ? rng.pick(['flip-only', 'sign-only', 'same-b']) : want;
   const m2 = {
     parallel: m, perpendicular: ratio(-m.d, m.n), 'flip-only': ratio(m.d, m.n),
     'sign-only': ratio(-m.n, m.d), 'same-b': ratio(m.n + m.d, m.d),
@@ -213,36 +223,52 @@ const FORMS = [
 ];
 
 /**
- * Which form is quickest, from what is known. Each scenario has one form
- * that turns the givens into a line with no working at all, or the least.
+ * Which form is quickest, from what is known and what is wanted. Each
+ * scenario has one form that turns the givens into the goal with no
+ * working at all, or the least. The form is chosen first, a third each,
+ * so pressing one button every time scores no better than guessing.
  */
 function whichForm(rng) {
   const m = slope(rng);
   const b = rng.int(-9, 9);
   const p = [rng.nonZero(-6, 6), rng.int(-9, 9)];
   const q = [p[0] + rng.nonZero(-5, 5), p[1] + rng.nonZero(-5, 5)];
-  const A = rng.int(1, 6), B = rng.nonZero(-5, 5), C = rng.nonZero(-4, 4) * Math.abs(A * B);
-  const cases = [
-    { want: 'slope-intercept', say: `You know the slope is ${show(m)} and the line crosses the y-axis at ${minus(b)}.`,
-      key: `slope ${plain(m)}, y-intercept ${b}`,
-      why: 'A slope and a y-intercept are exactly m and b: y = mx + b can be written down at once.' },
-    { want: 'point-slope', say: `You know the slope is ${show(m)} and the line passes through ${pt(p)}.`,
-      key: `slope ${plain(m)}, point ${ptPlain(p)}`,
-      why: `A slope and a point fill in y − y₁ = m(x − x₁) directly, with nothing to work out first.` },
-    { want: 'standard', say: `You need both places where ${tm(`${A}x ${B < 0 ? '-' : '+'} ${Math.abs(B)}y = ${C}`)} crosses the axes.`,
-      key: `intercepts of ${A}x + ${B}y = ${C}`,
-      why: 'In Ax + By = C, setting x = 0 gives the y-intercept and setting y = 0 gives the x-intercept, '
-        + 'one division each. Rearranging first is extra work.' },
-    { want: 'point-slope', say: `You know the line passes through ${pt(p)} and ${pt(q)}.`,
-      key: `points ${ptPlain(p)} ${ptPlain(q)}`,
-      why: 'Two points give the slope, and then either point goes straight into y − y₁ = m(x − x₁). '
-        + 'Slope-intercept would need b worked out as an extra step.' },
-  ];
-  const c = rng.pick(cases);
+  const A = rng.int(1, 9), B = rng.nonZero(-5, 5), C = rng.nonZero(-6, 6) * Math.abs(A * B);
+  const other = rng.int(-9, 9);
+  const given = `y = ${rhsOf(m, whole(other))}`;
+  const cases = {
+    'slope-intercept': [
+      { say: [T.prose(`You know the slope is ${show(m)} and the line crosses the y-axis at ${minus(b)}, and you need its equation.`)],
+        key: `slope ${plain(m)}, y-intercept ${b}`,
+        why: 'A slope and a y-intercept are exactly m and b: y = mx + b can be written down at once.' },
+      { say: [T.prose('A line is parallel to'), ...terms(given),
+        T.prose(`and crosses the y-axis at ${minus(b)}, and you need its equation.`)],
+        key: `parallel to ${given}, y-intercept ${b}`,
+        why: `A parallel line has the same slope, ${show(m)}, and the y-intercept is given: those are m and b, `
+          + 'so y = mx + b can be written down at once.' },
+    ],
+    'point-slope': [
+      { say: [T.prose(`You know the slope is ${show(m)} and the line passes through ${pt(p)}, and you need its equation.`)],
+        key: `slope ${plain(m)}, point ${ptPlain(p)}`,
+        why: 'A slope and a point fill in y − y₁ = m(x − x₁) directly, with nothing to work out first.' },
+      { say: [T.prose(`You know the line passes through ${pt(p)} and ${pt(q)}, and you need its equation.`)],
+        key: `points ${ptPlain(p)} ${ptPlain(q)}`,
+        why: 'Two points give the slope, and then either point goes straight into y − y₁ = m(x − x₁). '
+          + 'Slope-intercept would need b worked out as an extra step.' },
+    ],
+    standard: [
+      { say: [T.prose('You need both places where'), ...terms(standardText(A, B, C)), T.prose('crosses the axes.')],
+        key: `intercepts of ${A}x + ${B}y = ${C}`,
+        why: 'In Ax + By = C, setting x = 0 gives the y-intercept and setting y = 0 gives the x-intercept, '
+          + 'one division each. Rearranging first is extra work.' },
+    ],
+  };
+  const want = rng.pick(['slope-intercept', 'point-slope', 'standard']);
+  const c = rng.pick(cases[want]);
   return {
-    prompt: [T.prose(`${c.say} Which form of a line gets you there quickest?`)],
+    prompt: [...c.say, T.prose('Which form of a line gets you there with the least work?')],
     text: `which form: ${c.key}`,
-    answer: { type: 'choice', value: c.want, options: FORMS },
+    answer: { type: 'choice', value: want, options: FORMS },
     visual: null,
     explain: c.why,
   };

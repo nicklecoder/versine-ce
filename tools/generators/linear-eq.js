@@ -79,7 +79,8 @@ function fromGraph(rng) {
   const seg = clip(m, whole(b), SPAN);
   const corner = [other[0], b];
   return {
-    prompt: [T.prose('What is the equation of this line?')],
+    // requiem: catalogue/content/prompt-names-wanted-form
+    prompt: [T.prose('What is the equation of this line? Write it in the form y = mx + b.')],
     text: `line from graph (0, ${b}) ${ptPlain(other)}`,
     answer: lineAnswer(m, whole(b)),
     visual: {
@@ -107,7 +108,8 @@ function slopeAndPoint(rng) {
   if (Math.abs(y) > 15) return slopeAndPoint(rng);
   const mx = (m.n * x) / m.d;
   return {
-    prompt: [T.prose(`A line has slope ${show(m)} and passes through ${pt([x, y])}. What is its equation?`)],
+    prompt: [T.prose(`A line has slope ${show(m)} and passes through ${pt([x, y])}. `
+      + 'What is its equation, in the form y = mx + b?')],
     text: `line slope ${plain(m)} through ${ptPlain([x, y])}`,
     answer: lineAnswer(m, whole(b)),
     visual: null,
@@ -129,12 +131,13 @@ function twoPoints(rng) {
   const rise = p2[1] - p1[1], run = p2[0] - p1[0];
   const mx = (m.n * p1[0]) / m.d;
   return {
-    prompt: [T.prose(`What is the equation of the line through ${pt(p1)} and ${pt(p2)}?`)],
+    prompt: [T.prose(`What is the equation of the line through ${pt(p1)} and ${pt(p2)}, in the form y = mx + b?`)],
     text: `line through ${ptPlain(p1)} ${ptPlain(p2)}`,
     answer: lineAnswer(m, whole(b)),
     visual: null,
     explain: `Slope first: (${minus(p2[1])} − ${signed(p1[1])}) ÷ (${minus(p2[0])} − ${signed(p1[0])}) = `
-      + `${minus(rise)}/${minus(run)} = ${show(m)}. Then put ${pt(p1)} into y = mx + b: `
+      + `${minus(rise)}/${minus(run)}${`${minus(rise)}/${minus(run)}` === show(m) ? '' : ` = ${show(m)}`}. `
+      + `Then put ${pt(p1)} into y = mx + b: `
       + `${minus(p1[1])} = ${minus(mx)} + b, so b = ${minus(b)}. The equation is ${lineText(m, whole(b))}.`,
   };
 }
@@ -157,7 +160,8 @@ function xIntercept(rng) {
     answer: { type: 'frac', value: x, requireSimplest: false },
     visual: null,
     explain: `Every point on the x-axis has y = 0, so set y to 0: 0 = ${lineText(m, b).slice(4)}. `
-      + `Then ${minus(m.n)}x = ${minus(-b.n)}, and x = ${minus(-b.n)}/${minus(m.n)} = ${show(x)}. `
+      + (m.n === 1 ? `${b.n > 0 ? `Take ${b.n} from` : `Add ${-b.n} to`} both sides: x = ${show(x)}. `
+        : `Then ${m.n === -1 ? '−' : minus(m.n)}x = ${minus(-b.n)}, and x = ${minus(-b.n)} ÷ ${signed(m.n)} = ${show(x)}. `)
       + `It crosses at (${show(x)}, 0).`,
   };
 }
@@ -185,7 +189,7 @@ function onLine(rng) {
   const rhs = lineText(m, b, { ascii: true }).slice(4);
   const at = m.n * p[0] + b.n;
   return {
-    prompt: [T.prose(`Is ${pt(p)} on the line`), ...terms(`y = ${rhs}`), T.prose('?')],
+    prompt: [T.prose('Does the line'), ...terms(`y = ${rhs}`), T.prose(`pass through ${pt(p)}?`)],
     text: `on line: ${ptPlain(p)} y = ${rhs}`,
     answer: { type: 'choice', value: yes ? 'yes' : 'no', options: YESNO },
     visual: null,

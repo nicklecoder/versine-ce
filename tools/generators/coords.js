@@ -10,11 +10,14 @@
  * Run via: node scripts/build-library.mjs
  */
 import * as T from '../terms.js';
+import { minus, signed } from '../../web/ui/dom.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/coords.js';
 
 const SPAN = 8;
 const RANGE = { xRange: [-SPAN, SPAN], yRange: [-SPAN, SPAN], grid: 1 };
 const QUADRANTS = ['I', 'II', 'III', 'IV'];
+/** (−3, 5), with a true minus sign: the first skill with signs sets them properly. */
+const pt = ([x, y]) => `(${minus(x)}, ${minus(y)})`;
 
 /**
  * Read one coordinate off a plotted point.
@@ -44,8 +47,10 @@ function read(rng, axis, negatives) {
         { kind: 'point', at: axis === 'x' ? [x, 0] : [0, y], label: String(asked) },
       ],
     },
-    explain: `The point sits at (${x}, ${y}). Counting ${axis === 'x' ? 'across from' : 'up from'} `
-      + `the origin gives ${asked}.`,
+    explain: `The point sits at ${pt([x, y])}. ` + (asked === 0
+      ? `It is on the ${axis === 'x' ? 'y' : 'x'}-axis, so it is 0 ${axis === 'x' ? 'along' : 'up or down'}.`
+      : `From the origin it is ${Math.abs(asked)} ${axis === 'x' ? (asked > 0 ? 'right' : 'left') : (asked > 0 ? 'up' : 'down')}`
+        + `${asked < 0 ? ', and that direction is negative' : ''}: ${minus(asked)}.`),
   };
 }
 
@@ -55,7 +60,7 @@ function quadrant(rng) {
   const y = rng.pick([-1, 1]) * rng.int(1, SPAN);
   const q = x > 0 ? (y > 0 ? 'I' : 'IV') : (y > 0 ? 'II' : 'III');
   return {
-    prompt: [T.prose(`Which quadrant holds (${x}, ${y})?`)],
+    prompt: [T.prose(`Which quadrant holds ${pt([x, y])}?`)],
     text: `quadrant of (${x}, ${y})`,
     answer: {
       type: 'choice',
@@ -69,10 +74,11 @@ function quadrant(rng) {
     visual: {
       kind: 'plane', ...RANGE,
       marks: [],
-      answer: [{ kind: 'point', at: [x, y], label: `(${x}, ${y})` }],
+      // Named on reveal, so the picture teaches which quadrant is which.
+      answer: [{ kind: 'point', at: [x, y], label: `${pt([x, y])}: quadrant ${q}` }],
     },
-    explain: `${x} is ${x > 0 ? 'positive' : 'negative'} so the point is to the `
-      + `${x > 0 ? 'right' : 'left'}, and ${y} is ${y > 0 ? 'positive' : 'negative'} so it is `
+    explain: `${minus(x)} is ${x > 0 ? 'positive' : 'negative'} so the point is to the `
+      + `${x > 0 ? 'right' : 'left'}, and ${minus(y)} is ${y > 0 ? 'positive' : 'negative'} so it is `
       + `${y > 0 ? 'up' : 'down'}. That is quadrant ${q}.`,
   };
 }
@@ -86,7 +92,7 @@ function distance(rng) {
   const from = horizontal ? [a, fixed] : [fixed, a];
   const to = horizontal ? [b, fixed] : [fixed, b];
   return {
-    prompt: [T.prose(`How far apart are (${from[0]}, ${from[1]}) and (${to[0]}, ${to[1]})?`)],
+    prompt: [T.prose(`How far apart are ${pt(from)} and ${pt(to)}?`)],
     text: `distance (${from[0]},${from[1]}) to (${to[0]},${to[1]})`,
     answer: { type: 'int', value: b - a },
     visual: {
@@ -98,7 +104,7 @@ function distance(rng) {
       answer: [{ kind: 'segment', from, to, label: String(b - a) }],
     },
     explain: `They share the same ${horizontal ? 'row' : 'column'}, so only the `
-      + `${horizontal ? 'first' : 'second'} number changes: ${b} − ${a} = ${b - a}.`,
+      + `${horizontal ? 'first' : 'second'} number changes: ${minus(b)} − ${signed(a)} = ${b - a}.`,
   };
 }
 
@@ -128,8 +134,7 @@ function steepness(rng) {
   const to = [x1 + run, y2];
 
   return {
-    prompt: [T.prose(`What is the gradient of the line through (${from[0]}, ${from[1]}) `
-      + `and (${to[0]}, ${to[1]})?`)],
+    prompt: [T.prose(`What is the slope of the line through ${pt(from)} and ${pt(to)}?`)],
     text: `gradient (${from[0]},${from[1]}) to (${to[0]},${to[1]})`,
     answer: { type: 'int', value: m },
     visual: {
@@ -140,10 +145,10 @@ function steepness(rng) {
       ],
       answer: [{ kind: 'segment', from, to, label: `${m > 0 ? '+' : '−'}${Math.abs(m)} each step` }],
     },
-    explain: `Along, it moves ${run}. Up, it moves ${y2} − ${y1} = ${rise}. `
-      + `The gradient is ${rise} ÷ ${run} = ${m} — how far it rises for each one along, `
-      + 'which is a unit rate and nothing more. '
-      + `${m < 0 ? 'It is negative because the line falls as you go right.' : ''}`,
+    explain: `Along, it moves ${run}. Up, it moves ${minus(y2)} − ${signed(y1)} = ${minus(rise)}`
+      + `${rise < 0 ? ', negative because the line falls as you go right' : ''}. `
+      + 'The slope (also called the gradient) is how far it rises for each one along, a unit rate: '
+      + `${minus(rise)} ÷ ${run} = ${minus(m)}.`,
   };
 }
 

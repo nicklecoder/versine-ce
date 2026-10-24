@@ -23,7 +23,7 @@ export const LEVELS = [
   },
   {
     name: 'Steepness', slug: 'steepness',
-    blurb: 'Up divided by along. A gradient is a rate, and a rate is a ratio.',
+    blurb: 'Up divided by along. The slope is a rate, and a rate is a ratio.',
     // No declared edge to ratio, deliberately, and it is worth saying why
     // because the connection is real and the explain leans on it.
     //

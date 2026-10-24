@@ -80,7 +80,7 @@ function anyTerm(rng) {
   if (rng.chance(0.3)) {
     // Backwards: which term is this number? The same formula, solved for n.
     return {
-      prompt: [T.prose(`In the sequence ${list(terms)} which term is ${minus(value)}?`)],
+      prompt: [T.prose(`The sequence ${list(terms)} carries on the same way. Which term is ${minus(value)}?`)],
       text: `which term is ${value} in ${ascii(terms)}`,
       answer: { type: 'int', value: n },
       visual: table(terms, { working: adds(terms), ask: { n, value, back: true } }),
@@ -93,7 +93,7 @@ function anyTerm(rng) {
   return {
     prompt: given
       ? [T.prose(`An arithmetic sequence has ${a(1)} = ${minus(first)} and common difference ${minus(d)}. What is ${a(n)}?`)]
-      : [T.prose(`What is the ${nth(n)} term of ${list(terms)}`)],
+      : [T.prose(`The sequence ${list(terms)} carries on the same way. What is its ${nth(n)} term?`)],
     text: given ? `term ${n} with a1 = ${first} d = ${d}` : `term ${n} of ${ascii(terms)}`,
     answer: { type: 'int', value },
     visual: table(terms, { working: adds(terms), ask: { n, value } }),
@@ -178,7 +178,7 @@ function geometricTerm(rng) {
   return {
     prompt: given
       ? [T.prose(`A geometric sequence has ${a(1)} = ${minus(first)} and common ratio ${r.label}. What is ${a(n)}?`)]
-      : [T.prose(`What is the ${nth(n)} term of ${list(terms)}`)],
+      : [T.prose(`The sequence ${list(terms)} carries on the same way. What is its ${nth(n)} term?`)],
     text: given ? `term ${n} with a1 = ${first} r = ${r.n}/${r.d}` : `term ${n} of ${ascii(terms)}`,
     answer: { type: 'int', value },
     visual: table(terms, { working: times(r)(3), ask: { n, value } }),
@@ -278,7 +278,7 @@ function whichKind(rng) {
     if (new Set(diffs).size === 1 || terms.some((t) => t === 0) || geo) return whichKind(rng);
   }
   return {
-    prompt: [T.prose(`What kind of sequence is ${list(terms)}`)],
+    prompt: [T.prose(`What kind of sequence is this? ${list(terms)}`)],
     text: `kind of ${ascii(terms)}`,
     answer: { type: 'choice', value: pick, options: KINDS },
     visual: table(terms, { working: adds(terms) }),

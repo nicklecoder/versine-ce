@@ -1055,7 +1055,7 @@
       "levels": {}
     }
   },
-  "sources": "7e41c09561ff04bf1423564fc102ed542bab38c81bc53e2fa180727fb497563b",
+  "sources": "6961d6fe762b6dbb836da47da7a2d3f18ffa58cc1205ce9274bedb7325b087a7",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2582,8 +2582,8 @@
       "level": 3,
       "slug": "linear-or-not",
       "name": "Linear or Not",
-      "count": 558,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "linear-models-3.json"
     },
@@ -4294,7 +4294,7 @@
       "name": "From Words",
       "count": 1000,
       "exhaustive": false,
-      "signed": false,
+      "signed": true,
       "file": "ineq-graphs-5.json"
     },
     {

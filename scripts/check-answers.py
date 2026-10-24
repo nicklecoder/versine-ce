@@ -822,6 +822,12 @@ def relation_of(e1: str, e2: str) -> str:
 def form_for(key: str) -> str:
     if re.match(r"slope \S+, y-intercept", key):
         return "slope-intercept"
+    # Parallel to a line already in slope-intercept form, with b given: m is
+    # read off the given line and b is told, so y = mx + b is written at once.
+    m = re.match(r"parallel to (y = .+), y-intercept -?\d+$", key)
+    if m:
+        slope_intercept(m[1].removeprefix("y = "))  # the given line must be one
+        return "slope-intercept"
     if re.match(r"slope \S+, point|points ", key):
         return "point-slope"
     if key.startswith("intercepts of"):
@@ -949,6 +955,14 @@ def method_for(e1: str, e2: str) -> str:
     (a1, b1, _), (a2, b2, _) = coeffs(e1), coeffs(e2)
     if abs(a1) == abs(a2) or abs(b1) == abs(b2):
         return "elimination"
+    # Scaling is only the clear winner when no equation divides down to a
+    # letter with 1 in front: 3x + 3y = 0 is y = -x, and substituting that
+    # is as quick, so such a system has no single right answer.
+    for e in (e1, e2):
+        a, b, c = coeffs(e)
+        g = math.gcd(math.gcd(int(a), int(b)), int(c))
+        if g and (abs(a) == g or abs(b) == g):
+            raise ValueError(f"{e} divides down to a lone letter")
     return "scale"
 
 
@@ -997,7 +1011,9 @@ def domain_range(ask: str, corners: str) -> int:
 
 def reading_of(a: str, b: str, in_unit: str, out_unit: str, ids):
     """The input, with its unit, named before the output with its: f(a) = b read in order."""
-    unit = lambda n, u: rf"(?<![\d.]){n} ?{re.escape(u)}\b" if u[0].isalpha() else rf"(?<![\d.]){n}{re.escape(u)}"
+    # A unit in words may be singular for one: "after 1 second".
+    unit = lambda n, u: (rf"(?<![\d.]){n} ?{re.escape(u.removesuffix('s'))}s?\b" if u[0].isalpha()
+                         else rf"(?<![\d.]){n}{re.escape(u)}")
     fit = [o for o in ids
            if (i := re.search(unit(a, in_unit), o)) and (j := re.search(unit(b, out_unit), o)) and i.start() < j.start()
            and "every" not in o]
@@ -1113,11 +1129,11 @@ RULE_RULES = (
 # --- Compound Inequalities ---------------------------------------------------
 #
 # A set is a frozenset of the numbers in it, tested at sample points: every
-# integer and half-integer from -40 to 40. Two sets with whole or half ends
+# integer and half-integer from -60 to 60. Two sets with whole or half ends
 # inside that range are equal exactly when they agree at every sample -- a
 # test that shares nothing with the interval arithmetic the app does.
 
-SAMPLES_ON_LINE = [Fraction(k, 2) for k in range(-80, 81)]
+SAMPLES_ON_LINE = [Fraction(k, 2) for k in range(-120, 121)]
 OPS = {"<": lambda a, b: a < b, "<=": lambda a, b: a <= b,
        ">": lambda a, b: a > b, ">=": lambda a, b: a >= b, "=": lambda a, b: a == b}
 
@@ -1210,8 +1226,20 @@ def answer_set(value) -> frozenset:
     return frozenset(x for x in SAMPLES_ON_LINE if any(inside(p, x) for p in value["parts"]))
 
 
+def extent(which: str, corners: str) -> frozenset:
+    """An unbroken graph through these corners, ends filled, covers every x
+    from its first corner to its last, and every y from its lowest to its
+    highest: the domain or the range as a set."""
+    pts = [(int(x), int(y)) for x, y in re.findall(PT, corners)]
+    vals = [x for x, _ in pts] if which == "domain" else [y for _, y in pts]
+    if [x for x, _ in pts] != sorted({x for x, _ in pts}):
+        raise ValueError("not a graph of a function left to right")
+    return frozenset(v for v in SAMPLES_ON_LINE if min(vals) <= v <= max(vals))
+
+
 SET_RULES = (
     (re.compile(r"^solve: (.+)$"), solve_set),
+    (re.compile(r"^(domain|range) of ((?:\(-?\d+, -?\d+\) ?)+)$"), extent),
     (re.compile(r"^combine: (.+)$"), solve_set),
     (re.compile(r"^graph set: (.+)$"), interval_set),
     (re.compile(r"^words: (x is .+)$"), words_set),
@@ -1313,15 +1341,6 @@ def point_in_both(e1: str, e2: str, points: str, ids):
     return fit[0]
 
 
-def extreme_y(kind: str, a: int, b: int, op: str, total: int, x: int) -> int:
-    fits = [y for y in range(0, 1000) if OPS[op](a * x + b * y, total)]
-    return max(fits) if kind == "most" else min(fits)
-
-
-BY_RULE += (
-    (re.compile(r"^(most|least) y: (\d+)x \+ (\d+)y (<=|>=) (\d+) with x = (\d+)$"), extreme_y),
-)
-
 CHOICE_RULES += (
     (re.compile(rf"^solution\? {PT} of (.+)$"),
      lambda x, y, ineq: "yes" if holds_xy(ineq, int(x), int(y)) else "no"),
@@ -1332,8 +1351,41 @@ OPTION_RULES += (
     (re.compile(r"^both: (.+); (.+) \| (.+)$"), point_in_both),
 )
 
+def halfplane_form(ineq: str):
+    """
+    a·x + b·y + c op 0, scaled so the first of b, a that is not zero is 1
+    (the sign turning if that meant dividing by a negative). Two inequalities
+    keep the same half of the plane exactly when these agree -- including
+    halves whose edge lies far off the grid kept() samples, where the large
+    totals of a budget put it.
+    """
+    left, op, right = re.split(r"\s*(<=|>=|<|>)\s*", ineq.strip())
+    f = lambda x, y: at(left, {"x": x, "y": y}) - at(right, {"x": x, "y": y})
+    c = f(0, 0)
+    a, b = f(1, 0) - c, f(0, 1) - c
+    if f(2, -3) != c + 2 * a - 3 * b or f(-5, 7) != c - 5 * a + 7 * b:
+        raise ValueError(f"not linear: {ineq}")
+    lead = b if b != 0 else a
+    if lead == 0:
+        raise ValueError(f"no x or y left: {ineq}")
+    if lead < 0:
+        op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
+    return a / lead, b / lead, c / lead, op
+
+
+WORDS_LIMIT = {"most": "<=", "least": ">="}
+
+
+def budget(a: str, b: str, limit: str, total: str) -> str:
+    """'9 per x, 4 per y, at most 60': each x adds 9, each y adds 4, and the
+    sum is held at most (or at least) to the total."""
+    return f"{a}*x + {b}*y {WORDS_LIMIT[limit]} {total}"
+
+
 HALFPLANE_RULES = (
     (re.compile(r"^graph: (.+)$"), kept),
+    # Compared by exact form, not by sampled points: see halfplane_form.
+    (re.compile(r"^words: (\d+) per x, (\d+) per y, at (most|least) (\d+)$"), budget),
 )
 
 
@@ -2170,8 +2222,15 @@ def gather_side(a, c) -> str:
     return "left" if a > c else "right"
 
 
-def flips(k: str) -> str:
-    return "flip" if k.startswith("−") else "keep"
+def flips(left: str) -> str:
+    """Whether solving left op number turns the sign: what multiplies the letter
+    in the end, found by evaluating the left side at 0 and 1, not by where a
+    minus sign happens to stand -- 12 − 3x flips, x − 7 does not."""
+    v = var_in(left)
+    k = evaluate(left.replace("−", "-"), v, 1) - evaluate(left.replace("−", "-"), v, 0)
+    if k == 0:
+        raise ValueError(f"no letter to solve for: {left}")
+    return "flip" if k < 0 else "keep"
 
 
 def sign_of(src: str) -> str:
@@ -2352,8 +2411,7 @@ CHOICE_RULES += (
     (re.compile(r"^first move for (\d+)\([a-z] \+ (\d+)\) = (\d+)$"), first_move),
     (re.compile(r"^first move for (\d+)[a-z] \+ (\d+) = \d+$"), subtract_first),
     (re.compile(r"^which side for (\d*)([a-z]) \+ \d+ = (\d*)\2 \+ \d+$"), lambda a, v, c: gather_side(a, c)),
-    (re.compile(r"^does (−?)\d+[a-z] [<>≤≥] −?\d+ flip$"), flips),
-    (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
+    (re.compile(r"^does (.+) [<>≤≥] −?\d+ flip$"), flips),
     (re.compile(r"^sign of (.+)$"), sign_of),
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
     # One step when either is a whole number of lots of the other: 4 of 12
@@ -2685,7 +2743,10 @@ for path in sorted(LIB.glob("*.json")):
             rule = next((r for r in HALFPLANE_RULES if r[0].match(text)), None)
             if rule:
                 checked += 1
-                if kept(halfplane_text(answer["value"])) != rule[1](*rule[0].match(text).groups()):
+                want = rule[1](*rule[0].match(text).groups())
+                got = halfplane_text(answer["value"])
+                same = halfplane_form(got) == halfplane_form(want) if isinstance(want, str) else kept(got) == want
+                if not same:
                     problems.append(f"{where}: {text} does not keep the half {answer['value']} keeps")
             continue
 

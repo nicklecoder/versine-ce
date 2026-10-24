@@ -27,6 +27,10 @@ const LINE = 'var(--vec-1)';
 const defn = (name, arg, src) => T.math([T.letter(name), T.group([arg]), T.op('='), ...previewOf(src).terms]);
 const pt = ([x, y]) => `(${minus(x)}, ${minus(y)})`;
 const tm = (s) => s.replace(/-/g, '−');
+/** 1 second, 2 seconds: a count with its noun, singular for one. */
+const count = (n, unit) => `${n} ${n === 1 ? unit.replace(/s$/, '') : unit}`;
+/** "every second", "every 3 seconds". */
+const every = (n, unit) => `every ${n === 1 ? unit.replace(/s$/, '') : `${n} ${unit}`}`;
 
 /** mx + b in ASCII, with the 1 and the + 0 unwritten. */
 const lin = (m, b) => `${m === 1 ? '' : m === -1 ? '-' : m}x${b === 0 ? '' : ` ${b < 0 ? '-' : '+'} ${Math.abs(b)}`}`;
@@ -158,7 +162,7 @@ function notation(rng) {
   const name = rng.pick(['f', 'f', 'g', 'h']);
   const put = r.src.replace(/x/g, `(${a})`).replace(/\^2/g, '²');
   return {
-    prompt: [defn(name, T.letter('x'), r.src), T.prose(`What is ${name}(${minus(a)})?`)],
+    prompt: [T.prose(`Find ${name}(${minus(a)}) for the function`), defn(name, T.letter('x'), r.src)],
     text: `${name}(${a}) for ${name}(x) = ${r.src}`,
     answer: { type: 'int', value: out },
     visual: null,
@@ -201,60 +205,71 @@ function solveFor(rng) {
   const k = m * x + b;
   const src = lin(m, b);
   return {
-    prompt: [defn('f', T.letter('x'), src), T.prose(`For what value of x is f(x) = ${minus(k)}?`)],
+    prompt: [T.prose(`Find the value of x that makes f(x) = ${minus(k)}, for the function`), defn('f', T.letter('x'), src)],
     text: `solve f(x) = ${k} for f(x) = ${src}`,
     answer: { type: 'int', value: x },
     visual: null,
     explain: `This asks for the input, not the output. Set the rule equal to ${minus(k)}: ${tm(src)} = ${minus(k)}. `
-      + `${b === 0 ? '' : `${b > 0 ? 'Take' : 'Add'} ${Math.abs(b)} ${b > 0 ? 'from' : 'to'} both sides: ${minus(m)}x = ${minus(k - b)}. `}`
-      + `Divide by ${minus(m)}: x = ${minus(x)}. Check: f(${minus(x)}) = ${minus(k)}.`,
+      + `${b === 0 ? '' : `${b > 0 ? 'Take' : 'Add'} ${Math.abs(b)} ${b > 0 ? 'from' : 'to'} both sides: `
+        + `${m === 1 ? '' : m === -1 ? '−' : minus(m)}x = ${minus(k - b)}. `}`
+      + `${m === 1 ? '' : `Divide by ${minus(m)}: x = ${minus(x)}. `}Check: f(${minus(x)}) = ${minus(k)}.`,
   };
 }
 
-/** A graph made of straight pieces with filled ends: where does it start and stop, how high and low does it go? */
+/**
+ * A graph made of straight pieces with filled ends: its domain, or its
+ * range, written as the set it is (−3 ≤ x ≤ 5), not one end of it, since
+ * naming the whole set is what "the domain" means. Filled ends are kept,
+ * so both signs are ≤; [−3, 5] is accepted as well.
+ */
+// requiem: catalogue/content/domain-range-written-as-set
 function domainRange(rng) {
   const n = rng.int(3, 4);
   const xs = new Set();
   while (xs.size < n) xs.add(rng.int(-8, 8));
   const sorted = [...xs].sort((a, b) => a - b);
   const pts = sorted.map((x) => [x, rng.int(-8, 8)]);
-  const ask = rng.pick(['domain-low', 'domain-high', 'range-low', 'range-high']);
   const ys = pts.map(([, y]) => y);
-  const value = { 'domain-low': sorted[0], 'domain-high': sorted[n - 1],
-    'range-low': Math.min(...ys), 'range-high': Math.max(...ys) }[ask];
-  const where = ask.startsWith('domain')
-    ? pts.find(([x]) => x === value) : pts.find(([, y]) => y === value);
-  const words = { 'domain-low': 'smallest x in the domain', 'domain-high': 'largest x in the domain',
-    'range-low': 'smallest value in the range', 'range-high': 'largest value in the range' }[ask];
+  const lowY = Math.min(...ys), highY = Math.max(...ys);
+  if (lowY === highY) return domainRange(rng);
+  const domain = rng.chance(0.5);
+  const [lo, hi] = domain ? [sorted[0], sorted[n - 1]] : [lowY, highY];
+  const letter = domain ? 'x' : 'y';
+  const ends = domain ? [pts[0], pts[n - 1]] : [pts.find(([, y]) => y === lowY), pts.find(([, y]) => y === highY)];
+  const set = `${minus(lo)} ≤ ${letter} ≤ ${minus(hi)}`;
   return {
-    prompt: [T.prose(`The whole graph of f is shown. What is the ${words}?`)],
-    text: `${ask} of ${pts.map(([x, y]) => `(${x}, ${y})`).join(' ')}`,
-    answer: { type: 'int', value },
+    prompt: [T.prose(`The whole graph of f is shown. What is its ${domain ? 'domain' : 'range'}? `
+      + `Write it as an inequality in ${letter}.`)],
+    text: `${domain ? 'domain' : 'range'} of ${pts.map(([x, y]) => `(${x}, ${y})`).join(' ')}`,
+    answer: { type: 'solutions',
+      value: { letter, parts: [{ lo: { n: lo, d: 1 }, loIn: true, hi: { n: hi, d: 1 }, hiIn: true }] } },
     visual: { kind: 'plane', ...PLANE,
       marks: [{ kind: 'path', points: pts, tone: LINE },
               { kind: 'point', at: pts[0], tone: LINE }, { kind: 'point', at: pts[n - 1], tone: LINE }],
-      answer: [{ kind: 'point', at: where, label: pt(where) }] },
-    explain: ask.startsWith('domain')
-      ? `The domain is the x values the graph uses: from ${minus(sorted[0])} at its left end to `
-        + `${minus(sorted[n - 1])} at its right. So the ${words} is ${minus(value)}.`
-      : `The range is the y values it reaches: from its lowest point, ${minus(Math.min(...ys))}, up to its `
-        + `highest, ${minus(Math.max(...ys))}. So the ${words} is ${minus(value)}.`,
+      answer: ends.map((at) => ({ kind: 'point', at, label: pt(at) })) },
+    explain: domain
+      ? `The domain is every x the graph uses: from ${minus(lo)} at its left end to ${minus(hi)} at its right, `
+        + `both ends drawn filled, so both are in: ${set}.`
+      : `The range is every y it reaches: from its lowest point, ${minus(lo)}, up to its highest, ${minus(hi)}, `
+        + `and every height between, since the graph is unbroken: ${set}.`,
   };
 }
 
 const CONTEXTS = [
   { f: 'h', in: 't', out: 'height', inUnit: 'seconds', outUnit: 'm', ins: [1, 6], outs: [8, 40],
     say: 'the height in metres of a ball t seconds after it is thrown',
-    rate: (a, b) => `The ball rises ${b} m every ${a} seconds` },
+    rate: (a, b) => `The ball rises ${b} m ${every(a, 'seconds')}` },
   { f: 'C', in: 'n', out: 'cost', inUnit: 'tickets', outUnit: 'dollars', ins: [2, 12], outs: [15, 90],
     say: 'the cost in dollars of n tickets',
-    rate: (a, b) => `The cost goes up ${b} dollars for every ${a} tickets` },
+    rate: (a, b) => `The cost goes up ${b} dollars for ${every(a, 'tickets')}` },
   { f: 'T', in: 'm', out: 'temperature', inUnit: 'minutes', outUnit: '°C', ins: [2, 15], outs: [20, 85],
     say: 'the temperature in °C of a drink m minutes after it is poured',
-    rate: (a, b) => `The drink cools ${b}°C every ${a} minutes` },
+    rate: (a, b) => `The drink cools ${b}°C ${every(a, 'minutes')}` },
   { f: 'd', in: 't', out: 'distance', inUnit: 'hours', outUnit: 'km', ins: [2, 9], outs: [60, 600],
     say: 'the distance in km a car has gone after t hours',
-    rate: (a, b) => `The car goes ${b} km every ${a} hours` },
+    // Between 40 and 110 km an hour on average: d(2) = 403 was a car doing 200.
+    fits: (a, b) => b >= 40 * a && b <= 110 * a,
+    rate: (a, b) => `The car goes ${b} km ${every(a, 'hours')}` },
 ];
 
 /** h(3) = 20 is a sentence about a time and a height. The common misreading swaps them. */
@@ -262,10 +277,11 @@ function meaning(rng) {
   const c = rng.pick(CONTEXTS);
   const a = rng.int(...c.ins);
   const b = rng.int(...c.outs);
+  if (c.fits && !c.fits(a, b)) return meaning(rng);
   const unit = (u, n) => (u === '°C' ? `${n}°C` : `${n} ${u}`);
   const phrase = (x, y) => (c.inUnit === 'tickets'
     ? `${x} tickets cost ${y} dollars`
-    : `After ${x} ${c.inUnit}, the ${c.out} is ${unit(c.outUnit, y)}`);
+    : `After ${count(x, c.inUnit)}, the ${c.out} is ${unit(c.outUnit, y)}`);
   const right = phrase(a, b), swapped = phrase(b, a), rate = c.rate(a, b);
   const options = rng.shuffle([right, swapped, rate]).map((label) => ({ id: label, label }));
   return {
@@ -273,7 +289,7 @@ function meaning(rng) {
     text: `means: ${c.f}(${a}) = ${b} | ${c.inUnit} | ${c.outUnit}`,
     answer: { type: 'choice', value: right, options },
     visual: null,
-    explain: `The number in the brackets is the input, ${c.in} = ${a} ${c.inUnit}. The number after the equals `
+    explain: `The number in the brackets is the input, ${c.in} = ${count(a, c.inUnit)}. The number after the equals `
       + `is the output, the ${c.out}: ${unit(c.outUnit, b)}. So: ${right[0].toLowerCase()}${right.slice(1)}.`,
   };
 }
