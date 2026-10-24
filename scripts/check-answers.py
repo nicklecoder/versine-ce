@@ -2169,7 +2169,13 @@ JUDGED = {
     "# red counters and # blue ones, in rows of equal length, no row mixing colours. How long can a row be?": "gcf",
     "Two lights flash every # seconds and every # seconds. When do they next flash together?": "lcm",
     "Putting #/# into lowest terms — what do you divide by?": "gcf",
-    "# pens and # pencils, split into identical packs with nothing left over.": "gcf",
+    "# pens and # pencils, split into identical packs with nothing left over. What is the greatest number of packs?": "gcf",
+    # The fewest pens is a count both box sizes reach; the fewest rows is the
+    # longest row, which fits inside both colours.
+    "Pens come in boxes of # and pencils in boxes of #. What is the fewest pens you can buy and still have exactly as many pencils?": "lcm",
+    "Ribbons come # cm and # cm long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
+    "# red counters and # blue ones, in rows of equal length, no row mixing colours. What is the fewest rows there can be?": "gcf",
+    "Two classes of # and # pupils are split into teams of the same size, no team mixing classes. What is the largest team size?": "gcf",
     "Tiles # cm by # cm, laid out to make the smallest possible square.": "lcm",
     "Two buses set off together, then run every # and every # minutes. Next time together?": "lcm",
     "Buns come in packs of # and sausages in packs of #. Fewest packs to have equal numbers?": "lcm",
