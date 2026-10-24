@@ -169,6 +169,7 @@ defineType({
    */
   parse(raw) {
     const s = normalize(raw);
+    if (s.includes('/')) return { ok: false, hint: 'Give it as a decimal, not a fraction: 3/4 is 0.75.' };
     const m = s.match(/^([+-]?)(\d*)(?:\.(\d*))?$/);
     if (!m || (m[2] === '' && !m[3])) return { ok: false };
     const sign = m[1] === '-' ? -1 : 1;

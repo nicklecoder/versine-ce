@@ -334,6 +334,16 @@ for (const skill of SKILLS) {
   if (play(p.answer.accept[0]).status !== 'correct') fail.push(`inequalities: "${p.answer.accept[0]}" refused`);
 }
 
+// requiem: play/answers/thousands-comma-read
+// The decimal box reads 4,800 as grouped thousands and 4,8 as a decimal comma.
+{
+  const { decimalTyped } = await import(join(ROOT, 'web/ui/answerinput.js'));
+  for (const [raw, want] of [['4,800', '4800'], ['12,000', '12000'], ['1,234,567.5', '1234567.5'],
+    ['4,8', '4.8'], ['-0,25', '-0.25'], ['4,80', '4.80'], ['14062.5', '14062.5']]) {
+    if (decimalTyped(raw) !== want) fail.push(`decimal box: "${raw}" read as ${decimalTyped(raw)}, not ${want}`);
+  }
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);
