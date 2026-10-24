@@ -391,8 +391,126 @@ function piecewiseGraph(rng) {
   }
 }
 
+// requiem: catalogue/content/piecewise-and-step-ask-domain-range
+/**
+ * A function defined only on parts of the line: two or three pieces, each a
+ * line or a constant on a bounded interval, perhaps with a gap between
+ * them. Its domain is the pieces' intervals together, and its range every
+ * height a piece reaches, an open end of x giving an open end of y.
+ */
+function piecewiseSet(rng) {
+  for (;;) {
+    const three = rng.chance(0.35);
+    const ends = [rng.int(-6, -2)];
+    for (let i = 0; i < (three ? 3 : 2); i++) ends.push(ends[i] + rng.int(2, 4));
+    const pieces = [];
+    for (let i = 0; i + 1 < ends.length; i++) {
+      // A gap now and then: this piece stops short of where the next starts.
+      const lo = ends[i] + (i > 0 && rng.chance(0.25) ? 1 : 0), hi = ends[i + 1];
+      const prev = pieces[i - 1];
+      // Where two pieces meet, exactly one of them owns the meeting point.
+      const loIn = prev && prev.hi === lo ? !prev.hiIn : rng.chance(0.6);
+      pieces.push({ lo, hi, loIn, hiIn: i === ends.length - 2 ? rng.chance(0.6) : rng.chance(0.5) });
+    }
+    if (pieces.some((p) => p.lo >= p.hi)) continue;
+    const rules = pieces.map(() => {
+      if (rng.chance(0.25)) { const c = rng.int(-6, 6); return { m: 0, c }; }
+      return { m: nz(rng, -3, 3), c: rng.int(-5, 5) };
+    });
+    const at = (r, x) => r.m * x + r.c;
+    if (pieces.some((p, i) => Math.abs(at(rules[i], p.lo)) > 18 || Math.abs(at(rules[i], p.hi)) > 18)) continue;
+    const domain = rng.chance(0.4);
+    const letter = domain ? 'x' : 'y';
+    const cond = (p) => [`${minus(p.lo)} ${p.loIn ? '≤' : '<'} x ${p.hiIn ? '≤' : '<'} ${minus(p.hi)}`, `${p.lo} ${p.loIn ? '<=' : '<'} x ${p.hiIn ? '<=' : '<'} ${p.hi}`];
+    const show = (r) => (r.m === 0 ? minus(r.c) : linText(r.m, r.c));
+    const ascii = (r) => (r.m === 0 ? String(r.c) : linAscii(r.m, r.c));
+    const dParts = pieces.map((p) => ({ lo: Q(p.lo), loIn: p.loIn, hi: Q(p.hi), hiIn: p.hiIn }));
+    const rParts = pieces.map((p, i) => {
+      const r = rules[i];
+      if (r.m === 0) return { lo: Q(r.c), loIn: true, hi: Q(r.c), hiIn: true };
+      const a = { v: at(r, p.lo), inc: p.loIn }, b = { v: at(r, p.hi), inc: p.hiIn };
+      const [l, h] = a.v < b.v ? [a, b] : [b, a];
+      return { lo: Q(l.v), loIn: l.inc, hi: Q(h.v), hiIn: h.inc };
+    });
+    const parts = domain ? dParts : rParts;
+    const gap = pieces.some((p, i) => i > 0 && pieces[i - 1].hi < p.lo);
+    const each = pieces.map((p, i) => {
+      const r = rules[i];
+      if (r.m === 0) return `on ${cond(p)[0]} f is always ${minus(r.c)}`;
+      const ya = at(r, p.lo), yb = at(r, p.hi);
+      return `on ${cond(p)[0]} f runs from ${minus(ya)}${p.loIn ? '' : ' (not reached)'} to ${minus(yb)}${p.hiIn ? '' : ' (not reached)'}`;
+    });
+    const work = domain
+      ? `f is defined only where one of its conditions holds: ${listed(pieces.map((p) => cond(p)[0]))}. Together${gap ? ', with the gap between them left out,' : ''} they are the domain.`
+      : `Take each piece on its own interval: ${each.join('; ')}. A line's values run between its two ends, and an end that is out of the interval is out of the values too, unless another piece reaches it.`;
+    const trap = domain ? '(The domain comes from the conditions, the "when" column; the rules only say what f does there.)'
+      : '(The range is read from the values f gives, not from the conditions: those are the domain.)';
+    return {
+      prompt: [T.prose(`The function f is defined in pieces, one rule for each part of its domain, and nowhere else. What is the ${domain ? 'domain' : 'range'} of f? Write it with ${letter}.`)],
+      text: `piecewise ${domain ? 'domain' : 'range'}: ${pieces.map((p, i) => `${ascii(rules[i])} if ${cond(p)[1]}`).join('; ')}`,
+      answer: setOf(letter, parts),
+      // Revealed: each piece's share of the answer, the x it covers or the
+      // heights it reaches.
+      visual: { kind: 'table', cols: ['f(x) =', 'when'], rows: pieces.map((p, i) => [show(rules[i]), cond(p)[0]]),
+        workingCol: domain ? 'x covered' : 'heights reached', working: parts.map((q) => said(letter, [q])) },
+      explain: `${work} ${trap} So the ${domain ? 'domain' : 'range'} is ${said(letter, parts)}.`,
+    };
+  }
+}
+const listed = (items) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
+
+/**
+ * The range of a step function on a stretch of x: separate values, one per
+ * step it reaches. ⌊x⌋ on 0 < x ≤ 3 is 0, 1, 2 and 3, since just past 0 the
+ * floor is already 0, and at 3 itself it is 3.
+ */
+function stepRange(rng) {
+  for (;;) {
+    const kind = rng.pick(['floor', 'floor', 'ceil', 'scaled', 'inside']);
+    const lo = rng.int(-4, 2), hi = lo + rng.int(2, kind === 'inside' ? 2 : 4);
+    const loIn = rng.chance(0.6), hiIn = rng.chance(0.4);
+    const m = kind === 'scaled' ? rng.pick([2, 3, -1, -2]) : 1, c = kind === 'scaled' ? rng.int(-3, 3) : 0;
+    const fl = kind === 'ceil' ? Math.ceil : Math.floor;
+    const k = kind === 'inside' ? 2 : 1;
+    // The steps of kx: each whole number n with some x in the stretch where
+    // ⌊kx⌋ (or ⌈kx⌉) = n, checked at the ends and just inside them.
+    const eps = 1e-9;
+    const first = kind === 'ceil' ? (loIn ? Math.ceil(k * lo) : Math.ceil(k * lo + eps)) : Math.floor(k * lo);
+    const last = kind === 'ceil' ? Math.ceil(k * hi) : (hiIn ? Math.floor(k * hi) : Math.ceil(k * hi) - 1);
+    const steps = [];
+    for (let n = first; n <= last; n++) steps.push(n);
+    const values = [...new Set(steps.map((n) => m * n + c))].sort((a, b) => a - b);
+    if (values.length > 7 || values.some((v) => Math.abs(v) > 18)) continue;
+    const sym = kind === 'ceil' ? (s) => `⌈${s}⌉` : (s) => `⌊${s}⌋`;
+    const show = kind === 'scaled' ? `${coefText(m)}${sym('x')}${tailText(c)}` : sym(k === 2 ? '2x' : 'x');
+    const ascii = kind === 'scaled' ? `${m}*floor(x)${tailAscii(c)}` : `${kind === 'ceil' ? 'ceil' : 'floor'}(${k === 2 ? '2*x' : 'x'})`;
+    const when = `${minus(lo)} ${loIn ? '≤' : '<'} x ${hiIn ? '≤' : '<'} ${minus(hi)}`;
+    const whenA = `${lo} ${loIn ? '<=' : '<'} x ${hiIn ? '<=' : '<'} ${hi}`;
+    const parts = values.map((v) => ({ lo: Q(v), loIn: true, hi: Q(v), hiIn: true }));
+    const def = kind === 'ceil' ? '⌈x⌉ is the least integer greater than or equal to x' : '⌊x⌋ is the greatest integer less than or equal to x';
+    const inner = k === 2 ? `2x runs from ${minus(2 * lo)} to ${minus(2 * hi)}, so ` : '';
+    const endWords = kind === 'ceil'
+      ? `${loIn ? `At x = ${minus(lo)} itself it is ${minus(Math.ceil(k * lo))}` : `Just past ${minus(k * lo)} it is already ${minus(first)}`}, and ${hiIn ? `at ${minus(k * hi)} it is ${minus(last)}` : `just short of ${minus(k * hi)} it is ${minus(last)}`}`
+      : `${loIn ? `At ${minus(k * lo)} itself it is ${minus(first)}` : `Just past ${minus(k * lo)} it is still ${minus(first)}`}, and ${hiIn ? `at ${minus(k * hi)} it reaches ${minus(last)}` : `it stops just short of ${minus(k * hi)}, so its last step is ${minus(last)}`}`;
+    return {
+      prompt: [T.prose(`${def}, and f(x) = ${show} for ${when}. What is the range of f? Write it with y, listing every value.`)],
+      text: `step range: ${ascii} if ${whenA}`,
+      answer: setOf('y', parts),
+      visual: null,
+      explain: `${inner}${inner ? 'the' : 'The'} ${kind === 'ceil' ? 'ceiling' : 'floor'} takes each whole number from ${minus(first)} to ${minus(last)}. ${endWords}. `
+        + `${kind === 'scaled' ? `Then multiply each by ${minus(m)}${c ? ` and ${c > 0 ? 'add' : 'take away'} ${Math.abs(c)}` : ''}: ${listed(values.map(minus))}. ` : ''}`
+        + '(A step function jumps from one value to the next, so its range is separate values, not an interval.) '
+        + `So the range is ${said('y', parts)}.`,
+    };
+  }
+}
+
+// requiem: catalogue/content/one-input-per-level
+// A value goes in the number box and a domain or range in the solutions
+// box, and the question says which: "find f(3)" or "what is the range".
 function piecewise(rng) {
-  return rng.chance(0.65) ? piecewiseTable(rng) : piecewiseGraph(rng);
+  const r = rng.float();
+  return r < 0.3 ? piecewiseSet(rng) : r < 0.75 ? piecewiseTable(rng) : piecewiseGraph(rng);
 }
 
 // ── Step functions ──────────────────────────────────────────────────────
@@ -413,6 +531,8 @@ const money = (cents) => ({ type: 'decimal', value: { n: cents, d: 100 } });
 const dollars = (cents) => `$${(cents / 100).toFixed(2)}`;
 
 function steps(rng) {
+  // A range is asked "with y, listing every value", so its box is no surprise.
+  if (rng.chance(0.3)) return stepRange(rng);
   const kind = rng.pick(['floor', 'floor', 'ceil', 'shifted', 'each', 'first']);
   if (kind === 'floor' || kind === 'ceil') {
     const x = dec1(rng, -6, 6);

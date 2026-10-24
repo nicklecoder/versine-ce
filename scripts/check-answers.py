@@ -6166,8 +6166,43 @@ def dr_kind(unit: str, most: str, each: str, listing: str) -> str:
     return fit[0] if len(fit) == 1 else f"{len(fit)} options are {want}"
 
 
+# requiem: catalogue/content/piecewise-and-step-ask-domain-range
+def dr_rules(listing: str) -> list:
+    """Each piece's rule and its condition, a chain like -3 <= x < 2."""
+    out = []
+    for piece in listing.split("; "):
+        expr, cond = piece.split(" if ")
+        assert re.fullmatch(r"-?\d+ <=? x <=? -?\d+", cond), cond
+        out.append((dr_fn(expr), cond))
+    return out
+
+
+def dr_holds(cond: str, x) -> bool:
+    return eval(cond, {"__builtins__": {}}, {"x": x})
+
+
+def dr_piecewise_domain(listing: str) -> frozenset:
+    rules = dr_rules(listing)
+    return frozenset(x for x in SAMPLES_ON_LINE if any(dr_holds(c, x) for _, c in rules))
+
+
+def dr_values(listing: str) -> OnGrid:
+    """Every height f reaches, found by trying it at every twelfth its
+    conditions allow: a line's height at a half is reached at a twelfth, a
+    floor's at the first x of its step, and nothing else is reached."""
+    seen = set()
+    for f, cond in dr_rules(listing):
+        for x in DR_X:
+            if dr_holds(cond, x):
+                seen.add(Fraction(f(x)))
+    return on_grid(seen & set(DR_Y), DR_Y)
+
+
 SET_RULES += (
     (re.compile(r"^domain: (.+)$"), dr_domain),
+    (re.compile(r"^piecewise domain: (.+)$"), dr_piecewise_domain),
+    (re.compile(r"^piecewise range: (.+)$"), dr_values),
+    (re.compile(r"^step range: (.+)$"), dr_values),
     (re.compile(r"^range: (.+)$"), dr_range),
     (re.compile(r"^graph (domain|range): (.+)$"), dr_graph),
     (re.compile(r"^context domain: (.+) >= 0, t >= 0$"), dr_context),
