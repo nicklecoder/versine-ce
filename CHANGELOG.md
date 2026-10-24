@@ -13,6 +13,18 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Trig Identities**, a new skill under Identities, in eight levels:
+Pythagorean, reciprocal and quotient, even and odd, cofunction, sum and
+difference, double angle, Next Step in a Proof, then All Together. Each
+level mixes values worked from a given ratio with expressions to simplify,
+asked as a choice where exactly one option is equal to the expression;
+exact values with two radicals, such as cos 15°, are choices too. Next Step
+in a Proof gives a goal and the lines so far and offers the next line among
+slips a student makes: a sign or function swapped, a square dropped, a
+factor doubled. `check-answers.py` evaluates every option at several angles
+to find the one equal option, and works every value again from the
+calculator.
+
 **Graphs of Sine & Cosine**, a new skill under the Unit Circle, in seven
 levels: amplitude, period, midline (with the maximum and minimum), phase
 shift with b factored out, the equation of a drawn wave, and sinusoidal

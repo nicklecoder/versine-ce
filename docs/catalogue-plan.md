@@ -351,6 +351,12 @@ Equation From a Graph · Sinusoidal Models · All Together, in the plan's
 levels. Phase Shift depends on transforming functions' Left and Right, and
 asks the shift as a choice so that the unfactored amount and the wrong
 direction can both be offered.
+`identities` is built, as Pythagorean · Reciprocal & Quotient · Even & Odd ·
+Cofunction · Sum & Difference · Double Angle · Next Step in a Proof · All
+Together, in the plan's levels. Cofunction depends on trig-ratios'
+Complementary sin/cos, so the skill depends on trig-ratios as well as the
+unit circle. Exact values with two radicals are asked as choices, since the
+roots input holds one, and Next Step in a Proof is capped at 300 problems.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

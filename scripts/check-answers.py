@@ -5361,6 +5361,133 @@ for path in sorted(LIB.glob("trig-graphs-*.json")):
             if min(abs(dot[1] - float(hi)), abs(dot[1] - float(lo))) > 0.0501 or abs(f(dot[0]) - dot[1]) > 0.1:
                 problems.append(f"{where}: the dot at {dot} is not a peak or trough of y = {rhs}")
 
+
+# --- Trig Identities ---------------------------------------------------------
+#
+# Each expression is the ASCII the student's version is drawn from, evaluated
+# here at seven angles (t for θ). A "simplify" question, or a proof's next
+# step, must have exactly one option equal to the expression (or to the
+# proof's last line), and every line of a proof must equal the one before.
+# A value is worked out at an angle placed in its quadrant by the inverse
+# function; one that needs no quadrant is evaluated at both angles the given
+# ratio allows, and they must agree.
+
+ID_NAMES = {
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "sec": lambda x: 1 / math.cos(x), "csc": lambda x: 1 / math.sin(x), "cot": lambda x: math.cos(x) / math.sin(x),
+    "sqrt": math.sqrt, "pi": math.pi,
+}
+ID_TESTS = (0.37, 0.91, 1.23, 2.05, 2.71, 4.0, 5.3)
+
+
+def id_expr(written: str):
+    words = set(re.findall(r"[a-z]+", written))
+    assert words <= set(ID_NAMES) | {"t", "a", "b"}, f"unexpected names in {written!r}"
+    assert re.fullmatch(r"[\w\s+\-*/().^]+", written), f"unexpected characters in {written!r}"
+    return eval(f"lambda t=0, a=0, b=0: {written.replace('^', '**')}", {"__builtins__": {}, **ID_NAMES})
+
+
+def id_same(e1: str, e2: str) -> bool:
+    f, g = id_expr(e1), id_expr(e2)
+    return all(abs(f(t) - g(t)) <= 1e-9 * max(1, abs(f(t))) for t in ID_TESTS)
+
+
+# requiem: catalogue/content/identity-choices-have-one-equal-option
+def id_pick(expr: str, options: str) -> str:
+    fits = [oid for oid, opt in tg_options(options).items() if id_same(expr, opt)]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def id_proof(goal: str, so_far: str, options: str) -> str:
+    left, right = goal.split(" = ")
+    lines = so_far.split(" = ")
+    if not id_same(left, right):
+        return "the goal is not an identity"
+    if lines[0] != left or any(not id_same(x, y) for x, y in zip(lines, lines[1:])):
+        return "a line so far is not equal to the one before"
+    return id_pick(lines[-1], options)
+
+
+def id_place(fn: str, value: str, q: str) -> float:
+    """An angle in quadrant q with fn of it equal to value."""
+    v = Fraction(value)
+    t0 = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn](abs(float(v)))
+    t = [t0, math.pi - t0, math.pi + t0, 2 * math.pi - t0][ROMAN[q] - 1]
+    assert (ID_NAMES[fn](t) > 0) == (v > 0), f"{fn} = {value} cannot be in quadrant {q}"
+    return t
+
+
+def id_either(fn: str, value: str, want: str) -> float:
+    """want, which must not depend on which angle with fn = value is meant."""
+    v = float(Fraction(value))
+    t0 = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn](v)
+    t1 = {"sin": math.pi - t0, "cos": -t0, "tan": t0 + math.pi}[fn]
+    f = id_expr(want)
+    x, y = f(t0), f(t1)
+    assert abs(x - y) < 1e-9, f"{want} differs between the two angles with {fn} = {value}"
+    return x
+
+
+def id_reciprocal(f: str, v: str, g, w, want: str) -> float:
+    if g is None:
+        assert want == {"sin": "csc", "cos": "sec", "tan": "cot"}[f], f"{want} needs more than {f}"
+        return id_either(f, v, f"{want}(t)")
+    s, c = Fraction(v), Fraction(w)
+    assert s * s + c * c == 1, f"sin {v} and cos {w} are not on the unit circle"
+    return ID_NAMES[want](math.atan2(float(s), float(c)))
+
+
+def id_cofunction_pair(f: str, a: int, g: str) -> int:
+    fits = [x for x in range(1, 90) if abs(ID_NAMES[g](math.radians(x)) - ID_NAMES[f](math.radians(a))) < 1e-9]
+    assert len(fits) == 1, f"{f} {a} = {g} of {fits}"
+    return fits[0]
+
+
+def id_cofunction_rad(f: str, n: int, d: int, g: str) -> Fraction:
+    want = ID_NAMES[f](math.pi * n / d)
+    fits = {Fraction(k, m) for m in range(1, 37) for k in range(1, m) if Fraction(k, m) < Fraction(1, 2)
+            and abs(ID_NAMES[g](math.pi * k / m) - want) < 1e-9}
+    assert len(fits) == 1, f"{f} {n}/{d} pi = {g} of {fits}"
+    return fits.pop()
+
+
+def id_exact_choice(f: str, angle: str, options: str) -> str:
+    want = ID_NAMES[f](uc_angle(angle))
+    fits = [oid for oid, opt in tg_options(options).items() if abs(id_expr(opt)() - want) < 1e-9]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def id_sum(f: str, v: str, q: str, g: str, w: str, r: str, want: str) -> float:
+    return id_expr(want)(a=id_place(f, v, q), b=id_place(g, w, r))
+
+
+def id_double(f: str, v: str, q: str, want: str) -> float:
+    return id_expr(want)(t=id_place(f, v, q))
+
+
+id_ratio = lambda solve: lambda *g: Fraction(solve(*g)).limit_denominator(100000)
+ID_VALUE = r"^identity value: (.+) at (-?\d+(?:/\d+ pi)?)$"
+
+EXACT_RULES += (
+    (re.compile(ID_VALUE), lambda e, a: id_expr(e)(uc_angle(a))),
+)
+
+BY_RULE += (
+    (re.compile(ID_VALUE), id_ratio(lambda e, a: id_expr(e)(uc_angle(a)))),
+    (re.compile(r"^reciprocal: (sin|cos|tan) (-?\d+/\d+)(?:, (cos) (-?\d+/\d+))?, want (\w+)$"), id_ratio(id_reciprocal)),
+    (re.compile(r"^(?:even odd|cofunction of): (sin|cos|tan) (-?\d+/\d+), want (.+)$"), id_ratio(id_either)),
+    (re.compile(r"^cofunction pair: (\w+) (\d+) = (\w+) \?$"), id_cofunction_pair),
+    (re.compile(r"^cofunction rad: (\w+) (\d+)/(\d+) pi = (\w+) \?$"), id_cofunction_rad),
+    (re.compile(r"^sum: (sin) a (-?\d+/\d+) quadrant (I|II|III|IV), (cos) b (-?\d+/\d+) quadrant (I|II|III|IV), want (.+)$"), id_ratio(id_sum)),
+    (re.compile(r"^double: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (.+)$"), id_ratio(id_double)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^trig simplify: (.+?); options (.+)$"), id_pick),
+    (re.compile(r"^proof: goal (.+?); so far (.+?); options (.+)$"), id_proof),
+    (re.compile(r"^exact choice: (sin|cos|tan) (-?\d+(?:/\d+ pi)?); options (.+)$"), id_exact_choice),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

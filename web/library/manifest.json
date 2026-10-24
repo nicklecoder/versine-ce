@@ -1,5 +1,5 @@
 {
-  "built": 523,
+  "built": 531,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -660,6 +660,16 @@
       "phase-shift",
       "equation-from-a-graph",
       "sinusoidal-models",
+      "all-together"
+    ],
+    "identities": [
+      "pythagorean",
+      "reciprocal-and-quotient",
+      "even-and-odd",
+      "cofunction",
+      "sum-and-difference",
+      "double-angle",
+      "next-step-in-a-proof",
       "all-together"
     ]
   },
@@ -1485,9 +1495,20 @@
           "transformations-f"
         ]
       }
+    },
+    "identities": {
+      "dependsOn": [
+        "trig-ratios",
+        "unit-circle"
+      ],
+      "levels": {
+        "cofunction": [
+          "trig-ratios"
+        ]
+      }
     }
   },
-  "sources": "65e10fab0a3151b642b1b54598170d44cbff388b6c424e695db1a8b086df11e2",
+  "sources": "03211c5b83b751037679d67fd470d52ac6264173f72c16078a067488bcc04b83",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6718,6 +6739,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "trig-graphs-6.json"
+    },
+    {
+      "skill": "identities",
+      "level": 0,
+      "slug": "pythagorean",
+      "name": "Pythagorean",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-0.json"
+    },
+    {
+      "skill": "identities",
+      "level": 1,
+      "slug": "reciprocal-and-quotient",
+      "name": "Reciprocal & Quotient",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-1.json"
+    },
+    {
+      "skill": "identities",
+      "level": 2,
+      "slug": "even-and-odd",
+      "name": "Even & Odd",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-2.json"
+    },
+    {
+      "skill": "identities",
+      "level": 3,
+      "slug": "cofunction",
+      "name": "Cofunction",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "identities-3.json"
+    },
+    {
+      "skill": "identities",
+      "level": 4,
+      "slug": "sum-and-difference",
+      "name": "Sum & Difference",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-4.json"
+    },
+    {
+      "skill": "identities",
+      "level": 5,
+      "slug": "double-angle",
+      "name": "Double Angle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-5.json"
+    },
+    {
+      "skill": "identities",
+      "level": 6,
+      "slug": "next-step-in-a-proof",
+      "name": "Next Step in a Proof",
+      "count": 300,
+      "exhaustive": false,
+      "signed": false,
+      "file": "identities-6.json"
+    },
+    {
+      "skill": "identities",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-7.json"
     }
   ]
 }
