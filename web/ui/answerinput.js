@@ -43,7 +43,9 @@ function intInput(spec, opts = {}) {
     oninput: () => {
       // A decimal box keeps commas and a slash as typed, and reads them only
       // on submit: mid-typing, "4," cannot yet tell 4,8 from 4,800.
-      const clean = input.value.replace(opts.comma ? /[^0-9.,/-]/g : /[^0-9.-]/g, '')
+      // A minus pasted from the prompt is U+2212, and some keyboards type an
+      // en dash: each is a minus, not a stray character to drop.
+      const clean = input.value.replace(/[−–—]/g, '-').replace(opts.comma ? /[^0-9.,/-]/g : /[^0-9.-]/g, '')
         .replace(/(?!^)-/g, '')
         .replace(/(\..*)\./g, '$1');
       if (clean !== input.value) input.value = clean;
