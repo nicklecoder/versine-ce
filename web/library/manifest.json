@@ -1,5 +1,5 @@
 {
-  "built": 437,
+  "built": 461,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -552,6 +552,36 @@
       "tangents",
       "equation-of-a-circle",
       "complete-the-square-for-center",
+      "all-together"
+    ],
+    "reasoning": [
+      "hypothesis-and-conclusion",
+      "converse",
+      "inverse",
+      "contrapositive",
+      "which-is-equivalent",
+      "counterexample",
+      "biconditional",
+      "all-together"
+    ],
+    "bivariate": [
+      "association",
+      "line-of-fit-predictions",
+      "slope-and-intercept-in-context",
+      "residuals",
+      "correlation-strength",
+      "correlation-vs-causation",
+      "two-way-tables",
+      "all-together"
+    ],
+    "distributions": [
+      "box-plots",
+      "histograms",
+      "shape-and-center",
+      "standard-deviation",
+      "normal-curve-percents",
+      "z-scores",
+      "which-spread",
       "all-together"
     ]
   },
@@ -1243,9 +1273,48 @@
           "quadratic-formula"
         ]
       }
+    },
+    "reasoning": {
+      "dependsOn": [
+        "factors",
+        "quadrilaterals"
+      ],
+      "levels": {}
+    },
+    "bivariate": {
+      "dependsOn": [
+        "linear-models",
+        "percents"
+      ],
+      "levels": {
+        "slope-and-intercept-in-context": [
+          "linear-models"
+        ],
+        "two-way-tables": [
+          "percents"
+        ]
+      }
+    },
+    "distributions": {
+      "dependsOn": [
+        "data-center",
+        "percents",
+        "roots"
+      ],
+      "levels": {
+        "box-plots": [
+          "data-center"
+        ],
+        "standard-deviation": [
+          "roots"
+        ],
+        "normal-curve-percents": [
+          "percents"
+        ]
+      }
     }
   },
-  "sources": "5e2c3cf529afb678c4e947e633817e92c0b1a9ce7e713f347dfc82fc328d001d",
+  "sources": "ac79a8bd36848fd51668861d0eb3a89a0f9081f438c4d56cd64927a76a7fbfb8",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5616,6 +5685,246 @@
       "exhaustive": false,
       "signed": true,
       "file": "circles-7.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 0,
+      "slug": "hypothesis-and-conclusion",
+      "name": "Hypothesis & Conclusion",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-0.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 1,
+      "slug": "converse",
+      "name": "Converse",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-1.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 2,
+      "slug": "inverse",
+      "name": "Inverse",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-2.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 3,
+      "slug": "contrapositive",
+      "name": "Contrapositive",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-3.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 4,
+      "slug": "which-is-equivalent",
+      "name": "Which Is Equivalent",
+      "count": 876,
+      "exhaustive": true,
+      "signed": false,
+      "file": "reasoning-4.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 5,
+      "slug": "counterexample",
+      "name": "Counterexample",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-5.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 6,
+      "slug": "biconditional",
+      "name": "Biconditional",
+      "count": 64,
+      "exhaustive": true,
+      "signed": false,
+      "file": "reasoning-6.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-7.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 0,
+      "slug": "association",
+      "name": "Association",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-0.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 1,
+      "slug": "line-of-fit-predictions",
+      "name": "Line-of-Fit Predictions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-1.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 2,
+      "slug": "slope-and-intercept-in-context",
+      "name": "Slope & Intercept in Context",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "bivariate-2.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 3,
+      "slug": "residuals",
+      "name": "Residuals",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "bivariate-3.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 4,
+      "slug": "correlation-strength",
+      "name": "Correlation Strength",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-4.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 5,
+      "slug": "correlation-vs-causation",
+      "name": "Correlation vs Causation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-5.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 6,
+      "slug": "two-way-tables",
+      "name": "Two-Way Tables",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "bivariate-6.json"
+    },
+    {
+      "skill": "bivariate",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "bivariate-7.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 0,
+      "slug": "box-plots",
+      "name": "Box Plots",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-0.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 1,
+      "slug": "histograms",
+      "name": "Histograms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-1.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 2,
+      "slug": "shape-and-center",
+      "name": "Shape & Center",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-2.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 3,
+      "slug": "standard-deviation",
+      "name": "Standard Deviation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-3.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 4,
+      "slug": "normal-curve-percents",
+      "name": "Normal Curve Percents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-4.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 5,
+      "slug": "z-scores",
+      "name": "z-Scores",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "distributions-5.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 6,
+      "slug": "which-spread",
+      "name": "Which Spread",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "distributions-6.json"
+    },
+    {
+      "skill": "distributions",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "distributions-7.json"
     }
   ]
 }

@@ -13,6 +13,36 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Distributions**, a new skill under Statistics, in eight levels: reading box plots,
+the share of data between any two of the five numbers, and the 1.5 × IQR rule;
+histograms, counted bar by bar, as percents, and for the interval that holds the
+median; shape, and where a skew puts the mean against the median; the standard
+deviation, worked through on sets where it comes out whole; normal-curve percents
+and counts by the 68-95-99.7 rule; z-scores, both ways and to compare across tests;
+and which measure of spread fits. `check-answers.py` reads every box plot from its
+five numbers, rebuilds every histogram as its values, and keeps its own table of the
+normal curve's bands.
+
+**Two-Variable Data**, a new skill under Statistics, in eight levels: positive,
+negative or no association in a scatter plot or table; predicting from a line of
+fit, forward and back; what its slope and intercept mean in context, and finding
+them from two points; residuals, as actual minus predicted; how strong a
+correlation coefficient is, and which plot fits which r; when a correlation shows a
+cause; and two-way tables, filled in from their totals, read as joint, marginal and
+conditional percents, and checked for an association. Scatter plots are drawn by a
+new chart helper on the plane, with axes that start where the data does.
+`check-answers.py` works out r from the points, every prediction and residual from
+the line, and every table question from the four counts.
+
+**Logical Reasoning**, a new skill under Shapes, in eight levels: the hypothesis and
+conclusion of a conditional, however it is worded ("q if p", "p only if q"); the
+converse, inverse and contrapositive, both built and judged true or false; which
+statements must share a truth value; counterexamples; and biconditionals. Truth is
+only asked about whole numbers, quadrilaterals and triangles, where it can be
+tested; everyday statements appear only in questions about structure.
+`check-answers.py` builds each form itself and tests it over every whole number
+from 1 to 200 and every kind of quadrilateral and triangle, from their defining facts.
+
 **Circles**, a new skill under Shapes, in eight levels: arc length and sector area as
 the central angle's share of the circle, and back to the angle or radius; central and
 inscribed angles; angles in a semicircle, on the same arc and in a cyclic
