@@ -13,6 +13,15 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Laws of Sines & Cosines**, a new skill under Right Triangles, in eight levels:
+the law of sines for a side and for an angle, the law of cosines for a side and
+for an angle, a strategy level, Which Law?, and How Many Triangles? for two
+sides and an angle not between them, then ½ab sin C and All Together. Every
+law-of-sines angle question says how many triangles fit, or which one it means.
+`check-answers.py` rebuilds each triangle on coordinates and measures it, rather
+than reusing either law. Triangle coordinates are kept to one decimal place, and
+figure levels are capped at 400 problems.
+
 **Trigonometric Ratios**, a new skill under Right Triangles, in nine levels:
 naming the opposite, adjacent and hypotenuse; sine, cosine and tangent as
 fractions; a missing side and a missing angle by calculator; exact sides of the

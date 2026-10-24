@@ -14,7 +14,7 @@
  * carries 4 places is never marked wrong, and one who carries every digit
  * gets the key.
  */
-import { RAD, r2, toward, text, outline, sideLabel, cornerText, rightMark, arc, cornerAt, fit, centroid, under, LINE, GIVEN, ASKED } from './figures.js';
+import { RAD, r2, toward, text, outline, sideLabel, cornerText, rightMark, arc, cornerAt, fit, centroid, under, fromSides, LINE, GIVEN, ASKED } from './figures.js';
 
 export const sinD = (d) => Math.sin(d * RAD);
 export const cosD = (d) => Math.cos(d * RAD);
@@ -36,8 +36,8 @@ export const at4 = (x) => String(four(x)).replace('-', '−');
  */
 export function safeRound(x, places, alt = x) {
   const s = 10 ** places;
-  const frac = x * s - Math.floor(x * s);
-  if (Math.abs(frac - 0.5) < 0.05) return null;
+  const edge = (v) => Math.abs(v * s - Math.floor(v * s) - 0.5) < 0.05;
+  if (edge(x) || edge(alt)) return null;
   const q = Math.round(x * s);
   if (Math.round(alt * s) !== q) return null;
   return q;
@@ -112,3 +112,46 @@ export function rightFigure(P, { angle = null, sides = {}, asked = null, reveal 
   return fit({ kind: 'plane', xRange: [0, 1], yRange: [0, 1], grid: 0, axes: false, marks, answer }, 1.7);
 }
 const dirOut = (A, R, T) => { const [f, t] = cornerAt(A, R, T); return (f + t) / 2; };
+
+// ── Any triangle ────────────────────────────────────────────────────────
+
+/**
+ * Triangle ABC drawn to scale from its sides a, b, c (a across from A), A at
+ * the left of base AB. `sides` and `angles` map a letter to its label;
+ * `asked` is the side or angle whose answer is revealed (or 'area', written
+ * in the middle), and `reveal` that answer.
+ */
+export function triangleFigure(a, b, c, { sides = {}, angles = {}, asked = null, reveal = null }) {
+  const P = fromSides(c, a, b, 4.4);
+  const [A, B, C] = P;
+  const mid = centroid(P);
+  const seg = { a: [B, C], b: [C, A], c: [A, B] };
+  const corner = { A: [A, B, C], B: [B, C, A], C: [C, A, B] };
+  const marks = [...outline(P), ...P.map((p, i) => text(toward(Math.atan2(p[1] - mid[1], p[0] - mid[0]) / RAD, 0.42, p), 'ABC'[i], LINE))];
+  for (const [k, label] of Object.entries(angles)) {
+    const [V, U, W] = corner[k];
+    const [from, to] = cornerAt(V, U, W);
+    const tone = k === asked ? ASKED : GIVEN;
+    marks.push(lightArc(from, to, 0.5, V, tone), cornerText(V, U, W, label, tone, 0.1));
+  }
+  for (const [k, label] of Object.entries(sides)) marks.push(sideLabel(...seg[k], label, mid, k === asked ? ASKED : GIVEN));
+  const answer = [];
+  if (reveal !== null && seg[asked]) answer.push(sideLabel(...seg[asked], reveal, mid, 'var(--result)', 0.95));
+  if (reveal !== null && corner[asked]) answer.push(text(under(P), `${asked} ≈ ${reveal}`, 'var(--result)'));
+  if (reveal !== null && asked === 'area') answer.push(text([r2(mid[0]), r2(mid[1])], reveal, 'var(--result)'));
+  return tenths(fit({ kind: 'plane', xRange: [0, 1], yRange: [0, 1], grid: 0, axes: false, marks, answer }, 1.7));
+}
+
+/** An angle's arc with a point every 20° or so: enough to read as a curve at this size. */
+const lightArc = (from, to, r, c, tone) => {
+  const n = Math.max(2, Math.ceil((to - from) / 20));
+  return { kind: 'path', tone, points: Array.from({ length: n + 1 }, (_, i) => toward(from + ((to - from) * i) / n, r, c)) };
+};
+/** Every coordinate to one decimal place: about a pixel at this scale, and a third fewer bytes. */
+function tenths(spec) {
+  const t = (v) => Math.round(v * 10) / 10;
+  const pt = (p) => p.map(t);
+  const one = (m) => ({ ...m, ...(m.from ? { from: pt(m.from) } : {}), ...(m.to ? { to: pt(m.to) } : {}),
+    ...(m.at ? { at: pt(m.at) } : {}), ...(m.points ? { points: m.points.map(pt) } : {}) });
+  return { ...spec, xRange: pt(spec.xRange), yRange: pt(spec.yRange), marks: spec.marks.map(one), answer: spec.answer.map(one) };
+}

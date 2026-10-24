@@ -4906,6 +4906,124 @@ CHOICE_RULES += (
     (re.compile(r"^side role: right ([A-Z]), angle ([A-Z]), third ([A-Z]), side ([A-Z]{2})$"), trig_role),
 )
 
+# --- Laws of sines and cosines ------------------------------------------------
+#
+# Each triangle is built again on coordinates -- from its angles by two rays
+# meeting, or from its sides and the angle between them -- and the asked
+# side or angle measured off it, so neither law is used to check itself. The
+# 4-place working beside each is the law the student uses, and the two must
+# round alike (trig_agree).
+
+def laws_points_from_angles(A, B):
+    # A at the origin, B at (1, 0); C where the rays at A and at B meet.
+    ta, tb = math.radians(A), math.radians(180 - B)
+    # A + s(cos ta, sin ta) = B + u(cos tb, sin tb)
+    det = math.cos(ta) * math.sin(tb) - math.sin(ta) * math.cos(tb)
+    s = (1 * math.sin(tb)) / det
+    return (0.0, 0.0), (1.0, 0.0), (s * math.cos(ta), s * math.sin(ta))
+
+
+def laws_sides(P) -> dict:
+    A, B, C = P
+    d = lambda p, q: math.hypot(p[0] - q[0], p[1] - q[1])
+    return {"a": d(B, C), "b": d(C, A), "c": d(A, B)}
+
+
+def laws_angle_at(P, which: str) -> float:
+    A, B, C = P
+    v, u, w = {"A": (A, B, C), "B": (B, C, A), "C": (C, A, B)}[which]
+    t = math.atan2(u[1] - v[1], u[0] - v[0]) - math.atan2(w[1] - v[1], w[0] - v[0])
+    t = abs(math.degrees(t)) % 360
+    return 360 - t if t > 180 else t
+
+
+def laws_sines_side(x, ax, y, ay, known, k, want, places) -> Fraction:
+    angles = {x: ax, y: ay}
+    angles[({"A", "B", "C"} - set(angles)).pop()] = 180 - ax - ay
+    s = laws_sides(laws_points_from_angles(angles["A"], angles["B"]))
+    exact = k * s[want] / s[known]
+    four = k * round(math.sin(math.radians(angles[want.upper()])), 4) / round(math.sin(math.radians(angles[known.upper()])), 4)
+    return trig_agree(exact, four, places)
+
+
+# requiem: catalogue/content/ssa-says-which-triangle
+def laws_sines_angle(A, a, b, which, places) -> Fraction:
+    # A at the origin, C at distance b along the ray at A; B on the base line
+    # at distance a from C. Every such B is listed, and the angle measured.
+    C = (b * math.cos(math.radians(A)), b * math.sin(math.radians(A)))
+    disc = a * a - C[1] ** 2
+    xs = [x for x in {C[0] + math.sqrt(disc), C[0] - math.sqrt(disc)} if x > 1e-9] if disc > 0 else []
+    angles = [laws_angle_at(((0.0, 0.0), (x, 0.0), C), "B") for x in xs]
+    picked = [t for t in angles if (t < 90) == (which == "acute")]
+    assert len(picked) == 1, (A, a, b, angles)
+    s4 = round(b * round(math.sin(math.radians(A)), 4) / a, 4)
+    four = math.degrees(math.asin(s4))
+    return trig_agree(picked[0], four if which == "acute" else 180 - four, places)
+
+
+def laws_cosines_side(a, b, C, places) -> Fraction:
+    P = ((b, 0.0), (a * math.cos(math.radians(C)), a * math.sin(math.radians(C))))
+    exact = math.hypot(P[0][0] - P[1][0], P[0][1] - P[1][1])
+    four = math.sqrt(a * a + b * b - 2 * a * b * round(math.cos(math.radians(C)), 4))
+    return trig_agree(exact, four, places)
+
+
+def laws_cosines_angle(a, b, c, want, places) -> Fraction:
+    # A at the origin, B at (c, 0), C found from its distances to both.
+    x = (b * b + c * c - a * a) / (2 * c)
+    P = ((0.0, 0.0), (float(c), 0.0), (x, math.sqrt(b * b - x * x)))
+    sides = {"A": (b, c, a), "B": (a, c, b), "C": (a, b, c)}[want]
+    four = math.degrees(math.acos(round((sides[0] ** 2 + sides[1] ** 2 - sides[2] ** 2) / (2 * sides[0] * sides[1]), 4)))
+    return trig_agree(laws_angle_at(P, want), four, places)
+
+
+def laws_count(A, a, b) -> str:
+    # The same construction as laws_sines_angle, counting the places B can go.
+    if A == 30 and 2 * a == b:
+        return "1"
+    if A >= 90:
+        return "1" if a > b else "0"
+    h = b * math.sin(math.radians(A))
+    assert abs(a - h) > 0.2, (A, a, b)
+    if a < h:
+        return "0"
+    base = b * math.cos(math.radians(A))
+    xs = [x for x in (base + math.sqrt(a * a - h * h), base - math.sqrt(a * a - h * h)) if x > 1e-9]
+    return str(len(xs))
+
+
+def laws_area(a, b, C, places) -> Fraction:
+    # The shoelace formula on the triangle's corners.
+    P = [(0.0, 0.0), (float(b), 0.0), (a * math.cos(math.radians(C)), a * math.sin(math.radians(C)))]
+    exact = abs(sum(P[i][0] * P[(i + 1) % 3][1] - P[(i + 1) % 3][0] * P[i][1] for i in range(3))) / 2
+    return trig_agree(exact, 0.5 * a * b * round(math.sin(math.radians(C)), 4), places)
+
+
+def laws_which(listing: str, want: str) -> str:
+    known = {k: int(v) for k, v in (item.split() for item in listing.split(", "))}
+    angles = {k for k in known if k.isupper()}
+    if any(known[k] == 90 for k in angles):
+        return "right"
+    # Two angles give the third, and then every angle has its side's partner.
+    paired = len(angles) >= 2 or any(k.lower() in known for k in angles)
+    return "sines" if paired else "cosines"
+
+
+BY_RULE += (
+    (re.compile(r"^sines side: ([ABC]) (\d+), ([ABC]) (\d+), ([abc]) (\d+); want ([abc]) to (\d) dp$"), laws_sines_side),
+    (re.compile(r"^sines angle: A (\d+), a (\d+), b (\d+); want (acute|obtuse) B to the nearest whole$"),
+     lambda A, a, b, which: laws_sines_angle(A, a, b, which, 0)),
+    (re.compile(r"^cosines side: a (\d+), b (\d+), C (\d+); want c to (\d) dp$"), laws_cosines_side),
+    (re.compile(r"^cosines angle: a (\d+), b (\d+), c (\d+); want ([ABC]) to the nearest whole$"),
+     lambda a, b, c, want: laws_cosines_angle(a, b, c, want, 0)),
+    (re.compile(r"^triangle area: a (\d+), b (\d+), C (\d+) to (\d) dp$"), laws_area),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^ssa count: A (\d+), a (\d+), b (\d+)$"), lambda A, a, b: laws_count(int(A), int(a), int(b))),
+    (re.compile(r"^which law: ((?:[ABCabc] \d+(?:, )?)+); want ([ABCabc])$"), laws_which),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

@@ -56,6 +56,7 @@ import probability from '../skills/probability.js';
 import counting from '../skills/counting.js';
 import probability2 from '../skills/probability-2.js';
 import trigRatios from '../skills/trig-ratios.js';
+import lawsSinesCosines from '../skills/laws-sines-cosines.js';
 import bivariate from '../skills/bivariate.js';
 import evaluate from '../skills/evaluate.js';
 import equations from '../skills/equations.js';
@@ -70,7 +71,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

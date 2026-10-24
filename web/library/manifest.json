@@ -1,5 +1,5 @@
 {
-  "built": 493,
+  "built": 501,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -622,6 +622,16 @@
       "30-60-90",
       "complementary-sin-cos",
       "elevation-and-bearings",
+      "all-together"
+    ],
+    "laws-sines-cosines": [
+      "sines-side",
+      "sines-angle",
+      "cosines-side",
+      "cosines-angle",
+      "which-law",
+      "how-many-triangles",
+      "half-ab-sin-c",
       "all-together"
     ]
   },
@@ -1398,9 +1408,19 @@
           "pythagoras"
         ]
       }
+    },
+    "laws-sines-cosines": {
+      "dependsOn": [
+        "trig-ratios"
+      ],
+      "levels": {
+        "which-law": [
+          "trig-ratios"
+        ]
+      }
     }
   },
-  "sources": "29d80f887069e673d5fffd0e2432693fd1a741e7cd979e7d4791d8420d4f6bde",
+  "sources": "a0aeabd2a6b12f2ad5349f6622552ab915907ac1521245fbb06bf4d75dcb455d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6331,6 +6351,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "trig-ratios-8.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 0,
+      "slug": "sines-side",
+      "name": "Sines: Side",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-0.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 1,
+      "slug": "sines-angle",
+      "name": "Sines: Angle",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-1.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 2,
+      "slug": "cosines-side",
+      "name": "Cosines: Side",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-2.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 3,
+      "slug": "cosines-angle",
+      "name": "Cosines: Angle",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-3.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 4,
+      "slug": "which-law",
+      "name": "Which Law?",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-4.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 5,
+      "slug": "how-many-triangles",
+      "name": "How Many Triangles?",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-5.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 6,
+      "slug": "half-ab-sin-c",
+      "name": "½ab sin C",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-6.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-7.json"
     }
   ]
 }

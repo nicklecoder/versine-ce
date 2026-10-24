@@ -330,6 +330,11 @@ With it, Phase 3 is built.
 makes nine; the skill says why with `longerBecause`. Calculator answers round
 only at the end, and a problem is kept only where 4-place working agrees with
 the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
+`laws-sines-cosines` is built, as Sines: Side · Sines: Angle · Cosines: Side
+· Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C ·
+All Together. Which Law? depends on trig-ratios' Missing Side, where a tool is
+first chosen by the sides in play. How Many Triangles? is added for the
+ambiguous case, and every Sines: Angle question names its triangle.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
