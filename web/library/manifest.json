@@ -1,5 +1,5 @@
 {
-  "built": 544,
+  "built": 550,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -687,6 +687,14 @@
       "piecewise",
       "step-functions",
       "domain-in-context",
+      "all-together"
+    ],
+    "composition": [
+      "f-plus-g",
+      "f-of-g-of-2",
+      "f-of-g-of-x",
+      "not-commutative",
+      "decompose",
       "all-together"
     ]
   },
@@ -1555,9 +1563,21 @@
           "transformations-f"
         ]
       }
+    },
+    "composition": {
+      "dependsOn": [
+        "functions",
+        "polynomials"
+      ],
+      "levels": {
+        "f-plus-g": [
+          "functions",
+          "polynomials"
+        ]
+      }
     }
   },
-  "sources": "ed8157cb666b69bd3a316ca18e9ed5e5ebfd8f30f91b4ceb2926c39273617e92",
+  "sources": "c5319e359d1c032d07795433649d7f7377834d51a1480e193df60bdb688a74a0",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6998,6 +7018,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "domain-range-6.json"
+    },
+    {
+      "skill": "composition",
+      "level": 0,
+      "slug": "f-plus-g",
+      "name": "(f + g)(x)",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "composition-0.json"
+    },
+    {
+      "skill": "composition",
+      "level": 1,
+      "slug": "f-of-g-of-2",
+      "name": "f(g(2))",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "composition-1.json"
+    },
+    {
+      "skill": "composition",
+      "level": 2,
+      "slug": "f-of-g-of-x",
+      "name": "f(g(x))",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "composition-2.json"
+    },
+    {
+      "skill": "composition",
+      "level": 3,
+      "slug": "not-commutative",
+      "name": "Not Commutative",
+      "count": 600,
+      "exhaustive": false,
+      "signed": false,
+      "file": "composition-3.json"
+    },
+    {
+      "skill": "composition",
+      "level": 4,
+      "slug": "decompose",
+      "name": "Decompose",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "composition-4.json"
+    },
+    {
+      "skill": "composition",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "composition-5.json"
     }
   ]
 }

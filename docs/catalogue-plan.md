@@ -373,6 +373,13 @@ depends on functions' Domain and Range, and Ranges of Parents on
 transforming functions' Combined. Piecewise and Step Functions ask for
 a value, so All Together leaves them out and keeps one answer box.
 
+`composition` is built, as (f + g)(x) · f(g(2)) · f(g(x)) · Not
+Commutative · Decompose · All Together. Its first level depends on
+functions' Function Notation and polynomials' Binomial Times Binomial.
+f(g(2)) is typed in the expression box like every other answer, so All
+Together deals from all five levels. Inverse functions, F-BF.4, are not
+here: they are `inverses`, next in the plan, whose Check by Composing builds on this.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

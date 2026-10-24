@@ -13,6 +13,17 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Combining Functions**, a new skill under Functions, in six levels:
+(f + g)(x) (sums, differences that take away all of g, and products),
+f(g(2)) (from formulas or from a table, inside out), f(g(x)) (every x
+replaced by the whole of g, then multiplied out), Not Commutative (the
+other order, picking f(g(x)) from the other order, the product and the
+sum, and whether a pair commutes), Decompose (the inside or the outside
+of h), then All Together. Every answer, numbers included, goes in the
+expression box. `check-answers.py` builds each composition by putting
+one formula into the other and compares by value, so every inside that
+rebuilds h is accepted, both signs under an even power among them.
+
 **Domain and Range**, a new skill under Functions, in seven levels:
 Domain of √ and Fractions, From a Graph (closed and open dots, arrows,
 and gaps), Ranges of Parents (shifted and stretched), Piecewise (a value

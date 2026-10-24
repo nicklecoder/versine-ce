@@ -6005,6 +6005,110 @@ for path in sorted(LIB.glob("domain-range-*.json")):
         if drawn_dots != sorted(want_dots):
             problems.append(f"{where}: dots drawn {drawn_dots}, not {sorted(want_dots)}")
 
+# --- Combining Functions -----------------------------------------------------
+#
+# f and g are read from the text and combined or composed here, by putting
+# one formula into the other as a string -- every x in f replaced by "(g)" --
+# so the evaluator does the algebra and no rule for multiplying out is shared
+# with the generator. A polynomial answer is compared by its coefficients and
+# must be expanded and collected; a number must be a plain integer.
+
+def cf_into(outer: str, inner: str) -> str:
+    return re.sub(r"x", f"({inner})", outer)
+
+
+def cf_combine(f: str, g: str, op: str, answer: str) -> str:
+    return same_polynomial(f"({f}) {op} ({g})", answer)
+
+
+def cf_compose(f: str, g: str, outer: str, inner: str, answer: str) -> str:
+    fs = {"f": f, "g": g}
+    return same_polynomial(cf_into(fs[outer], fs[inner]), answer)
+
+
+def cf_number(want: Fraction, answer: str) -> str:
+    if not re.fullmatch(r"-?\d+", answer.strip()):
+        return "is not a plain number"
+    return "ok" if Fraction(answer) == want else f"is not {want}"
+
+
+def cf_at(f: str, g: str, outer: str, inner: str, a: str, answer: str) -> str:
+    fs = {"f": f, "g": g}
+    return cf_number(at(fs[outer], {"x": at(fs[inner], {"x": Fraction(int(a))})}), answer)
+
+
+def cf_table(f: str, g: str, outer: str, inner: str, a: str, answer: str) -> str:
+    fs = {"f": [int(v) for v in f.split(", ")], "g": [int(v) for v in g.split(", ")]}
+    return cf_number(Fraction(fs[outer][fs[inner][int(a)]]), answer)
+
+
+def cf_coefficients(src: str) -> list:
+    """coefficients(), with a plain number allowed: an option can be one."""
+    return coefficients(src) if re.search(r"[a-z]", src) else [evaluate(src)]
+
+
+def cf_which(f: str, g: str, listing: str) -> str:
+    want = cf_coefficients(cf_into(f, g))
+    fit = [oid for oid, body in te_options(listing).items() if cf_coefficients(body) == want]
+    return fit[0] if len(fit) == 1 else f"{len(fit)} options are f(g(x))"
+
+
+# Equal at more points than the degree of the cross-multiplied difference --
+# eight -- is equal everywhere; a point where either side divides by zero is
+# skipped, and there are enough left over.
+CF_POINTS = [Fraction(n, 3) for n in range(-30, 31)]
+
+
+def cf_equal(a: str, b: str) -> bool:
+    agreed = 0
+    for x in CF_POINTS:
+        try:
+            u, v = at(a, {"x": x}), at(b, {"x": x})
+        except ZeroDivisionError:
+            continue
+        if u != v:
+            return False
+        agreed += 1
+    return agreed >= 20
+
+
+def cf_finished(answer: str) -> bool:
+    """Expanded and collected, or a number over x: no brackets left in it."""
+    return expanded(answer) or bool(re.fullmatch(r"\d+/x", answer.strip()))
+
+
+# requiem: catalogue/content/decompose-every-inside-accepted
+def cf_inner(h: str, f: str, answer: str) -> str:
+    if not cf_equal(cf_into(f, answer), h):
+        return "is not an inside that gives h"
+    return "ok" if cf_finished(answer) else "is not simplified"
+
+
+def cf_outer(h: str, g: str, answer: str) -> str:
+    if not cf_equal(cf_into(answer, g), h):
+        return "is not an outside that gives h"
+    return "ok" if cf_finished(answer) else "is not simplified"
+
+
+def cf_same(f: str, g: str) -> str:
+    # By value, since x³ inside x⁴ is past the degree coefficients() reads.
+    return "a" if cf_equal(cf_into(f, g), cf_into(g, f)) else "b"
+
+
+EXPR_RULES += (
+    (re.compile(r"^combine: f\(x\) = (.+); g\(x\) = (.+); \(f ([-+*]) g\)\(x\)$"), cf_combine),
+    (re.compile(r"^compose: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\(x\)\)$"), cf_compose),
+    (re.compile(r"^compose at: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\((-?\d+)\)\)$"), cf_at),
+    (re.compile(r"^compose table: f ([\d, ]+) \| g ([\d, ]+); ([fg])\(([fg])\((\d)\)\)$"), cf_table),
+    (re.compile(r"^decompose inner: h\(x\) = (.+); f\(x\) = (.+)$"), cf_inner),
+    (re.compile(r"^decompose outer: h\(x\) = (.+); g\(x\) = (.+)$"), cf_outer),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^which composition: f\(x\) = (.+); g\(x\) = (.+); f\(g\(x\)\); options (.+)$"), cf_which),
+    (re.compile(r"^same composition: f\(x\) = (.+); g\(x\) = (.+); options a: same \| b: different$"), cf_same),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
