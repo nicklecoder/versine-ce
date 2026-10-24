@@ -13,6 +13,14 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Compound Probability**, a new skill under Probability, in seven levels: Venn
+diagrams; the addition rule, with counts, probabilities and a deck of cards;
+conditional probability from a two-way table; drawing without replacement;
+P(A | B) from P(A and B) and P(B), and back; and testing independence by the
+product, by P(A | B) against P(A), and from a table. `check-answers.py` lists
+the 52 cards and every ordered pair of marbles drawn, and sums Venn regions
+and table cells by membership.
+
 **Counting**, a new skill under Probability, in eight levels: the multiplication
 principle; factorials and their quotients; permutations; combinations, as the
 ordered count divided by r!; a strategy level, Does Order Matter?, that asks

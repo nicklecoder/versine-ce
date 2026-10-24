@@ -4605,6 +4605,103 @@ CHOICE_RULES += (
      lambda what: "perm" if what in COUNT_ORDERED else ("comb" if what in COUNT_UNORDERED else None)),
 )
 
+# --- Compound probability ---------------------------------------------------
+#
+# Venn regions and table cells are summed by which events each one belongs
+# to, the deck is all 52 cards listed, two draws from a bag are every ordered
+# pair of different marbles, and independence is tested by multiplying.
+
+def compound_venn(counts: str, ask: str) -> Fraction:
+    # The regions in order: A only, both, B only, neither, as (in A, in B).
+    regions = list(zip(((True, False), (True, True), (False, True), (False, False)), map(int, counts.split())))
+    test = {"or": lambda a, b: a or b, "and": lambda a, b: a and b, "neither": lambda a, b: not a and not b,
+            "only": lambda a, b: a and not b, "not": lambda a, b: not a}[ask]
+    return Fraction(sum(n for (a, b), n in regions if test(a, b)), sum(n for _, n in regions))
+
+
+def compound_deck():
+    suits = ("heart", "diamond", "club", "spade")
+    ranks = ("ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king")
+    return [(s, r) for s in suits for r in ranks]
+
+
+def compound_card(code: str):
+    if code in ("heart", "diamond", "club", "spade"):
+        return lambda c: c[0] == code
+    if code == "red":
+        return lambda c: c[0] in ("heart", "diamond")
+    if code == "black":
+        return lambda c: c[0] in ("club", "spade")
+    if code == "face":
+        return lambda c: c[1] in ("jack", "queen", "king")
+    return lambda c: c[1] == str(code)
+
+
+def compound_deck_or(x, y) -> Fraction:
+    deck = compound_deck()
+    return Fraction(sum(1 for c in deck if compound_card(x)(c) or compound_card(y)(c)), len(deck))
+
+
+def compound_deck_two(code) -> Fraction:
+    import itertools
+    pairs = list(itertools.permutations(compound_deck(), 2))
+    return Fraction(sum(1 for p in pairs if all(compound_card(code)(c) for c in p)), len(pairs))
+
+
+def compound_bag_two(bag: str, ask: str) -> Fraction:
+    import itertools
+    marbles = [color for item in bag.split() for color in [item.split(":")[0]] * int(item.split(":")[1])]
+    pairs = list(itertools.permutations(range(len(marbles)), 2))
+    drawn = [(marbles[i], marbles[j]) for i, j in pairs]
+    m = re.fullmatch(r"(\w+) then (\w+)", ask)
+    if m:
+        ok = [d for d in drawn if d == (m[1], m[2])]
+    elif ask.startswith("both "):
+        ok = [d for d in drawn if d == (ask[5:], ask[5:])]
+    else:
+        m = re.fullmatch(r"one (\w+) one (\w+)", ask)
+        ok = [d for d in drawn if sorted(d) == sorted((m[1], m[2]))]
+    return Fraction(len(ok), len(drawn))
+
+
+def compound_table(a, b, d, e, want: str, given: str) -> Fraction:
+    cells = {("r1", "c1"): a, ("r1", "c2"): b, ("r2", "c1"): d, ("r2", "c2"): e}
+    inside = lambda key, label: label == "all" or label in key
+    wanted = lambda key: all(part in key for part in want.split())
+    whole = sum(n for k, n in cells.items() if inside(k, given))
+    return Fraction(sum(n for k, n in cells.items() if inside(k, given) and wanted(k)), whole)
+
+
+def compound_independent(pa, pb, pab) -> str:
+    return "yes" if Fraction(pa) * Fraction(pb) == Fraction(pab) else "no"
+
+
+def compound_independent_table(a, b, d, e) -> str:
+    # Independent when the first column's share is the same in both rows.
+    a, b, d, e = map(int, (a, b, d, e))
+    return "yes" if Fraction(a, a + b) == Fraction(d, d + e) else "no"
+
+
+BY_RULE += (
+    (re.compile(r"^venn: ([\d ]+); ask (or|and|neither|only|not)$"), compound_venn),
+    (re.compile(r"^deck: (\w+) or (\w+)$"), compound_deck_or),
+    (re.compile(r"^or counts: total (\d+), a (\d+), b (\d+), both (\d+)$"), lambda t, a, b, k: Fraction(a + b - k, t)),
+    (re.compile(r"^or exclusive: ([\d.]+) ([\d.]+)$"), lambda pa, pb: Fraction(pa) + Fraction(pb)),
+    (re.compile(r"^or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, pab: Fraction(pa) + Fraction(pb) - Fraction(pab)),
+    (re.compile(r"^both from or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, por: Fraction(pa) + Fraction(pb) - Fraction(por)),
+    (re.compile(r"^table chance: (\d+) (\d+) / (\d+) (\d+); want ([rc]\d(?: [rc]\d)?) given (r\d|c\d|all)$"), compound_table),
+    (re.compile(r"^deck two: both (\w+)$"), compound_deck_two),
+    (re.compile(r"^without replacement: ((?:\w+:\d+ ?)+); (.+)$"), compound_bag_two),
+    (re.compile(r"^conditional: ([\d.]+) ([\d.]+)$"), lambda pab, pb: Fraction(pab) / Fraction(pb)),
+    (re.compile(r"^and from conditional: ([\d.]+) ([\d.]+)$"), lambda pb, q: Fraction(pb) * Fraction(q)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^independent: ([\d.]+) ([\d.]+) ([\d.]+)$"), compound_independent),
+    (re.compile(r"^independent given: ([\d.]+) ([\d.]+)$"), lambda pa, pagb: "yes" if Fraction(pa) == Fraction(pagb) else "no"),
+    (re.compile(r"^independent table: (\d+) (\d+) / (\d+) (\d+)$"), compound_independent_table),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

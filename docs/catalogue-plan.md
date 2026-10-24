@@ -268,6 +268,13 @@ Spaces, where heads then tails first counts apart from tails then heads.
 Restrictions is added for S-CP.9's harder counts: fill the limited place
 first. No level has a visual; three numbers multiplied teach the count better
 than a tree too big to draw.
+`probability-2` is built, as Venn Diagrams · Addition Rule · Conditional From
+a Table · Without Replacement · P(A | B) · Independent or Not · All
+Together. Venn Diagrams is added, for S-CP.1's unions, intersections and
+complements, and its library is capped at 500 to keep the diagrams cheap.
+Conditional From a Table depends on bivariate's Two-Way Tables. Its tables
+have no column of row totals, so the revealed working column fits a phone.
+With it, Phase 3 is built.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

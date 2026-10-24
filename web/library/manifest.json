@@ -1,5 +1,5 @@
 {
-  "built": 477,
+  "built": 484,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -602,6 +602,15 @@
       "does-order-matter",
       "restrictions",
       "probability-by-counting",
+      "all-together"
+    ],
+    "probability-2": [
+      "venn-diagrams",
+      "addition-rule",
+      "conditional-from-a-table",
+      "without-replacement",
+      "conditional-formula",
+      "independent-or-not",
       "all-together"
     ]
   },
@@ -1356,9 +1365,20 @@
           "probability"
         ]
       }
+    },
+    "probability-2": {
+      "dependsOn": [
+        "bivariate",
+        "probability"
+      ],
+      "levels": {
+        "conditional-from-a-table": [
+          "bivariate"
+        ]
+      }
     }
   },
-  "sources": "58097174a03e3a82b186d5e99ae4c64a40cd8894b03d9ee29952732269b5d8a2",
+  "sources": "d0e55c2feb4db0dc0d64192f00b8e3c18fce6cf548630a13b1e14f4ab82a303b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6129,6 +6149,76 @@
       "exhaustive": false,
       "signed": false,
       "file": "counting-7.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 0,
+      "slug": "venn-diagrams",
+      "name": "Venn Diagrams",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2-0.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 1,
+      "slug": "addition-rule",
+      "name": "Addition Rule",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2-1.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 2,
+      "slug": "conditional-from-a-table",
+      "name": "Conditional From a Table",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2-2.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 3,
+      "slug": "without-replacement",
+      "name": "Without Replacement",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2-3.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 4,
+      "slug": "conditional-formula",
+      "name": "P(A | B)",
+      "count": 110,
+      "exhaustive": true,
+      "signed": false,
+      "file": "probability-2-4.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 5,
+      "slug": "independent-or-not",
+      "name": "Independent or Not",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2-5.json"
+    },
+    {
+      "skill": "probability-2",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "probability-2-6.json"
     }
   ]
 }
