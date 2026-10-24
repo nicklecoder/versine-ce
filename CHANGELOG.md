@@ -13,6 +13,9 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+The two-way tables in Two-Variable Data that reveal a working column now drop
+their row-total column, so they stay four columns wide and fit a phone.
+
 **Distributions**, a new skill under Statistics, in eight levels: reading box plots,
 the share of data between any two of the five numbers, and the 1.5 × IQR rule;
 histograms, counted bar by bar, as percents, and for the interval that holds the

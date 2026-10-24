@@ -514,8 +514,11 @@ function percentAnswer(part, whole) {
 function grid(S, c, hide = null, fill = null, working = null) {
   const [[a, b], [d, e]] = c;
   const cells = [[a, b, a + b], [d, e, d + e], [a + d, b + e, a + b + d + e]];
-  const rows = cells.map((r, i) => [i < 2 ? S.rows[i] : 'Total', ...r.map((v, j) => (hide && hide[0] === i && hide[1] === j ? '?' : String(v)))]);
-  return { kind: 'table', cols: ['', ...S.cols, 'Total'], rows, ...(fill ? { fill } : {}),
+  // A table that reveals a working column drops its column of row totals, so
+  // it stays four columns wide and fits a phone; the rows are two numbers to add.
+  const keep = working ? 2 : 3;
+  const rows = cells.map((r, i) => [i < 2 ? S.rows[i] : 'Total', ...r.slice(0, keep).map((v, j) => (hide && hide[0] === i && hide[1] === j ? '?' : String(v)))]);
+  return { kind: 'table', cols: ['', ...S.cols, ...(working ? [] : ['Total'])], rows, ...(fill ? { fill } : {}),
     ...(working ? { workingCol: working[0], working: working[1] } : {}) };
 }
 
@@ -580,15 +583,15 @@ function twoWay(rng) {
   }[kind];
   const A = percentAnswer(part, whole);
   const tail = A.rounded ? ' Round to the nearest tenth of a percent.' : '';
-  const wholeName = { joint: `all ${total}`, row: `all ${total}`, col: `all ${total}`, 'given-row': `the ${rowT} ${S.row[i]}`, 'given-col': `the ${colT} ${S.colWho[j]}` }[kind];
+  const wholeName = { joint: `all ${total}`, row: `all ${total}`, col: `all ${total}`, 'given-row': `the ${cells[i][0]} + ${cells[i][1]} = ${rowT} ${S.row[i]}`, 'given-col': `the ${colT} ${S.colWho[j]}` }[kind];
   return {
     prompt: [T.prose(`The two-way table shows a survey of ${S.who}. What percent ${ask}?${tail}`)],
     text: `two-way percent ${words}: ${a} ${b} / ${d} ${e}${A.rounded ? ' to 1 dp' : ''}`,
     answer: { type: 'decimal', value: A.value },
     visual: grid(S, c, null, null, ['Part ÷ whole',
       [0, 1, 2].map((r) => (r === (kind === 'col' || kind === 'given-col' ? 2 : i) ? `${part} ÷ ${whole}` : ''))]),
-    explain: `The whole is ${wholeName}, and the part is ${part}: ${part} ÷ ${whole} × 100 = ${A.rounded ? `${(pct(part, whole)).toFixed(3)}…, which is ${A.shown} to 1 dp` : A.shown}. `
-      + `(${kind.startsWith('given') ? `“Of the ${kind === 'given-row' ? S.row[i] : S.colWho[j]}” makes that ${kind === 'given-row' ? 'row' : 'column'} the whole, not the grand total.` : 'Out of everyone, the whole is the grand total in the corner, not a row or a column total.'}) So ${A.shown}%.`,
+    explain: `The whole is ${wholeName}, and the part is ${kind === 'row' ? `${cells[i][0]} + ${cells[i][1]} = ${part}` : part}: ${part} ÷ ${whole} × 100 = ${A.rounded ? `${(pct(part, whole)).toFixed(3)}…, which is ${A.shown} to 1 dp` : A.shown}. `
+      + `(${kind.startsWith('given') ? `“Of the ${kind === 'given-row' ? S.row[i] : S.colWho[j]}” makes that ${kind === 'given-row' ? 'row' : 'column'} the whole, not the grand total.` : `Out of everyone, the whole is all ${total}, not a row or a column total.`}) So ${A.shown}%.`,
   };
 }
 
