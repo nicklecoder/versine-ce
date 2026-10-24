@@ -46,6 +46,15 @@ const SITUATIONS = [
   { id: 'tank', about: "the liters left in a tank after it has drained for x minutes", start: [200, 600, 50], rate: [-25, -5, 5], x: 'minutes', y: 'liters in the tank',
     say: (s, r) => `A tank holds ${s} liters and drains ${-r} liters a minute.`,
     b: 'the starting amount', m: 'the change in liters each minute' },
+  // requiem: catalogue/content/units-both-systems
+  // The candle and the tank again in US units, with sizes true in them: a
+  // pillar candle is 6 to 12 inches tall, a hot-water tank 40 to 80 gallons.
+  { id: 'candleInches', about: "the height, in inches, of a candle after it has burned for x hours", start: [6, 12, 1], rate: [-2, -1, 1], x: 'hours it has burned', y: 'height in inches',
+    say: (s, r) => `A candle is ${s} inches tall and burns down ${-r} ${-r === 1 ? 'inch' : 'inches'} every hour.`,
+    b: 'the starting height', m: 'the change in height each hour' },
+  { id: 'tankGallons', about: "the gallons left in a tank after it has drained for x minutes", start: [40, 80, 5], rate: [-6, -2, 1], x: 'minutes', y: 'gallons in the tank',
+    say: (s, r) => `A tank holds ${s} gallons and drains ${-r} gallons a minute.`,
+    b: 'the starting amount', m: 'the change in gallons each minute' },
   { id: 'phone', about: "a monthly phone bill, in dollars, when x gigabytes are used", start: [0, 30, 5], rate: [1, 5, 1], x: 'gigabytes used', y: 'monthly bill in dollars',
     say: (s, r) => `A phone plan costs ${money(s)} a month plus ${money(r)} for each gigabyte used.`,
     b: 'the monthly charge', m: 'the cost for each gigabyte' },
@@ -100,6 +109,9 @@ const READINGS = [
     say: (a, b) => `A spring is ${a[1]} cm long with ${a[0]} kg hung on it, and ${b[1]} cm long with ${b[0]} kg.` },
   { id: 'car', x: 'hours', y: 'liters of fuel left', rate: [-9, -4], start: [45, 60],
     say: (a, b) => `A car has ${a[1]} liters of fuel left after ${count(a[0], 'hour')} of driving, and ${b[1]} liters after ${count(b[0], 'hour')}.` },
+  // A US tank holds 12 to 16 gallons and highway driving burns 2 or 3 an hour.
+  { id: 'carGallons', x: 'hours', y: 'gallons of gas left', rate: [-3, -2], start: [12, 16],
+    say: (a, b) => `A car has ${a[1]} gallons of gas left after ${count(a[0], 'hour')} of driving, and ${b[1]} gallons after ${count(b[0], 'hour')}.` },
   { id: 'hire', x: 'days', y: 'cost in dollars', rate: [15, 40], start: [10, 50],
     say: (a, b) => `Hiring a bike costs ${money(a[1])} for ${count(a[0], 'day')} and ${money(b[1])} for ${count(b[0], 'day')}.` },
 ];
@@ -277,9 +289,14 @@ function graphStory(rng, want = rng.int(0, 2)) {
   if (pick !== want) return graphStory(rng, want);
   const name = 'ABC'[pick];
   const options = ['A', 'B', 'C'].map((id) => ({ id, label: `Part ${id}` }));
-  const speed = (m) => `${Math.abs(m)} km per hour`;
+  // requiem: catalogue/content/units-both-systems
+  // A walker, since 1 to 4 an hour is walking pace in either unit and no
+  // cyclist's; half the walks are in miles.
+  const unit = rng.chance(0.5) ? { long: 'km', one: 'km', per: 'km per hour' }
+    : { long: 'miles', one: 'mile', per: 'mph' };
+  const speed = (m) => `${Math.abs(m)} ${unit.per}`;
   return {
-    prompt: [T.prose(`The graph shows a cyclist's distance from home, in km, over ${pts[3][0]} hours. `
+    prompt: [T.prose(`The graph shows a walker's distance from home, in ${unit.long}, over ${pts[3][0]} hours. `
       + { fastest: 'In which part are they going fastest?', stopped: 'In which part have they stopped?',
         returning: 'In which part are they heading back towards home?' }[ask])],
     text: `story graph ${ask}: ${pts.map(([x, y]) => `(${x}, ${y})`).join(' ')}`,
@@ -287,7 +304,7 @@ function graphStory(rng, want = rng.int(0, 2)) {
     visual: {
       // Fitted to the journey, so a short one is not squeezed into a corner.
       kind: 'plane', xRange: [0, pts[3][0] + 1], yRange: [0, Math.max(4, ...pts.map(([, y]) => y)) + 1], grid: 1,
-      titles: { x: 'hours', y: 'km from home' },
+      titles: { x: 'hours', y: `${unit.long} from home` },
       marks: [0, 1, 2].map((i) => ({ kind: 'segment', from: pts[i], to: pts[i + 1], label: 'ABC'[i],
         tone: 'var(--vec-1)' })),
       answer: [{ kind: 'segment', from: pts[pick], to: pts[pick + 1],
@@ -296,7 +313,7 @@ function graphStory(rng, want = rng.int(0, 2)) {
         label: `${name}: ${rot[pick] === 0 ? 'flat' : speed(rot[pick])}`, tone: 'var(--vec-2)' }],
     },
     explain: `The steepness of each part is the speed. ${rot.map((m, i) => `${'ABC'[i]}: ${m === 0 ? 'flat'
-      : `${m < 0 ? 'down' : 'up'} ${Math.abs(m)} km each hour`}`).join('; ')}. `
+      : `${m < 0 ? 'down' : 'up'} ${Math.abs(m)} ${Math.abs(m) === 1 ? unit.one : unit.long} each hour`}`).join('; ')}. `
       + { fastest: `The steepest is ${name}, so that is the fastest.`,
         stopped: `${name} is flat: the distance is not changing, so they have stopped.`,
         returning: `${name} goes down: the distance from home is shrinking, so they are heading back.` }[ask],

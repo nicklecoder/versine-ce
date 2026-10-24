@@ -175,6 +175,21 @@ const RATES = [
   per: 'dollars per week', rate: [5, 40] },
   { id: 'plant', t: 'days', q: 'cm', s: (a, b) => `A plant is ${a[1]} cm tall on day ${a[0]} and ${b[1]} cm tall on `
     + `day ${b[0]}. At what rate is it growing, in cm per day?`, up: true, per: 'cm per day', rate: [1, 5] },
+  // requiem: catalogue/content/units-both-systems
+  // The same three in US units, at speeds that are true in them: a walker
+  // makes 2 to 4 miles an hour, and a bean sprout an inch or two a day.
+  { id: 'hikerMiles', t: 'hours', q: 'miles', s: (a, b) => `A hiker is ${a[1]} miles from the start after `
+    + `${after(a[0], 'hours')}, and ${b[1]} miles from it after ${after(b[0], 'hours')}. At what rate is the `
+    + 'hiker walking, in miles per hour?',
+  up: true, per: 'miles per hour', rate: [2, 4],
+  start: (rate, t1, rng) => rate * t1 + rng.int(0, 2) },
+  { id: 'tankGallons', t: 'minutes', q: 'gallons', s: (a, b) => `A tank holds ${a[1]} gallons after `
+    + `${after(a[0], 'minutes')} and ${b[1]} gallons after ${b[0]} minutes. At what rate is the amount `
+    + 'changing, in gallons per minute?',
+  up: false, per: 'gallons per minute' },
+  { id: 'plantInches', t: 'days', q: 'inches', s: (a, b) => `A plant is ${a[1]} inches tall on day ${a[0]} and `
+    + `${b[1]} inches tall on day ${b[0]}. At what rate is it growing, in inches per day?`,
+  up: true, per: 'inches per day', one: 'inch per day', rate: [1, 2], start: (rate, t1, rng) => rng.int(2, 20) },
 ];
 
 function rateWithUnits(rng, s = rng.pick(RATES)) {
@@ -193,7 +208,7 @@ function rateWithUnits(rng, s = rng.pick(RATES)) {
     visual: null,
     explain: `The points are (${t1}, ${v1}) and (${t2}, ${v2}), with time across. The change is `
       + `${v2} − ${v1} = ${minus(v2 - v1)}${s.q === '%' ? '%' : ` ${s.q}`} over ${t2} − ${t1} = ${t2 - t1} ${s.t}: `
-      + `${minus(v2 - v1)} ÷ ${t2 - t1} = ${minus(rate)} ${s.per}.`
+      + `${minus(v2 - v1)} ÷ ${t2 - t1} = ${minus(rate)} ${Math.abs(rate) === 1 && s.one ? s.one : s.per}.`
       + (rate < 0 ? ' Negative, because the amount is going down.' : ''),
   };
 }
