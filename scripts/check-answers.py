@@ -2083,7 +2083,7 @@ BY_RULE += (
     (re.compile(r"^The (?:diver|lift|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
     (re.compile(r"^(\d+) (?:m|£|°) down, (\d+) times$"), lambda k, n: -k * n),
     (re.compile(r"^−(\d+) shared over (\d+)$"), lambda a, n: whole(Fraction(-a, n))),
-    (re.compile(r"^([\d ()+−]+[²³][\d ()+−²³]*)$"),
+    (re.compile(r"^([\d ()+−×÷]+[²³][\d ()+−×÷²³]*)$"),
      lambda src: evaluate(src.replace("²", "^2").replace("³", "^3"))),
     (re.compile(r"^([\d.]+)% = \?/(\d+)$"), lambda p, d: whole(Fraction(p) / 100 * d)),
     (re.compile(r"^([\d.]+)% as a decimal$"), lambda p: Fraction(p) / 100),
