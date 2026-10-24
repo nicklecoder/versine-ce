@@ -329,7 +329,7 @@ function cyclic(rng) {
     const corner = (v, l, tone) => { const i = names.indexOf(v); return angleText(P[i], P[(i + 1) % 4], P[(i + 3) % 4], l, tone); };
     const cornerE = (v, e) => { const i = names.indexOf(v); return exprAngle(P[i], P[(i + 1) % 4], P[(i + 3) % 4], e); };
     const fact = 'Opposite angles of a cyclic quadrilateral add to 180°: each is half the arc it stands on, and the two arcs make the whole 360°. ';
-    if (rng.chance(0.4)) {
+    if (rng.chance(0.25)) {
       const [v, u] = rng.pick([['A', 'C'], ['B', 'D']]);
       const x = xFor(rng, [ang[v], ang[u]]);
       const e1 = expr(rng, ang[v], x), e2 = expr(rng, ang[u], x, [e1[0]]);
@@ -341,6 +341,18 @@ function cyclic(rng) {
         visual: draw([...marks, ...cornerE(v, e1), ...cornerE(u, e2)], [answerAt(P, `x = ${x}`)]),
         explain: `${fact}So (${linear(...e1)}) + (${linear(...e2)}) = 180, which gathers to ${sv.work} Check: ${putX(e1, x)} = ${ang[v]} and ${putX(e2, x)} = ${ang[u]}, which add to 180. `
           + `(Opposite angles add to 180°; they are equal only when both are 90°.) So x = ${x}.`,
+      };
+    }
+    if (rng.chance(0.5)) {
+      // Two neighboring corners given: each asked corner pairs with the one opposite it, not the one beside it.
+      const i = rng.int(0, 3), g = [names[i], names[(i + 1) % 4]], u = names[(i + 2 + rng.int(0, 1)) % 4];
+      const opp = names[(names.indexOf(u) + 2) % 4];
+      return {
+        prompt: [T.prose(`ABCD is a quadrilateral with all four corners on a circle. ∠${g[0]} = ${deg(ang[g[0]])} and ∠${g[1]} = ${deg(ang[g[1]])}. What is ∠${u}, in degrees?`)],
+        text: `cyclic quadrilateral pair: angle ${g[0]} ${ang[g[0]]}, angle ${g[1]} ${ang[g[1]]}; find angle ${u}`,
+        answer: { type: 'int', value: ang[u] },
+        visual: draw([...marks, corner(g[0], deg(ang[g[0]])), corner(g[1], deg(ang[g[1]])), corner(u, '?', ASKED)], [answerAt(P, `∠${u} = ${deg(ang[u])}`)]),
+        explain: `${fact}∠${u} is opposite ∠${opp}, so ∠${u} = 180 − ${ang[opp]} = ${ang[u]}°. (∠${names[(names.indexOf(u) + (g.includes(names[(names.indexOf(u) + 1) % 4]) ? 1 : 3)) % 4]} is beside it, not opposite: neighboring corners need not add to 180°.) So ∠${u} = ${deg(ang[u])}.`,
       };
     }
     const v = rng.pick([...names]), u = names[(names.indexOf(v) + 2) % 4];
@@ -361,6 +373,43 @@ function sameArc(rng) {
   const t1 = rng.int(20, 20 + Math.floor(room / 2) - 10), t2 = rng.int(t1 + 20, 20 + room);
   const C = on(a0 + c + t1), D = on(a0 + c + t2);
   const marks = [circlePath(O, R), seg(C, A), seg(C, B), seg(D, A), seg(D, B), pointName(A, 'A'), pointName(B, 'B'), pointName(C, 'C'), pointName(D, 'D')];
+  // requiem: catalogue/content/circle-rules-before-equations
+  // Most rows ask the rule with numbers (the other angle, the arc, an angle from the arc); an x-equation is about a third.
+  const mode = rng.pick(['x', 'x', 'equal', 'equal', 'equal', 'equal', 'arc', 'fromArc', 'fromArc']);
+  const arcAt = toward(a0 + c / 2, R + 0.5);
+  // Inscribed angles here are often narrow: the label goes along the bisector, or outside with a leader.
+  const at = (V, label, tone = GIVEN) => cornerLabel(V, A, B, label, tone, { k: 1.2, away: O });
+  const fact = '∠ACB and ∠ADB both stand on arc AB from the same side, and each is half of it. ';
+  if (mode === 'equal') {
+    const [g, w] = rng.chance(0.5) ? ['ACB', 'ADB'] : ['ADB', 'ACB'];
+    const V = { ACB: C, ADB: D };
+    return {
+      prompt: [T.prose(`A, B, C and D are on a circle, with C and D on the same side of AB. ∠${g} = ${deg(half)}. What is ∠${w}, in degrees?`)],
+      text: `same arc: angle ${g} ${half}; find angle ${w}`,
+      answer: { type: 'int', value: half },
+      visual: draw([...marks, ...at(V[g], deg(half)), ...at(V[w], '?', ASKED)], [answerAt([A, B, C, D], `∠${w} = ${deg(half)}`)]),
+      explain: `${fact}So they are equal: ∠${w} = ${half}°. (Adding them to 180° is the rule for opposite corners of a cyclic quadrilateral, not for angles on the same arc.) So ∠${w} = ${deg(half)}.`,
+    };
+  }
+  if (mode === 'arc') {
+    return {
+      prompt: [T.prose(`A, B, C and D are on a circle, with C and D on the same side of AB. ∠ACB = ${deg(half)}. What is the measure of arc AB, in degrees?`)],
+      text: `same arc: angle ACB ${half}; find arc AB`,
+      answer: { type: 'int', value: c },
+      visual: draw([...marks, ...at(C, deg(half)), text(arcAt, '?', ASKED)], [answerAt([A, B, C, D], `arc AB = ${deg(c)}`)]),
+      explain: `${fact}So arc AB is twice ∠ACB: 2 × ${half} = ${c}°. (Not ${half}°: the inscribed angle is half the arc, not equal to it.) So arc AB = ${deg(c)}.`,
+    };
+  }
+  if (mode === 'fromArc') {
+    const w = rng.pick(['ACB', 'ADB']), V = { ACB: C, ADB: D };
+    return {
+      prompt: [T.prose(`A, B, C and D are on a circle, with C and D on the same side of AB, and arc AB measures ${deg(c)}. What is ∠${w}, in degrees?`)],
+      text: `same arc: arc AB ${c}; find angle ${w}`,
+      answer: { type: 'int', value: half },
+      visual: draw([...marks, text(arcAt, deg(c), GIVEN), ...at(V[w], '?', ASKED)], [answerAt([A, B, C, D], `∠${w} = ${deg(half)}`)]),
+      explain: `${fact}So ∠${w} = ${c} ÷ 2 = ${half}°, and so is the other angle on that arc. (Not ${c}°: that would be the central angle.) So ∠${w} = ${deg(half)}.`,
+    };
+  }
   const x = xFor(rng, [half]);
   const e1 = expr(rng, half, x), e2 = expr(rng, half, x, [e1[0]]);
   const s = solve(e1, e2);
