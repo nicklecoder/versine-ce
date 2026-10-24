@@ -221,6 +221,8 @@ function special45(rng) {
 
 // ── 30-60-90 ────────────────────────────────────────────────────────────
 
+const PLACE = { opposite: 'across from it', adjacent: 'beside it', hypotenuse: 'facing the right angle' };
+
 function special30(rng) {
   // The short leg as (n/d)√r; everything else follows from it.
   const mode = rng.pick(['short', 'short', 'hypotenuse', 'long root', 'long whole']);
@@ -247,26 +249,38 @@ function special30(rng) {
       : `The long leg is the short leg times √3, so the short leg is ${givenText} ÷ √3 = ${rootText(...short)}${mode === 'long whole' ? `, rationalized: ${k}/√3 = ${k}√3/3` : ''}.`;
   const wantWork = want === 'short' ? '' : want === 'long' ? ` The long leg is ${rootText(...short)} × √3 = ${rootText(...long)}.` : ` The hypotenuse is 2 × ${rootText(...short)} = ${rootText(...hyp)}.`;
   const trap = want === 'long' || givenRole === 'long' ? 'The long leg is the one facing the 60° angle, and it is the √3 one, not the 2.' : 'The hypotenuse faces the right angle and is exactly twice the short leg.';
+  // requiem: catalogue/content/special-triangle-leg-from-the-mark
+  // The question names no leg: the angle mark in the figure says which is
+  // which, and the text records that angle and the sides by their place
+  // from it, so the checker reads the figure the way the student does.
   return {
-    prompt: [T.prose(`In this 30-60-90 triangle, ${W[givenRole]} is ${givenText}. Give the exact length of ${W[want]}, x.`)],
-    text: `special 30: ${givenRole} ${givenText}, want ${want}`,
+    prompt: [T.prose(`In this 30-60-90 triangle, find the exact length of x.`)],
+    text: `special 30: angle ${at60 ? 60 : 30}, ${roleAt[givenRole]} ${givenText}, want ${roleAt[want]}`,
     answer: rootAnswer('x', ...value[want]),
     visual: rightFigure(P, { angle: at60 ? '60°' : '30°', sides, asked: roleAt[want], reveal: rootText(...value[want]) }),
-    explain: `A 30-60-90 triangle's sides are s, s√3 and 2s. ${shortWork}${wantWork} (${trap}) So x = ${rootText(...value[want])}.`,
+    explain: `A 30-60-90 triangle's sides are s, s√3 and 2s, the short leg s facing the 30° angle and the long leg s√3 facing the 60°. `
+      + `Here the marked angle is ${at60 ? '60°' : '30°'}, so the side ${PLACE[roleAt[givenRole]]} is ${W[givenRole]} and x, ${PLACE[roleAt[want]]}, is ${W[want]}. `
+      + `${shortWork}${wantWork} (${trap}) So x = ${rootText(...value[want])}.`,
   };
 }
 
 // ── Complementary sin/cos ───────────────────────────────────────────────
 
 function signed(a, b) { return `${a === 1 ? '' : a}x${b === 0 ? '' : b > 0 ? ` + ${b}` : ` − ${-b}`}`; }
+/** sin(2x + 10)°, or sin 2x° when there is nothing to add: a single term goes bare. */
+const angleOf = (f, a, b) => (b === 0 ? `${f} ${signed(a, b)}°` : `${f}(${signed(a, b)})°`);
+const gcd = (x, y) => (y ? gcd(y, x % y) : x);
 
 function cofunction(rng) {
-  const mode = rng.pick(['angle', 'angle', 'value', 'solve']);
+  // requiem: catalogue/content/complementary-equations-a-minority
+  // The cofunction fact itself first: solving a linear equation for x is
+  // kept to about four rows in ten, and the stem never states the fact.
+  const mode = rng.pick(['angle', 'value', 'value', 'value', 'solve', 'solve']);
   if (mode === 'angle') {
     const t = rng.int(5, 85);
     const [f, g] = rng.chance(0.5) ? ['sin', 'cos'] : ['cos', 'sin'];
     return {
-      prompt: [T.prose(`sin and cos of complementary angles are equal. If ${f} ${t}° = ${g} x°, with x between 0 and 90, what is x?`)],
+      prompt: [T.prose(`If ${f} ${t}° = ${g} x°, with x between 0 and 90, what is x?`)],
       text: `cofunction: ${f} ${t} = ${g} ?`,
       answer: { type: 'int', value: 90 - t },
       visual: null,
@@ -275,9 +289,10 @@ function cofunction(rng) {
     };
   }
   if (mode === 'value') {
-    const [p, q, c] = rng.pick(PRIMITIVE);
-    const [o, a] = rng.chance(0.5) ? [p, q] : [q, p];
+    // Any ratio will do, not only a triple's: cos B is sin A whatever the third side.
     const f = rng.pick(['sin', 'cos', 'tan']);
+    let o, a, c;
+    do { c = rng.int(3, 30); o = rng.int(1, c - 1); a = rng.int(1, c - 1); } while (gcd(f === 'tan' ? a : c, f === 'cos' ? a : o) !== 1);
     const given = { sin: [o, c], cos: [a, c], tan: [o, a] }[f];
     // From B, A's opposite is adjacent: sin A = cos B, cos A = sin B, tan A = 1/tan B.
     const g = { sin: 'cos', cos: 'sin', tan: 'tan' }[f];
@@ -301,7 +316,7 @@ function cofunction(rng) {
     if (A <= 0 || B <= 0 || Math.abs(d) > 40 || d % 1) continue;
     const [f, g] = rng.chance(0.5) ? ['sin', 'cos'] : ['cos', 'sin'];
     return {
-      prompt: [T.prose(`${f}(${signed(a, b)})° = ${g}(${signed(c, d)})°, and both angles are acute. What is x?`)],
+      prompt: [T.prose(`${angleOf(f, a, b)} = ${angleOf(g, c, d)}, and both angles are acute. What is x?`)],
       text: `cofunction solve: ${f}(${a}x + ${b}) = ${g}(${c}x + ${d})`,
       answer: { type: 'int', value: x },
       visual: null,
@@ -313,7 +328,16 @@ function cofunction(rng) {
 
 // ── Elevation & Bearings ────────────────────────────────────────────────
 
-const LENGTH = [{ u: 'ft', word: 'feet', one: 'foot' }, { u: 'm', word: 'meters', one: 'meter' }, { u: 'yd', word: 'yards', one: 'yard' }];
+// requiem: catalogue/content/believable-sizes
+// Each scene has its own units and sizes, as the real thing is measured: a
+// ladder in feet or meters and never yards, a cliff tens to hundreds of feet.
+const FT = { u: 'ft', word: 'feet', one: 'foot' }, M = { u: 'm', word: 'meters', one: 'meter' }, YD = { u: 'yd', word: 'yards', one: 'yard' };
+const SCENE = {
+  elevation: [[FT, 20, 150], [M, 6, 50], [YD, 10, 60]],
+  depression: [[FT, 40, 400], [M, 12, 120]],
+  ladder: [[FT, 8, 40], [M, 3, 12]],
+  sun: [[FT, 6, 60], [M, 2, 20]],
+};
 const ROAD = [{ u: 'mi', word: 'miles' }, { u: 'km', word: 'kilometers' }];
 
 function applied(rng) {
@@ -352,9 +376,9 @@ function applied(rng) {
           + `θ = tan⁻¹(${e}/${n}) ≈ ${at4(S.x)}°, ${S.q}° ${placeWords(0, true)}. (tan⁻¹(${n}/${e}) is the angle from east, not a bearing.) So ${String(S.q).padStart(3, '0')}°, a bearing of ${S.q}°.`,
       };
     }
-    const U = rng.pick(LENGTH);
+    const [U, lo, hi] = rng.pick(SCENE[kind]);
     if (kind === 'sun') {
-      const h = rng.int(5, 60), s = rng.int(5, 80);
+      const h = rng.int(lo, hi), s = rng.int(lo, Math.round(hi * 1.4));
       const S = angleSolve({ opposite: h, adjacent: s });
       if (!S || S.x < 10 || S.x > 80) continue;
       return {
@@ -366,8 +390,9 @@ function applied(rng) {
           + `(tan⁻¹(${s}/${h}) is the angle at the top of the pole.) So ${S.q}°.`,
       };
     }
-    const theta = rng.int(12, 75);
-    const L = rng.int(6, 120);
+    // A ladder leans at 60° to 80° in use; a tree or a cliff can be at any angle.
+    const theta = kind === 'ladder' ? rng.int(55, 80) : rng.int(12, 75);
+    const L = rng.int(lo, hi);
     let knownRole, wantRole, prompt, say;
     if (kind === 'elevation') {
       [knownRole, wantRole] = ['adjacent', 'opposite'];
@@ -384,7 +409,7 @@ function applied(rng) {
       say = `The ladder is the hypotenuse, and the ${wantRole === 'opposite' ? 'height up the wall is opposite' : 'distance from the wall is adjacent to'} the ${theta}° at the ground`;
     }
     const S = sideSolve(theta, knownRole, L, wantRole);
-    if (!S || S.x > 2.5 * L || S.x < 1) continue;
+    if (!S || S.x > 2.5 * L || S.x < 1 || (kind === 'elevation' && S.x > 1.5 * hi)) continue;
     const { fn, up, x, q } = S;
     return {
       prompt: [T.prose(prompt)],

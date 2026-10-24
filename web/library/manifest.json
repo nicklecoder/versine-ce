@@ -1,5 +1,5 @@
 {
-  "built": 550,
+  "built": 551,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -669,6 +669,7 @@
       "cofunction",
       "sum-and-difference",
       "double-angle",
+      "identity-or-not",
       "next-step-in-a-proof",
       "all-together"
     ],
@@ -1484,8 +1485,7 @@
     },
     "radians": {
       "dependsOn": [
-        "circles",
-        "trig-ratios"
+        "circles"
       ],
       "levels": {
         "arc-length": [
@@ -1577,7 +1577,7 @@
       }
     }
   },
-  "sources": "c5319e359d1c032d07795433649d7f7377834d51a1480e193df60bdb688a74a0",
+  "sources": "4025af19933ca8be383d2dddb5d28102347c4c19dd88b5c58f2e2e903ab26f6d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6474,7 +6474,7 @@
       "level": 5,
       "slug": "30-60-90",
       "name": "30-60-90",
-      "count": 88,
+      "count": 176,
       "exhaustive": true,
       "signed": false,
       "file": "trig-ratios-5.json"
@@ -6484,7 +6484,7 @@
       "level": 6,
       "slug": "complementary-sin-cos",
       "name": "Complementary sin/cos",
-      "count": 1000,
+      "count": 500,
       "exhaustive": false,
       "signed": false,
       "file": "trig-ratios-6.json"
@@ -6573,7 +6573,7 @@
       "skill": "laws-sines-cosines",
       "level": 6,
       "slug": "half-ab-sin-c",
-      "name": "½ab sin C",
+      "name": "½ab sin C & the Proofs",
       "count": 400,
       "exhaustive": false,
       "signed": false,
@@ -6624,8 +6624,8 @@
       "level": 3,
       "slug": "reference-angles",
       "name": "Reference Angles",
-      "count": 282,
-      "exhaustive": true,
+      "count": 400,
+      "exhaustive": false,
       "signed": false,
       "file": "radians-3.json"
     },
@@ -6684,8 +6684,8 @@
       "level": 1,
       "slug": "signs-by-quadrant",
       "name": "Signs by Quadrant",
-      "count": 1000,
-      "exhaustive": false,
+      "count": 831,
+      "exhaustive": true,
       "signed": false,
       "file": "unit-circle-1.json"
     },
@@ -6704,7 +6704,7 @@
       "level": 3,
       "slug": "tangent",
       "name": "Tangent",
-      "count": 112,
+      "count": 100,
       "exhaustive": true,
       "signed": true,
       "file": "unit-circle-3.json"
@@ -6872,22 +6872,32 @@
     {
       "skill": "identities",
       "level": 6,
-      "slug": "next-step-in-a-proof",
-      "name": "Next Step in a Proof",
-      "count": 300,
-      "exhaustive": false,
+      "slug": "identity-or-not",
+      "name": "Identity or Not?",
+      "count": 142,
+      "exhaustive": true,
       "signed": false,
       "file": "identities-6.json"
     },
     {
       "skill": "identities",
       "level": 7,
+      "slug": "next-step-in-a-proof",
+      "name": "Next Step in a Proof",
+      "count": 300,
+      "exhaustive": false,
+      "signed": false,
+      "file": "identities-7.json"
+    },
+    {
+      "skill": "identities",
+      "level": 8,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "identities-7.json"
+      "file": "identities-8.json"
     },
     {
       "skill": "trig-equations",

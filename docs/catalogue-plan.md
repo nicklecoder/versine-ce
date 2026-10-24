@@ -302,11 +302,11 @@ With it, Phase 3 is built.
 | Skill (category) | Levels | Covers |
 |---|---|---|
 | `trig-ratios` (Right Triangles) | Opposite & Adjacent · Ratios · Missing Side · Missing Angle · 45-45-90 · 30-60-90 · Complementary sin/cos · Elevation & Bearings | G-SRT.6–8, TEKS G.9 |
-| `laws-sines-cosines` (Right Triangles) | Sines: Side · Sines: Angle · Cosines: Side · Cosines: Angle · ½ab sin C · Which Law (strategy) | G-SRT.9–11, TEKS P.4G,H |
+| `laws-sines-cosines` (Right Triangles) | Sines: Side · Sines: Angle · Cosines: Side · Cosines: Angle · ½ab sin C & the Proofs · Which Law (strategy) | G-SRT.9–11, TEKS P.4G,H |
 | `radians` (Unit Circle) | Degrees ↔ Radians · Coterminal · Reference Angles · Arc Length s = rθ · Angular Speed | F-TF.1, TEKS P.4B–D |
 | `unit-circle` (Unit Circle) | Special Angles · Signs by Quadrant · Tangent · sec/csc/cot · From One Ratio, the Rest | F-TF.2–4,8 |
 | `trig-graphs` (Unit Circle) | Amplitude · Period · Midline · Phase Shift · Equation From a Graph · Sinusoidal Models | F-TF.5, TEKS P.2O |
-| `identities` (Identities) | Pythagorean · Reciprocal & Quotient · Even/Odd · Cofunction · Sum & Difference · Double Angle · Next Step in a Proof | F-TF.8–9, TEKS P.5M |
+| `identities` (Identities) | Pythagorean · Reciprocal & Quotient · Even/Odd · Cofunction · Sum & Difference · Double Angle · Identity or Not? · Next Step in a Proof | F-TF.8–9, TEKS P.5M |
 | `trig-equations` (Identities) | arcsin/arccos/arctan · Solve on [0, 2π) · General Solutions · Quadratic-Type | F-TF.6–7, TEKS P.2H, P.5N |
 | `domain-range` (Functions) | Domain of √ and Fractions · From a Graph · Ranges of Parents · Piecewise · Step Functions | F-IF.5, F-IF.7b, TEKS A2.7I |
 | `composition` (Functions) | (f + g)(x) · f(g(2)) · f(g(x)) · Not Commutative · Decompose | F-BF.1, TEKS P.2A–C |
@@ -330,33 +330,59 @@ With it, Phase 3 is built.
 makes nine; the skill says why with `longerBecause`. Calculator answers round
 only at the end, and a problem is kept only where 4-place working agrees with
 the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
+30-60-90 asks for x and lets the figure's 30° or 60° mark say which leg it
+is, and Complementary sin/cos keeps solve-for-x equations to about four rows
+in ten.
 `laws-sines-cosines` is built, as Sines: Side · Sines: Angle · Cosines: Side
-· Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C ·
-All Together. Which Law? depends on trig-ratios' Missing Side, where a tool is
+· Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C &
+the Proofs · All Together. The proofs of both laws (G-SRT.10) are folded into
+the area level, which rests on the same altitude, rather than made a ninth
+level: about four rows in ten pick the next line of a proof from the height,
+checked on concrete triangles. Which Law? depends on trig-ratios' Missing Side, where a tool is
 first chosen by the sides in play. How Many Triangles? is added for the
-ambiguous case, and every Sines: Angle question names its triangle.
+ambiguous case, with an obtuse angle and no triangle among its rows. About
+30% of Sines: Angle rows are the two-triangle case, and those name the one
+meant; the rest say nothing about the count.
 `radians` is built, as Degrees to Radians · Radians to Degrees · Coterminal
 Angles · Reference Angles · Arc Length s = rθ · Sector Area ½r²θ · Angular
 Speed · All Together. The plan's Degrees ↔ Radians is two levels, one each
 way, and Sector Area is added beside Arc Length; the two depend on the
 circles skill's Arc Length and Sector Area, where both are taken in degrees. Exact answers are the
-coefficient of π, as a fraction.
+coefficient of π, as a fraction. Reference Angles takes negative angles and
+angles past a full turn in about a quarter of its rows. Nothing in the skill
+takes a sine, so it does not depend on trig-ratios.
 `unit-circle` is built, as Special Angles · Signs by Quadrant · Around the
 Circle · Tangent · sec, csc, cot · From One Ratio, the Rest · All Together.
 Around the Circle is added between the first-quadrant values and tangent,
 for any angle by its reference angle, and depends on radians' Reference
-Angles; Special Angles depends on trig-ratios' 30-60-90.
+Angles; Special Angles depends on trig-ratios' 30-60-90. Signs by Quadrant
+and Tangent ask only about sin, cos and tan, leaving the reciprocals to their
+own level, and every number on a level is typed in the roots box, so the box
+never gives the form of the answer away.
 `trig-graphs` is built, as Amplitude · Period · Midline · Phase Shift ·
 Equation From a Graph · Sinusoidal Models · All Together, in the plan's
 levels. Phase Shift depends on transforming functions' Left and Right, and
 asks the shift as a choice so that the unfactored amount and the wrong
-direction can both be offered.
+direction can both be offered. A drawn wave is ticked at multiples of
+π/(2b), so every peak sits on a tick, and a Ferris wheel's equation is printed
+only where a height is to be worked from it.
 `identities` is built, as Pythagorean · Reciprocal & Quotient · Even & Odd ·
-Cofunction · Sum & Difference · Double Angle · Next Step in a Proof · All
-Together, in the plan's levels. Cofunction depends on trig-ratios'
+Cofunction · Sum & Difference · Double Angle · Identity or Not? · Next Step in
+a Proof · All Together. Identity or Not? is added before the proofs, and
+makes nine levels, which the skill explains with `longerBecause`: it asks
+whether an equation holds wherever both sides are defined, half the rows
+identities and half the slips the earlier levels warn against, many of
+which hold at special angles, and about a quarter of its rows ask at which
+of four angles a false one fails, so that one counterexample disproves and
+agreeing angles prove nothing. Cofunction depends on trig-ratios'
 Complementary sin/cos, so the skill depends on trig-ratios as well as the
 unit circle. Exact values with two radicals are asked as choices, since the
-roots input holds one, and Next Step in a Proof is capped at 300 problems.
+roots input holds one, and Next Step in a Proof is capped at 300 problems,
+drawn from 44 proofs, seven of which derive the sum, difference and
+double-angle formulas (F-TF.9), cos(α − β) from a chord of the unit circle. Its wrong options are slips, and in about half the
+rows a line already written, equal but a step back; the question says the
+next line must be new.
+
 `trig-equations` is built, as arcsin, arccos, arctan · Solve in Degrees ·
 Solve on [0, 2π) · General Solutions · Quadratic-Type · All Together. Solve
 in Degrees is added: a set of angles is typed only in degrees, where each

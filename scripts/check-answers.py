@@ -4340,6 +4340,69 @@ def biv_relative_linked(by: str, grid: str) -> str:
     return "no"
 
 
+def biv_fit_error(pts: list, degree: int) -> Fraction:
+    # Squared error of the least-squares polynomial (degree 1 or 2), solved
+    # exactly by Cramer's rule on the normal equations.
+    k = degree + 1
+    s = [sum(x ** p for x, _ in pts) for p in range(2 * k - 1)]
+    t = [sum(y * x ** p for x, y in pts) for p in range(k)]
+    m = [[s[i + j] for j in range(k)] for i in range(k)]
+
+    def det(a):
+        if len(a) == 1:
+            return a[0][0]
+        return sum((-1) ** c * a[0][c] * det([row[:c] + row[c + 1:] for row in a[1:]]) for c in range(len(a)))
+
+    d = det(m)
+    coef = [det([row[:c] + [t[i]] + row[c + 1:] for i, row in enumerate(m)]) / d for c in range(k)]
+    return sum((y - sum(c * x ** p for p, c in enumerate(coef))) ** 2 for x, y in pts)
+
+
+def biv_fit_at(pts: list, x0) -> Fraction:
+    # The least-squares quadratic through pts, evaluated at x0.
+    s = [sum(x ** p for x, _ in pts) for p in range(5)]
+    t = [sum(y * x ** p for x, y in pts) for p in range(3)]
+    m = [[s[i + j] for j in range(3)] for i in range(3)]
+
+    def det3(a):
+        return (a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
+                + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]))
+
+    d = det3(m)
+    coef = [det3([row[:c] + [t[i]] + row[c + 1:] for i, row in enumerate(m)]) / d for c in range(3)]
+    return coef[0] + coef[1] * x0 + coef[2] * x0 * x0
+
+
+def biv_feature(listing: str) -> str:
+    # requiem: catalogue/content/scatter-features-from-points
+    # Read from the points alone: a wide empty band in x splits two clusters;
+    # one point far from the quadratic through all the others is an outlier;
+    # a quadratic far closer than a line is a curve; else one straight line.
+    pts = biv_points(listing)
+    xs = sorted(x for x, _ in pts)
+    gaps = [(b - a, i) for i, (a, b) in enumerate(zip(xs, xs[1:]))]
+    widest, at = max(gaps)
+    share = widest / (xs[-1] - xs[0])
+    if share >= Fraction(1, 4):
+        assert at + 1 >= 4 and len(xs) - at - 1 >= 4, f"a cluster of fewer than 4 points: {listing}"
+        return "clusters"
+    assert share <= Fraction(3, 20), f"x gap of {float(share):.2f} is neither clusters nor none"
+    worst = 0.0
+    for i, (x, y) in enumerate(pts):
+        rest = pts[:i] + pts[i + 1:]
+        rms = math.sqrt(float(biv_fit_error(rest, 2)) / len(rest))
+        worst = max(worst, abs(float(y - biv_fit_at(rest, x))) / rms)
+    if worst >= 6:
+        return "outlier"
+    assert worst <= 4, f"a point {worst:.1f} misses out is neither an outlier nor not: {listing}"
+    ratio = biv_fit_error(pts, 2) / biv_fit_error(pts, 1)
+    if ratio <= Fraction(3, 10):
+        return "curved"
+    assert ratio >= Fraction(1, 2), f"a curve ratio of {float(ratio):.2f} is unclear: {listing}"
+    assert abs(biv_r(pts)) >= 0.85, f"not a clear straight line: {listing}"
+    return "linear"
+
+
 def biv_linked(counts: str) -> str:
     t = biv_table(counts)
     gap = abs(Fraction(100 * t[0][0], t[0][2]) - Fraction(100 * t[1][0], t[1][2]))
@@ -4367,6 +4430,7 @@ BY_RULE += (
 
 CHOICE_RULES += (
     (re.compile(rf"^association: ({BIV_PT}(?: {BIV_PT})+)$"), lambda listing, *_: biv_direction(listing)),
+    (re.compile(rf"^scatter feature: ({BIV_PT}(?: {BIV_PT})+)$"), lambda listing, *_: biv_feature(listing)),
     (re.compile(rf"^meaning of ({BIV_NUM}) in {BIV_LINE}; options (.+)$"), biv_meaning),
     (re.compile(rf"^fit check: {BIV_LINE} at {BIV_PT}$"),
      lambda m, b, x, y: "above" if Fraction(y) > Fraction(m) * Fraction(x) + Fraction(b) else "below"),
@@ -4963,18 +5027,19 @@ def trig_cofunction(f, t, g) -> int:
 
 
 def trig_cofunction_value(f, p, q, g) -> Fraction:
-    p, q = int(p), int(q)
-    # The sides of the triangle from A: opposite, adjacent, hypotenuse.
-    if f == "sin":
-        o, h = p, q; a = math.isqrt(h * h - o * o)
-    elif f == "cos":
-        a, h = p, q; o = math.isqrt(h * h - a * a)
-    else:
-        o, a = p, q; h = math.isqrt(o * o + a * a)
-    assert o * o + a * a == h * h
-    # From B the legs swap: B's opposite is A's adjacent.
-    ob, ab = a, o
-    return {"sin": Fraction(ob, h), "cos": Fraction(ab, h), "tan": Fraction(ob, ab)}[g]
+    # A from its ratio, B = 90° − A, and g of B on the calculator.
+    r = int(p) / int(q)
+    A = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[f](r)
+    v = {"sin": math.sin, "cos": math.cos, "tan": math.tan}[g](math.pi / 2 - A)
+    return Fraction(v).limit_denominator(1000)
+
+
+# requiem: catalogue/content/special-triangle-leg-from-the-mark
+def trig_special_marked(theta, given_role, given, want_role) -> float:
+    # The leg is named by its place from the marked angle, as the figure shows
+    # it, and worked from a hypotenuse-1 triangle with that angle.
+    unit = trig_unit(int(theta))
+    return trig_surd_value(given) / unit[given_role] * unit[want_role]
 
 
 def trig_cofunction_solve(f, a, b, g, c, d) -> int:
@@ -5005,7 +5070,7 @@ BY_RULE += (
 
 EXACT_RULES += (
     (re.compile(r"^special (45): (leg|hypotenuse) (\d*√?\d+), want (leg|hypotenuse)$"), trig_special),
-    (re.compile(r"^special (30): (short|long|hypotenuse) (\d*√?\d+), want (short|long|hypotenuse)$"), trig_special),
+    (re.compile(rf"^special 30: angle (30|60), {TRIG_ROLE} (\d*√?\d+), want {TRIG_ROLE}$"), trig_special_marked),
 )
 
 CHOICE_RULES += (
@@ -5062,8 +5127,12 @@ def laws_sines_angle(A, a, b, which, places) -> Fraction:
     disc = a * a - C[1] ** 2
     xs = [x for x in {C[0] + math.sqrt(disc), C[0] - math.sqrt(disc)} if x > 1e-9] if disc > 0 else []
     angles = [laws_angle_at(((0.0, 0.0), (x, 0.0), C), "B") for x in xs]
-    picked = [t for t in angles if (t < 90) == (which == "acute")]
+    # A question that names no triangle must have only one; one that names
+    # the acute or the obtuse B must have two to choose between.
+    assert (len(angles) == 1) == (which is None), (A, a, b, which, angles)
+    picked = angles if which is None else [t for t in angles if (t < 90) == (which == "acute")]
     assert len(picked) == 1, (A, a, b, angles)
+    which = which or ("acute" if picked[0] < 90 else "obtuse")
     s4 = round(b * round(math.sin(math.radians(A)), 4) / a, 4)
     four = math.degrees(math.asin(s4))
     return trig_agree(picked[0], four if which == "acute" else 180 - four, places)
@@ -5119,7 +5188,7 @@ def laws_which(listing: str, want: str) -> str:
 
 BY_RULE += (
     (re.compile(r"^sines side: ([ABC]) (\d+), ([ABC]) (\d+), ([abc]) (\d+); want ([abc]) to (\d) dp$"), laws_sines_side),
-    (re.compile(r"^sines angle: A (\d+), a (\d+), b (\d+); want (acute|obtuse) B to the nearest whole$"),
+    (re.compile(r"^sines angle: A (\d+), a (\d+), b (\d+); want (?:(acute|obtuse) )?B to the nearest whole$"),
      lambda A, a, b, which: laws_sines_angle(A, a, b, which, 0)),
     (re.compile(r"^cosines side: a (\d+), b (\d+), C (\d+); want c to (\d) dp$"), laws_cosines_side),
     (re.compile(r"^cosines angle: a (\d+), b (\d+), c (\d+); want ([ABC]) to the nearest whole$"),
@@ -5127,7 +5196,52 @@ BY_RULE += (
     (re.compile(r"^triangle area: a (\d+), b (\d+), C (\d+) to (\d) dp$"), laws_area),
 )
 
+# requiem: catalogue/content/laws-proved-from-the-altitude
+# A proof of a law is checked on concrete triangles, acute and obtuse, built
+# on coordinates: h is the distance from the named corner to the line of the
+# other two, and x the signed distance along it from the corner named in
+# x = PD to the foot D. A line follows when it holds on every triangle, so
+# the altitude facts (h = b sin A, x = b cos A) are measured, not assumed.
+# The goal and every line so far must hold, and exactly one option must hold
+# that is not a line already written.
+LAW_TRIANGLES = [((0.0, 0.0), (c, 0.0), (px, py)) for c, px, py in
+                 ((5.0, 1.7, 3.1), (7.0, 6.2, 2.4), (4.0, -1.3, 2.2), (6.0, 8.1, 1.9), (3.0, 1.5, 4.6),
+                  (9.0, 2.2, 0.8), (2.5, 3.9, 3.3), (8.0, -2.4, 5.5))]
+
+
+def laws_at(P, R: str, foot_from: str) -> dict:
+    corner = dict(zip("ABC", P))
+    env = {k.lower(): v for k, v in laws_sides(P).items()}
+    env.update({k: math.radians(laws_angle_at(P, k)) for k in "ABC"})
+    (ux, uy), (vx, vy) = corner[foot_from], corner[({"A", "B", "C"} - {R, foot_from}).pop()]
+    rx, ry = corner[R]
+    length = math.hypot(vx - ux, vy - uy)
+    env["x"] = ((rx - ux) * (vx - ux) + (ry - uy) * (vy - uy)) / length
+    env["h"] = abs((rx - ux) * (vy - uy) - (ry - uy) * (vx - ux)) / length
+    return env
+
+
+def laws_line_holds(line: str, R: str, foot_from: str) -> bool:
+    import ast
+    left, right = (ast.parse(side.replace("^", "**"), mode="eval") for side in line.split(" = "))
+    for P in LAW_TRIANGLES:
+        env = laws_at(P, R, foot_from)
+        x, y = idn_value(left, env), idn_value(right, env)
+        if abs(x - y) > 1e-9 * max(1.0, abs(x)):
+            return False
+    return True
+
+
+def laws_proof(goal: str, R: str, foot_from: str, so_far: str, options: str) -> str:
+    lines = so_far.split("; ")
+    if not all(laws_line_holds(line, R, foot_from) for line in [goal, *lines]):
+        return "the goal or a line so far does not hold"
+    fits = [oid for oid, opt in tg_options(options).items() if laws_line_holds(opt, R, foot_from) and opt not in lines]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
 CHOICE_RULES += (
+    (re.compile(r"^law proof: goal (.+?); altitude from ([ABC]), x = ([ABC])D; so far (.+?); options (.+)$"), laws_proof),
     (re.compile(r"^ssa count: A (\d+), a (\d+), b (\d+)$"), lambda A, a, b: laws_count(int(A), int(a), int(b))),
     (re.compile(r"^which law: ((?:[ABCabc] \d+(?:, )?)+); want ([ABCabc])$"), laws_which),
 )
@@ -5161,8 +5275,11 @@ def rad_coterminal_rad(written: str) -> Fraction:
     return hits[0]
 
 
+# requiem: catalogue/content/reference-angles-any-angle
 def rad_reference_deg(deg) -> int:
-    # The angle between the terminal side and the nearer half of the x-axis.
+    # Round to one turn by stepping (rad_coterminal_deg), then the angle
+    # between the terminal side and the nearer half of the x-axis.
+    deg = rad_coterminal_deg(int(deg))
     return min(abs(deg - 0), abs(deg - 180), abs(deg - 360))
 
 
@@ -5196,8 +5313,8 @@ BY_RULE += (
      lambda r, places: trig_agree(float(r) * 180 / math.pi, float(r) * 180 / 3.1416, places)),
     (re.compile(r"^coterminal deg: (-?\d+)$"), lambda deg: rad_coterminal_deg(int(deg))),
     (re.compile(r"^coterminal rad: (-?\d+/\d+)$"), rad_coterminal_rad),
-    (re.compile(r"^reference deg: (\d+)$"), rad_reference_deg),
-    (re.compile(r"^reference rad: (\d+/\d+)$"), lambda k: Fraction(rad_reference_deg(rad_coef(k) * 180), 180)),
+    (re.compile(r"^reference deg: (-?\d+)$"), lambda deg: rad_reference_deg(int(deg))),
+    (re.compile(r"^reference rad: (-?\d+/\d+)$"), lambda k: Fraction(rad_reference_deg(rad_coef(k) * 180), 180)),
     (re.compile(r"^(arc length|sector area): r (\d+), (theta|degrees) ([\d./]+(?: pi)?)$"), rad_arc),
     (re.compile(r"^arc angle: s (\d+), r (\d+)$"), lambda s, r: Fraction(s, r)),
     (re.compile(r"^angular: rpm (\d+), want rad per (min|s)$"), lambda rpm, per: Fraction(2 * rpm, 60 if per == "s" else 1)),
@@ -5306,6 +5423,8 @@ EXACT_RULES += (
     (re.compile(rf"^exact: (sin|cos|tan|sec|csc|cot) {UC_ANGLE}$"), lambda f, a: UC[f](uc_angle(a))),
     (re.compile(rf"^point coordinate: (x|y), {UC_ANGLE}$"), lambda c, a: (math.cos if c == "x" else math.sin)(uc_angle(a))),
     (re.compile(r"^from ratio: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (\w+)$"), uc_from_ratio),
+    # A rational value goes in the roots box too, so the box tells nothing.
+    (re.compile(r"^ratio from point: (tan|sec|csc|cot), (-?\d+/\d+), (-?\d+/\d+)$"), lambda f, x, y: float(uc_from_point(f, x, y))),
 )
 
 BY_RULE += (
@@ -5322,6 +5441,17 @@ CHOICE_RULES += (
     (re.compile(r"^quadrant from signs: (\w+) ([+-]), (\w+) ([+-])$"), uc_quadrant_from_signs),
     (re.compile(rf"^defined: (tan|cot) {UC_ANGLE}$"), uc_defined),
 )
+
+
+# requiem: catalogue/content/reciprocals-after-their-level
+# sec, csc and cot are taught on sec, csc, cot (L5): Signs by Quadrant (L2)
+# and Tangent (L4) ask only about sin, cos and tan.
+for level in (1, 3):
+    path = LIB / f"unit-circle-{level}.json"
+    if path.exists():
+        for i, p in enumerate(json.loads(path.read_text())["problems"]):
+            if re.search(r"\b(sec|csc|cot)\b", p["text"]):
+                problems.append(f"unit-circle L{level + 1} row {i}: {p['text']} asks about a reciprocal before L5")
 
 
 # --- Graphs of Sine & Cosine -------------------------------------------------
@@ -5341,6 +5471,8 @@ def tg_wave(rhs: str):
     """y as a function of x, from '−3 sin(2x) + 1' written in ASCII."""
     s = rhs.replace("pi", "π")
     assert TG_SAFE.match(s), f"unexpected characters in {rhs!r}"
+    # A bare argument, sin 2x, is read as sin(2x), as on paper.
+    s = re.sub(r"\b(sin|cos) (\d*x)\b", r"\1(\2)", s)
     s = re.sub(r"(?<=[\dxπ)])\s*(?=[xπ(]|sin|cos)", "*", s).replace("π", "pi")
     return eval(f"lambda x: {s}", {"__builtins__": {}, "sin": math.sin, "cos": math.cos, "pi": math.pi})
 
@@ -5485,6 +5617,47 @@ for path in sorted(LIB.glob("trig-graphs-*.json")):
         for dot in (mk["at"] for mk in p["visual"]["marks"] if mk["kind"] == "point"):
             if min(abs(dot[1] - float(hi)), abs(dot[1] - float(lo))) > 0.0501 or abs(f(dot[0]) - dot[1]) > 0.1:
                 problems.append(f"{where}: the dot at {dot} is not a peak or trough of y = {rhs}")
+        # requiem: catalogue/content/wave-ticks-fit-b
+        # Every peak and trough is read off the x-axis, so each sits on a tick
+        # (or on the y-axis): a dot between two ticks cannot be read.
+        ticks = [mk["from"][0] for mk in p["visual"]["marks"]
+                 if mk["kind"] == "segment" and mk["from"][0] == mk["to"][0] and abs(mk["from"][1] + 0.12) < 1e-9]
+        for dot in (mk["at"] for mk in p["visual"]["marks"] if mk["kind"] == "point"):
+            if abs(dot[0]) > 0.051 and all(abs(dot[0] - x) > 0.051 for x in ticks):
+                problems.append(f"{where}: the dot at {dot} of y = {rhs} falls between the ticks")
+
+
+# requiem: catalogue/content/special-triangle-leg-from-the-mark
+# A 30-60-90 question names no leg, so the figure must: its marked angle is
+# the one in the text, and the given length and the x sit on the sides the
+# text places them, read off the drawing (the side not touching the marked
+# corner is opposite; of the two touching it, the one meeting the right
+# angle is adjacent).
+for path in sorted(LIB.glob("trig-ratios-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        m = re.match(r"^special 30: angle (30|60), (\w+) (\S+), want (\w+)$", p["text"])
+        if not m:
+            continue
+        where = f"trig-ratios L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        marks = p["visual"]["marks"]
+        sides = [(tuple(mk["from"]), tuple(mk["to"])) for mk in marks if mk["kind"] == "segment"][:3]
+        corners = {c for seg in sides for c in seg}
+        labels = {mk["label"]: mk["at"] for mk in marks if mk["kind"] == "text"}
+        d = lambda u, v: math.hypot(u[0] - v[0], u[1] - v[1])
+        if f"{m[1]}°" not in labels or "x" not in labels or m[3] not in labels:
+            problems.append(f"{where}: the figure does not mark {m[1]}°, {m[3]} and x")
+            continue
+        A = min(corners, key=lambda c: d(c, labels[f"{m[1]}°"]))
+        def right_angle(c):
+            u, v = [q for seg in sides if c in seg for q in seg if q != c]
+            return abs((u[0] - c[0]) * (v[0] - c[0]) + (u[1] - c[1]) * (v[1] - c[1])) < 1e-6
+        R = next(c for c in corners if right_angle(c))
+        role = {}
+        for seg in sides:
+            role[seg] = "opposite" if A not in seg else "adjacent" if R in seg else "hypotenuse"
+        near = lambda at: role[min(sides, key=lambda seg: d(at, ((seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2)))]
+        if A == R or near(labels[m[3]]) != m[2] or near(labels["x"]) != m[4]:
+            problems.append(f"{where}: the figure does not put {m[3]} on the {m[2]} and x on the {m[4]}")
 
 
 # --- Trig Identities ---------------------------------------------------------
@@ -5512,9 +5685,13 @@ def id_expr(written: str):
     return eval(f"lambda t=0, a=0, b=0: {written.replace('^', '**')}", {"__builtins__": {}, **ID_NAMES})
 
 
+# α and β beside each θ, for the proofs of the sum formulas.
+ID_AB = ((0.53, 1.37), (2.2, -0.41), (1.05, 0.88), (-1.6, 2.9), (4.4, 0.3), (0.12, -2.75), (3.3, 1.71))
+
+
 def id_same(e1: str, e2: str) -> bool:
     f, g = id_expr(e1), id_expr(e2)
-    return all(abs(f(t) - g(t)) <= 1e-9 * max(1, abs(f(t))) for t in ID_TESTS)
+    return all(abs(f(t, a, b) - g(t, a, b)) <= 1e-9 * max(1, abs(f(t, a, b))) for t, (a, b) in zip(ID_TESTS, ID_AB))
 
 
 # requiem: catalogue/content/identity-choices-have-one-equal-option
@@ -5523,6 +5700,7 @@ def id_pick(expr: str, options: str) -> str:
     return fits[0] if len(fits) == 1 else f"fits {fits}"
 
 
+# requiem: catalogue/content/proof-step-is-new-and-equal
 def id_proof(goal: str, so_far: str, options: str) -> str:
     left, right = goal.split(" = ")
     lines = so_far.split(" = ")
@@ -5530,7 +5708,10 @@ def id_proof(goal: str, so_far: str, options: str) -> str:
         return "the goal is not an identity"
     if lines[0] != left or any(not id_same(x, y) for x, y in zip(lines, lines[1:])):
         return "a line so far is not equal to the one before"
-    return id_pick(lines[-1], options)
+    # The next line is equal to the last and new: an equal option that is a
+    # line already written is a step back, which the question rules out.
+    fits = [oid for oid, opt in tg_options(options).items() if id_same(lines[-1], opt) and opt not in lines]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
 
 
 def id_place(fn: str, value: str, q: str) -> float:
@@ -6107,6 +6288,119 @@ EXPR_RULES += (
 CHOICE_RULES += (
     (re.compile(r"^which composition: f\(x\) = (.+); g\(x\) = (.+); f\(g\(x\)\); options (.+)$"), cf_which),
     (re.compile(r"^same composition: f\(x\) = (.+); g\(x\) = (.+); options a: same \| b: different$"), cf_same),
+)
+
+# --- Identity or Not? ----------------------------------------------------------
+#
+# Each equation is classified on its own: both sides evaluated at a few
+# hundred angles (and pairs of angles, for α and β), by an evaluator of its
+# own that calls a value undefined where a denominator, a tangent's cosine
+# or a cotangent's sine is within 1e-9 of zero, or a square root's argument
+# is negative. It is an identity when the sides agree wherever both are
+# defined, and not one when they differ by more than a millionth somewhere;
+# an equation whose sides only ever differ by less is reported. A stated counterexample must be an angle
+# where both sides are defined and differ, and a "fails where" question must
+# have exactly one such angle among its options.
+
+class IdnUndefined(Exception):
+    pass
+
+
+def idn_value(node, env):
+    import ast
+    if isinstance(node, ast.Expression):
+        return idn_value(node.body, env)
+    if isinstance(node, ast.Constant):
+        return float(node.value)
+    if isinstance(node, ast.Name):
+        return math.pi if node.id == "pi" else env[node.id]
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        return -idn_value(node.operand, env)
+    if isinstance(node, ast.BinOp):
+        x, y = idn_value(node.left, env), idn_value(node.right, env)
+        if isinstance(node.op, ast.Add):
+            return x + y
+        if isinstance(node.op, ast.Sub):
+            return x - y
+        if isinstance(node.op, ast.Mult):
+            return x * y
+        if isinstance(node.op, ast.Div):
+            if abs(y) < 1e-9:
+                raise IdnUndefined
+            return x / y
+        if isinstance(node.op, ast.Pow):
+            return x ** y
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and len(node.args) == 1:
+        x = idn_value(node.args[0], env)
+        s, c = math.sin(x), math.cos(x)
+        f = node.func.id
+        if f == "sqrt":
+            if x < -1e-12:
+                raise IdnUndefined
+            return math.sqrt(max(x, 0.0))
+        if f in ("tan", "sec") and abs(c) < 1e-9 or f in ("cot", "csc") and abs(s) < 1e-9:
+            raise IdnUndefined
+        return {"sin": s, "cos": c, "tan": s / c if f == "tan" else 0, "sec": 1 / c if f == "sec" else 0,
+                "csc": 1 / s if f == "csc" else 0, "cot": c / s if f == "cot" else 0}[f]
+    raise ValueError(f"cannot read {ast.dump(node)}")
+
+
+def idn_at(equation: str, t: float, a: float = 0.0, b: float = 0.0) -> str:
+    """'holds', 'fails' or 'undefined', the equation at angle t (and α = a, β = b)."""
+    import ast
+    left, right = (ast.parse(side.replace("^", "**"), mode="eval") for side in equation.split(" = "))
+    try:
+        x, y = idn_value(left, {"t": t, "a": a, "b": b}), idn_value(right, {"t": t, "a": a, "b": b})
+    except IdnUndefined:
+        return "undefined"
+    if abs(x - y) <= 1e-9 * max(1.0, abs(x), abs(y)):
+        return "holds"
+    # Near a crossing the sides differ by little; only a clear gap counts as failing.
+    return "fails" if abs(x - y) > 1e-6 else "near"
+
+
+IDN_ANGLES = [-2 * math.pi + k * math.pi / 97 + 0.0137 for k in range(388)] + [k * math.pi / 12 for k in range(-24, 25)]
+
+
+def idn_classify(equation: str) -> str:
+    seen = set()
+    for i, t in enumerate(IDN_ANGLES):
+        # α and β wander independently of θ, for the equations in two angles.
+        seen.add(idn_at(equation, t, IDN_ANGLES[(7 * i + 3) % len(IDN_ANGLES)], IDN_ANGLES[(31 * i + 11) % len(IDN_ANGLES)]))
+    assert seen - {"undefined"}, f"{equation} is never defined"
+    assert "near" not in seen or "fails" in seen, f"{equation} differs only slightly"
+    return "not" if "fails" in seen else "always"
+
+
+def idn_angle(written: str) -> float:
+    return float(Fraction(written[:-3])) * math.pi if written.endswith(" pi") else math.radians(int(written))
+
+
+# requiem: catalogue/content/identity-or-not-by-counterexample
+def idn_identity(equation: str, counter) -> str:
+    kind = idn_classify(equation)
+    if counter is not None:
+        at = [idn_angle(x) for x in counter.split(", ")]
+        if kind != "not" or idn_at(equation, at[0], *at) != "fails":
+            return f"the counterexample {counter} is not one"
+    elif kind == "not":
+        return "not, with no counterexample given"
+    return kind
+
+
+def idn_fails_where(equation: str, options: str) -> str:
+    if idn_classify(equation) != "not":
+        return "an identity, which fails nowhere"
+    fits = [oid for oid, d in tg_options(options).items() if idn_at(equation, idn_angle(d)) == "fails"]
+    # At least one of the others must make it true, so that one angle tried can mislead.
+    if not any(idn_at(equation, idn_angle(d)) == "holds" for d in tg_options(options).values()):
+        return "no option where it holds"
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+CHOICE_RULES += (
+    (re.compile(r"^identity or not: (.+? = .+?)(?:; fails at (.+))?$"), idn_identity),
+    (re.compile(r"^fails where: (.+? = .+?); options (.+)$"), idn_fails_where),
 )
 
 # requiem: catalogue/library/every-level-checked

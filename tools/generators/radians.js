@@ -121,44 +121,65 @@ const sweep = (from, to, r, tone) => {
   return { kind: 'path', tone, points: Array.from({ length: n + 1 }, (_, i) => toward(from + ((to - from) * i) / n, r)) };
 };
 
-function referenceFigure(t, ref, label, refLabel) {
+/** A sweep that may pass a full turn: the radius grows as it goes, so the turns do not overlap. */
+const spiral = (to, tone) => {
+  const n = Math.max(2, Math.ceil(Math.abs(to) / 20));
+  return { kind: 'path', tone, points: Array.from({ length: n + 1 }, (_, i) => toward((to * i) / n, 0.5 + (0.35 * i) / n)) };
+};
+
+function referenceFigure(deg, ref, label, refLabel) {
+  const t = ((deg % 360) + 360) % 360;
   const quad = Math.floor(t / 90);
   // The reference angle runs from the terminal side to the nearer side of the x-axis.
   const axis = quad === 1 || quad === 2 ? 180 : quad === 3 ? 360 : 0;
   const end = toward(t, 2.6);
+  const turn = deg < 0 || deg > 360 ? spiral(deg, GIVEN) : sweep(0, t, 0.6, GIVEN);
   return {
     kind: 'plane', xRange: [-3.2, 3.2], yRange: [-3.2, 3.2], grid: 0, axes: true,
-    marks: [{ kind: 'segment', from: [0, 0], to: end, tone: LINE }, sweep(0, t, 0.6, GIVEN), text(toward(t / 2, 1.05), label, GIVEN)],
+    marks: [{ kind: 'segment', from: [0, 0], to: end, tone: LINE }, turn, text(toward(deg > 360 ? 45 : deg / 2, 1.15), label, GIVEN)],
     answer: [sweep(Math.min(axis, t), Math.max(axis, t), 1.5, 'var(--result)'), text(toward((axis + t) / 2, 2.05), refLabel, 'var(--result)')],
   };
 }
 
+// requiem: catalogue/content/reference-angles-any-angle
+/**
+ * Mostly an angle in one turn, past quadrant I; in about a quarter of rows
+ * a negative angle or one past a full turn, in degrees or radians, whose
+ * terminal side is found first.
+ */
 function reference(rng) {
   for (;;) {
-    const deg = rng.chance(0.6) ? rng.int(91, 359) : rng.pick([120, 135, 150, 210, 225, 240, 300, 315, 330]);
+    const wide = rng.chance(0.18);
+    const deg = wide
+      ? (rng.chance(0.5) ? -rng.int(1, 71) * 5 : 360 + rng.int(1, 71) * 5)
+      : rng.chance(0.6) ? rng.int(91, 359) : rng.pick([120, 135, 150, 210, 225, 240, 300, 315, 330]);
     if (deg % 90 === 0) continue;
-    const quad = Math.floor(deg / 90) + 1;
-    const ref = quad === 2 ? 180 - deg : quad === 3 ? deg - 180 : 360 - deg;
-    const rule = quad === 2 ? `180° − ${deg}°` : quad === 3 ? `${deg}° − 180°` : `360° − ${deg}°`;
+    const t = ((deg % 360) + 360) % 360;
+    const quad = Math.floor(t / 90) + 1;
+    const ref = quad === 1 ? t : quad === 2 ? 180 - t : quad === 3 ? t - 180 : 360 - t;
+    const rule = quad === 1 ? `${t}°` : quad === 2 ? `180° − ${t}°` : quad === 3 ? `${t}° − 180°` : `360° − ${t}°`;
     const roman = ['I', 'II', 'III', 'IV'][quad - 1];
+    const D = (x) => `${String(x).replace('-', '−')}°`;
+    const first = t === deg ? '' : `${D(deg)} is coterminal with ${D(t)} (${deg < 0 ? 'add' : 'take away'} 360°), and `;
     if (deg % 15 === 0 && rng.chance(0.5)) {
-      const q = reduce(deg, 180), r = reduce(ref, 180);
-      const ruleR = quad === 2 ? `π − ${piText(q.n, q.d)}` : quad === 3 ? `${piText(q.n, q.d)} − π` : `2π − ${piText(q.n, q.d)}`;
+      const q = reduce(deg, 180), r = reduce(ref, 180), tq = reduce(t, 180);
+      const ruleR = quad === 1 ? piText(tq.n, tq.d) : quad === 2 ? `π − ${piText(tq.n, tq.d)}` : quad === 3 ? `${piText(tq.n, tq.d)} − π` : `2π − ${piText(tq.n, tq.d)}`;
+      const firstR = t === deg ? '' : `${piText(q.n, q.d)} is coterminal with ${piText(tq.n, tq.d)} (${deg < 0 ? 'add' : 'take away'} 2π), and `;
       return {
         prompt: [T.prose(`What is the reference angle of ${piText(q.n, q.d)}, as a multiple of π?`), ...piBlank('θ′')],
         text: `reference rad: ${q.n}/${q.d}`,
         answer: fracAnswer(ref, 180),
         visual: referenceFigure(deg, ref, piText(q.n, q.d), piText(r.n, r.d)),
-        explain: `${piText(q.n, q.d)} is ${deg}°, in quadrant ${roman}, so the reference angle is the gap to the x-axis: ${ruleR} = ${piText(r.n, r.d)}. `
+        explain: `${firstR}${piText(tq.n, tq.d)} is ${t}°, in quadrant ${roman}, so the reference angle is the gap to the x-axis: ${ruleR} = ${piText(r.n, r.d)}. `
           + `(It is measured to the x-axis, never the y-axis.) So ${piText(r.n, r.d)}.`,
       };
     }
     return {
-      prompt: [T.prose(`What is the reference angle of ${deg}°?`)],
+      prompt: [T.prose(`What is the reference angle of ${D(deg)}?`)],
       text: `reference deg: ${deg}`,
       answer: { type: 'int', value: ref },
-      visual: referenceFigure(deg, ref, `${deg}°`, `${ref}°`),
-      explain: `${deg}° is in quadrant ${roman}, so the reference angle is the acute gap between its terminal side and the x-axis: ${rule} = ${ref}°. `
+      visual: referenceFigure(deg, ref, D(deg), `${ref}°`),
+      explain: `${first}${D(t)} is in quadrant ${roman}, so the reference angle is the acute gap between its terminal side and the x-axis: ${rule} = ${ref}°. `
         + `(It is measured to the x-axis, never the y-axis, and it is never more than 90°.) So ${ref}°.`,
     };
   }
@@ -185,15 +206,15 @@ function arcOrSector(rng, sector) {
   const unit = rng.pick(UNITS);
   const letter = sector ? 'A' : 's';
   const what = sector ? 'sector area' : 'arc length';
-  const sq = sector ? `${unit}²` : { in: 'inches', ft: 'feet', cm: 'cm', m: 'meters' }[unit];
+  const sq = sector ? { in: 'square inches', ft: 'square feet', cm: 'square centimeters', m: 'square meters' }[unit] : { in: 'inches', ft: 'feet', cm: 'centimeters', m: 'meters' }[unit];
   if (!sector && rng.chance(0.2)) {
     const s = rng.int(2, 60);
     return {
-      prompt: [T.prose(`An arc ${s} ${unit} long is cut off on a circle of radius ${r} ${unit}. What is its central angle, in radians?`)],
+      prompt: [T.prose(`On a circle of radius ${r} ${unit}, a central angle cuts off an arc ${s} ${unit} long. What is the central angle, in radians?`)],
       text: `arc angle: s ${s}, r ${r}`,
       answer: fracAnswer(s, r),
       visual: null,
-      explain: `s = rθ, so θ = s/r = ${s}/${r}${reduce(s, r).d !== r ? ` = ${fracText(s, r)}` : ''} radians: the arc is that many radii long. `
+      explain: `s = rθ, so θ = s/r = ${s}/${r}${reduce(s, r).d !== r ? ` = ${fracText(s, r)}` : ''} ${s === r ? 'radian' : 'radians'}: the arc is that many radii long. `
         + `(r/s = ${r}/${s} is upside down.) So ${fracText(s, r)}.`,
     };
   }
@@ -209,7 +230,7 @@ function arcOrSector(rng, sector) {
       answer: exactDec(v),
       visual: null,
       explain: `The angle is in radians, so ${formula} directly: ${letter} = ${factorSaid} × ${said(A.v)} = ${said(v)}. `
-        + `(No π: ${said(A.v)} radians is a number of radii, not a multiple of π.) So ${said(v)} ${sq}.`,
+        + `(No π: ${said(A.v)} radians is a number of radii, not a multiple of π.) So ${said(v)} ${v === 1 ? sq.replace(/s$/, '').replace('feet', 'foot').replace('inche', 'inch') : sq}.`,
     };
   }
   const coef = reduce(factor * 2 * A.k.n, 2 * A.k.d);
@@ -246,10 +267,17 @@ function angularSpeed(rng) {
     };
   }
   if (kind === 'r omega') {
-    const r = rng.int(2, 12), w = rng.int(2, 15);
-    const U = rng.pick([['ft', 'feet'], ['m', 'meters']]);
+    // requiem: catalogue/content/believable-sizes
+    // A thing that really turns at that size and speed: a merry-go-round a
+    // few meters across turns slowly, a fan blade fast.
+    const [thing, r, w, U] = rng.pick([
+      () => ['a merry-go-round', ...(rng.chance(0.5) ? [rng.int(4, 12), rng.int(1, 2), ['ft', 'feet']] : [rng.int(2, 5), rng.int(1, 2), ['m', 'meters']])],
+      () => ['a fan blade', ...(rng.chance(0.5) ? [rng.int(6, 20), rng.int(10, 40), ['in', 'inches']] : [rng.int(15, 50), rng.int(10, 40), ['cm', 'centimeters']])],
+      () => ['a bicycle wheel', ...(rng.chance(0.5) ? [rng.int(10, 14), rng.int(5, 25), ['in', 'inches']] : [rng.int(25, 35), rng.int(5, 25), ['cm', 'centimeters']])],
+      () => ['a car tire', ...(rng.chance(0.5) ? [rng.int(12, 15), rng.int(20, 90), ['in', 'inches']] : [rng.int(30, 38), rng.int(20, 90), ['cm', 'centimeters']])],
+    ])();
     return {
-      prompt: [T.prose(`A point on the rim of a wheel of radius ${r} ${U[1]} turns at ${w} radians per second. How fast is the point moving, in ${U[1]} per second?`)],
+      prompt: [T.prose(`A point on the edge of ${thing} ${r} ${U[1]} in radius turns at ${w} ${w === 1 ? 'radian' : 'radians'} per second. How fast is the point moving, in ${U[1]} per second?`)],
       text: `rim speed: r ${r}, omega ${w}`,
       answer: { type: 'int', value: r * w },
       visual: null,

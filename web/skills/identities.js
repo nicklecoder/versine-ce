@@ -9,8 +9,10 @@
  * difference formulas give exact values at 15° and 75°, and the double-angle
  * formulas are the sum formulas with both angles the same.
  *
- * A proof rewrites one side, a step at a time, each step one identity or
- * one piece of algebra, until it reads as the other side.
+ * An identity holds wherever both sides are defined: one angle where they
+ * differ disproves an equation, and no number of angles where they agree
+ * proves one. A proof rewrites one side, a step at a time, each step one
+ * identity or one piece of algebra, until it reads as the other side.
  */
 
 export const LEVELS = [
@@ -28,6 +30,9 @@ export const LEVELS = [
     blurb: 'sin(α ± β) = sin α cos β ± cos α sin β, and cos(α ± β) = cos α cos β ∓ sin α sin β.' },
   { name: 'Double Angle', slug: 'double-angle',
     blurb: 'sin 2θ = 2 sin θ cos θ, and cos 2θ = cos²θ − sin²θ = 1 − 2 sin²θ = 2 cos²θ − 1.' },
+  // requiem: catalogue/content/identity-or-not-by-counterexample
+  { name: 'Identity or Not?', slug: 'identity-or-not', libraryCap: 200,
+    blurb: 'An identity holds wherever both sides are defined. One angle where they differ disproves it; agreeing at a few angles proves nothing, only a derivation can.' },
   { name: 'Next Step in a Proof', slug: 'next-step-in-a-proof', libraryCap: 300,
     blurb: 'Rewrite one side a step at a time: which step keeps it equal and moves it toward the other side?' },
   { name: 'All Together', slug: 'all-together',
@@ -35,7 +40,7 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [35, 35, 30, 30, 70, 60, 45, 50];
+export const PAR_SECONDS = [35, 35, 30, 30, 70, 60, 30, 45, 50];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
@@ -48,10 +53,11 @@ export default {
   name: 'Trig Identities',
   category: 'identities',
   glyph: 'sin²θ',
-  blurb: 'Pythagorean, reciprocal, even and odd, cofunction, sum and difference and double-angle identities, and the next step in a proof.',
+  blurb: 'Pythagorean, reciprocal, even and odd, cofunction, sum and difference and double-angle identities, telling an identity from an equation that only sometimes holds, and the next step in a proof.',
   answerInput: 'frac',
   // Every identity is a fact about the unit circle's coordinates; the
   // cofunctions began as complementary angles in trig-ratios.
   dependsOn: ['unit-circle', 'trig-ratios'],
   levels: LEVELS,
+  longerBecause: 'Six families of identities are six techniques, each its own level, and two levels then work with them as a whole: Identity or Not? asks whether an equation holds for every angle, settled by a counterexample or not at all by trying angles, and Next Step in a Proof is the derivation that does settle it. The first is why the second is needed, so they sit side by side, and All Together makes nine.',
 };
