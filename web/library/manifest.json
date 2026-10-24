@@ -1,5 +1,5 @@
 {
-  "built": 317,
+  "built": 325,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -218,6 +218,16 @@
       "into-vertex-form",
       "max-and-min-in-context",
       "which-form-shows-it",
+      "all-together"
+    ],
+    "exponential": [
+      "growth-or-decay",
+      "reading-a-and-b",
+      "percent-to-factor",
+      "compound-interest",
+      "doubling-and-half-life",
+      "linear-or-exponential",
+      "the-asymptote",
       "all-together"
     ],
     "decimals": [
@@ -711,6 +721,18 @@
         ]
       }
     },
+    "exponential": {
+      "dependsOn": [
+        "functions",
+        "percents",
+        "sequences"
+      ],
+      "levels": {
+        "linear-or-exponential": [
+          "sequences"
+        ]
+      }
+    },
     "decimals": {
       "dependsOn": [
         "frac-equiv",
@@ -945,7 +967,7 @@
       }
     }
   },
-  "sources": "385695c9013decaded018220b6812384862b52a79a617673763d9b07ab39c2a5",
+  "sources": "c34cc86c5cd843d7b4f6c43e2253dc1582d28e8d3c8f5f00cf65d03598e352ef",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2676,6 +2698,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "quadratic-graphs-7.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 0,
+      "slug": "growth-or-decay",
+      "name": "Growth or Decay",
+      "count": 336,
+      "exhaustive": true,
+      "signed": false,
+      "file": "exponential-0.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 1,
+      "slug": "reading-a-and-b",
+      "name": "Reading a and b",
+      "count": 461,
+      "exhaustive": true,
+      "signed": false,
+      "file": "exponential-1.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 2,
+      "slug": "percent-to-factor",
+      "name": "Percent to Factor",
+      "count": 306,
+      "exhaustive": true,
+      "signed": false,
+      "file": "exponential-2.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 3,
+      "slug": "compound-interest",
+      "name": "Compound Interest",
+      "count": 295,
+      "exhaustive": true,
+      "signed": false,
+      "file": "exponential-3.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 4,
+      "slug": "doubling-and-half-life",
+      "name": "Doubling and Half-Life",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "exponential-4.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 5,
+      "slug": "linear-or-exponential",
+      "name": "Linear or Exponential?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "exponential-5.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 6,
+      "slug": "the-asymptote",
+      "name": "The Asymptote",
+      "count": 910,
+      "exhaustive": true,
+      "signed": true,
+      "file": "exponential-6.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "exponential-7.json"
     },
     {
       "skill": "decimals",

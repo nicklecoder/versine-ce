@@ -1733,6 +1733,77 @@ BY_RULE += (
 )
 
 
+# --- Exponential Functions ---------------------------------------------------
+#
+# A model is evaluated where it is asked about: its start at x = 0, its factor
+# as f(1)/f(0), growth when that factor is above 1. y = a·bˣ + k is pinned by
+# three points -- b from the ratio of successive differences, then a, then k
+# -- so its asymptote is found without reading the k off the text. Stories
+# are rebuilt from their numbers by repeated multiplication, exactly.
+
+def model_at(src: str, x) -> Fraction:
+    return at(src, {re.search(r"[a-z]", src)[0]: Fraction(x)})
+
+
+def growth_factor(src: str) -> Fraction:
+    return model_at(src, 1) / model_at(src, 0)
+
+
+def offset_of(src: str) -> Fraction:
+    f0, f1, f2 = (model_at(src, x) for x in (0, 1, 2))
+    b = (f2 - f1) / (f1 - f0)
+    a = (f1 - f0) / (b - 1)
+    assert model_at(src, 3) == a * b ** 3 + f0 - a, f"{src} is not a·b^x + k"
+    return f0 - a
+
+
+def compounded(p, way, r, t) -> Fraction:
+    b = 1 + Fraction(int(r), 100) * (1 if way == "up" else -1)
+    return Fraction(int(p)) * b ** int(t)
+
+
+def repeated(a, f, every, total) -> Fraction:
+    steps, left = divmod(int(total), int(every))
+    assert left == 0, f"{total} is not a whole number of steps of {every}"
+    return Fraction(a) * Fraction(f) ** steps
+
+
+def repeated_until(a, f, every, reach) -> Fraction:
+    value, steps = Fraction(a), 0
+    while value != Fraction(reach):
+        value, steps = value * Fraction(f), steps + 1
+        assert steps < 40, f"{a} never reaches {reach}"
+    return steps * int(every)
+
+
+def table_kind(text: str) -> str:
+    ys = [Fraction(v) for v in text.split(", ")]
+    gaps = {b - a for a, b in zip(ys, ys[1:])}
+    ratios = {b / a for a, b in zip(ys, ys[1:])} if 0 not in ys else {None, 0}
+    assert not (len(gaps) == 1 and len(ratios) == 1), f"{text} is both"
+    return "linear" if len(gaps) == 1 else "exponential" if len(ratios) == 1 else "neither"
+
+
+CHOICE_RULES += (
+    (re.compile(r"^grows or decays: (.+)$"), lambda src: "growth" if growth_factor(src) > 1 else "decay"),
+    (re.compile(r"^table kind: (.+)$"), table_kind),
+    (re.compile(r"^change: ([+*-])"), lambda op: "exponential" if op == "*" else "linear"),
+)
+
+BY_RULE += (
+    (re.compile(r"^start: (.+)$"), lambda src: model_at(src, 0)),
+    (re.compile(r"^growth factor: (.+)$"), growth_factor),
+    (re.compile(r"^value at (\d+): (.+)$"), lambda k, src: model_at(src, k)),
+    (re.compile(r"^factor for: (up|down) (\d+)$"), lambda way, r: 1 + Fraction(r, 100) * (1 if way == "up" else -1)),
+    (re.compile(r"^percent for: ([\d.]+)$"), lambda b: abs(Fraction(b) - 1) * 100),
+    (re.compile(r"^compound: (\d+) (up|down) (\d+) for (\d+)$"), compounded),
+    (re.compile(r"^repeated: ([\d.]+) times ([\d.]+) every (\d+) for (\d+)$"), repeated),
+    (re.compile(r"^repeated until: ([\d.]+) times ([\d.]+) every (\d+) reach ([\d.]+)$"), repeated_until),
+    (re.compile(r"^asymptote: (.+)$"), offset_of),
+    (re.compile(r"^y-intercept: (.+)$"), lambda src: model_at(src, 0)),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue

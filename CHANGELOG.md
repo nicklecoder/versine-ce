@@ -111,6 +111,9 @@ Phase 2 has begun:
   vertex form and found from −b/2a, the zeros from factored form, completing the square
   into vertex form, maxima in context (a thrown ball, a fenced pen, a shop's takings), and
   a strategy level on which form shows the vertex, the zeros or the y-intercept.
+- **Exponential Functions** (Functions): growth or decay, reading a and b, a percent rate
+  as a factor and back, compound interest, doubling and half-life, a strategy level on
+  linear or exponential from a table or a story, and the asymptote of a·bˣ + k.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.
@@ -121,7 +124,14 @@ so −4/x², −(4/x²) and 4/(−x²) are one answer.
 
 Fixed: factors drawn side by side lost their brackets, so (−2a³b⁴)(3b⁶) showed as one
 run of symbols and 2(3) as 23. A typed bracket around a factor is now kept, and a number
-following something is always bracketed.
+following something is always bracketed. A power of a number keeps its bracket on the
+base, so 500(1.04)ˣ is drawn as it is written.
+
+Fixed: a decimal answer filling a blank in its question was shown as "[object Object]"
+once answered, in Decimals, Rounding, Percents, Proportional Relationships and Scientific
+Notation. And 57 scientific-notation answers, such as −0.00000276, were longer than the
+decimal box let anyone type; the box now takes twelve characters and is wide enough to
+show them, and `check-library.py` fails any answer longer than its box.
 
 What a bracket holds is spaced like the rest of the line and kept on one line, a minus on
 a letter is set against it (−n², not − n²), and a prompt with a long bracket or product in

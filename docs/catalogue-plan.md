@@ -120,7 +120,10 @@ Method? (strategy, on factoring's Which Pattern?) · All Together; and
 The Discriminant · Exact Radical Answers · Which Method? (strategy) · All Together;
 and `quadratic-graphs`, as Up or Down · Vertex Form · Zeros From Factored Form ·
 Vertex From −b/2a · Into Vertex Form · Max and Min in Context · Which Form Shows
-It? (strategy, on quadratic-formula's Which Method?) · All Together.
+It? (strategy, on quadratic-formula's Which Method?) · All Together; and
+`exponential`, as Growth or Decay · Reading a and b · Percent to Factor ·
+Compound Interest · Doubling and Half-Life · Linear or Exponential? (strategy,
+on sequences' Which Kind?) · The Asymptote · All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
