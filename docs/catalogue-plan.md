@@ -109,7 +109,8 @@ term.
 between the right answer and the rule-for-rule slips) and All Together; and
 `rational-exponents`, as The Half Power · Other Roots · Root, Then Power ·
 Negative Fractional Powers · Radical to Power · Rules With Fractions · Combine
-First (strategy, on real-numbers' Sums and Products).
+First (strategy, on real-numbers' Sums and Products); and `polynomials`, with
+Taking Away for subtracting and All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

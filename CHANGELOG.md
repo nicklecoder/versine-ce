@@ -93,6 +93,9 @@ Phase 2 has begun:
 - **Monomials** (Expressions): multiplying and dividing, a power of a monomial, zero and
   negative powers finished with positive powers only, simplest form, and choosing the right
   answer from the slips students actually make.
+- **Polynomials** (Expressions): degree and standard form, adding, taking away, a monomial
+  times a polynomial, binomial times binomial, the special products, and trinomial times
+  binomial.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.
@@ -104,6 +107,10 @@ so −4/x², −(4/x²) and 4/(−x²) are one answer.
 Fixed: factors drawn side by side lost their brackets, so (−2a³b⁴)(3b⁶) showed as one
 run of symbols and 2(3) as 23. A typed bracket around a factor is now kept, and a number
 following something is always bracketed.
+
+What a bracket holds is spaced like the rest of the line and kept on one line, a minus on
+a letter is set against it (−n², not − n²), and a prompt with a long bracket or product in
+it is set smaller so it fits the card.
 
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.

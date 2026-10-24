@@ -1,5 +1,5 @@
 {
-  "built": 275,
+  "built": 283,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -254,6 +254,16 @@
       "zero-and-negative-powers",
       "simplest-form",
       "the-usual-mistakes",
+      "all-together"
+    ],
+    "polynomials": [
+      "degree-and-standard-form",
+      "adding",
+      "taking-away",
+      "monomial-times-polynomial",
+      "binomial-times-binomial",
+      "special-products",
+      "trinomial-times-binomial",
       "all-together"
     ],
     "evaluate": [
@@ -710,6 +720,12 @@
       ],
       "levels": {}
     },
+    "polynomials": {
+      "dependsOn": [
+        "monomials"
+      ],
+      "levels": {}
+    },
     "evaluate": {
       "dependsOn": [
         "int-muldiv",
@@ -836,7 +852,7 @@
       }
     }
   },
-  "sources": "68fc167fd4a1070c20d5b1197e20a41c47b62402c6c52af62cc6d98e17225bc7",
+  "sources": "44841f483aee59649b421f4af012425bd4e5ac239d42770f03f42f2bbeddff63",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2847,6 +2863,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "monomials-6.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 0,
+      "slug": "degree-and-standard-form",
+      "name": "Degree and Standard Form",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "polynomials-0.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 1,
+      "slug": "adding",
+      "name": "Adding",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "polynomials-1.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 2,
+      "slug": "taking-away",
+      "name": "Taking Away",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "polynomials-2.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 3,
+      "slug": "monomial-times-polynomial",
+      "name": "Monomial Times Polynomial",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "polynomials-3.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 4,
+      "slug": "binomial-times-binomial",
+      "name": "Binomial Times Binomial",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "polynomials-4.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 5,
+      "slug": "special-products",
+      "name": "Special Products",
+      "count": 528,
+      "exhaustive": true,
+      "signed": false,
+      "file": "polynomials-5.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 6,
+      "slug": "trinomial-times-binomial",
+      "name": "Trinomial Times Binomial",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "polynomials-6.json"
+    },
+    {
+      "skill": "polynomials",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "polynomials-7.json"
     },
     {
       "skill": "evaluate",

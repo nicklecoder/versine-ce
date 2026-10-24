@@ -1450,6 +1450,65 @@ EXPR_RULES += (
 )
 
 
+# --- Polynomials -------------------------------------------------------------
+#
+# A polynomial's coefficients are found by evaluating it at x = 0..7 and
+# solving for them, so the question is read as the expression it is, brackets
+# and all, and never by its terms. Two more points confirm the degree is under
+# eight. An answer must have the same coefficients and be written expanded
+# and collected: no brackets, each power once, no 0 or 1 left written.
+
+def coefficients(src: str) -> list:
+    letter = re.search(r"[a-z]", src)[0]
+    xs = range(8)
+    rows = [[Fraction(x) ** k for k in range(8)] + [at(src, {letter: Fraction(x)})] for x in xs]
+    for i in range(8):
+        pivot = next(r for r in range(i, 8) if rows[r][i] != 0)
+        rows[i], rows[pivot] = rows[pivot], rows[i]
+        rows[i] = [v / rows[i][i] for v in rows[i]]
+        for r in range(8):
+            if r != i and rows[r][i] != 0:
+                rows[r] = [a - rows[r][i] * b for a, b in zip(rows[r], rows[i])]
+    cs = [rows[k][8] for k in range(8)]
+    for x in (8, 9):
+        assert sum(c * x ** k for k, c in enumerate(cs)) == at(src, {letter: Fraction(x)}), f"degree of {src}"
+    while len(cs) > 1 and cs[-1] == 0:
+        cs.pop()
+    return cs
+
+
+POLY_TERM = re.compile(r"^(\d*)([a-z])(?:\^(\d+))?$|^(\d+)$")
+
+
+def expanded(answer: str) -> bool:
+    powers = []
+    for t in re.split(r"(?<!^)\s*[+-]\s*", answer.strip().lstrip("-")):
+        m = POLY_TERM.match(t.strip())
+        if not m or m[1] in ("1", "0") or m[3] in ("0", "1") or m[4] == "0":
+            return False
+        powers.append(0 if m[4] else int(m[3] or 1))
+    return len(powers) == len(set(powers))
+
+
+def same_polynomial(src: str, answer: str) -> str:
+    if coefficients(src) != coefficients(answer):
+        return f"is not {src} multiplied out"
+    return "ok" if expanded(answer) else "is not expanded and collected"
+
+
+EXPR_RULES += (
+    (re.compile(r"^polynomial: (.+)$"), same_polynomial),
+)
+
+BY_RULE += (
+    (re.compile(r"^degree: (.+)$"), lambda src: len(coefficients(src)) - 1),
+    (re.compile(r"^leading: (.+)$"), lambda src: coefficients(src)[-1]),
+    (re.compile(r"^constant: (.+)$"), lambda src: coefficients(src)[0]),
+    (re.compile(r"^coefficient of [a-z](?:\^(\d+))?: (.+)$"),
+     lambda k, src: coefficients(src)[k or 1]),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
