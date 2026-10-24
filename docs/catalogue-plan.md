@@ -143,7 +143,13 @@ Reflect · Combined · Name the Parent · Even or Odd · All Together.
 **Algebra 1 milestone:** Phases 0–2 plus `pythagoras` and `data-center`
 complete Common Core and TEKS Algebra I. `pythagoras` is built, as The
 Hypotenuse · A Missing Leg · Is It Right? · Exact Answers · Distance Between
-Points · The 3D Diagonal · Spot the Triple · All Together.
+Points · The 3D Diagonal · Spot the Triple · All Together. `data-center` is
+built, as The Mean · The Median · Missing Value for a Mean · Quartiles and the
+IQR · Mean Absolute Deviation · Samples (representative or biased, and scaling
+a random sample up) · Which Measure? · All Together. Which Measure? is a
+choice level rather than a strategy level: everything it chooses between is
+taught in the same skill, so there is no earlier skill whose need it
+arbitrates. That completes the milestone.
 
 ## Phase 3 — geometry, chance and data
 

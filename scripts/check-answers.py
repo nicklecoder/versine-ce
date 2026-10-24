@@ -1962,6 +1962,69 @@ CHOICE_RULES += (
 )
 
 
+# --- Center and Spread -------------------------------------------------------
+#
+# The data is read back as the question lists it, unsorted, and every measure
+# is worked again from it: sorted here, never trusted to arrive in order.
+# Quartiles split at the median, the middle value of an odd count in neither
+# half. Which measure fits is decided by the 1.5 × IQR test for an outlier,
+# and a sample stands for its population only if it was drawn from all of
+# it and by chance.
+
+def data_of(listing: str) -> list:
+    return [int(v) for v in listing.split(", ")]
+
+
+def median_of(ys: list) -> Fraction:
+    ys = sorted(ys)
+    n = len(ys)
+    return Fraction(ys[n // 2]) if n % 2 else Fraction(ys[n // 2 - 1] + ys[n // 2], 2)
+
+
+def quartiles_of(listing: str):
+    ys = sorted(data_of(listing))
+    h = len(ys) // 2
+    return median_of(ys[:h]), median_of(ys[len(ys) - h:])
+
+
+def mean_deviation(listing: str) -> Fraction:
+    xs = data_of(listing)
+    centre = Fraction(sum(xs), len(xs))
+    return sum(abs(x - centre) for x in xs) / len(xs)
+
+
+def has_outlier(listing: str) -> bool:
+    q1, q3 = quartiles_of(listing)
+    fence = Fraction(3, 2) * (q3 - q1)
+    return any(x < q1 - fence or x > q3 + fence for x in data_of(listing))
+
+
+def missing_value(mean: str, n: int, listing: str) -> Fraction:
+    return Fraction(mean) * n - sum(data_of(listing))
+
+
+BY_RULE += (
+    (re.compile(r"^mean: (-?\d+(?:, -?\d+)*)$"), lambda xs: Fraction(sum(data_of(xs)), len(data_of(xs)))),
+    (re.compile(r"^median: (-?\d+(?:, -?\d+)*)$"), lambda xs: median_of(data_of(xs))),
+    (re.compile(r"^q1: (-?\d+(?:, -?\d+)*)$"), lambda xs: quartiles_of(xs)[0]),
+    (re.compile(r"^q3: (-?\d+(?:, -?\d+)*)$"), lambda xs: quartiles_of(xs)[1]),
+    (re.compile(r"^iqr: (-?\d+(?:, -?\d+)*)$"), lambda xs: quartiles_of(xs)[1] - quartiles_of(xs)[0]),
+    (re.compile(r"^range: (-?\d+(?:, -?\d+)*)$"), lambda xs: max(data_of(xs)) - min(data_of(xs))),
+    (re.compile(r"^mad: (-?\d+(?:, -?\d+)*)$"), mean_deviation),
+    (re.compile(r"^missing for mean: mean (-?\d+(?:\.5)?) over (\d+), given (-?\d+(?:, -?\d+)*)$"), missing_value),
+    (re.compile(r"^next to reach: (\d+) at (\d+), want (\d+)$"), lambda n, now, goal: (n + 1) * goal - n * now),
+    (re.compile(r"^add to mean: (\d+) at (\d+), add (\d+)$"), lambda n, now, new: Fraction(n * now + new, n + 1)),
+    (re.compile(r"^sample estimate: (\d+) of (\d+), population (\d+)$"), lambda c, k, pop: Fraction(c * pop, k)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^center: (-?\d+(?:, -?\d+)*)$"), lambda xs: "median" if has_outlier(xs) else "mean"),
+    (re.compile(r"^spread: (-?\d+(?:, -?\d+)*)$"), lambda xs: "iqr" if has_outlier(xs) else "mad"),
+    (re.compile(r"^sample \((\w+), \d+, [fu]\d+, \d+\): from (all|part), by (chance|choice)$"),
+     lambda _, frame, by: "yes" if frame == "all" and by == "chance" else "no"),
+)
+
+
 # requiem: catalogue/library/every-level-checked
 # A level none of whose texts any rule reads would pass by saying nothing:
 # a prefix spelled one way in the generator and another here does that.

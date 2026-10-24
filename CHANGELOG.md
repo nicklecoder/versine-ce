@@ -124,6 +124,13 @@ That finishes Phase 2.
 hypotenuse and a missing leg (as ladders, screens, walks and ramps too), whether three
 sides make a right angle, exact answers in simplest radical form, distance between points
 on a grid, the diagonal of a box, and spotting a scaled triple to skip the squaring.
+
+**Center and Spread**, the first skill under Statistics, in eight levels: the mean, the
+median from an unsorted list, a missing value or a next score from a mean, quartiles with
+the IQR beside the range, the mean absolute deviation (its distances shown in a table on
+reveal), whether a sample is representative and scaling a random one up to its
+population, and which measure fits data with or without an outlier. That finishes the
+Algebra 1 milestone.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

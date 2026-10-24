@@ -1,5 +1,5 @@
 {
-  "built": 341,
+  "built": 349,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -432,6 +432,16 @@
       "distance-between-points",
       "the-3d-diagonal",
       "spot-the-triple",
+      "all-together"
+    ],
+    "data-center": [
+      "the-mean",
+      "the-median",
+      "missing-value-for-a-mean",
+      "quartiles-and-the-iqr",
+      "mean-absolute-deviation",
+      "samples",
+      "which-measure",
       "all-together"
     ]
   },
@@ -1000,9 +1010,16 @@
         "roots"
       ],
       "levels": {}
+    },
+    "data-center": {
+      "dependsOn": [
+        "decimals",
+        "ratio"
+      ],
+      "levels": {}
     }
   },
-  "sources": "6e63d9537d04bd3c716cb92a6b184789f33804257334454ef4ebf25bd39357a5",
+  "sources": "5efb7a845952980075f665c09c1bbb2df2fc745ba7d69a9266ab43ccda896a1e",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4413,6 +4430,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "pythagoras-7.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 0,
+      "slug": "the-mean",
+      "name": "The Mean",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-0.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 1,
+      "slug": "the-median",
+      "name": "The Median",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-1.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 2,
+      "slug": "missing-value-for-a-mean",
+      "name": "Missing Value for a Mean",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-2.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 3,
+      "slug": "quartiles-and-the-iqr",
+      "name": "Quartiles and the IQR",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-3.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 4,
+      "slug": "mean-absolute-deviation",
+      "name": "Mean Absolute Deviation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "data-center-4.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 5,
+      "slug": "samples",
+      "name": "Samples",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "data-center-5.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 6,
+      "slug": "which-measure",
+      "name": "Which Measure?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "data-center-6.json"
+    },
+    {
+      "skill": "data-center",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "data-center-7.json"
     }
   ]
 }
