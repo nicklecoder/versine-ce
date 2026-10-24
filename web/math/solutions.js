@@ -172,7 +172,7 @@ export function parseSet(raw) {
       if ((lo === null && !/inf/.test(m[2])) || (hi === null && !/inf/.test(m[3]))) return { ok: false };
       parts.push({ lo, loIn: m[1] === '[', hi, hiIn: m[4] === ']' });
     }
-    return { ok: true, value: { letter: 'x', parts: normalize(parts) } };
+    return { ok: true, value: { letter: 'x', parts: normalize(parts) }, pieces: pieces.length };
   }
 
   // Inequalities and equations: clauses joined by "or" (or commas), each
@@ -187,9 +187,11 @@ export function parseSet(raw) {
   }
   let letter = null;
   let parts = [];
+  let written = 0;
   for (const clause of clauses) {
     let set = ALL;
     const pieces = clause.split(/\s*\band\b\s*/);
+    written += pieces.length;
     // x = 3 and x = −3 is how solutions are often listed aloud, but read as
     // written it is no number at all. Said back, not marked wrong.
     if (pieces.length > 1 && pieces.every((q) => !/[<>]|!=/.test(q))) {
@@ -204,7 +206,18 @@ export function parseSet(raw) {
     }
     parts = parts.concat(set);
   }
-  return { ok: true, value: { letter: letter ?? 'x', parts: normalize(parts) } };
+  return { ok: true, value: { letter: letter ?? 'x', parts: normalize(parts) }, pieces: written };
+}
+
+/**
+ * Written in no more pieces than the set needs: one interval per run, and
+ * one for no solution or every number. x < −1 and x < −2 is two pieces for
+ * a set that is one ray, so it is the question copied back, not combined.
+ * `pieces` is how many relations or intervals were typed, from parseSet.
+ */
+// requiem: play/answers/set-simplest-form-refused-copy
+export function combined(value, pieces) {
+  return pieces == null || pieces <= Math.max(1, value.parts.length);
 }
 
 export function sameSet(a, b) {

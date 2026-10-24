@@ -118,7 +118,7 @@ export class Session {
 
     // Right value, wrong form. Levels that ask for simplest form mean it, and
     // saying so precisely is more use than a bare "not quite".
-    if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value)) {
+    if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value, parsed)) {
       // Said as typed where the canonical form would already be the finished one.
       const shown = type.unfinished ? String(raw).trim() : type.format(parsed.value);
       return { ...this.#wrong(), hint: `${shown} is right, but it isn't ${type.unfinished ?? 'in lowest terms'} yet.` };

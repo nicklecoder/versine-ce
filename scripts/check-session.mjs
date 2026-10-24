@@ -270,6 +270,25 @@ for (const skill of SKILLS) {
   if (play(p.answer.accept[0]).status !== 'correct') fail.push(`rounding: "${p.answer.accept[0]}" refused`);
 }
 
+// requiem: play/answers/set-simplest-form-refused-copy
+// Asked for the simplest form, the two conditions copied back are refused
+// with a hint, and the combined set is accepted.
+{
+  const skill = SKILLS.find((s) => s.id === 'compound-ineq');
+  const lib = libOf(skill, 5);
+  const p = lib.problems.find((q) => q.answer.requireSimplest && q.text.startsWith('combine: '));
+  const copy = p.text.slice('combine: '.length);
+  const play = (raw) => {
+    const s = new Session({ skill, level: 5, mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const back = play(copy);
+  if (back.status !== 'wrong' || !back.hint?.includes('simplest form')) fail.push(`compound-ineq: "${copy}" copied back was not told to combine it`);
+  if (play(p.answer.accept[0]).status !== 'correct') fail.push(`compound-ineq: "${p.answer.accept[0]}" refused`);
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

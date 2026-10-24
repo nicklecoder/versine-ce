@@ -198,9 +198,8 @@ function negativeMiddle(rng) {
  * "or" are left out, because their simplest form is the question itself.
  *
  * requiem: play/answers/set-simplest-form-refused-copy
- * The answer box judges the set, so it would still accept the two
- * conditions retyped; the prompt asks for the simplest form, and refusing
- * the unsimplified pieces has to be done where answers are judged.
+ * The answer box judges the set, so it would accept the two conditions
+ * retyped; requireSimplest has it refuse them, with a hint, instead.
  */
 function andOr(rng) {
   const kind = rng.pick(['and-chain', 'and-none', 'and-ray', 'or-ray', 'or-all']);
@@ -241,7 +240,7 @@ function andOr(rng) {
   return {
     prompt: [T.prose(`What is ${pretty(p)} ${join} ${pretty(q)} in its simplest form?`)],
     text: `combine: ${p} ${join} ${q}`,
-    answer: { type: 'solutions', value: both },
+    answer: { type: 'solutions', value: both, requireSimplest: true },
     visual: { kind: 'intervals', ...LINE,
       rows: [{ parts: one, label: pretty(p) }, { parts: two, label: pretty(q) }],
       answer: [{ parts, label: result }], answerRows: 1 },

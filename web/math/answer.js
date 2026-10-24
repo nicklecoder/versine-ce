@@ -15,7 +15,7 @@
 
 import { parseExpression, canonical } from './parse.js';
 import { valueAt, lettersIn } from './exact.js';
-import { parseSet, sameSet, formatSet, previewSet } from './solutions.js';
+import { parseSet, sameSet, formatSet, previewSet, combined } from './solutions.js';
 import { parseRoots, sameRoots, formatRoots, rootTexts } from './surds.js';
 import { previewOf } from '../ui/express.js';
 
@@ -494,6 +494,9 @@ defineType({
   preview: previewSet,
   equals: sameSet,
   format: formatSet,
+  // A level asking for the simplest form means the conditions combined.
+  isSimplest: (v, parsed) => combined(v, parsed?.pieces),
+  unfinished: 'combined into its simplest form',
 });
 
 // requiem: play/answers/roots-judged-exactly
