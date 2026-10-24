@@ -39,9 +39,12 @@ function intInput(spec, opts = {}) {
   const input = el('input.answer', {
     type: 'text', inputmode: opts.signed ? 'text' : 'numeric',
     pattern: '-?[0-9]*', maxlength: 7,
-    autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', placeholder: '?',
+    autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', placeholder: '?', 'aria-label': 'Answer',
     oninput: () => {
-      const clean = input.value.replace(/[^0-9.-]/g, '')
+      // A decimal comma is the decimal key on a German or French iPhone,
+      // and stripping it left those students no way to type a point.
+      const typed = opts.comma ? input.value.replace(/,/g, '.') : input.value;
+      const clean = typed.replace(/[^0-9.-]/g, '')
         .replace(/(?!^)-/g, '')
         .replace(/(\..*)\./g, '$1');
       if (clean !== input.value) input.value = clean;
@@ -69,7 +72,7 @@ function intInput(spec, opts = {}) {
  * integer input does.
  */
 function decimalInput(spec, opts = {}) {
-  const w = intInput(spec, opts);
+  const w = intInput(spec, { ...opts, comma: true });
   w.node.setAttribute('inputmode', opts.signed ? 'text' : 'decimal');
   w.node.setAttribute('pattern', '-?[0-9]*\\.?[0-9]*');
   // requiem: catalogue/library/answer-fits-its-box

@@ -12,7 +12,7 @@ import { getType } from '../math/answer.js';
 import { renderVisual, hasVisual } from './visuals.js';
 import { renderPrompt, answerTerm } from './prompt.js';
 import { makeAnswerInput } from './answerinput.js';
-import { state, go } from './router.js';
+import { state, go, setLeaveGuard } from './router.js';
 import { topbar, crumbs, soundToggle } from './map.js';
 
 const CORRECT_PAUSE = 850;
@@ -42,7 +42,8 @@ export function playScreen(route) {
   // Whatever picture this skill wants lives here; the play screen never needs
   // to know whether it's a number line, a sign model, or something later.
   const visualBox = el('div.visual');
-  const feedback = el('div.feedback');
+  // Announced as it changes: "Correct", "Not quite", a hint.
+  const feedback = el('div.feedback', { role: 'status', 'aria-live': 'polite' });
   // The widget is chosen by the skill's answer type -- an integer box, or
   // stacked numerator over denominator for fractions. This screen never needs
   // to know which: every widget offers the same small surface.
@@ -186,7 +187,7 @@ export function playScreen(route) {
     answer.clear();
     answer.setState(null);
     checkBtn.disabled = false;
-    if (explainBtn) explainBtn.disabled = false;
+    if (explainBtn) { explainBtn.disabled = false; explainBtn.classList.remove('is-nudged'); }
 
     if (hasVisual(problem.visual)) {
       visualBox.classList.remove('hidden');
@@ -272,7 +273,11 @@ export function playScreen(route) {
     // appending to it, while it is still there to edit.
     answer.select?.();
     setTimeout(() => answer.setState(null), 360);
-    flash(result.hint ?? 'Not quite — try again', 'is-wrong');
+    // Three misses and the same "not quite" again helps nobody: where the
+    // walkthrough is allowed, point at it, and make the button hard to miss.
+    const stuck = session.attempts >= 3 && explainBtn;
+    flash(result.hint ?? (stuck ? 'Stuck? Press ? or Why? to see this one worked through.' : 'Not quite — try again'), 'is-wrong');
+    explainBtn?.classList.toggle('is-nudged', !!stuck);
     paintHud();
   }
 
@@ -314,7 +319,11 @@ export function playScreen(route) {
   // On the slot, not the widget: the widget is rebuilt as problems change.
   answerSlot.addEventListener('focusout', () => setTimeout(refocus, 0));
 
+  // A back press mid-run is leaving, and files the run on the way out.
+  setLeaveGuard((dest) => leave(dest));
+
   function teardown() {
+    setLeaveGuard(null);
     document.removeEventListener('keydown', onKeyDown);
     observer.disconnect();
     clearInterval(timerId);
@@ -373,8 +382,9 @@ export function playScreen(route) {
       saveError = err?.status ? `error ${err.status}` : null;
     }
     if (exitTo) { go(exitTo); return; }
+    // In place of the run, so back from the summary does not restart it.
     go({ name: 'summary', skillId: skill.id, level: session.baseLevel,
-         modeId: mode.id, summary, outcome, reviewBefore, saveError });
+         modeId: mode.id, summary, outcome, reviewBefore, saveError }, { replace: true });
   }
 
   /** What the keys do, phrased for whichever input this skill uses. */

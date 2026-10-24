@@ -22,6 +22,7 @@ export function fracInput(spec, opts = {}) {
   // iPhone numeric pad carries a minus, so a level that can go negative asks
   // for the full keyboard and accepts the extra tap.
   const box = (cls, placeholder, signable = false) => el(`input.frac-box.${cls}`, {
+    'aria-label': signable ? 'Numerator' : 'Denominator',
     type: 'text', inputmode: signable && opts.signed ? 'text' : 'numeric', maxlength: 4,
     autocomplete: 'off', spellcheck: 'false', placeholder,
     oninput: (e) => {

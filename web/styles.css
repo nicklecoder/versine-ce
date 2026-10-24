@@ -1323,3 +1323,15 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 @media (pointer: coarse) {
   .frac-box, .pair-box, .mixed-whole { min-height: 44px; }
 }
+
+/* Read aloud, never seen. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* After a third miss, the way to the walkthrough is lit up. */
+.btn.is-nudged { border-color: var(--cool); color: var(--cool); box-shadow: 0 0 0 3px rgba(53,214,255,.15); }
+.keep-together { display: inline-flex; align-items: center; gap: .28em; white-space: nowrap; }
+/* Four figures sit two by two on a phone, not three and one. */
+@media (max-width: 480px) { .summary__grid { grid-template-columns: 1fr 1fr; } }

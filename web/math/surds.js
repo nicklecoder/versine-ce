@@ -136,6 +136,37 @@ function entries(raw) {
   return { ok: true, letter, texts };
 }
 
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
+
+/**
+ * Whether one typed entry is written in simplest radical form: every root of
+ * a whole number with no square left in it (√20 is not, 2√5 is), and over a
+ * whole denominator nothing that divides the whole top as well -- (4 ± 2√3)/2
+ * is 2 ± √3 unfinished. The value is the same either way, which is why this
+ * looks at what was typed rather than at the number.
+ */
+function simplestAsTyped(ast) {
+  const radicands = [];
+  const walk = (n) => {
+    if (!n || typeof n !== 'object') return;
+    if (n.t === 'call' && n.fn === 'sqrt') radicands.push(n.args[0]);
+    for (const k of ['a', 'b']) walk(n[k]);
+    (n.args ?? []).forEach(walk);
+  };
+  walk(ast);
+  for (const r of radicands) {
+    if (r.t !== 'num' || !/^\d+$/.test(r.v)) return false;
+    const n = parseInt(r.v, 10);
+    if (n < 2 || squarePart(n)[0] > 1) return false;
+  }
+  if (ast.t === 'bin' && ast.op === '/' && ast.b.t === 'num' && /^\d+$/.test(ast.b.v)) {
+    const top = surdAt(ast.a), d = parseInt(ast.b.v, 10);
+    if (d === 1) return false;
+    if (top && top.a.d === 1 && top.b.d === 1 && gcd(gcd(top.a.n, top.b.n), d) > 1) return false;
+  }
+  return true;
+}
+
 /**
  * Read the roots a student typed.
  * @returns {{ok:true, value:{letter:string, roots:Surd[]}}|{ok:false, hint:string}}
@@ -144,14 +175,19 @@ export function parseRoots(raw) {
   const e = entries(raw);
   if (!e.ok) return e;
   const roots = [];
+  let simplest = true;
   for (const text of e.texts) {
     const parsed = parseExpression(text);
     if (!parsed.ok) return { ok: false, hint: parsed.error };
     const v = surdAt(parsed.ast);
     if (!v) return { ok: false, hint: 'Each solution is a number, like 3 + √5 or −2/3.' };
+    simplest = simplest && simplestAsTyped(parsed.ast);
     if (!roots.some((s) => sameSurd(s, v))) roots.push(v);
   }
-  return { ok: true, value: { letter: e.letter ?? 'x', roots: roots.sort((s, t) => size(s) - size(t)) } };
+  return {
+    ok: true,
+    value: { letter: e.letter ?? 'x', roots: roots.sort((s, t) => size(s) - size(t)), simplest },
+  };
 }
 
 export function sameRoots(x, y) {

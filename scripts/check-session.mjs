@@ -227,6 +227,17 @@ for (const skill of SKILLS) {
   }
 }
 
+// Simplest radical form is judged as typed: √20 is the right length and,
+// where a level asks for simplest form, not finished.
+{
+  const roots = getType('roots');
+  for (const [raw, simplest] of [['2sqrt(5)', true], ['sqrt(20)', false], ['(-8 +- sqrt(32))/2', false],
+    ['(4 +- 2sqrt(3))/2', false], ['2 +- sqrt(3)', true], ['(-3 +- sqrt(17))/4', true], ['5', true]]) {
+    const r = roots.parse(raw);
+    if (!r.ok || roots.isSimplest(r.value) !== simplest) fail.push(`roots: "${raw}" should ${simplest ? '' : 'not '}be simplest`);
+  }
+}
+
 // Opening the walkthrough shows the answer, so the answer after it is solved
 // but is not a first try.
 {

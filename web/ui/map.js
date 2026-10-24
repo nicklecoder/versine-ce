@@ -47,9 +47,29 @@ export function topbar({ wide = false } = {}) {
       state.me.role === 'teacher' &&
         el('button.btn.btn--sm.btn--ghost', { onclick: () => go({ name: 'teacher' }) }, 'Console'),
       ...extensionLinks(),
-      el('button.btn.btn--sm.btn--ghost', {
-        onclick: async () => { await api.logout(); location.reload(); },
-      }, 'Sign out')));
+      signOutButton()));
+}
+
+/**
+ * Signing out is immediate and loses an unsaved run, and on a phone the
+ * button sits right under the sound toggle. So the first tap asks, and a
+ * second within a few seconds does it.
+ */
+function signOutButton() {
+  let armed = null;
+  const btn = el('button.btn.btn--sm.btn--ghost', {
+    onclick: async () => {
+      if (!armed) {
+        btn.textContent = 'Sure? Tap again';
+        armed = setTimeout(() => { armed = null; btn.textContent = 'Sign out'; }, 3000);
+        return;
+      }
+      clearTimeout(armed);
+      await api.logout();
+      location.reload();
+    },
+  }, 'Sign out');
+  return btn;
 }
 
 /** Top-bar links an extension added for this person's role (extension-points). */

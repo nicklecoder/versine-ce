@@ -106,7 +106,8 @@ export class Session {
     const parsed = type.parse(raw);
     // The parser's own reason ("a bracket is left open") says more than the
     // type's general example does.
-    if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? parsed.why ?? type.hint };
+    const why = parsed.why && `${parsed.why[0].toUpperCase()}${parsed.why.slice(1)}.`;
+    if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? why ?? type.hint };
 
     // requiem: play/answers/accepted-forms-judged
     // The stored value, or any other form the level lists as accepted:
@@ -118,8 +119,9 @@ export class Session {
     // Right value, wrong form. Levels that ask for simplest form mean it, and
     // saying so precisely is more use than a bare "not quite".
     if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value)) {
-      const shown = type.format(parsed.value);
-      return { ...this.#wrong(), hint: `${shown} is right, but it isn't in lowest terms yet.` };
+      // Said as typed where the canonical form would already be the finished one.
+      const shown = type.unfinished ? String(raw).trim() : type.format(parsed.value);
+      return { ...this.#wrong(), hint: `${shown} is right, but it isn't ${type.unfinished ?? 'in lowest terms'} yet.` };
     }
 
     return this.#correct();

@@ -8,7 +8,9 @@ import { el, fitToContent } from './dom.js';
  * navigates, so the rule is the same in every input in the app.
  */
 export function mixedInput() {
+  const LABEL = { w: 'Whole number', n: 'Numerator', d: 'Denominator' };
   const box = (cls, placeholder, size) => el('input', {
+    'aria-label': LABEL[placeholder],
     class: cls,
     type: 'text', inputmode: 'numeric', maxlength: size,
     autocomplete: 'off', spellcheck: 'false', placeholder,

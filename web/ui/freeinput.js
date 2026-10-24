@@ -33,7 +33,7 @@ export function freeInput(spec = {}, opts = {}) {
   const input = el('input.answer.answer--free', {
     type: 'text', inputmode: 'text',
     autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
-    spellcheck: 'false', placeholder: '?', maxlength: 40,
+    spellcheck: 'false', placeholder: '?', maxlength: 40, 'aria-label': 'Answer',
   });
 
   /** The last input that parsed, so a half-typed one does not blank the strip. */

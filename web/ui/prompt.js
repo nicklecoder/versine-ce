@@ -223,6 +223,14 @@ export function renderPrompt(node, terms, opts = {}) {
       n.remove();
     }
   }
+  // "= ?" at the end goes together: wrapped apart, the blank sat alone on a
+  // line of its own at phone width.
+  const [op, q] = [...node.children].slice(-2);
+  if (op?.classList.contains('op') && q?.classList.contains('q')) {
+    const pair = el('span.keep-together');
+    op.before(pair);
+    pair.append(op, q);
+  }
   // requiem: play/ui/long-pieces-set-smaller
   // A bracket or a product set side by side cannot break across a line, so
   // a long one is set smaller rather than run off the card: (x + 5)(x² − 3x
@@ -232,6 +240,27 @@ export function renderPrompt(node, terms, opts = {}) {
     .map((t) => promptText([t]).length));
   node.classList.toggle('is-long', widest > 11 && widest <= 16);
   node.classList.toggle('is-longer', widest > 16);
+  // Drawn maths reads aloud as its pieces -- 4/5 as "4 5", 4n² as "4 n2" --
+  // so a screen reader is given the question in words and skips the drawing.
+  for (const n of node.children) n.setAttribute('aria-hidden', 'true');
+  // Once the blank is filled, it is read filled.
+  const heard = filled && opts.blankAs
+    ? (terms ?? []).flatMap((t) => (t?.t === 'blank' ? [opts.blankAs].flat() : [t]))
+    : terms;
+  if (terms?.length) node.append(el('span.sr-only', {}, spokenText(heard)));
+}
+
+/** The question as it would be read out: 4/5 as "4 over 5", a blank as "blank". */
+export function spokenText(terms) {
+  return promptText(terms)
+    .replace(/\bsqrt\(/g, 'the square root of (')
+    .replace(/\broot(\d+)\(/g, 'root $1 of (')
+    .replace(/\^/g, ' to the power ')
+    .replace(/(\S)\/(\S)/g, '$1 over $2')
+    .replace(/(^|[\s(])[−-](?=\S)/g, '$1minus ')
+    .replace(/ [−-] /g, ' minus ')
+    .replace(/(^|\s)\?(?=\s|$)/g, '$1blank')
+    .replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -256,7 +285,9 @@ export function answerTerm(type, value) {
     case 'decimal': return { t: 'num', v: getType(type).format(value) };
     case 'solutions': return setTerms(value);
     case 'roots': return rootTerms(value);
-    case 'frac': return { t: 'frac', n: value.n, d: value.d };
+    // A whole number is drawn as one: 1/2 ÷ 1/16 = 8, not a stacked 8/1.
+    case 'frac': return value.d === 1 ? { t: 'num', v: String(value.n).replace('-', '−') }
+      : { t: 'frac', n: value.n, d: value.d };
     // Held as one improper fraction, {n: 117, d: 20}, and written out as the
     // mixed number the level asked for: 5 17/20, not 117/20 again.
     case 'mixed': {

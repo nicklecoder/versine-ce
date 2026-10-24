@@ -1,6 +1,7 @@
 import { el, mount } from './dom.js';
 import { renderVisual, hasVisual } from './visuals.js';
-import { renderPrompt } from './prompt.js';
+import { renderPrompt, answerTerm } from './prompt.js';
+import { getType } from '../math/answer.js';
 import { buildLesson, lessonFor } from '../engine/lesson.js';
 
 /**
@@ -55,7 +56,13 @@ export function walkthrough({ skill, level, problem: initialProblem = null, onCl
     const current = lesson.steps[step];
     const last = step === lesson.steps.length - 1;
 
-    renderPrompt(promptEl, lesson.problem.prompt);
+    // Once a step shows the answer, the question's blank shows it too, as
+    // the run's own reveal does -- the last step said "you land on 3" over
+    // "1 + 2 = ?". A choice is a way in, not a number for the blank.
+    const a = lesson.problem.answer;
+    renderPrompt(promptEl, lesson.problem.prompt, current.opts?.showAnswer && a && a.type !== 'choice'
+      ? { blankAs: answerTerm(a.type, a.value), shown: getType(a.type).format(a.value) }
+      : {});
     captionEl.textContent = current.caption;
 
     if (hasVisual(lesson.problem.visual)) {

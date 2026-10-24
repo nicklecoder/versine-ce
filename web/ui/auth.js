@@ -10,7 +10,7 @@ function wordmark() {
 async function enter(me) {
   state.me = me;
   state.progress = await api.progress();
-  go({ name: me.role === 'teacher' ? 'teacher' : 'map' });
+  go({ name: me.role === 'teacher' ? 'teacher' : 'map' }, { replace: true });
 }
 
 /**

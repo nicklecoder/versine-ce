@@ -145,12 +145,20 @@ export function parseSet(raw) {
   const text = String(raw).trim().toLowerCase()
     .replace(/[−–—]/g, '-').replace(/≤|=<|⩽/g, '<=').replace(/≥|=>|⩾/g, '>=').replace(/≠/g, '!=')
     .replace(/±|\+\/-/g, '+-').replace(/∞|infinity/g, 'inf').replace(/∪/g, ' u ')
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, ' ')
+    // "x = ± 3" is x = ±3, and a sentence's full stop is not part of it.
+    .replace(/\+- /g, '+-').replace(/\.$/, '');
   if (!text) return { ok: false };
   if (NOTHING.test(text)) return { ok: true, value: { letter: 'x', parts: [] } };
   if (EVERYTHING.test(text)) return { ok: true, value: { letter: 'x', parts: ALL } };
 
   // Interval notation: (−2, 5], [4, ∞), joined by U or "or".
+  // (−1, 0), (1, 0) are the points where a graph crosses, not intervals:
+  // a list of them, joined by commas, where intervals are joined by U or
+  // "or". One alone, (−3, 0), is an interval.
+  if (/^\(\s*[+-]?[\d./]+\s*,\s*0\s*\)(\s*,\s*\(\s*[+-]?[\d./]+\s*,\s*0\s*\))+$/.test(text)) {
+    return { ok: false, hint: 'Give the x-values where it crosses, like x = −1 or x = 1.' };
+  }
   if (/^[([]/.test(text)) {
     const parts = [];
     const pieces = text.split(/\s*(?:\bu\b|\bor\b)\s*/);
@@ -169,11 +177,25 @@ export function parseSet(raw) {
 
   // Inequalities and equations: clauses joined by "or" (or commas), each
   // perhaps several joined by "and".
+  //
+  // A comma lists solutions -- x = −1, x = 1 -- but between inequalities it
+  // could as well mean "and" as "or", and reading it as "or" silently made
+  // x > −2, x < 5 every number. So there it is refused with a question back.
+  const clauses = text.split(/\s*(?:\bor\b|,|;)\s*/);
+  if (/,|;/.test(text) && /[<>]|!=/.test(text)) {
+    return { ok: false, hint: 'Join inequalities with "and" or "or": a comma could mean either.' };
+  }
   let letter = null;
   let parts = [];
-  for (const clause of text.split(/\s*(?:\bor\b|,|;)\s*/)) {
+  for (const clause of clauses) {
     let set = ALL;
-    for (const piece of clause.split(/\s*\band\b\s*/)) {
+    const pieces = clause.split(/\s*\band\b\s*/);
+    // x = 3 and x = −3 is how solutions are often listed aloud, but read as
+    // written it is no number at all. Said back, not marked wrong.
+    if (pieces.length > 1 && pieces.every((q) => !/[<>]|!=/.test(q))) {
+      return { ok: false, hint: 'x cannot be both at once: join the solutions with "or", like x = 3 or x = −3.' };
+    }
+    for (const piece of pieces) {
       const r = relation(piece.trim());
       if (!r.ok) return { ok: false, hint: r.hint ?? 'Write it like −2 < x ≤ 5, or x < −1 or x > 3.' };
       if (r.letter && letter && r.letter !== letter) return { ok: false, hint: 'Use one letter throughout.' };

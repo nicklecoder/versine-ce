@@ -518,6 +518,11 @@ defineType({
     return { ok: true, terms };
   },
   equals: sameRoots,
+  // As typed: √20 is the right length, and on a level that asks for
+  // simplest radical form it is not finished. Only levels that set
+  // requireSimplest ask.
+  isSimplest: (v) => v.simplest !== false,
+  unfinished: 'in simplest radical form',
   format: formatRoots,
 });
 
