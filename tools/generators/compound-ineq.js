@@ -111,7 +111,8 @@ function solveDouble(rng) {
   const loIn = rng.chance(0.5), hiIn = rng.chance(0.5);
   const parts = [run(lo, loIn, hi, hiIn)];
   let chain, steps;
-  if (rng.chance(0.25)) {
+  const fraction = rng.chance(0.25);
+  if (fraction) {
     // A fraction in the middle: multiply all three parts first.
     const k = rng.pick([2, 3, 4]), c = rng.nonZero(-6, 6);
     // (x + c)/k between (lo + c)/k and (hi + c)/k: pick ends that divide.
@@ -124,22 +125,28 @@ function solveDouble(rng) {
     const m = rng.int(1, 5), b = rng.nonZero(-9, 9);
     const L = m * lo + b, H = m * hi + b;
     chain = `${L} ${strictOf(loIn)} ${linear(m, b)} ${strictOf(hiIn)} ${H}`;
-    steps = `${b > 0 ? 'Take' : 'Add'} ${Math.abs(b)} ${b > 0 ? 'from' : 'to'} all three parts: `
-      + `${minus(L - b)} ${SIGN[strictOf(loIn)]} ${m === 1 ? '' : m}x ${SIGN[strictOf(hiIn)]} ${minus(H - b)}.`
-      + (m === 1 ? '' : ` Divide all three by ${m}.`);
+    // With x alone after one step, the chain it leaves is the answer, said once.
+    steps = m === 1
+      ? `${b > 0 ? 'Take' : 'Add'} ${Math.abs(b)} ${b > 0 ? 'from' : 'to'} all three parts, and x is left on its own:`
+      : `${b > 0 ? 'Take' : 'Add'} ${Math.abs(b)} ${b > 0 ? 'from' : 'to'} all three parts: `
+        + `${minus(L - b)} ${SIGN[strictOf(loIn)]} ${m}x ${SIGN[strictOf(hiIn)]} ${minus(H - b)}. `
+        + `Divide all three by ${m}. The middle is x on its own:`;
   }
+  if (fraction) steps += ' The middle is x on its own:';
   return {
     prompt: [T.prose(`Solve ${pretty(chain)}.`)],
     text: `solve: ${chain}`,
     answer: answerOf(parts),
     visual: null,
-    explain: `${steps} The middle is x on its own: ${written(parts)}.`,
+    explain: `${steps} ${written(parts)}.`,
   };
 }
 
 /** One half of an "or": an inequality whose solution is x op v. Half need the flip. */
 function half(rng, op, v) {
   const m = rng.nonZero(-4, 5), b = rng.int(-8, 8);
+  // x ≥ 1 is already solved, and "x ≥ 1 gives x ≥ 1" is no step at all.
+  if (m === 1 && b === 0) return half(rng, op, v);
   const shown = m < 0 ? FLIP[op] : op;
   const src = `${linear(m, b)} ${shown} ${m * v + b}`;
   const how = `${pretty(src)} gives x ${SIGN[op]} ${minus(v)}`
@@ -183,22 +190,46 @@ function negativeMiddle(rng) {
   };
 }
 
-/** Two simple conditions and the set they make together. */
+/**
+ * Two simple conditions and the set they make together, asked so that the
+ * answer is never the question copied back: every pair overlaps, nests or
+ * misses, so combining them leaves something simpler -- one chain, one
+ * ray, no solution or all real numbers. Two rays pointing apart joined by
+ * "or" are left out, because their simplest form is the question itself.
+ *
+ * requiem: play/answers/set-simplest-form-refused-copy
+ * The answer box judges the set, so it would still accept the two
+ * conditions retyped; the prompt asks for the simplest form, and refusing
+ * the unsimplified pieces has to be done where answers are judged.
+ */
 function andOr(rng) {
-  const join = rng.pick(['and', 'or']);
-  const a = rng.int(-7, 7);
-  let b = rng.int(-7, 7);
-  if (b === a) b += 2;
-  // Pointing the same way only a third of the time: those all come out as
-  // one ray, where opposite ways give the overlap, the gap, both rays, or
-  // the whole line -- the four answers worth practising.
-  const up = rng.pick(['>', '>=']), down = rng.pick(['<', '<=']);
-  const same = rng.chance(1 / 3);
-  const [opA, opB] = same ? (rng.chance(0.5) ? [up, rng.pick(['>', '>='])] : [down, rng.pick(['<', '<='])])
-    : rng.shuffle([up, down]);
+  const kind = rng.pick(['and-chain', 'and-none', 'and-ray', 'or-ray', 'or-all']);
+  const join = kind.startsWith('and') ? 'and' : 'or';
+  const up = () => rng.pick(['>', '>=']), down = () => rng.pick(['<', '<=']);
+  let a = rng.int(-7, 7), b = rng.int(-7, 7);
+  let opA, opB;
+  if (kind === 'and-ray' || kind === 'or-ray') {
+    // Pointing the same way; now and then from the same number, where only
+    // the strictness differs: x ≤ 3 or x < 3 is x ≤ 3.
+    const dir = rng.chance(0.5) ? up : down;
+    opA = dir(); opB = dir();
+    if (rng.chance(0.15)) { b = a; if (opA === opB) opB = opA.length === 1 ? `${opA}=` : opA[0]; }
+    else if (a === b) b += rng.pick([2, 3, -2, -3]);
+  } else {
+    // Pointing towards each other: a lower bound (x > lo) and an upper one
+    // (x < hi). "and" keeps the stretch between, or nothing if they miss;
+    // "or" with the rays overlapping covers the whole line.
+    let lo = Math.min(a, b), hi = Math.max(a, b);
+    if (lo === hi) hi += rng.int(1, 4);
+    if (kind === 'and-none') [lo, hi] = [hi, lo];
+    const low = [up(), lo], high = [down(), hi];
+    [[opA, a], [opB, b]] = rng.chance(0.5) ? [low, high] : [high, low];
+  }
   const p = `x ${opA} ${a}`, q = `x ${opB} ${b}`;
   const both = parseSet(`${p} ${join} ${q}`).value;
   const parts = runsOf(both);
+  // The generator's own guard on what it promised: never two rays apart.
+  if (parts.length === 2) return andOr(rng);
   const [one, two] = [parseSet(p).value, parseSet(q).value].map(runsOf);
   const result = written(parts);
   const why = join === 'and'
@@ -208,7 +239,7 @@ function andOr(rng) {
       ? 'Between them the two rays cover the whole line, so every number passes one or the other: all real numbers.'
       : `Keep everything shaded on either line: ${result}.`);
   return {
-    prompt: [T.prose(`Write the solutions of ${pretty(p)} ${join} ${pretty(q)}.`)],
+    prompt: [T.prose(`What is ${pretty(p)} ${join} ${pretty(q)} in its simplest form?`)],
     text: `combine: ${p} ${join} ${q}`,
     answer: { type: 'solutions', value: both },
     visual: { kind: 'intervals', ...LINE,
