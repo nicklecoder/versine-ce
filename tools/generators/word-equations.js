@@ -102,7 +102,9 @@ const STORIES = [
     // there the area equation balances too, and two options are right.
     while (w * (w + more) === 2 * w + 2 * (w + more)) w = rng.int(2, 12);
     const p = 2 * w + 2 * (w + more);
-    return { story: `A rectangle is ${more} cm longer than it is wide, and its perimeter is ${p} cm. Which `
+    // requiem: catalogue/content/units-both-systems
+    const u = rng.pick(['cm', 'inches']);
+    return { story: `A rectangle is ${more} ${more === 1 && u === 'inches' ? 'inch' : u} longer than it is wide, and its perimeter is ${p} ${u}. Which `
       + 'equation gives the width, w?', right: `2w + 2(w + ${more}) = ${p}`,
     wrong: [`w(w + ${more}) = ${p}`, `w + (w + ${more}) = ${p}`],
     why: `The length is w + ${more}. A perimeter goes round all four sides, two widths and two lengths: `
@@ -155,8 +157,13 @@ const RATES = [
   { setup: (f, r) => `A candle starts ${f} cm tall and burns down ${r} cm every hour.`,
     total: (t) => `It is now ${t} cm tall.`, ask: 'How many hours has it burned?', letter: 't', unit: 'hours',
     falling: true },
-  { setup: (f, r) => `A tank starts with ${f * 10} liters and drains ${r * 5} liters a minute.`,
-    total: (t) => `It now holds ${t} liters.`, ask: 'For how many minutes has it drained?', letter: 't',
+  { setup: (f, r) => `A tank starts with ${(f * 10).toLocaleString('en-US')} liters and drains ${r * 5} liters a minute.`,
+    total: (t) => `It now holds ${t.toLocaleString('en-US')} liters.`, ask: 'For how many minutes has it drained?', letter: 't',
+    unit: 'minutes', falling: true, scale: [10, 5] },
+  // requiem: catalogue/content/units-both-systems
+  // A pool pump moves tens of gallons a minute, and a pool holds thousands.
+  { setup: (f, r) => `A pool starts with ${(f * 10).toLocaleString('en-US')} gallons and drains ${r * 5} gallons a minute.`,
+    total: (t) => `It now holds ${t.toLocaleString('en-US')} gallons.`, ask: 'For how many minutes has it drained?', letter: 't',
     unit: 'minutes', falling: true, scale: [10, 5] },
 ];
 
@@ -190,8 +197,10 @@ function parts(rng) {
     const w = rng.int(2, 25), more = rng.int(1, 12);
     const p = 2 * w + 2 * (w + more);
     const eq = `2x + 2(x + ${more}) = ${p}`;
+    // requiem: catalogue/content/units-both-systems
+    const u = rng.pick(['cm', 'inches']);
     return {
-      prompt: [T.prose(`A rectangle is ${more} cm longer than it is wide. Its perimeter is ${p} cm. How wide is it?`)],
+      prompt: [T.prose(`A rectangle is ${more} ${more === 1 && u === 'inches' ? 'inch' : u} longer than it is wide. Its perimeter is ${p} ${u}. How wide is it?`)],
       text: eq, answer: { type: 'int', value: w }, visual: null,
       explain: `Call the width x, so the length is x + ${more}. Round all four sides: ${tm(eq)}. `
         + `That is 4x + ${2 * more} = ${p}, so 4x = ${p - 2 * more} and x = ${w}.`,
@@ -271,9 +280,11 @@ function twoEqual(rng) {
   // Ten liters or more: "holds 0 liters" is an empty tank, and "1 liters" is not English.
   if (startA < 10) return twoEqual(rng);
   const eq = `${startA} + ${fill}t = ${startB} - ${drain}t`;
+  // requiem: catalogue/content/units-both-systems
+  const u = rng.pick(['liters', 'gallons']);
   return {
-    prompt: [T.prose(`Tank A holds ${startA} liters and is filling at ${fill} liters a minute. Tank B holds `
-      + `${startB} liters and is draining at ${drain} liters a minute. After how many minutes do they hold the same?`)],
+    prompt: [T.prose(`Tank A holds ${startA} ${u} and is filling at ${fill} ${u} a minute. Tank B holds `
+      + `${startB} ${u} and is draining at ${drain} ${u} a minute. After how many minutes do they hold the same?`)],
     text: eq, answer: { type: 'int', value: when }, visual: null,
     explain: `After t minutes A holds ${startA} + ${fill}t and B holds ${startB} − ${drain}t. Set them equal: `
       + `${tm(eq)}. Add ${drain}t and take ${startA} from both sides: ${fill + drain}t = ${startB - startA}, `
@@ -310,17 +321,23 @@ function atLeastAtMost(rng) {
             + `still short, so the fewest whole weeks is ${weeks}.`),
     };
   }
-  const already = rng.int(50, 150), box = rng.int(15, 60);
+  // requiem: catalogue/content/units-both-systems
+  // In kilograms or pounds, the pound loads about twice the kilogram ones,
+  // so a US elevator's limit lands near the 2,500 lb on its plate.
+  const u = rng.pick(['kg', 'lb']);
+  const already = u === 'kg' ? rng.int(50, 150) : rng.int(100, 300);
+  const box = u === 'kg' ? rng.int(15, 60) : rng.int(30, 120);
   const limit = already + box * rng.int(3, 20) + (exact ? 0 : rng.int(1, box - 1));
   const boxes = Math.floor((limit - already) / box);
   const ineq = `${already} + ${box}n ≤ ${limit}`;
+  const lim = limit.toLocaleString('en-US');
   return {
-    prompt: [T.prose(`An elevator can carry at most ${limit} kg. A ${already} kg cart is already in it. Each box `
-      + `weighs ${box} kg. What is the greatest number of boxes it can take?`)],
+    prompt: [T.prose(`An elevator can carry at most ${lim} ${u}. A ${already} ${u} cart is already in it. Each box `
+      + `weighs ${box} ${u}. What is the greatest number of boxes it can take?`)],
     text: `${ineq}, largest`, answer: { type: 'int', value: boxes }, visual: null,
-    explain: `"At most ${limit} kg" is ${ineq}. So ${box}n ≤ ${limit - already}, and n ≤ `
+    explain: `"At most ${lim} ${u}" is ${ineq}. So ${box}n ≤ ${limit - already}, and n ≤ `
       + (exact
-        ? `${limit - already} ÷ ${box} = ${boxes} exactly. With ${boxes} boxes the elevator carries exactly ${limit} kg, `
+        ? `${limit - already} ÷ ${box} = ${boxes} exactly. With ${boxes} boxes the elevator carries exactly ${lim} ${u}, `
           + `and "at most" includes exactly, so it can take ${boxes}.`
         : `${limit - already} ÷ ${box}, which is between ${boxes} and ${boxes + 1}. One more box would be over `
           + `the limit, so the most it can take is ${boxes}.`),
