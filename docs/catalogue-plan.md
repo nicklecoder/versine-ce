@@ -77,6 +77,27 @@ Engine work this phase needed: a `table` visual (`web/ui/table.js`), with an
 answer-phase `working` column so a question about the whole table can show
 the row-by-row step on reveal.
 
+## Units — added ahead of the rest of Phase 3
+
+Students should be fluent in both US customary and metric units and in
+converting between them: it is the setup chemistry, physics, geology and
+astronomy assume (requiem `catalogue/content/units-both-systems`). `proportional`
+already has Converting Units, a one-step conversion read as a constant of
+proportionality; this skill goes further, and is built next because it is
+pre-algebra.
+
+| Skill (category) | Levels | Covers |
+|---|---|---|
+| `units` (Area & Volume) | Customary Length · Customary Weight & Capacity · Metric Units · Between the Systems · Temperature · Unit Fractions (chains and rates) · Square & Cubic Units | 4.MD.1, 5.MD.1, 6.RP.3d, N-Q.1, TEKS 6.4H |
+
+Customary: in, ft, yd, mi; oz, lb, ton; fl oz, cup, pint, quart, gallon.
+Metric: mm, cm, m, km; mg, g, kg; mL, L. Cross-system factors are given in
+the question (1 in = 2.54 cm, 1 mi ≈ 1.61 km, 1 kg ≈ 2.2 lb, 1 gal ≈ 3.79 L).
+Temperature is °F ↔ °C both ways, with the benchmarks 32/212 and 0/100.
+
+Every student-facing string uses US notation, dollars and cents, and US
+spelling (requiem `catalogue/content/us-notation`).
+
 ## Phase 1 — functions and linear algebra
 
 **Built.** `functions` (with What f(a) = b Means added), `slope`, `linear-eq`,
