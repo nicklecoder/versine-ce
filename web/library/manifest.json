@@ -1,5 +1,5 @@
 {
-  "built": 570,
+  "built": 571,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -721,6 +721,7 @@
       "common-denominator",
       "unlike-denominators",
       "complex-fractions",
+      "opposite-factors",
       "all-together"
     ]
   },
@@ -1606,14 +1607,17 @@
         "composition",
         "equations",
         "functions",
-        "quadratic-graphs"
+        "quadratic-graphs",
+        "roots"
       ],
       "levels": {
         "undo-a-function": [
-          "functions"
+          "functions",
+          "roots"
         ],
         "solve-for-x-y": [
-          "equations"
+          "equations",
+          "roots"
         ],
         "check-by-composing": [
           "composition"
@@ -1676,7 +1680,7 @@
       }
     }
   },
-  "sources": "eb1ac3b1585ad53d1ebff9c6ce519295c8ea2a882a44cedf6375d41eb271a976",
+  "sources": "9394a9dff0a2e0d9d309942a6365e322c778694d283effd8956506676af2683d",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7203,8 +7207,8 @@
       "level": 1,
       "slug": "solve-for-x-y",
       "name": "Solve for x ↔ y",
-      "count": 288,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "inverses-1.json"
     },
@@ -7363,20 +7367,30 @@
       "level": 5,
       "slug": "complex-fractions",
       "name": "Complex Fractions",
-      "count": 323,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "rational-expr-5.json"
     },
     {
       "skill": "rational-expr",
       "level": 6,
+      "slug": "opposite-factors",
+      "name": "Opposite Factors",
+      "count": 260,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-expr-6.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "rational-expr-6.json"
+      "file": "rational-expr-7.json"
     }
   ]
 }
