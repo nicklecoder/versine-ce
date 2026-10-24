@@ -2,7 +2,7 @@
 id: choice-labels-distinct-catalogue-wide
 namespace: catalogue/content
 kind: question
-status: proposed
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-24T20:59:09.584687562Z

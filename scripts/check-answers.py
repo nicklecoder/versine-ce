@@ -5970,10 +5970,10 @@ BY_RULE += (
 # requiem: catalogue/content/choice-labels-distinct
 # Two options that read the same are one option shown twice: the right one
 # twice made a free guess of a half, a wrong one twice a decoy wasted. Held
-# for trig-equations, domain-range, radical-eq and composition, whose options
-# are built from sets, families and polynomials that can print alike.
+# for every skill: options built from sets, lists and numbers print alike
+# more often than anyone expects (2 + 2 and 2 × 2, two slips leaving one list).
 for path in sorted(LIB.glob("*.json")):
-    if not path.stem.rsplit("-", 1)[0] in ("trig-equations", "domain-range", "radical-eq", "composition"):
+    if path.name in ("manifest.json", "schemas.json"):
         continue
     for i, p in enumerate(json.loads(path.read_text())["problems"]):
         if p["answer"]["type"] != "choice":

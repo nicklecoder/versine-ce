@@ -449,6 +449,10 @@ for (const skill of SKILLS) {
     const r = sets.parse(raw);
     if (!r.ok || !sets.equals(r.value, want)) fail.push(`solutions: "${raw}" was not read as x ≠ 2`);
   }
+  for (const raw of ['none', 'no solution', 'there is none', 'There are no solutions.', 'there is no solution']) {
+    const r = sets.parse(raw);
+    if (!r.ok || r.value.parts.length) fail.push(`solutions: "${raw}" was not read as no solution`);
+  }
   const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'] };
   for (const [id, typed] of Object.entries(shown)) {
     const keys = (getType(id).keys ?? []).map(([t]) => t);

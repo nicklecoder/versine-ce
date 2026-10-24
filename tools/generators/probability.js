@@ -187,7 +187,12 @@ function listSpace(rng) {
   decoys.push(missing(k));
   const twice = [...all]; const j = (k + 1 + rng.int(0, all.length - 2)) % all.length; twice[j] = all[(j + 1) % all.length];
   decoys.push(twice);
-  const wrong = rng.shuffle(decoys.filter((d) => d && d.join(' ') !== all.join(' '))).slice(0, 3);
+  // requiem: catalogue/content/choice-labels-distinct
+  // Two slips can land on the same list (missing TH and starting from H both
+  // leave HH, HT, TT): each list is offered once.
+  const seen = new Set([all.join(' ')]);
+  const unique = decoys.filter((d) => d && !seen.has(d.join(' ')) && seen.add(d.join(' ')));
+  const wrong = rng.shuffle(unique).slice(0, 3);
   const lists = rng.shuffle([all, ...wrong]);
   const opts = lists.map((l, i) => ({ id: LETTERS[i], l, label: l.join(', ') }));
   const want = opts.find((o) => o.l === all).id;

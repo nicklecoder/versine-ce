@@ -78,7 +78,9 @@ function intersect(as, bs) {
   return normalize(out);
 }
 
-const NOTHING = /^(no solutions?|no real solutions?|none|nothing|empty( set)?|∅|\{\s*\})$/;
+// requiem: catalogue/content/none-offered-on-every-row
+// A prompt says "or say there is none", so the box reads it said that way.
+const NOTHING = /^(?:(?:there (?:is|are) )?(?:no (?:real )?solutions?|none|no answer)|nothing|empty( set)?|∅|\{\s*\})$/;
 const EVERYTHING = /^(all real numbers|all reals|all numbers|every number|any number|everything|r|ℝ|\(-inf, ?\+?inf\))$/;
 
 /** One end of an interval in interval notation. */
