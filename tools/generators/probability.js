@@ -28,20 +28,24 @@ const LIKELY = [
   { id: 'impossible', label: 'Impossible' }, { id: 'unlikely', label: 'Unlikely' },
   { id: 'even', label: 'As likely as not' }, { id: 'likely', label: 'Likely' }, { id: 'certain', label: 'Certain' },
 ];
-const RAIN = ['rain tomorrow', 'snow on Saturday', 'the bus running late', 'a thunderstorm this afternoon'];
+const RAIN = ['rain tomorrow', 'snow on Saturday', 'the bus running late', 'a thunderstorm this afternoon',
+  'a power outage tonight', 'the ferry being canceled', 'a school snow day on Monday', 'the home team winning'];
 
+// requiem: catalogue/content/likelihood-quarter-bands
+// Unlikely is below 1/4 and likely above 3/4, strictly, so "closer to 0
+// than to 1/2" (or to 1 than to 1/2) is true of every probability asked.
 function likelihood(rng) {
-  // A probability kept away from the blurry edges of "unlikely" and "likely".
   const kind = rng.pick(['impossible', 'unlikely', 'unlikely', 'even', 'likely', 'likely', 'certain']);
   let n, d, shown;
   for (;;) {
-    d = rng.pick([4, 5, 8, 10, 12, 20, 100]);
-    n = { impossible: 0, certain: d, even: d / 2, unlikely: rng.int(1, Math.floor(d * 0.3)), likely: rng.int(Math.ceil(d * 0.7), d - 1) }[kind];
-    if (Number.isInteger(n) && n >= 0) break;
+    d = rng.pick([5, 8, 10, 12, 20, 25, 50, 100]);
+    n = { impossible: 0, certain: d, even: d / 2, unlikely: rng.int(1, Math.ceil(d / 4) - 1), likely: rng.int(Math.floor((3 * d) / 4) + 1, d - 1) }[kind];
+    if (Number.isInteger(n) && n >= 0 && (kind !== 'unlikely' || 4 * n < d) && (kind !== 'likely' || 4 * n > 3 * d)) break;
   }
-  const form = rng.pick(['fraction', 'decimal', 'percent', 'bag']);
+  let form = rng.pick(['fraction', 'decimal', 'percent', 'bag']);
   let prompt;
-  if (form === 'bag' && ['unlikely', 'likely'].includes(kind) && d <= 20) {
+  if (form === 'bag' && !(['unlikely', 'likely'].includes(kind) && d <= 20)) form = 'fraction';
+  if (form === 'bag') {
     const colors = rng.shuffle(['red', 'blue', 'green', 'yellow']);
     prompt = `A bag holds ${n} ${colors[0]} and ${d - n} ${colors[1]} marbles. One is picked at random. How likely is it to be ${colors[0]}?`;
     shown = `${n} of the ${d} marbles are ${colors[0]}: a probability of ${fracWork(n, d)}`;
@@ -53,12 +57,12 @@ function likelihood(rng) {
   }
   return {
     prompt: [T.prose(prompt)],
-    text: `likelihood: ${n}/${d}`,
+    text: `likelihood: ${n}/${d} as ${form}`,
     answer: { type: 'choice', value: kind, options: LIKELY },
     visual: null,
     explain: `${shown}. On the scale from 0 (impossible) to 1 (certain), `
       + { impossible: 'it is 0: it cannot happen.', certain: 'it is 1: it must happen.', even: 'it is exactly 1/2, halfway: as likely to happen as not.',
-        unlikely: 'it is closer to 0 than to 1/2.', likely: 'it is closer to 1 than to 1/2.' }[kind]
+        unlikely: 'it is below 1/4, so closer to 0 than to 1/2.', likely: 'it is above 3/4, so closer to 1 than to 1/2.' }[kind]
       + ` (${kind === 'unlikely' ? 'Unlikely is not impossible: it can still happen.' : kind === 'likely' ? 'Likely is not certain: it can still fail to happen.' : 'Only 0 and 1 are the ends; everything else might go either way.'}) `
       + `So ${LIKELY.find((o) => o.id === kind).label.toLowerCase()}.`,
   };
@@ -122,7 +126,7 @@ function complement(rng) {
   return {
     prompt: [T.prose(`The probability that ${what} is ${given}. What is the probability that ${NOT[what]}${form === 'percent' ? ', as a percent' : ', as a decimal'}?`)],
     text: `complement: ${form === 'percent' ? `${pct}%` : said(pct / 100)}`,
-    answer: num(ans),
+    answer: { ...num(ans), ...(form === 'percent' ? { percent: true } : {}) },
     visual: null,
     explain: form === 'percent'
       ? `It either happens or it does not, so the two add to 100%: 100% − ${pct}% = ${100 - pct}%. (The answer is a percent too, not ${said((100 - pct) / 100)}.) So ${100 - pct}%.`
@@ -138,8 +142,89 @@ const STAGES = [
 ];
 const OUTFITS = [['shirts', 'pairs of pants'], ['sandwiches', 'drinks'], ['flavors of ice cream', 'toppings'], ['routes to the park', 'routes home']];
 
+// requiem: catalogue/content/sample-spaces-list-outcomes
+// Steps whose outcomes are listed, one character each, so an outcome of
+// several steps is written as its characters in order: H3 is heads, then a 3.
+const STEPS = {
+  coin: { said: 'a coin is flipped', out: ['H', 'T'] },
+  spin3: { said: 'a spinner with 3 equal sections, A, B and C, is spun', out: ['A', 'B', 'C'] },
+  spin4: { said: 'a spinner with 4 equal sections, numbered 1 to 4, is spun', out: ['1', '2', '3', '4'] },
+  cube: { said: 'a number cube is rolled', out: ['1', '2', '3', '4', '5', '6'] },
+};
+// Two or three steps, with no two numbered steps side by side, so every outcome reads one way.
+const SPACES = [['coin', 'coin'], ['coin', 'spin3'], ['coin', 'spin4'], ['coin', 'cube'], ['spin3', 'coin'], ['spin3', 'spin3'],
+  ['spin3', 'spin4'], ['spin4', 'coin'], ['spin4', 'spin3'], ['cube', 'coin'], ['coin', 'coin', 'coin']];
+/** Every outcome of the steps, in the order a careful list would give them. */
+const outcomesOf = (steps) => steps.reduce((acc, s) => acc.flatMap((a) => STEPS[s].out.map((o) => a + o)), ['']);
+const spaceText = (steps) => steps.map((s) => STEPS[s].out.join(' ')).join(' x ');
+/** "First a coin is flipped, then a number cube is rolled." */
+function stepsSaid(steps) {
+  const said = steps.map((s) => STEPS[s].said);
+  const allCoins = steps.every((s) => s === 'coin');
+  if (allCoins) return `A coin is flipped ${steps.length === 2 ? 'twice' : `${steps.length} times`}.`;
+  return `First ${said[0]}, then ${said[1]}.`;
+}
+/** How an outcome is read, shown on one: "HB means heads, then B". */
+function keyOf(steps) {
+  const o = outcomesOf(steps)[1];
+  const word = (c, s) => (s === 'coin' ? (c === 'H' ? 'heads' : 'tails') : s === 'cube' ? `a ${c}` : c);
+  return `${o} means ${o.split('').map((c, i) => word(c, steps[i])).join(', then ')}`;
+}
+
+function listSpace(rng) {
+  const steps = rng.pick(SPACES.filter((s) => outcomesOf(s).length <= 9));
+  const all = outcomesOf(steps);
+  const same = steps.length === 2 && steps[0] === steps[1];
+  const missing = (k) => all.filter((_, i) => i !== k);
+  const decoys = [];
+  // The steps' outcomes alone, not pairs of them.
+  decoys.push(steps.length === 2 && !same ? [...STEPS[steps[0]].out, ...STEPS[steps[1]].out] : null);
+  // One order only: HT kept, TH dropped, the slip the level is about.
+  if (same || steps.length === 3) decoys.push(all.filter((o) => o.split('').join('') === o.split('').sort().join('')));
+  else decoys.push(all.filter((o) => o.startsWith(STEPS[steps[0]].out[0])));
+  // One left out, and one written twice in place of another.
+  const k = rng.int(0, all.length - 1);
+  decoys.push(missing(k));
+  const twice = [...all]; const j = (k + 1 + rng.int(0, all.length - 2)) % all.length; twice[j] = all[(j + 1) % all.length];
+  decoys.push(twice);
+  const wrong = rng.shuffle(decoys.filter((d) => d && d.join(' ') !== all.join(' '))).slice(0, 3);
+  const lists = rng.shuffle([all, ...wrong]);
+  const opts = lists.map((l, i) => ({ id: LETTERS[i], l, label: l.join(', ') }));
+  const want = opts.find((o) => o.l === all).id;
+  const sizes = steps.map((s) => STEPS[s].out.length);
+  return {
+    prompt: [T.prose(`${stepsSaid(steps)} Which list is the sample space? (${keyOf(steps)}.)`)],
+    text: `sample list: ${spaceText(steps)}; options ${opts.map((o) => `${o.id}=${o.l.join(' ')}`).join(', ')}`,
+    answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
+    visual: null,
+    explain: `Each of the ${sizes[0]} first outcomes goes with every ${steps.length === 3 ? 'outcome of the other two flips' : `one of the ${sizes[1]} second outcomes`}, so the sample space has ${sizes.join(' × ')} = ${all.length} outcomes, each once: ${all.join(', ')}. `
+      + `(${same || steps.length === 3 ? `${all[1]} and ${all[1].split('').reverse().join('')} are different outcomes: the order of the steps is part of the outcome.` : 'A list of each step\'s outcomes on its own, or one that skips or repeats a pair, is not the sample space.'}) So ${all.join(', ')}.`,
+  };
+}
+
+function missingOutcome(rng) {
+  const steps = rng.pick(SPACES.filter((s) => outcomesOf(s).length >= 6));
+  const all = outcomesOf(steps);
+  const k = rng.int(0, all.length - 1), gone = all[k];
+  const listed = all.filter((_, i) => i !== k);
+  const name = rng.pick(['Maya', 'Leo', 'Priya', 'Sam', 'Ana', 'Jon']);
+  const opts = rng.shuffle([gone, ...rng.shuffle(listed).slice(0, 3)]).map((o, i) => ({ id: LETTERS[i], o, label: o }));
+  const want = opts.find((o) => o.o === gone).id;
+  return {
+    prompt: [T.prose(`${stepsSaid(steps)} ${name} lists the outcomes (${keyOf(steps)}): ${listed.join(', ')}. Which outcome is missing?`)],
+    text: `sample missing: ${spaceText(steps)}; listed ${listed.join(' ')}; options ${opts.map((o) => `${o.id}=${o.o}`).join(', ')}`,
+    answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
+    visual: null,
+    explain: `There should be ${steps.map((s) => STEPS[s].out.length).join(' × ')} = ${all.length} outcomes, and ${listed.length} are listed. The full list, in order, is `
+      + `${STEPS[steps[0]].out.map((o) => all.filter((x) => x.startsWith(o)).join(', ')).join('; ')}. Only ${gone} is not in ${name}'s. `
+      + `(The other choices are already in the list.) So ${gone}.`,
+  };
+}
+
 function sampleSpaces(rng) {
-  const mode = rng.pick(['size', 'size', 'dice', 'dice', 'coins']);
+  const mode = rng.pick(['list', 'list', 'list', 'missing', 'missing', 'dice', 'coins', 'size']);
+  if (mode === 'list') return listSpace(rng);
+  if (mode === 'missing') return missingOutcome(rng);
   if (mode === 'size') {
     if (rng.chance(0.25)) {
       // Three steps: an outfit with shoes too.
@@ -296,8 +381,12 @@ function experimental(rng) {
   const i = rng.int(0, S.faces.length - 1), face = S.faces[i], c = counts[i];
   const exp = N / S.faces.length;
   const mode = rng.pick(['exp', 'exp', 'compare', 'more']);
-  const table = (working) => ({ kind: 'table', cols: ['Outcome', 'Count'], rows: [...S.faces.map((f, j) => [String(f), String(counts[j])]), ['Total', '?']], fill: String(N),
-    ...(working ? { workingCol: 'Expected', working: [...S.faces.map(() => said(exp)), String(N)] } : {}) });
+  // An outcome already at its theoretical share has nowhere closer to go.
+  if (mode === 'more' && c * S.faces.length === N) return experimental(rng);
+  const table = (working) => ({ kind: 'table', cols: ['Outcome', 'Count'], rows: [...S.faces.map((f, j) => [String(f), String(counts[j])]), ['Total', String(N)]],
+    // Revealed: each outcome's share of the trials, or the count a fair one expects.
+    ...(working === 'share' ? { workingCol: 'Share', working: [...counts.map((k) => `${k}/${N}`), `${N}/${N}`] }
+      : working ? { workingCol: 'Expected', working: [...S.faces.map(() => said(exp)), String(N)] } : {}) });
   const results = `${S.faces.map((f, j) => `${f}:${counts[j]}`).join(' ')}`;
   const intro = `The table shows the results of ${N} ${S.faces.length === 6 ? 'rolls of a number cube' : 'spins of a spinner with 4 equal sections, A to D'}.`;
   if (mode === 'exp') {
@@ -305,7 +394,7 @@ function experimental(rng) {
       prompt: [T.prose(`${intro} What is the experimental probability of ${S.faces.length === 6 ? `rolling a ${face}` : `landing on ${face}`}?`)],
       text: `experimental: ${results}; outcome ${face}`,
       answer: fracAnswer(c, N),
-      visual: table(false),
+      visual: table('share'),
       explain: `Experimental probability is what happened: ${c} of the ${N} trials, ${fracWork(c, N)}. `
         + `(The theoretical probability, 1/${S.faces.length}, is what should happen; the question asks what did.) So ${fracText(c, N)}.`,
     };

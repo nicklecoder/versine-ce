@@ -21,7 +21,7 @@
 
 export const LEVELS = [
   { name: 'Likelihood', slug: 'likelihood',
-    blurb: '0 is impossible and 1 is certain. Near 0 is unlikely, near 1 likely, and 1/2 is a toss-up.' },
+    blurb: '0 is impossible and 1 is certain. Below 1/4 is unlikely, above 3/4 likely, and 1/2 is a toss-up.' },
   { name: 'Single Event', slug: 'single-event',
     blurb: 'The outcomes you want over all the outcomes, when each is equally likely.' },
   { name: 'Complement', slug: 'complement',

@@ -4513,7 +4513,8 @@ def chance_likely(n: str, d: str) -> str:
         return "certain"
     if p == Fraction(1, 2):
         return "even"
-    assert abs(p - Fraction(1, 2)) >= Fraction(1, 5), p
+    # Unlikely below 1/4 and likely above 3/4, strictly: nothing in between is asked.
+    assert p < Fraction(1, 4) or p > Fraction(3, 4), p
     return "likely" if p > Fraction(1, 2) else "unlikely"
 
 
@@ -4535,6 +4536,25 @@ def chance_coins(n, how: str, k) -> Fraction:
     heads = [f.count("H") for f in flips]
     ok = [h for h in heads if (h >= int(k) if how == "at least" else h == int(k))]
     return Fraction(len(ok), len(flips))
+
+
+def chance_space(steps: str) -> list:
+    import itertools
+    return ["".join(o) for o in itertools.product(*(s.split() for s in steps.split(" x ")))]
+
+
+def chance_list(steps: str, listing: str) -> str:
+    # The sample space is every outcome of the steps, each exactly once.
+    want = sorted(chance_space(steps))
+    found = [k for k, v in (item.split("=") for item in listing.split(", ")) if sorted(v.split()) == want]
+    assert len(found) == 1, (steps, listing)
+    return found[0]
+
+
+def chance_missing(steps: str, listed: str, listing: str) -> str:
+    gone = set(chance_space(steps)) - set(listed.split())
+    assert len(gone) == 1 and len(listed.split()) == len(chance_space(steps)) - 1
+    return next(k for k, v in (item.split("=") for item in listing.split(", ")) if v in gone)
 
 
 def chance_results(listing: str) -> dict:
@@ -4562,7 +4582,9 @@ BY_RULE += (
 )
 
 CHOICE_RULES += (
-    (re.compile(r"^likelihood: (\d+)/(\d+)$"), chance_likely),
+    (re.compile(r"^likelihood: (\d+)/(\d+) as (?:fraction|decimal|percent|bag)$"), chance_likely),
+    (re.compile(r"^sample list: ((?:\w(?: \w)*)(?: x \w(?: \w)*)+); options (.+)$"), chance_list),
+    (re.compile(r"^sample missing: ((?:\w(?: \w)*)(?: x \w(?: \w)*)+); listed ([\w ]+); options (.+)$"), chance_missing),
     (re.compile(r"^compare experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
      lambda listing, face: (lambda r: {1: "higher", -1: "lower", 0: "equal"}[
          (r[face] * len(r) > sum(r.values())) - (r[face] * len(r) < sum(r.values()))])(chance_results(listing))),
