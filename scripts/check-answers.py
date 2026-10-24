@@ -981,7 +981,9 @@ def domain_range(ask: str, corners: str) -> int:
 
 def reading_of(a: str, b: str, in_unit: str, out_unit: str, ids):
     """The input, with its unit, named before the output with its: f(a) = b read in order."""
-    unit = lambda n, u: rf"(?<![\d.]){n} ?{re.escape(u)}\b" if u[0].isalpha() else rf"(?<![\d.]){n}{re.escape(u)}"
+    # A unit in words may be singular for one: "after 1 second".
+    unit = lambda n, u: (rf"(?<![\d.]){n} ?{re.escape(u.removesuffix('s'))}s?\b" if u[0].isalpha()
+                         else rf"(?<![\d.]){n}{re.escape(u)}")
     fit = [o for o in ids
            if (i := re.search(unit(a, in_unit), o)) and (j := re.search(unit(b, out_unit), o)) and i.start() < j.start()
            and "every" not in o]
@@ -1194,8 +1196,20 @@ def answer_set(value) -> frozenset:
     return frozenset(x for x in SAMPLES_ON_LINE if any(inside(p, x) for p in value["parts"]))
 
 
+def extent(which: str, corners: str) -> frozenset:
+    """An unbroken graph through these corners, ends filled, covers every x
+    from its first corner to its last, and every y from its lowest to its
+    highest: the domain or the range as a set."""
+    pts = [(int(x), int(y)) for x, y in re.findall(PT, corners)]
+    vals = [x for x, _ in pts] if which == "domain" else [y for _, y in pts]
+    if [x for x, _ in pts] != sorted({x for x, _ in pts}):
+        raise ValueError("not a graph of a function left to right")
+    return frozenset(v for v in SAMPLES_ON_LINE if min(vals) <= v <= max(vals))
+
+
 SET_RULES = (
     (re.compile(r"^solve: (.+)$"), solve_set),
+    (re.compile(r"^(domain|range) of ((?:\(-?\d+, -?\d+\) ?)+)$"), extent),
     (re.compile(r"^combine: (.+)$"), solve_set),
     (re.compile(r"^graph set: (.+)$"), interval_set),
     (re.compile(r"^words: (x is .+)$"), words_set),
