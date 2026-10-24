@@ -13,16 +13,39 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
-**Rational Expressions**, a new skill under Expressions, in seven levels:
+**Rational Expressions**, a new skill under Expressions, in eight levels:
 Simplify (cancelling a shared factor, a number, or a factor with its sign
 reversed), Excluded Values (including one whose factor cancels), Multiply
-& Divide, Common Denominator (subtraction taking away the whole second
-numerator, and sums that cancel to a number), Unlike Denominators,
-Complex Fractions, then All Together. Excluded values are a set in the
-solutions input and everything else an expression, accepted with the
-denominator factored or multiplied out. `check-answers.py` compares each
-answer with the question by value and requires its top and bottom to
-share no factor.
+& Divide (dividing by a fraction with a different denominator, so the flip
+matters, and multiplying across factors hidden in quadratics), Common
+Denominator (subtraction taking away the whole second numerator, and sums
+that cancel to a number), Unlike Denominators (numerators in x, and
+denominators sharing a factor, as in 1/(x² − 4) + 1/(x + 2), so the common
+denominator is built from factors rather than always the product),
+Complex Fractions ((1 ± a/x)/(1 ± b/x), (a + b/x)/(c + d/x), 1/x² terms
+and a 1/(x + c) inside), Opposite Factors (a − x and x − a cancelling to
+−1), then All Together. Excluded values are a set in the solutions input;
+everything else is judged by value, so any finished form is right.
+`check-answers.py` compares each answer with the question by value and
+requires its top and bottom to share no factor.
+
+**Answers judged by value.** A new answer type, `equivalent`, judges an
+expression by its value and then by whether it is finished, for levels
+where the form is not the point: x/2 − 3/2, 0.5x − 1.5 and (1/2)(x − 3)
+are all right for (x − 3)/2, and x/4 − 2/4, a factor left uncancelled or
+like terms not collected are told they are not finished yet. Equality is
+exact and proven from the degrees involved, not sampled. Levels about the
+arithmetic keep the `expr` box, where 5 is still not an answer to 2 + 3.
+Measured on plausible student forms, the share of problems refusing at
+least one right answer fell from 75% to 1% in Solve for x ↔ y, and from
+13–20% to 0% in every Rational Expressions level; what is still refused
+is the unfinished x/4 − 2/4.
+
+Expression boxes take off a leading y =, f(x) = or f⁻¹(x) =. A sum's sign
+is lifted out like a product's, so −(x + 6) is −x − 6. The solutions box
+reads a comma beside ≠ as "and" (x ≠ −2, 6), shows every number but a few
+as x ≠ −2 and x ≠ 6, and tells a student who typed where an expression is
+defined, for where it is not, which way round it is.
 
 **Radical Equations**, a new skill under Equations, in six levels:
 Isolate & Square (with a root that would have to be negative, so no
@@ -36,8 +59,9 @@ by trying every whole number from −1000 to 1000 in the original equation.
 
 **Inverse Functions**, a new skill under Functions, in six levels: Undo a
 Function (f⁻¹ of a number from a rule, a cube, a table, or f's steps
-undone in reverse order), Solve for x ↔ y (swap and solve, every form of
-the answer accepted), Check by Composing (whether a pair are inverses, and
+undone in reverse order), Solve for x ↔ y (swap and solve, for lines,
+fractional slopes, a − bx, x³ + b, ∛(x − b) and (ax + b)/(cx + d), judged
+by value so every finished form of the inverse is right), Check by Composing (whether a pair are inverses, and
 f(g(x)) worked out), Restrict the Domain (a parabola cut at its vertex,
 f⁻¹ of a number, and which domain and which square root), Graph
 Reflection (a point reflected in y = x, and f⁻¹ read from a graph), then
