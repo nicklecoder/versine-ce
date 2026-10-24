@@ -148,7 +148,11 @@ function relation(text) {
  */
 export function parseSet(raw) {
   let text = String(raw).trim().toLowerCase()
-    .replace(/[−–—]/g, '-').replace(/≤|=<|⩽/g, '<=').replace(/≥|=>|⩾/g, '>=').replace(/≠/g, '!=')
+    .replace(/[−–—]/g, '-').replace(/≤|=<|⩽/g, '<=').replace(/≥|=>|⩾/g, '>=')
+    // requiem: play/answers/symbols-typed-on-a-keyboard
+    // ≠ is on no keyboard: != is the spelling taught beside the box, and =/=,
+    // /= and <> are the other ones people reach for.
+    .replace(/≠|=\/=|\/=|<>/g, '!=')
     .replace(/±|\+\/-/g, '+-').replace(/∞|infinity/g, 'inf').replace(/∪/g, ' u ')
     .replace(/\s+/g, ' ')
     // "x = ± 3" is x = ±3, and a sentence's full stop is not part of it.
@@ -338,7 +342,7 @@ export function previewSet(raw) {
   const parsed = parseSet(raw);
   if (!parsed.ok) return { ok: false, error: parsed.hint ?? 'Not a set of numbers yet.' };
   const text = String(raw).trim()
-    .replace(/<=|=</g, '≤').replace(/>=|=>/g, '≥').replace(/!=/g, '≠').replace(/\+\/-|\+-/g, '±')
+    .replace(/<=|=</g, '≤').replace(/>=|=>/g, '≥').replace(/!=|=\/=|\/=|<>/g, '≠').replace(/\+\/-|\+-/g, '±')
     .replace(/-/g, '−').replace(/\b(inf|infinity)\b/gi, '∞').replace(/\s*([<>≤≥=≠])\s*/g, ' $1 ');
   const terms = text.split(/\s+/).filter(Boolean).map((w) => {
     if (/^[a-z]$/i.test(w)) return { t: 'var', v: w };

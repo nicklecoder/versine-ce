@@ -51,6 +51,27 @@ denominator, finds the numerator's zeros by the rational root theorem,
 and keeps those where the question as written divides by nothing that is
 0; it writes its own equation for each variation and work question.
 
+**Review fixes to Trig Equations, Radical Equations, Domain & Range and
+Combining Functions.** General Solutions printed its + 4πk decoy as
++ 2πk, so the right answer appeared twice; periods now print as
+multiples of π, and `check-answers.py` refuses two options that read the
+same in these four skills. Trig Equations holds rows on an axis or with
+no solution to about a fifth of each solving level (Solve in Degrees had
+been 55%), ends its explanations with the answer as the solutions box
+takes it (x = 30° or x = 150°), and gains **Multiple Angles** (sin 2x,
+sin 3x, sin(x/2)). Radical Equations gains **Square Twice**, four shapes
+of a root left after squaring, a quarter of them extraneous, and every
+prompt says there may be no solution. Domain & Range asks for the
+domain or range of piecewise and step functions as well as their values.
+Combining Functions gains **Domain of f(g(x))**, and f(g(2)) is typed in
+the whole-number box. New level edges: Trig Equations' arcsin, arccos,
+arctan on the unit circle's Special Angles and From One Ratio, and
+Quadratic-Type on quadratic equations' By Factoring; Domain & Range's
+first level on inequalities' The Flip and quadratic equations' By
+Factoring; Combining Functions' first level on polynomials' Trinomial
+Times Binomial, and its new level on Domain & Range, which Combining
+Functions now opens after.
+
 **Rational Expressions**, a new skill under Expressions, in eight levels:
 Simplify (cancelling a shared factor, a number, or a factor with its sign
 reversed), Excluded Values (including one whose factor cancels), Multiply
@@ -92,9 +113,8 @@ neither of the two candidates), Both Sides Radical (a root each side, a
 multiple of one, and √(x + k) = √x + m squared twice), Cube Roots,
 Rational Exponents (x^(p/q) = c raised to q/p, ± for an even p, nothing
 for a negative under an even root), then All Together. Every answer is a
-set typed in the solutions input, and every level that can have no
-solution asks the student to solve or say there is none, on every row, so
-the wording gives nothing away. `check-answers.py` finds the solutions by
+set typed in the solutions input, and every prompt allows for no
+solution. `check-answers.py` finds the solutions by
 trying every whole number from −1000 to 1000 in the original equation,
 and asserts every key is one of them.
 

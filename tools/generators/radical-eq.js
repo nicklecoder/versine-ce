@@ -36,19 +36,19 @@ const setOf = (xs) => {
 };
 const said = (xs) => (xs.length ? formatSet(setOf(xs).value) : 'no solution');
 
+// requiem: catalogue/content/radical-eq-asks-for-none
 /**
- * "Solve:" and the equation drawn as the expression box draws it. Where a
- * level can have no solution, every row of it says so may be the answer,
- * so the wording gives nothing away; a cube root always has one.
+ * "Solve", the equation drawn as the expression box draws it, and that
+ * there may be none: a fifth of these have no solution, and the solutions
+ * box reads "none" and "no solution" as the empty set.
  */
-// requiem: catalogue/content/none-offered-on-every-row
-function ask(lhs, rhs, none) {
+function ask(lhs, rhs) {
   const drawn = previewOf(`${lhs} = ${rhs}`);
   if (!drawn.ok) throw new Error(`radical-eq: cannot draw ${lhs} = ${rhs}: ${drawn.error}`);
-  return [T.prose(none ? 'Solve, or say there is none:' : 'Solve:'), ...drawn.terms];
+  return [T.prose('Solve'), ...drawn.terms, T.prose('.'), T.prose('Give every solution, or none if there is no solution.')];
 }
-const problem = (lhs, rhs, xs, explain, none = true) => ({
-  prompt: ask(lhs, rhs, none),
+const problem = (lhs, rhs, xs, explain) => ({
+  prompt: ask(lhs, rhs),
   text: `radical: ${lhs} = ${rhs}`,
   answer: setOf(xs),
   visual: null,
@@ -113,14 +113,7 @@ function extraneous(rng) {
 // --- Both Sides Radical ----------------------------------------------------
 
 function bothSides(rng) {
-  const kind = rng.pick(['equal', 'equal', 'scaled', 'twice']);
-  if (kind === 'twice') {
-    // √(x + k) = √x + m: squaring once leaves a root, so square again.
-    const m = rng.int(1, 3), t = rng.int(0, 7), k = 2 * m * t + m * m;
-    return problem(`sqrt(x + ${k})`, `sqrt(x) + ${m}`, [t * t],
-      `Square both sides: x + ${k} = x + ${2 * m}√x + ${m * m}, since (√x + ${m})² has a middle term. The x's cancel: ${2 * m}√x = ${k - m * m}, so √x = ${t}. `
-      + `Square again: x = ${t * t}. Check: √(${t * t + k}) = ${t + m} and √${t * t} + ${m} = ${t + m}.`);
-  }
+  const kind = rng.pick(['equal', 'equal', 'scaled']);
   for (;;) {
     const x = rng.int(-8, 12);
     const v = rng.chance(0.25) ? rng.int(-9, -1) : rng.int(0, 30);
@@ -146,6 +139,79 @@ function bothSides(rng) {
   }
 }
 
+// --- Square Twice ----------------------------------------------------------
+
+/** √(x + b), or √x, as the box reads it and as it is shown. */
+const rootA = (b) => (b === 0 ? 'sqrt(x)' : `sqrt(${lin(1, b)})`);
+const rootF = (b) => (b === 0 ? '√x' : `√(${lin(1, b, true)})`);
+
+// requiem: catalogue/content/square-twice-level
+/**
+ * Squaring once leaves a root behind, so it is got alone and squared again.
+ * Four shapes: √(x + a) = √(x + b) + c and the same as a difference, the x's
+ * cancelling; √(px + a) = √(x + b) + c, which leaves a quadratic in
+ * u = √(x + b); and √x + √(x + a) = c, a sum. Each is built from u, the
+ * second root's value, so a u below 0 is an answer the second squaring lets
+ * in and the check throws out.
+ */
+function squareTwice(rng) {
+  for (;;) {
+    const kind = rng.pick(['cancel', 'cancel', 'difference', 'quadratic', 'quadratic', 'sum']);
+    const b = rng.chance(0.4) ? 0 : rng.nonZero(-6, 6);
+    const B = rootF(b), BA = rootA(b), inner = lin(1, b, true);
+    if (kind === 'cancel' || kind === 'difference') {
+      // √(x + a) = √(x + b) + c, with √(x + b) = u: a − b = 2cu + c².
+      const c = rng.int(1, 4), u = rng.chance(0.2) ? -rng.int(1, 3) : rng.int(0, 6);
+      const a = b + 2 * c * u + c * c;
+      if (a === b) continue;
+      const x = u * u - b;
+      const ok = u >= 0;
+      const lhs = kind === 'cancel' ? rootA(a) : `${rootA(a)} - ${BA}`;
+      const rhs = kind === 'cancel' ? `${BA} + ${c}` : String(c);
+      const first = kind === 'cancel' ? '' : `Move one root across first, so that squaring leaves only one: ${rootF(a)} = ${B} + ${c}. `;
+      return problem(lhs, rhs, ok ? [x] : [],
+        `${first}Square both sides: ${lin(1, a, true)} = ${inner} + ${2 * c}${B} + ${c * c}, since (${B} + ${c})² has a middle term, 2 · ${c} · ${B}. `
+        + `The x's cancel: ${2 * c}${B} = ${minus(a - b - c * c)}, so ${B} = ${minus(u)}. `
+        + (ok ? `Square again: ${inner} = ${u * u}${b === 0 ? '' : `, so x = ${minus(x)}`}. Check: ${rootF(a)} = √${u * u + a - b} = ${u + c}, and ${B} + ${c} = ${u} + ${c} = ${u + c}, which works.`
+          : `A square root is never negative, so nothing works. (Squaring again gives x = ${minus(x)}, but then ${rootF(a)} = ${Math.abs(u + c)} while ${B} + ${c} = ${Math.abs(u) + c}: it is extraneous.)`));
+    }
+    if (kind === 'quadratic') {
+      // √(px + a) = √(x + b) + c: with u = √(x + b), (p − 1)u² − 2cu + (a − pb − c²) = 0.
+      const p = rng.pick([2, 2, 3]), c = rng.int(1, 3);
+      const sum = (2 * c) / (p - 1);
+      if (!Number.isInteger(sum)) continue;
+      const u1 = rng.int(-2, sum + 2), u2 = sum - u1;
+      if (u1 > u2 || (u1 < 0 && u2 < 0)) continue;
+      const a = (p - 1) * u1 * u2 + p * b + c * c;
+      const cands = [...new Set([u1, u2])];
+      const xs = cands.filter((u) => u >= 0).map((u) => u * u - b);
+      const L = lin(p, a, true);
+      const qA = p - 1, qB = -2 * c, qC = a - p * b - c * c;
+      const lead = qA === 1 ? '' : String(qA);
+      const quad = `${lead}u²${pm(qB)}u${qC === 0 ? '' : pm(qC)}`;
+      const fac = (u) => (u === 0 ? 'u' : `(u${pm(-u)})`);
+      const facs = cands.length === 1 ? `${lead}(u${pm(-u1)})²` : `${lead}${fac(u1)}${fac(u2)}`;
+      const check = (u) => (u >= 0
+        ? `u = ${u} gives x = ${minus(u * u - b)}, where √${p * (u * u - b) + a} = ${u + c} and ${B} + ${c} = ${u} + ${c} = ${u + c}, so it works`
+        : `u = ${minus(u)} would be a square root below 0, so x = ${minus(u * u - b)} is extraneous`);
+      return problem(`sqrt(${lin(p, a)})`, `${BA} + ${c}`, xs,
+        `Square both sides: ${L} = ${inner} + ${2 * c}${B} + ${c * c}. A root is still left, ${B}, so call it u: then x = u²${b === 0 ? '' : pm(-b)} and ${L} = ${p}u²${a - p * b === 0 ? '' : pm(a - p * b)}. `
+        + `So ${p}u²${a - p * b === 0 ? '' : pm(a - p * b)} = u² + ${2 * c}u + ${c * c}, which is ${quad} = 0, or ${facs} = 0. `
+        + `Check each in the original: ${cands.map(check).join('; ')}.`);
+    }
+    // √x + √(x + a) = c: √(x + a) = c − √x, squared, a = c² − 2c√x.
+    const c = rng.int(2, 7), t = rng.chance(0.25) ? -rng.int(1, 2) : rng.int(0, c - 1);
+    const a = c * c - 2 * c * t;
+    if (a === 0) continue;
+    const x = t * t, ok = t >= 0;
+    return problem(`sqrt(x) + ${rootA(a)}`, String(c), ok ? [x] : [],
+      `Get one root alone: ${rootF(a)} = ${c} − √x. Square both sides: x${pm(a)} = ${c * c} − ${2 * c}√x + x. `
+      + `The x's cancel: ${2 * c}√x = ${minus(c * c - a)}, so √x = ${minus(t)}. `
+      + (ok ? `Square again: x = ${x}. Check: √${x} + √${x + a} = ${t} + ${c - t} = ${c}, which works.`
+        : `A square root is never negative, so nothing works. (Squaring again gives x = ${x}, but then √${x} + √${x + a} = ${Math.abs(t)} + ${Math.abs(c - t)} = ${Math.abs(t) + Math.abs(c - t)}, not ${c}: it is extraneous.)`));
+  }
+}
+
 // --- Cube Roots ------------------------------------------------------------
 
 function cube(rng) {
@@ -158,7 +224,7 @@ function cube(rng) {
       const b = v - a * x, d = v - c * x;
       return problem(`root(3, ${lin(a, b)})`, `root(3, ${lin(c, d)})`, [x],
         `Cube both sides: ${lin(a, b, true)} = ${lin(c, d, true)}, so ${a - c === 1 ? '' : `${lin(a - c, 0, true)} = ${minus(d - b)} and `}x = ${minus(x)}. `
-        + `${v < 0 ? `Both sides are then ∛(${minus(v)}), and a cube root of a negative is a real, negative number, so it stands.` : 'A cube root takes any number, so there is nothing to throw away.'}`, false);
+        + `${v < 0 ? `Both sides are then ∛(${minus(v)}), and a cube root of a negative is a real, negative number, so it stands.` : 'A cube root takes any number, so there is nothing to throw away.'}`);
     }
     const r = rng.int(-4, 4);
     const b = r ** 3 - a * x;
@@ -167,11 +233,11 @@ function cube(rng) {
       const k = rng.pick([2, 3, -2]), d = rng.nonZero(-9, 9);
       return problem(`${k}root(3, ${inside})${tail(d)}`, String(k * r + d), [x],
         `Get the root alone: ${d > 0 ? 'subtract' : 'add'} ${Math.abs(d)}, then divide by ${minus(k)}: ∛(${insideF}) = ${minus(r)}. `
-        + `Cube both sides: ${insideF} = ${minus(r ** 3)}, so x = ${minus(x)}.${r < 0 ? ` (∛ of a negative is negative: (${minus(r)})³ = ${minus(r ** 3)}, so nothing is extraneous.)` : ''}`, false);
+        + `Cube both sides: ${insideF} = ${minus(r ** 3)}, so x = ${minus(x)}.${r < 0 ? ` (∛ of a negative is negative: (${minus(r)})³ = ${minus(r ** 3)}, so nothing is extraneous.)` : ''}`);
     }
     return problem(`root(3, ${inside})`, String(r), [x],
       `Cube both sides to undo the cube root: ${insideF} = ${minus(r)}³ = ${minus(r ** 3)}, so x = ${minus(x)}. `
-      + `${r < 0 ? 'A cube root can be negative, unlike a square root, so this is not a no-solution case.' : 'Cubing never lets in a false answer, so this one needs no throwing away.'}`, false);
+      + `${r < 0 ? 'A cube root can be negative, unlike a square root, so this is not a no-solution case.' : 'Cubing never lets in a false answer, so this one needs no throwing away.'}`);
   }
 }
 
@@ -208,7 +274,7 @@ function rational(rng) {
   }
 }
 
-const CONTENT = [isolate, extraneous, bothSides, cube, rational];
+const CONTENT = [isolate, extraneous, bothSides, squareTwice, cube, rational];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {

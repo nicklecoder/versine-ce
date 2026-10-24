@@ -1,5 +1,5 @@
 {
-  "built": 589,
+  "built": 592,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -678,6 +678,7 @@
       "solve-in-degrees",
       "solve-on-0-2pi",
       "general-solutions",
+      "multiple-angles",
       "quadratic-type",
       "all-together"
     ],
@@ -696,6 +697,7 @@
       "f-of-g-of-x",
       "not-commutative",
       "decompose",
+      "domain-of-f-of-g",
       "all-together"
     ],
     "inverses": [
@@ -710,6 +712,7 @@
       "isolate-and-square",
       "extraneous-roots",
       "both-sides-radical",
+      "square-twice",
       "cube-roots",
       "rational-exponents",
       "all-together"
@@ -1585,27 +1588,41 @@
     "trig-equations": {
       "dependsOn": [
         "identities",
+        "quadratic-eq",
         "trig-graphs",
         "unit-circle"
       ],
       "levels": {
+        "arcsin-arccos-arctan": [
+          "unit-circle"
+        ],
         "solve-in-degrees": [
           "unit-circle"
         ],
         "general-solutions": [
           "trig-graphs"
         ],
+        "multiple-angles": [
+          "trig-graphs"
+        ],
         "quadratic-type": [
-          "identities"
+          "identities",
+          "quadratic-eq"
         ]
       }
     },
     "domain-range": {
       "dependsOn": [
         "functions",
+        "inequalities",
+        "quadratic-eq",
         "transformations-f"
       ],
       "levels": {
+        "domain-of-roots-and-fractions": [
+          "inequalities",
+          "quadratic-eq"
+        ],
         "from-a-graph": [
           "functions"
         ],
@@ -1616,6 +1633,7 @@
     },
     "composition": {
       "dependsOn": [
+        "domain-range",
         "functions",
         "polynomials"
       ],
@@ -1623,6 +1641,9 @@
         "f-plus-g": [
           "functions",
           "polynomials"
+        ],
+        "domain-of-f-of-g": [
+          "domain-range"
         ]
       }
     },
@@ -1782,7 +1803,7 @@
       }
     }
   },
-  "sources": "23b878c36b3fcb13bba48c0b401b56f0bc435dee77eb98aad3afb075418e7918",
+  "sources": "740eba07fb1bed47327e0f2cff38b7423d49198f537c4de07a02f33e7906356b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7119,8 +7140,8 @@
       "level": 1,
       "slug": "solve-in-degrees",
       "name": "Solve in Degrees",
-      "count": 500,
-      "exhaustive": true,
+      "count": 400,
+      "exhaustive": false,
       "signed": false,
       "file": "trig-equations-1.json"
     },
@@ -7147,9 +7168,9 @@
     {
       "skill": "trig-equations",
       "level": 4,
-      "slug": "quadratic-type",
-      "name": "Quadratic-Type",
-      "count": 400,
+      "slug": "multiple-angles",
+      "name": "Multiple Angles",
+      "count": 500,
       "exhaustive": false,
       "signed": false,
       "file": "trig-equations-4.json"
@@ -7157,12 +7178,22 @@
     {
       "skill": "trig-equations",
       "level": 5,
+      "slug": "quadratic-type",
+      "name": "Quadratic-Type",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-equations-5.json"
+    },
+    {
+      "skill": "trig-equations",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 600,
       "exhaustive": false,
       "signed": true,
-      "file": "trig-equations-5.json"
+      "file": "trig-equations-6.json"
     },
     {
       "skill": "domain-range",
@@ -7251,7 +7282,7 @@
       "name": "f(g(2))",
       "count": 1000,
       "exhaustive": false,
-      "signed": false,
+      "signed": true,
       "file": "composition-1.json"
     },
     {
@@ -7287,12 +7318,22 @@
     {
       "skill": "composition",
       "level": 5,
+      "slug": "domain-of-f-of-g",
+      "name": "Domain of f(g(x))",
+      "count": 400,
+      "exhaustive": false,
+      "signed": true,
+      "file": "composition-5.json"
+    },
+    {
+      "skill": "composition",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
-      "signed": false,
-      "file": "composition-5.json"
+      "signed": true,
+      "file": "composition-6.json"
     },
     {
       "skill": "inverses",
@@ -7387,8 +7428,8 @@
     {
       "skill": "radical-eq",
       "level": 3,
-      "slug": "cube-roots",
-      "name": "Cube Roots",
+      "slug": "square-twice",
+      "name": "Square Twice",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7397,8 +7438,8 @@
     {
       "skill": "radical-eq",
       "level": 4,
-      "slug": "rational-exponents",
-      "name": "Rational Exponents",
+      "slug": "cube-roots",
+      "name": "Cube Roots",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7407,12 +7448,22 @@
     {
       "skill": "radical-eq",
       "level": 5,
+      "slug": "rational-exponents",
+      "name": "Rational Exponents",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "radical-eq-5.json"
+    },
+    {
+      "skill": "radical-eq",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "radical-eq-5.json"
+      "file": "radical-eq-6.json"
     },
     {
       "skill": "rational-expr",

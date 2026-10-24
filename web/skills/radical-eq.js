@@ -18,7 +18,10 @@ export const LEVELS = [
     blurb: 'Squaring √(x + 7) = x + 1 gives a quadratic with two answers; check both, since a root is never negative.',
     dependsOn: [{ skill: 'quadratic-eq', level: 1 }] },
   { name: 'Both Sides Radical', slug: 'both-sides-radical',
-    blurb: 'A root each side: square both and solve. With a number beside one root, square again; check every answer.' },
+    blurb: 'A root each side, or a multiple of one: square both and solve, then check that neither root is of a negative.' },
+  // Added: squaring twice had been 2% of Both Sides Radical, which promised it.
+  { name: 'Square Twice', slug: 'square-twice',
+    blurb: 'A number beside a root leaves a root after squaring: get it alone and square again, then check every answer.' },
   { name: 'Cube Roots', slug: 'cube-roots',
     blurb: 'Cube both sides to undo ∛. A cube root of a negative is negative, so nothing is extraneous.',
     dependsOn: [{ skill: 'roots', level: 4 }] },
@@ -30,7 +33,7 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [45, 90, 70, 40, 60, 70];
+export const PAR_SECONDS = [45, 90, 70, 100, 40, 60, 70];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
@@ -43,7 +46,7 @@ export default {
   name: 'Radical Equations',
   category: 'equations',
   glyph: '√x = 3',
-  blurb: 'Isolating and squaring, extraneous answers, roots on both sides, cube roots and fractional powers.',
+  blurb: 'Isolating and squaring, extraneous answers, roots on both sides, squaring twice, cube roots and fractional powers.',
   answerInput: 'solutions',
   // Solving from equations and quadratic-eq; roots and powers from their skills.
   dependsOn: ['equations', 'roots', 'quadratic-eq', 'rational-exponents'],

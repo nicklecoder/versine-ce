@@ -30,6 +30,17 @@ export function freeInput(spec = {}, opts = {}) {
   const draw = (spec.type && getType(spec.type).preview) || previewOf;
   const preview = el('div.free__preview');
   const hint = el('div.free__hint');
+  // requiem: play/answers/symbols-typed-on-a-keyboard
+  // A symbol on no keyboard is typed as its stand-in, and the stand-ins are
+  // shown before anything goes wrong rather than only in a refusal: != for ≠
+  // is not something to guess. The same keys for every problem of the type,
+  // so they say nothing about this answer. Above the box, for the reason the
+  // preview is: below it, a phone's keyboard covers them.
+  const legend = spec.type && getType(spec.type).keys;
+  const keys = legend
+    ? el('div.free__keys', { 'aria-label': 'How to type the symbols' },
+      ...legend.map(([typed, means]) => el('span.free__key', {}, el('kbd', {}, typed), ` ${means}`)))
+    : null;
   const input = el('input.answer.answer--free', {
     type: 'text', inputmode: 'text',
     autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
@@ -60,7 +71,7 @@ export function freeInput(spec = {}, opts = {}) {
   input.addEventListener('input', paint);
 
   return {
-    node: el('div.free', {}, preview, hint, input),
+    node: el('div.free', {}, preview, hint, ...(keys ? [keys] : []), input),
     value: () => input.value,
     clear() { input.value = ''; paint(); },
     focus() { input.focus(); },

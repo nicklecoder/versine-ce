@@ -15,7 +15,11 @@
 
 export const LEVELS = [
   { name: 'Domain of √ and Fractions', slug: 'domain-of-roots-and-fractions', libraryCap: 600,
-    blurb: 'Nothing negative under a square root and no zero denominator: everything else is in the domain.' },
+    blurb: 'Nothing negative under a square root and no zero denominator: everything else is in the domain.',
+    // √(5 − 2x) needs 5 − 2x ≥ 0 solved, dividing by −2: inequalities' The
+    // Flip. 1/(x² − 4x − 12) needs the zeros of the bottom: quadratic
+    // equations' By Factoring.
+    dependsOn: [{ skill: 'inequalities', level: 3 }, { skill: 'quadratic-eq', level: 1 }] },
   { name: 'From a Graph', slug: 'from-a-graph', libraryCap: 400,
     blurb: 'Domain is the shadow on the x-axis, range the shadow on the y-axis; open dots are out, arrows go on forever.',
     // Reading a whole graph's domain and range: functions' Domain and Range.
@@ -25,9 +29,9 @@ export const LEVELS = [
     // A range moves with a flip, a stretch and a shift: transforming functions' Combined.
     dependsOn: [{ skill: 'transformations-f', level: 4 }] },
   { name: 'Piecewise', slug: 'piecewise', libraryCap: 600,
-    blurb: 'Find the piece whose condition x meets, then use only that rule; at a boundary, ≤ or a filled dot says which.' },
+    blurb: 'Find the piece whose condition x meets, then use only that rule; the conditions together are the domain.' },
   { name: 'Step Functions', slug: 'step-functions', libraryCap: 600,
-    blurb: '⌊x⌋ is the greatest integer at or below x, so ⌊−2.4⌋ = −3; "each hour or part of one" rounds up.' },
+    blurb: '⌊x⌋ is the greatest integer at or below x, so ⌊−2.4⌋ = −3; "each hour or part of one" rounds up; a range is separate steps.' },
   // Added for F-IF.5: the plan's levels read domains but never from a story.
   { name: 'Domain in Context', slug: 'domain-in-context', libraryCap: 400,
     blurb: 'A count takes whole numbers and a measure every value between; the story says where it starts and stops.' },
@@ -52,7 +56,8 @@ export default {
   blurb: 'Domains of roots and fractions, domain and range from a graph, ranges of the parents, piecewise and step functions, and domains in context.',
   answerInput: 'solutions',
   // Domain and range first appear in functions; the parents and how they
-  // move are transforming functions'.
-  dependsOn: ['functions', 'transformations-f'],
+  // move are transforming functions'. Solving for where a root or a
+  // denominator allows x is inequalities' and quadratic equations'.
+  dependsOn: ['functions', 'transformations-f', 'inequalities', 'quadratic-eq'],
   levels: LEVELS,
 };

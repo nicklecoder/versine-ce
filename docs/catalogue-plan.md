@@ -307,11 +307,11 @@ With it, Phase 3 is built.
 | `unit-circle` (Unit Circle) | Special Angles · Signs by Quadrant · Tangent · sec/csc/cot · From One Ratio, the Rest | F-TF.2–4,8 |
 | `trig-graphs` (Unit Circle) | Amplitude · Period · Midline · Phase Shift · Equation From a Graph · Sinusoidal Models | F-TF.5, TEKS P.2O |
 | `identities` (Identities) | Pythagorean · Reciprocal & Quotient · Even/Odd · Cofunction · Sum & Difference · Double Angle · Identity or Not? · Next Step in a Proof | F-TF.8–9, TEKS P.5M |
-| `trig-equations` (Identities) | arcsin/arccos/arctan · Solve on [0, 2π) · General Solutions · Quadratic-Type | F-TF.6–7, TEKS P.2H, P.5N |
+| `trig-equations` (Identities) | arcsin/arccos/arctan · Solve on [0, 2π) · General Solutions · Multiple Angles · Quadratic-Type | F-TF.6–7, TEKS P.2H, P.5N |
 | `domain-range` (Functions) | Domain of √ and Fractions · From a Graph · Ranges of Parents · Piecewise · Step Functions | F-IF.5, F-IF.7b, TEKS A2.7I |
-| `composition` (Functions) | (f + g)(x) · f(g(2)) · f(g(x)) · Not Commutative · Decompose | F-BF.1, TEKS P.2A–C |
+| `composition` (Functions) | (f + g)(x) · f(g(2)) · f(g(x)) · Not Commutative · Decompose · Domain of f(g(x)) | F-BF.1, TEKS P.2A–C |
 | `inverses` (Functions) | Undo a Function · Solve for x ↔ y · Check by Composing · Restrict the Domain · Graph Reflection | F-BF.4, TEKS A2.2B–D |
-| `radical-eq` (Equations) | Isolate & Square · Extraneous Roots · Both Sides Radical · Cube Roots · Rational Exponents | A-REI.2, TEKS A2.4F,G, 6B, 7H |
+| `radical-eq` (Equations) | Isolate & Square · Extraneous Roots · Both Sides Radical · Square Twice · Cube Roots · Rational Exponents | A-REI.2, TEKS A2.4F,G, 6B, 7H |
 | `rational-expr` (Expressions) | Simplify · Excluded Values · Multiply & Divide · Common Denominator · Unlike Denominators · Complex Fractions | A-APR.6–7, TEKS A2.7F |
 | `rational-eq` (Equations) | Clear Denominators · Extraneous · Proportions With x · Inverse Variation · Work & Rate | A-REI.2, TEKS A2.6H–J,L |
 | `rational-functions` (Functions) | Vertical Asymptotes · Horizontal by Degree · Holes · Oblique · End Behavior | TEKS A2.6K, P.2J–L |
@@ -384,27 +384,38 @@ rows a line already written, equal but a step back; the question says the
 next line must be new.
 
 `trig-equations` is built, as arcsin, arccos, arctan · Solve in Degrees ·
-Solve on [0, 2π) · General Solutions · Quadratic-Type · All Together. Solve
-in Degrees is added: a set of angles is typed only in degrees, where each
-is a number the solutions input reads, and on [0, 2π) the set is chosen
-from four, as is every general solution. Solve in Degrees depends on the
-unit circle's Around the Circle, General Solutions on the graphs' Period,
-and Quadratic-Type on the identities' Pythagorean.
+Solve on [0, 2π) · General Solutions · Multiple Angles · Quadratic-Type ·
+All Together. Solve in Degrees and Multiple Angles are added: a set of
+angles is typed only in degrees, where each is a number the solutions
+input reads, and on [0, 2π) the set is chosen from four, as is every
+general solution. Multiple Angles solves sin 2x, sin 3x and sin(x/2) over
+the turns the argument makes. Rows on an axis or with no solution are
+held to about a fifth of each solving level, so most need the reference
+angle. arcsin, arccos, arctan depends on the unit circle's Special Angles
+and From One Ratio, the Rest, Solve in Degrees on its Around the Circle,
+General Solutions and Multiple Angles on the graphs' Period, and
+Quadratic-Type on the identities' Pythagorean and quadratic equations'
+By Factoring.
 
 `domain-range` is built, as Domain of √ and Fractions · From a Graph ·
 Ranges of Parents · Piecewise · Step Functions · Domain in Context · All
 Together. Domain in Context is added for F-IF.5: whether the input is
 counted or measured, and where a story starts and stops. From a Graph
-depends on functions' Domain and Range, and Ranges of Parents on
-transforming functions' Combined. Piecewise and Step Functions ask for
-a value, typed as a number, where the other levels ask for a set; the
-question says which, so All Together mixes them.
+depends on functions' Domain and Range, Ranges of Parents on
+transforming functions' Combined, and Domain of √ and Fractions on
+inequalities' The Flip and quadratic equations' By Factoring. Piecewise
+and Step Functions mostly ask for a value, typed as a number, and in
+about three rows in ten for a domain or range as a set (a step
+function's range is separate values); the question says which, so the
+levels and All Together mix them.
 
 `composition` is built, as (f + g)(x) · f(g(2)) · f(g(x)) · Not
-Commutative · Decompose · All Together. Its first level depends on
-functions' Function Notation and polynomials' Binomial Times Binomial.
-f(g(2)) is typed in the expression box like every other answer, so All
-Together deals from all five levels. Inverse functions, F-BF.4, are not
+Commutative · Decompose · Domain of f(g(x)) · All Together. Its first
+level depends on functions' Function Notation and polynomials' Trinomial
+Times Binomial, and Domain of f(g(x)) on domain and range's Domain of √
+and Fractions. f(g(2)) is typed in the whole-number box, a domain in the
+solutions box and every formula in the expression box; the question says
+which, so All Together deals from all six levels. Inverse functions, F-BF.4, are not
 here: they are `inverses`, next in the plan, whose Check by Composing builds on this.
 
 `inverses` is built, as Undo a Function · Solve for x ↔ y · Check by
@@ -420,12 +431,16 @@ formula in the equivalent box, judged by value, and a reflected point in
 the pair box; the question says which.
 
 `radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
-Radical · Cube Roots · Rational Exponents · All Together. Isolate & Square
+Radical · Square Twice · Cube Roots · Rational Exponents · All Together.
+Square Twice is added: a root left after the first squaring is isolated
+and squared again, and about a quarter of its rows let in an answer the
+check throws out. Isolate & Square
 depends on equations' Two Steps and roots' Perfect Squares, Extraneous
 Roots on quadratic equations' By Factoring, Cube Roots on roots' Cubes and
 Cube Roots, and Rational Exponents on rational exponents' Root, Then
 Power. Every answer is a set, so a row whose candidates are all
-extraneous is answered "no solution".
+extraneous is answered "no solution", and every prompt says there may be
+none.
 
 `rational-expr` is built, as Simplify · Excluded Values · Multiply &
 Divide · Common Denominator · Unlike Denominators · Complex Fractions ·
