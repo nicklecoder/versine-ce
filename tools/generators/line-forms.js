@@ -21,7 +21,10 @@ const ptPlain = ([x, y]) => `(${x}, ${y})`;
 /** An equation for a sentence: one unbroken piece of maths among the words. */
 const terms = (src) => [T.math(previewOf(src).terms)];
 const whole = (n) => ({ n, d: 1 });
-const lineAnswer = (m, b) => ({ type: 'linear', value: { m: ratio(m.n, m.d), b: ratio(b.n, b.d) } });
+// requiem: play/answers/line-form-asked-is-checked
+// Every line here is asked for as y = mx + b (or y = …), so the same line
+// left unexpanded is refused with a hint rather than marked right.
+const lineAnswer = (m, b) => ({ type: 'linear', value: { m: ratio(m.n, m.d), b: ratio(b.n, b.d) }, requireSimplest: true });
 const rhsOf = (m, b) => lineText(m, b, { ascii: true }).slice(4);
 /** The slope as it stands in front of x in running text: (1/2)x, not 1/2x. */
 const coef = (m) => (m.d === 1 ? (m.n === 1 ? '' : m.n === -1 ? '−' : minus(m.n)) : `(${show(m)})`);

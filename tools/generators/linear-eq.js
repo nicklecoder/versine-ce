@@ -27,7 +27,10 @@ const terms = (src) => [T.math(previewOf(src).terms)];
 const whole = (n) => ({ n, d: 1 });
 /** How the slope is written in front of x: nothing for 1, a bracket round a fraction. */
 const coef = (m) => (m.d === 1 ? (m.n === 1 ? '' : m.n === -1 ? '−' : minus(m.n)) : `(${show(m)})`);
-const lineAnswer = (m, b) => ({ type: 'linear', value: { m: ratio(m.n, m.d), b: ratio(b.n, b.d) } });
+// requiem: play/answers/line-form-asked-is-checked
+// Every line here is asked for as y = mx + b (or y = …), so the same line
+// left unexpanded is refused with a hint rather than marked right.
+const lineAnswer = (m, b) => ({ type: 'linear', value: { m: ratio(m.n, m.d), b: ratio(b.n, b.d) }, requireSimplest: true });
 
 /** A slope a student can count on a grid: whole, or over 2, 3 or 4. */
 function slope(rng) {

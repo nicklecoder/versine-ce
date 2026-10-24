@@ -308,6 +308,19 @@ function lineText({ m, b }, letter) {
   return `${slope} ${b.n < 0 ? '−' : '+'} ${fracText({ n: Math.abs(b.n), d: b.d })}`;
 }
 
+/**
+ * Written as mx + b: at most one x term and one number, and no bracket but
+ * one around a number alone -- (3/2)x is a slope written out, (x + 2) is
+ * work not done yet.
+ */
+function writtenAsLine(text) {
+  const flat = text.replace(/\s+/g, '').replace(/\([-+]?[\d./]+\)/g, '1');
+  if (/[()]/.test(flat)) return false;
+  const terms = flat.split(/(?<=[^/*^])(?=[+-])/).filter(Boolean);
+  const xs = terms.filter((t) => /x/i.test(t)).length;
+  return xs <= 1 && terms.length - xs <= 1;
+}
+
 // requiem: play/answers/line-judged-as-line
 defineType({
   id: 'linear',
@@ -348,12 +361,18 @@ defineType({
         return { ok: true, value: { x: c } };
       } else return { ok: false, hint: 'Write it with y on its own: y = …' };
     }
-    return lineIn(right, 'x', {
+    const line = lineIn(right, 'x', {
       letters: 'Write the line in x and y.',
       numbers: 'A line needs only numbers and x.',
       curved: 'That is not a straight line.',
     });
+    return line.ok ? { ...line, asLine: writtenAsLine(right) } : line;
   },
+  // requiem: play/answers/line-form-asked-is-checked
+  // Asked for y = mx + b, the expansion or division is the skill, so the
+  // same line left as −1/2(x + 2) − 1 or (12 − 4x)/(−2) is not finished.
+  isSimplest: (v, parsed) => 'x' in v || parsed?.asLine !== false,
+  unfinished: 'in the form y = mx + b',
   equals(a, b) {
     if ('x' in a || 'x' in b) return 'x' in a && 'x' in b && sameFrac(a.x, b.x);
     return sameFrac(a.m, b.m) && sameFrac(a.b, b.b);

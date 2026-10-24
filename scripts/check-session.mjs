@@ -289,6 +289,28 @@ for (const skill of SKILLS) {
   if (play(p.answer.accept[0]).status !== 'correct') fail.push(`compound-ineq: "${p.answer.accept[0]}" refused`);
 }
 
+// requiem: play/answers/line-form-asked-is-checked
+// Asked for y = mx + b, the point-slope form expanded is accepted and left
+// unexpanded is told so.
+{
+  const skill = SKILLS.find((s) => s.id === 'line-forms');
+  const lib = libOf(skill, 0);
+  const p = lib.problems.find((q) => q.text.startsWith('point-slope '));
+  const [left, right] = p.text.slice('point-slope '.length).split(' = ');
+  // y + 1 = −1/2(x + 2) → y = −1/2(x + 2) − 1: moved, not expanded.
+  const k = left.match(/^y ([+-]) (\d+)$/);
+  const moved = k ? `y = ${right} ${k[1] === '+' ? '-' : '+'} ${k[2]}` : `y = ${right}`;
+  const play = (raw) => {
+    const s = new Session({ skill, level: 0, mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const r = play(moved);
+  if (r.status !== 'wrong' || !r.hint?.includes('y = mx + b')) fail.push(`line-forms: "${moved}" not told to expand (${r.status})`);
+  if (play(p.answer.accept[0]).status !== 'correct') fail.push(`line-forms: "${p.answer.accept[0]}" refused`);
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);
