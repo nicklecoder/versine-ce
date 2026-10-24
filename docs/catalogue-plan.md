@@ -326,6 +326,22 @@ With it, Phase 3 is built.
 | `vectors` (TBD) | Components · Magnitude & Direction · Adding · Scalar Multiples · Resultants | TEKS P.4I–K |
 | `parametric-polar` (TBD) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
 
+`trig-ratios` is built, in the plan's eight levels and All Together, which
+makes nine; the skill says why with `longerBecause`. Calculator answers round
+only at the end, and a problem is kept only where 4-place working agrees with
+the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
+`laws-sines-cosines` is built, as Sines: Side · Sines: Angle · Cosines: Side
+· Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C ·
+All Together. Which Law? depends on trig-ratios' Missing Side, where a tool is
+first chosen by the sides in play. How Many Triangles? is added for the
+ambiguous case, and every Sines: Angle question names its triangle.
+`radians` is built, as Degrees to Radians · Radians to Degrees · Coterminal
+Angles · Reference Angles · Arc Length s = rθ · Sector Area ½r²θ · Angular
+Speed · All Together. The plan's Degrees ↔ Radians is two levels, one each
+way, and Sector Area is added beside Arc Length; the two depend on the
+circles skill's Arc Length and Sector Area, where both are taken in degrees. Exact answers are the
+coefficient of π, as a fraction.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

@@ -2037,6 +2037,24 @@ RADICAL_RULES = (
      lambda x1, y1, x2, y2: (int(x2) - int(x1)) ** 2 + (int(y2) - int(y1)) ** 2),
 )
 
+
+# An exact answer that is not a whole root of a whole number -- sin 60° is
+# √3/2, a 45-45-90 leg 5√2/2 -- is checked against the calculator: the rule
+# works the value out in floating point by its own route, and the stored
+# a + b√r must be within 1e-9 of it, with r free of square factors.
+def exact_holds(want: float, value) -> str:
+    roots = value["roots"]
+    if len(roots) != 1:
+        return f"has {len(roots)} values, not one"
+    a, b, r = as_fraction(roots[0]["a"]), as_fraction(roots[0]["b"]), roots[0]["r"]
+    if r > 1 and any(r % (k * k) == 0 for k in range(2, math.isqrt(r) + 1)):
+        return "is not in simplest form"
+    got = float(a) + float(b) * math.sqrt(r)
+    return "ok" if abs(got - want) < 1e-9 else f"is {got}, not {want}"
+
+
+EXACT_RULES = ()
+
 BY_RULE += (
     (re.compile(r"^hypotenuse: (\d+), (\d+)(?: \(\w+\))?$"), lambda p, q: whole_root(p * p + q * q)),
     (re.compile(r"^leg: (\d+), (\d+)(?: \(\w+\))?$"), lambda c, k: whole_root(c * c - k * k)),
@@ -4750,6 +4768,342 @@ CHOICE_RULES += (
     (re.compile(r"^independent table: (\d+) (\d+) / (\d+) (\d+)$"), compound_independent_table),
 )
 
+# --- Trigonometric ratios ---------------------------------------------------
+#
+# Sides are named again from the letters, ratios rebuilt from the side
+# lengths (a missing one found by the Pythagorean theorem), and missing
+# sides and angles worked from a triangle with hypotenuse 1, whose legs are
+# sin θ and cos θ. Every rounded answer is also worked the way a student
+# copies a calculator down, with the trig value to 4 places, and the two
+# must round alike. Exact answers are compared with the calculator's value.
+
+TRIG_PAIRS = {"sin": ("opposite", "hypotenuse"), "cos": ("adjacent", "hypotenuse"), "tan": ("opposite", "adjacent")}
+
+
+def trig_name(right: str, angle: str, third: str, role: str) -> str:
+    pair = lambda p, q: "".join(sorted(p + q))
+    return {"opposite": pair(right, third), "adjacent": pair(angle, right), "hypotenuse": pair(angle, third)}[role]
+
+
+def trig_role(right: str, angle: str, third: str, name: str) -> str:
+    return next(r for r in ("opposite", "adjacent", "hypotenuse") if trig_name(right, angle, third, r) == name)
+
+
+def trig_ratio(fn: str, angle: str, right: str, listing: str) -> Fraction:
+    lengths = {name: int(v) for name, v in (item.split() for item in listing.split(", "))}
+    third = (set("".join(lengths)) - {angle, right}).pop()
+    side = {r: lengths.get(trig_name(right, angle, third, r)) for r in ("opposite", "adjacent", "hypotenuse")}
+    if side["hypotenuse"] is None:
+        side["hypotenuse"] = fraction_root(Fraction(side["opposite"] ** 2 + side["adjacent"] ** 2), 2)
+    for leg, other in (("opposite", "adjacent"), ("adjacent", "opposite")):
+        if side[leg] is None:
+            side[leg] = fraction_root(Fraction(side["hypotenuse"] ** 2 - side[other] ** 2), 2)
+    top, bottom = TRIG_PAIRS[fn]
+    return Fraction(side[top]) / Fraction(side[bottom])
+
+
+def trig_unit(theta: float) -> dict:
+    t = math.radians(theta)
+    return {"opposite": math.sin(t), "adjacent": math.cos(t), "hypotenuse": 1.0}
+
+
+# requiem: catalogue/content/trig-rounding-agrees
+def trig_agree(exact: float, four_place: float, places: int) -> Fraction:
+    rounded = half_up(Fraction(exact), places)
+    assert half_up(Fraction(four_place), places) == rounded, f"{exact} and its 4-place working {four_place} round apart"
+    return rounded
+
+
+def trig_side(theta, known_role, known, want_role, places) -> Fraction:
+    s = trig_unit(theta)
+    x = known * s[want_role] / s[known_role]
+    fn = next(f for f, pair in TRIG_PAIRS.items() if set(pair) == {known_role, want_role})
+    top, bottom = TRIG_PAIRS[fn]
+    v4 = round(s[top] / s[bottom], 4)
+    return trig_agree(x, known * v4 if want_role == top else known / v4, places)
+
+
+def trig_angle(role1, n1, role2, n2, places) -> Fraction:
+    sides = {role1: n1, role2: n2}
+    fn = next(f for f, pair in TRIG_PAIRS.items() if set(pair) == set(sides))
+    top, bottom = TRIG_PAIRS[fn]
+    inverse = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn]
+    r = sides[top] / sides[bottom]
+    return trig_agree(math.degrees(inverse(r)), math.degrees(inverse(round(r, 4))), places)
+
+
+def trig_bearing(b, d, want, places) -> Fraction:
+    # East is d·sin(bearing) and north d·cos(bearing): the bearing turns from north.
+    t = math.radians(b)
+    exact = d * (math.sin(t) if want == "east" else math.cos(t))
+    four = d * round(math.sin(t) if want == "east" else math.cos(t), 4)
+    return trig_agree(exact, four, places)
+
+
+def trig_surd_value(written: str) -> float:
+    m = re.fullmatch(r"(\d*)√(\d+)", written)
+    return (int(m[1]) if m[1] else 1) * math.sqrt(int(m[2])) if m else float(written)
+
+
+def trig_special(kind, given_role, given, want_role) -> float:
+    # The special triangles from their angles: with hypotenuse 1, a 45-45-90's
+    # legs are sin 45°, and a 30-60-90's legs are sin 30° and sin 60°.
+    unit = ({"leg": math.sin(math.radians(45)), "hypotenuse": 1.0} if kind == "45"
+            else {"short": math.sin(math.radians(30)), "long": math.sin(math.radians(60)), "hypotenuse": 1.0})
+    return trig_surd_value(given) / unit[given_role] * unit[want_role]
+
+
+def trig_cofunction(f, t, g) -> int:
+    fn = {"sin": math.sin, "cos": math.cos}
+    hits = [x for x in range(1, 90) if abs(fn[f](math.radians(t)) - fn[g](math.radians(x))) < 1e-12]
+    assert len(hits) == 1, hits
+    return hits[0]
+
+
+def trig_cofunction_value(f, p, q, g) -> Fraction:
+    p, q = int(p), int(q)
+    # The sides of the triangle from A: opposite, adjacent, hypotenuse.
+    if f == "sin":
+        o, h = p, q; a = math.isqrt(h * h - o * o)
+    elif f == "cos":
+        a, h = p, q; o = math.isqrt(h * h - a * a)
+    else:
+        o, a = p, q; h = math.isqrt(o * o + a * a)
+    assert o * o + a * a == h * h
+    # From B the legs swap: B's opposite is A's adjacent.
+    ob, ab = a, o
+    return {"sin": Fraction(ob, h), "cos": Fraction(ab, h), "tan": Fraction(ob, ab)}[g]
+
+
+def trig_cofunction_solve(f, a, b, g, c, d) -> int:
+    a, b, c, d = int(a), int(b), int(c), int(d)
+    fn = {"sin": math.sin, "cos": math.cos}
+    hits = [x for x in range(-90, 91) if 0 < a * x + b < 90 and 0 < c * x + d < 90
+            and abs(fn[f](math.radians(a * x + b)) - fn[g](math.radians(c * x + d))) < 1e-12]
+    assert len(hits) == 1, hits
+    return hits[0]
+
+
+TRIG_ROLE = r"(opposite|adjacent|hypotenuse)"
+
+BY_RULE += (
+    (re.compile(r"^trig ratio: (sin|cos|tan) ([A-Z]); right ([A-Z]); ((?:[A-Z]{2} \d+(?:, )?)+)$"), trig_ratio),
+    (re.compile(rf"^(?:missing side|elevation|depression|ladder): angle (\d+), {TRIG_ROLE} (\d+), want {TRIG_ROLE} to (\d) dp$"), trig_side),
+    (re.compile(rf"^missing angle: {TRIG_ROLE} (\d+), {TRIG_ROLE} (\d+) to the nearest whole$"),
+     lambda r1, n1, r2, n2: trig_angle(r1, n1, r2, n2, 0)),
+    (re.compile(r"^sun angle: height (\d+), shadow (\d+) to the nearest whole$"),
+     lambda h, s: trig_angle("opposite", h, "adjacent", s, 0)),
+    (re.compile(r"^bearing: (\d+), distance (\d+), want (east|north) to (\d) dp$"), trig_bearing),
+    (re.compile(r"^bearing from legs: east (\d+), north (\d+) to the nearest whole$"),
+     lambda e, n: trig_agree(math.degrees(math.atan2(e, n)), math.degrees(math.atan(round(e / n, 4))), 0)),
+    (re.compile(r"^cofunction: (sin|cos) (\d+) = (sin|cos) \?$"), trig_cofunction),
+    (re.compile(r"^cofunction value: (sin|cos|tan) A (\d+)/(\d+), want (sin|cos|tan) B$"), trig_cofunction_value),
+    (re.compile(r"^cofunction solve: (sin|cos)\((\d+)x \+ (-?\d+)\) = (sin|cos)\((\d+)x \+ (-?\d+)\)$"), trig_cofunction_solve),
+)
+
+EXACT_RULES += (
+    (re.compile(r"^special (45): (leg|hypotenuse) (\d*√?\d+), want (leg|hypotenuse)$"), trig_special),
+    (re.compile(r"^special (30): (short|long|hypotenuse) (\d*√?\d+), want (short|long|hypotenuse)$"), trig_special),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^side name: right ([A-Z]), angle ([A-Z]), third ([A-Z]), want (opposite|adjacent|hypotenuse)$"),
+     lambda right, angle, third, want: trig_name(right, angle, third, want)),
+    (re.compile(r"^side role: right ([A-Z]), angle ([A-Z]), third ([A-Z]), side ([A-Z]{2})$"), trig_role),
+)
+
+# --- Laws of sines and cosines ------------------------------------------------
+#
+# Each triangle is built again on coordinates -- from its angles by two rays
+# meeting, or from its sides and the angle between them -- and the asked
+# side or angle measured off it, so neither law is used to check itself. The
+# 4-place working beside each is the law the student uses, and the two must
+# round alike (trig_agree).
+
+def laws_points_from_angles(A, B):
+    # A at the origin, B at (1, 0); C where the rays at A and at B meet.
+    ta, tb = math.radians(A), math.radians(180 - B)
+    # A + s(cos ta, sin ta) = B + u(cos tb, sin tb)
+    det = math.cos(ta) * math.sin(tb) - math.sin(ta) * math.cos(tb)
+    s = (1 * math.sin(tb)) / det
+    return (0.0, 0.0), (1.0, 0.0), (s * math.cos(ta), s * math.sin(ta))
+
+
+def laws_sides(P) -> dict:
+    A, B, C = P
+    d = lambda p, q: math.hypot(p[0] - q[0], p[1] - q[1])
+    return {"a": d(B, C), "b": d(C, A), "c": d(A, B)}
+
+
+def laws_angle_at(P, which: str) -> float:
+    A, B, C = P
+    v, u, w = {"A": (A, B, C), "B": (B, C, A), "C": (C, A, B)}[which]
+    t = math.atan2(u[1] - v[1], u[0] - v[0]) - math.atan2(w[1] - v[1], w[0] - v[0])
+    t = abs(math.degrees(t)) % 360
+    return 360 - t if t > 180 else t
+
+
+def laws_sines_side(x, ax, y, ay, known, k, want, places) -> Fraction:
+    angles = {x: ax, y: ay}
+    angles[({"A", "B", "C"} - set(angles)).pop()] = 180 - ax - ay
+    s = laws_sides(laws_points_from_angles(angles["A"], angles["B"]))
+    exact = k * s[want] / s[known]
+    four = k * round(math.sin(math.radians(angles[want.upper()])), 4) / round(math.sin(math.radians(angles[known.upper()])), 4)
+    return trig_agree(exact, four, places)
+
+
+# requiem: catalogue/content/ssa-says-which-triangle
+def laws_sines_angle(A, a, b, which, places) -> Fraction:
+    # A at the origin, C at distance b along the ray at A; B on the base line
+    # at distance a from C. Every such B is listed, and the angle measured.
+    C = (b * math.cos(math.radians(A)), b * math.sin(math.radians(A)))
+    disc = a * a - C[1] ** 2
+    xs = [x for x in {C[0] + math.sqrt(disc), C[0] - math.sqrt(disc)} if x > 1e-9] if disc > 0 else []
+    angles = [laws_angle_at(((0.0, 0.0), (x, 0.0), C), "B") for x in xs]
+    picked = [t for t in angles if (t < 90) == (which == "acute")]
+    assert len(picked) == 1, (A, a, b, angles)
+    s4 = round(b * round(math.sin(math.radians(A)), 4) / a, 4)
+    four = math.degrees(math.asin(s4))
+    return trig_agree(picked[0], four if which == "acute" else 180 - four, places)
+
+
+def laws_cosines_side(a, b, C, places) -> Fraction:
+    P = ((b, 0.0), (a * math.cos(math.radians(C)), a * math.sin(math.radians(C))))
+    exact = math.hypot(P[0][0] - P[1][0], P[0][1] - P[1][1])
+    four = math.sqrt(a * a + b * b - 2 * a * b * round(math.cos(math.radians(C)), 4))
+    return trig_agree(exact, four, places)
+
+
+def laws_cosines_angle(a, b, c, want, places) -> Fraction:
+    # A at the origin, B at (c, 0), C found from its distances to both.
+    x = (b * b + c * c - a * a) / (2 * c)
+    P = ((0.0, 0.0), (float(c), 0.0), (x, math.sqrt(b * b - x * x)))
+    sides = {"A": (b, c, a), "B": (a, c, b), "C": (a, b, c)}[want]
+    four = math.degrees(math.acos(round((sides[0] ** 2 + sides[1] ** 2 - sides[2] ** 2) / (2 * sides[0] * sides[1]), 4)))
+    return trig_agree(laws_angle_at(P, want), four, places)
+
+
+def laws_count(A, a, b) -> str:
+    # The same construction as laws_sines_angle, counting the places B can go.
+    if A == 30 and 2 * a == b:
+        return "1"
+    if A >= 90:
+        return "1" if a > b else "0"
+    h = b * math.sin(math.radians(A))
+    assert abs(a - h) > 0.2, (A, a, b)
+    if a < h:
+        return "0"
+    base = b * math.cos(math.radians(A))
+    xs = [x for x in (base + math.sqrt(a * a - h * h), base - math.sqrt(a * a - h * h)) if x > 1e-9]
+    return str(len(xs))
+
+
+def laws_area(a, b, C, places) -> Fraction:
+    # The shoelace formula on the triangle's corners.
+    P = [(0.0, 0.0), (float(b), 0.0), (a * math.cos(math.radians(C)), a * math.sin(math.radians(C)))]
+    exact = abs(sum(P[i][0] * P[(i + 1) % 3][1] - P[(i + 1) % 3][0] * P[i][1] for i in range(3))) / 2
+    return trig_agree(exact, 0.5 * a * b * round(math.sin(math.radians(C)), 4), places)
+
+
+def laws_which(listing: str, want: str) -> str:
+    known = {k: int(v) for k, v in (item.split() for item in listing.split(", "))}
+    angles = {k for k in known if k.isupper()}
+    if any(known[k] == 90 for k in angles):
+        return "right"
+    # Two angles give the third, and then every angle has its side's partner.
+    paired = len(angles) >= 2 or any(k.lower() in known for k in angles)
+    return "sines" if paired else "cosines"
+
+
+BY_RULE += (
+    (re.compile(r"^sines side: ([ABC]) (\d+), ([ABC]) (\d+), ([abc]) (\d+); want ([abc]) to (\d) dp$"), laws_sines_side),
+    (re.compile(r"^sines angle: A (\d+), a (\d+), b (\d+); want (acute|obtuse) B to the nearest whole$"),
+     lambda A, a, b, which: laws_sines_angle(A, a, b, which, 0)),
+    (re.compile(r"^cosines side: a (\d+), b (\d+), C (\d+); want c to (\d) dp$"), laws_cosines_side),
+    (re.compile(r"^cosines angle: a (\d+), b (\d+), c (\d+); want ([ABC]) to the nearest whole$"),
+     lambda a, b, c, want: laws_cosines_angle(a, b, c, want, 0)),
+    (re.compile(r"^triangle area: a (\d+), b (\d+), C (\d+) to (\d) dp$"), laws_area),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^ssa count: A (\d+), a (\d+), b (\d+)$"), lambda A, a, b: laws_count(int(A), int(a), int(b))),
+    (re.compile(r"^which law: ((?:[ABCabc] \d+(?:, )?)+); want ([ABCabc])$"), laws_which),
+)
+
+# --- Radians -----------------------------------------------------------------
+#
+# A multiple of π is held as its coefficient, a fraction, and converted with
+# 180° = π in exact arithmetic; a turn is 2π, or 360°. A coterminal or
+# reference angle is found by stepping round the circle a degree, or a
+# twelfth of π, at a time rather than by the subtraction the explanation
+# uses. Rounded answers use the calculator's π, worked again with 3.1416
+# (trig_agree).
+
+# requiem: catalogue/content/radian-coefficients-as-fractions
+def rad_coef(written: str) -> Fraction:
+    n, d = written.split("/")
+    return Fraction(int(n), int(d))
+
+
+def rad_coterminal_deg(deg) -> int:
+    hits = [t for t in range(0, 360) if (t - deg) % 360 == 0]
+    assert len(hits) == 1
+    return hits[0]
+
+
+def rad_coterminal_rad(written: str) -> Fraction:
+    k = rad_coef(written)
+    # Every candidate in [0, 2) on a grid fine enough for any denominator here.
+    hits = [Fraction(j, 120) for j in range(240) if (Fraction(j, 120) - k) % 2 == 0]
+    assert len(hits) == 1
+    return hits[0]
+
+
+def rad_reference_deg(deg) -> int:
+    # The angle between the terminal side and the nearer half of the x-axis.
+    return min(abs(deg - 0), abs(deg - 180), abs(deg - 360))
+
+
+def rad_arc(kind: str, r, how: str, value: str) -> Fraction:
+    # θ in radians: a coefficient of π, plain radians, or degrees converted.
+    value = str(value)
+    if how == "degrees":
+        theta = Fraction(int(value), 180)
+    elif value.endswith(" pi"):
+        theta = rad_coef(value[:-3])
+    else:
+        theta = Fraction(value)
+    factor = Fraction(r * r, 2) if kind == "sector area" else Fraction(r)
+    return factor * theta
+
+
+def rad_linear(r, unit, rpm, places) -> Fraction:
+    per = {"in": 12 * 60, "cm": 100 * 60}[unit]
+    return trig_agree(2 * math.pi * r * rpm / per, 2 * 3.1416 * r * rpm / per, places)
+
+
+def rad_wheel(dia, unit, rpm, out, places) -> Fraction:
+    per = {"mi": 63360, "km": 100000}[out]
+    return trig_agree(math.pi * dia * rpm * 60 / per, 3.1416 * dia * rpm * 60 / per, places)
+
+
+BY_RULE += (
+    (re.compile(r"^deg to rad: (\d+)$"), lambda deg: Fraction(deg, 180)),
+    (re.compile(r"^rad to deg: (\d+/\d+) pi$"), lambda k: rad_coef(k) * 180),
+    (re.compile(r"^rad to deg: ([\d.]+) to (\d) dp$"),
+     lambda r, places: trig_agree(float(r) * 180 / math.pi, float(r) * 180 / 3.1416, places)),
+    (re.compile(r"^coterminal deg: (-?\d+)$"), lambda deg: rad_coterminal_deg(int(deg))),
+    (re.compile(r"^coterminal rad: (-?\d+/\d+)$"), rad_coterminal_rad),
+    (re.compile(r"^reference deg: (\d+)$"), rad_reference_deg),
+    (re.compile(r"^reference rad: (\d+/\d+)$"), lambda k: Fraction(rad_reference_deg(rad_coef(k) * 180), 180)),
+    (re.compile(r"^(arc length|sector area): r (\d+), (theta|degrees) ([\d./]+(?: pi)?)$"), rad_arc),
+    (re.compile(r"^arc angle: s (\d+), r (\d+)$"), lambda s, r: Fraction(s, r)),
+    (re.compile(r"^angular: rpm (\d+), want rad per (min|s)$"), lambda rpm, per: Fraction(2 * rpm, 60 if per == "s" else 1)),
+    (re.compile(r"^rim speed: r (\d+), omega (\d+)$"), lambda r, w: r * w),
+    (re.compile(r"^linear speed: r (\d+) (in|cm), rpm (\d+), want (?:ft|m) per s to (\d) dp$"), rad_linear),
+    (re.compile(r"^wheel speed: diameter (\d+) (in|cm), rpm (\d+), want (mi|km) per h to (\d) dp$"), rad_wheel),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -4826,6 +5180,15 @@ for path in sorted(LIB.glob("*.json")):
             if rule:
                 checked += 1
                 verdict = radical_holds(rule[1](*rule[0].match(text).groups()), answer["value"])
+                if verdict != "ok":
+                    problems.append(f"{where}: {answer['accept'][0]} {verdict}")
+                continue
+
+        if answer["type"] == "roots":
+            rule = next((r for r in EXACT_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                verdict = exact_holds(rule[1](*rule[0].match(text).groups()), answer["value"])
                 if verdict != "ok":
                     problems.append(f"{where}: {answer['accept'][0]} {verdict}")
                 continue

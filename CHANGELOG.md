@@ -13,6 +13,34 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Radians**, a new skill under the Unit Circle, in eight levels: degrees to
+radians and back, coterminal angles, reference angles on a drawn angle, arc
+length s = rθ, sector area ½r²θ, and angular and linear speed in rpm, radians
+per second, ft/s, m/s, mi/h and km/h. An exact answer is the coefficient of π
+typed as a fraction after a printed π, since radian measures are thirds and
+ninths of π; a rounded one is kept only where 3.1416 for π rounds the same.
+`check-answers.py` converts in exact fractions and finds coterminal and
+reference angles by stepping round the circle.
+
+**Laws of Sines & Cosines**, a new skill under Right Triangles, in eight levels:
+the law of sines for a side and for an angle, the law of cosines for a side and
+for an angle, a strategy level, Which Law?, and How Many Triangles? for two
+sides and an angle not between them, then ½ab sin C and All Together. Every
+law-of-sines angle question says how many triangles fit, or which one it means.
+`check-answers.py` rebuilds each triangle on coordinates and measures it, rather
+than reusing either law. Triangle coordinates are kept to one decimal place, and
+figure levels are capped at 400 problems.
+
+**Trigonometric Ratios**, a new skill under Right Triangles, in nine levels:
+naming the opposite, adjacent and hypotenuse; sine, cosine and tangent as
+fractions; a missing side and a missing angle by calculator; exact sides of the
+45-45-90 and 30-60-90 triangles; cofunctions; and angles of elevation and
+depression, ladders, shadows and bearings in US and metric units. Calculator
+answers are kept only where working with 4-place trig values rounds the same as
+the exact value, and `check-answers.py` works both and asserts they agree. Exact
+answers use the roots type, and a new `EXACT_RULES` table in `check-answers.py`
+compares each with the calculator's value.
+
 **Compound Probability**, a new skill under Probability, in seven levels: Venn
 diagrams; the addition rule, with counts, probabilities and a deck of cards;
 conditional probability from a two-way table; drawing without replacement;

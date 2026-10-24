@@ -1,5 +1,5 @@
 {
-  "built": 484,
+  "built": 509,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -611,6 +611,37 @@
       "without-replacement",
       "conditional-formula",
       "independent-or-not",
+      "all-together"
+    ],
+    "trig-ratios": [
+      "opposite-and-adjacent",
+      "ratios",
+      "missing-side",
+      "missing-angle",
+      "45-45-90",
+      "30-60-90",
+      "complementary-sin-cos",
+      "elevation-and-bearings",
+      "all-together"
+    ],
+    "laws-sines-cosines": [
+      "sines-side",
+      "sines-angle",
+      "cosines-side",
+      "cosines-angle",
+      "which-law",
+      "how-many-triangles",
+      "half-ab-sin-c",
+      "all-together"
+    ],
+    "radians": [
+      "degrees-to-radians",
+      "radians-to-degrees",
+      "coterminal-angles",
+      "reference-angles",
+      "arc-length",
+      "sector-area",
+      "angular-speed",
       "all-together"
     ]
   },
@@ -1376,9 +1407,44 @@
           "bivariate"
         ]
       }
+    },
+    "trig-ratios": {
+      "dependsOn": [
+        "pythagoras",
+        "similarity"
+      ],
+      "levels": {
+        "45-45-90": [
+          "pythagoras"
+        ]
+      }
+    },
+    "laws-sines-cosines": {
+      "dependsOn": [
+        "trig-ratios"
+      ],
+      "levels": {
+        "which-law": [
+          "trig-ratios"
+        ]
+      }
+    },
+    "radians": {
+      "dependsOn": [
+        "circles",
+        "trig-ratios"
+      ],
+      "levels": {
+        "arc-length": [
+          "circles"
+        ],
+        "sector-area": [
+          "circles"
+        ]
+      }
     }
   },
-  "sources": "7603bae5984bfbf7f1396395077e76caf5dd739a0845261e9e9c857f60308201",
+  "sources": "b5d1b898666a5a0c26e8de4bec9057fcdd883864a83d1a6ee3e4112d69aa23ce",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6219,6 +6285,256 @@
       "exhaustive": false,
       "signed": false,
       "file": "probability-2-6.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 0,
+      "slug": "opposite-and-adjacent",
+      "name": "Opposite & Adjacent",
+      "count": 216,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-ratios-0.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 1,
+      "slug": "ratios",
+      "name": "Ratios",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-1.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 2,
+      "slug": "missing-side",
+      "name": "Missing Side",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-2.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 3,
+      "slug": "missing-angle",
+      "name": "Missing Angle",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-3.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 4,
+      "slug": "45-45-90",
+      "name": "45-45-90",
+      "count": 87,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-ratios-4.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 5,
+      "slug": "30-60-90",
+      "name": "30-60-90",
+      "count": 88,
+      "exhaustive": true,
+      "signed": false,
+      "file": "trig-ratios-5.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 6,
+      "slug": "complementary-sin-cos",
+      "name": "Complementary sin/cos",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-6.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 7,
+      "slug": "elevation-and-bearings",
+      "name": "Elevation & Bearings",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-7.json"
+    },
+    {
+      "skill": "trig-ratios",
+      "level": 8,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 600,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-ratios-8.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 0,
+      "slug": "sines-side",
+      "name": "Sines: Side",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-0.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 1,
+      "slug": "sines-angle",
+      "name": "Sines: Angle",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-1.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 2,
+      "slug": "cosines-side",
+      "name": "Cosines: Side",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-2.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 3,
+      "slug": "cosines-angle",
+      "name": "Cosines: Angle",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-3.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 4,
+      "slug": "which-law",
+      "name": "Which Law?",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-4.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 5,
+      "slug": "how-many-triangles",
+      "name": "How Many Triangles?",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-5.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 6,
+      "slug": "half-ab-sin-c",
+      "name": "½ab sin C",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-6.json"
+    },
+    {
+      "skill": "laws-sines-cosines",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 500,
+      "exhaustive": false,
+      "signed": false,
+      "file": "laws-sines-cosines-7.json"
+    },
+    {
+      "skill": "radians",
+      "level": 0,
+      "slug": "degrees-to-radians",
+      "name": "Degrees to Radians",
+      "count": 80,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-0.json"
+    },
+    {
+      "skill": "radians",
+      "level": 1,
+      "slug": "radians-to-degrees",
+      "name": "Radians to Degrees",
+      "count": 133,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-1.json"
+    },
+    {
+      "skill": "radians",
+      "level": 2,
+      "slug": "coterminal-angles",
+      "name": "Coterminal Angles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-2.json"
+    },
+    {
+      "skill": "radians",
+      "level": 3,
+      "slug": "reference-angles",
+      "name": "Reference Angles",
+      "count": 282,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-3.json"
+    },
+    {
+      "skill": "radians",
+      "level": 4,
+      "slug": "arc-length",
+      "name": "Arc Length s = rθ",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-4.json"
+    },
+    {
+      "skill": "radians",
+      "level": 5,
+      "slug": "sector-area",
+      "name": "Sector Area ½r²θ",
+      "count": 741,
+      "exhaustive": true,
+      "signed": false,
+      "file": "radians-5.json"
+    },
+    {
+      "skill": "radians",
+      "level": 6,
+      "slug": "angular-speed",
+      "name": "Angular Speed",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-6.json"
+    },
+    {
+      "skill": "radians",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "radians-7.json"
     }
   ]
 }
