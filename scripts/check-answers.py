@@ -6251,7 +6251,8 @@ for path in sorted(LIB.glob("domain-range-*.json")):
 # one formula into the other as a string -- every x in f replaced by "(g)" --
 # so the evaluator does the algebra and no rule for multiplying out is shared
 # with the generator. A polynomial answer is compared by its coefficients and
-# must be expanded and collected; a number must be a plain integer.
+# must be expanded and collected; a number is a whole number in its own box.
+# A domain is found by trying f(g(x)) itself, unsimplified, along the line.
 
 def cf_into(outer: str, inner: str) -> str:
     return re.sub(r"x", f"({inner})", outer)
@@ -6266,20 +6267,24 @@ def cf_compose(f: str, g: str, outer: str, inner: str, answer: str) -> str:
     return same_polynomial(cf_into(fs[outer], fs[inner]), answer)
 
 
-def cf_number(want: Fraction, answer: str) -> str:
-    if not re.fullmatch(r"-?\d+", answer.strip()):
-        return "is not a plain number"
-    return "ok" if Fraction(answer) == want else f"is not {want}"
-
-
-def cf_at(f: str, g: str, outer: str, inner: str, a: str, answer: str) -> str:
+# f(g(2)) is a whole number, typed in the whole-number box.
+def cf_at(f: str, g: str, outer: str, inner: str, a) -> Fraction:
     fs = {"f": f, "g": g}
-    return cf_number(at(fs[outer], {"x": at(fs[inner], {"x": Fraction(int(a))})}), answer)
+    return at(fs[outer], {"x": at(fs[inner], {"x": Fraction(int(a))})})
 
 
-def cf_table(f: str, g: str, outer: str, inner: str, a: str, answer: str) -> str:
+def cf_table(f: str, g: str, outer: str, inner: str, a) -> Fraction:
     fs = {"f": [int(v) for v in f.split(", ")], "g": [int(v) for v in g.split(", ")]}
-    return cf_number(Fraction(fs[outer][fs[inner][int(a)]]), answer)
+    return Fraction(fs[outer][fs[inner][int(a)]])
+
+
+# requiem: catalogue/content/composition-domain-level
+def cf_domain(f: str, g: str) -> OnGrid:
+    """Every twelfth at which f(g(x)), written out with g in brackets in
+    place of f's x, can be worked out: g's own limits and f's on g(x) come
+    from the evaluation itself, never from simplifying."""
+    h = dr_fn(cf_into(f, g))
+    return on_grid({x for x in DR_X if dr_defined(h, x)}, DR_X)
 
 
 def cf_coefficients(src: str) -> list:
@@ -6338,10 +6343,17 @@ def cf_same(f: str, g: str) -> str:
 EXPR_RULES += (
     (re.compile(r"^combine: f\(x\) = (.+); g\(x\) = (.+); \(f ([-+*]) g\)\(x\)$"), cf_combine),
     (re.compile(r"^compose: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\(x\)\)$"), cf_compose),
-    (re.compile(r"^compose at: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\((-?\d+)\)\)$"), cf_at),
-    (re.compile(r"^compose table: f ([\d, ]+) \| g ([\d, ]+); ([fg])\(([fg])\((\d)\)\)$"), cf_table),
     (re.compile(r"^decompose inner: h\(x\) = (.+); f\(x\) = (.+)$"), cf_inner),
     (re.compile(r"^decompose outer: h\(x\) = (.+); g\(x\) = (.+)$"), cf_outer),
+)
+
+BY_RULE += (
+    (re.compile(r"^compose at: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\((-?\d+)\)\)$"), cf_at),
+    (re.compile(r"^compose table: f ([\d, ]+) \| g ([\d, ]+); ([fg])\(([fg])\((\d)\)\)$"), cf_table),
+)
+
+SET_RULES += (
+    (re.compile(r"^compose domain: f\(x\) = (.+); g\(x\) = (.+)$"), cf_domain),
 )
 
 CHOICE_RULES += (

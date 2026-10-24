@@ -13,6 +13,27 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Review fixes to Trig Equations, Radical Equations, Domain & Range and
+Combining Functions.** General Solutions printed its + 4πk decoy as
++ 2πk, so the right answer appeared twice; periods now print as
+multiples of π, and `check-answers.py` refuses two options that read the
+same in these four skills. Trig Equations holds rows on an axis or with
+no solution to about a fifth of each solving level (Solve in Degrees had
+been 55%), ends its explanations with the answer as the solutions box
+takes it (x = 30° or x = 150°), and gains **Multiple Angles** (sin 2x,
+sin 3x, sin(x/2)). Radical Equations gains **Square Twice**, four shapes
+of a root left after squaring, a quarter of them extraneous, and every
+prompt says there may be no solution. Domain & Range asks for the
+domain or range of piecewise and step functions as well as their values.
+Combining Functions gains **Domain of f(g(x))**, and f(g(2)) is typed in
+the whole-number box. New level edges: Trig Equations' arcsin, arccos,
+arctan on the unit circle's Special Angles and From One Ratio, and
+Quadratic-Type on quadratic equations' By Factoring; Domain & Range's
+first level on inequalities' The Flip and quadratic equations' By
+Factoring; Combining Functions' first level on polynomials' Trinomial
+Times Binomial, and its new level on Domain & Range, which Combining
+Functions now opens after.
+
 **Rational Expressions**, a new skill under Expressions, in seven levels:
 Simplify (cancelling a shared factor, a number, or a factor with its sign
 reversed), Excluded Values (including one whose factor cancels), Multiply
