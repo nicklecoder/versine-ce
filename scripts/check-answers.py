@@ -4047,12 +4047,20 @@ CHOICE_RULES += (
 def logic_number(atom: str, n: int) -> bool:
     if atom.startswith("div"):
         return n % int(atom[3:]) == 0
-    if atom.startswith("ends"):
+    if atom in ("ends0", "ends5"):
         return n % 10 == int(atom[4:])
+    digits = [int(c) for c in str(n)]
     return {
         "even": n % 2 == 0, "odd": n % 2 == 1,
         "prime": n > 1 and all(n % k for k in range(2, int(n ** 0.5) + 1)),
         "square": int(n ** 0.5) ** 2 == n,
+        # The same tests stated another way, read from the digits or the factors.
+        "evenend": digits[-1] in (0, 2, 4, 6, 8), "oddend": digits[-1] in (1, 3, 5, 7, 9),
+        "ends05": digits[-1] in (0, 5),
+        "digits3": sum(digits) % 3 == 0, "digits9": sum(digits) % 9 == 0,
+        "by2and3": n % 2 == 0 and n % 3 == 0, "by3and4": n % 3 == 0 and n % 4 == 0,
+        "twofactors": sum(1 for k in range(1, n + 1) if n % k == 0) == 2,
+        "by2and5": n % 2 == 0 and n % 5 == 0,
     }[atom]
 
 
@@ -4071,6 +4079,8 @@ def logic_quad(atom: str, kind: str) -> bool:
         "eq4": eq4, "right4": right4, "perp": perp, "diageq": diageq,
         "para": pairs == 2, "oppang": pairs == 2,          # opposite angles equal exactly in a parallelogram
         "par1": pairs >= 1, "rect": right4, "rhom": eq4, "sq": eq4 and right4,
+        "par2": pairs == 2, "bisect": pairs == 2,          # diagonals bisect each other exactly in a parallelogram
+        "rhomright": eq4 and right4, "rectperp": right4 and perp, "paradiag": pairs == 2 and diageq,
     }[atom]
 
 
@@ -4086,6 +4096,7 @@ def logic_tri(atom: str, kind: str) -> bool:
     return {
         "equi": equal == 3, "iso": equal >= 2, "ang3": equal == 3, "ang2": equal >= 2,   # equal sides face equal angles
         "acute": largest == "acute", "right": largest == "right", "obtuse": largest == "obtuse",
+        "comp": largest == "right", "ang60": equal == 3,                         # the other two make 90 degrees exactly when the third does
     }[atom]
 
 
@@ -4154,6 +4165,13 @@ def logic_follows(known: str, truth: str, asked: str) -> str:
     return truth if frozenset({known, asked}) in tied else "unknown"
 
 
+def logic_follows_said(known: str, truth: str, asked: str) -> str:
+    # Two sentences share their truth exactly when one is the other's contrapositive.
+    k, a = logic_cond(known), logic_cond(asked)
+    assert a in [logic_form(f, k) for f in ("converse", "inverse", "contrapositive")], (known, asked)
+    return truth if logic_form("contrapositive", k) == a else "unknown"
+
+
 def logic_counterexample(domain: str, cond: str, listing: str) -> str:
     cases, test = LOGIC_DOMAINS[domain]
     (p, pn), (q, qn) = logic_cond(cond)
@@ -4169,7 +4187,8 @@ CHOICE_RULES += (
      lambda form, domain, cond: "true" if logic_holds(domain, logic_form(form, logic_cond(cond))) else "false"),
     (re.compile(r"^(converse|inverse|contrapositive) of: (\w+) (.+ -> [^;]+); options (.+)$"), logic_pick),
     (re.compile(r"^same truth as (original|converse): (\w+) (.+ -> [^;]+); options (.+)$"), logic_same_truth),
-    (re.compile(r"^truth follows: (original|converse) (true|false); find (\w+)$"), logic_follows),
+    (re.compile(r"^truth follows: (original|converse|inverse|contrapositive) (true|false); find (original|converse|inverse|contrapositive)$"), logic_follows),
+    (re.compile(r"^truth follows: life (.+ -> .+) is (true|false); find (.+ -> .+)$"), logic_follows_said),
     (re.compile(r"^counterexample: (\w+) (.+ -> [^;]+); options (.+)$"), logic_counterexample),
     (re.compile(r"^biconditional: (\w+) (.+ -> .+)$"),
      lambda domain, cond: "yes" if all(logic_holds(domain, logic_form(f, logic_cond(cond))) for f in ("original", "converse")) else "no"),
@@ -4180,8 +4199,9 @@ CHOICE_RULES += (
 # Worked from the data and the line as the question gives them: r from the
 # points by its definition, predictions and residuals from y = mx + b, and
 # every two-way question from the four counts, its totals added here. The
-# bands for describing r are kept apart (strong from 0.7, weak 0.15 to 0.5,
-# none to 0.1), so a value between them is reported rather than judged.
+# bands for describing r are strong from 0.7, moderate 0.4 to 0.7, weak 0.1
+# to 0.4 and none below 0.1, and a value within 0.05 of an edge is reported
+# rather than judged.
 
 BIV_NUM = r"-?\d+(?:\.\d+)?"
 BIV_LINE = rf"y = ({BIV_NUM})x \+ ({BIV_NUM})"
@@ -4217,14 +4237,13 @@ def biv_options(listing: str) -> dict:
 
 
 def biv_band(r: str) -> str:
-    v = Fraction(r)
-    if abs(v) <= Fraction(1, 10):
+    v = abs(Fraction(r))
+    edges = (Fraction(1, 10), Fraction(4, 10), Fraction(7, 10))
+    assert all(abs(v - e) > Fraction(5, 100) for e in edges), f"r = {r} is too near the edge of a band"
+    if v < edges[0]:
         return "none"
-    side = "positive" if v > 0 else "negative"
-    if abs(v) >= Fraction(7, 10):
-        return f"strong-{side}"
-    assert Fraction(15, 100) <= abs(v) <= Fraction(1, 2), r
-    return f"weak-{side}"
+    side = "positive" if Fraction(r) > 0 else "negative"
+    return f"{'weak' if v < edges[1] else 'moderate' if v < edges[2] else 'strong'}-{side}"
 
 
 def biv_meaning(v: str, m: str, b: str, listing: str) -> str:
@@ -4291,6 +4310,24 @@ def biv_percent(kind: str, counts: str, rounded) -> Fraction:
     return exact
 
 
+def biv_relative(by: str, grid: str) -> Fraction:
+    cells = [row.split() for row in grid.split(" / ")]
+    (i, j), = [(i, j) for i in range(2) for j in range(2) if cells[i][j] == "?"]
+    # Each row (or column) of a relative frequency table adds to 100%.
+    other = cells[i][1 - j] if by == "row" else cells[1 - i][j]
+    return 100 - Fraction(other)
+
+
+def biv_relative_linked(by: str, grid: str) -> str:
+    (a, b), (d, e) = ([Fraction(v) for v in row.split()] for row in grid.split(" / "))
+    assert (a + b == d + e == 100) if by == "row" else (a + d == b + e == 100)
+    gap = abs(a - d) if by == "row" else abs(a - b)
+    if gap >= 10:
+        return "yes"
+    assert gap <= 5
+    return "no"
+
+
 def biv_linked(counts: str) -> str:
     t = biv_table(counts)
     gap = abs(Fraction(100 * t[0][0], t[0][2]) - Fraction(100 * t[1][0], t[1][2]))
@@ -4313,6 +4350,7 @@ BY_RULE += (
      lambda m, b, x, y: Fraction(str(y)) - (Fraction(str(m)) * Fraction(str(x)) + Fraction(str(b)))),
     (re.compile(r"^two-way missing: ((?:[\d?]+ ){2}[\d?]+(?: / (?:[\d?]+ ){2}[\d?]+){2})$"), biv_missing),
     (re.compile(r"^two-way percent (.+?): (\d+ \d+ / \d+ \d+)( to 1 dp)?$"), biv_percent),
+    (re.compile(r"^two-way relative missing: (row|col) ([\d?]+ [\d?]+ / [\d?]+ [\d?]+)$"), biv_relative),
 )
 
 CHOICE_RULES += (
@@ -4329,6 +4367,7 @@ CHOICE_RULES += (
     (re.compile(r"^design for cause \([a-z ]+\): options (.+)$"),
      lambda listing: next(k for k, w in biv_options(listing).items() if w == "experiment")),
     (re.compile(r"^two-way association: (\d+ \d+ / \d+ \d+)$"), biv_linked),
+    (re.compile(r"^two-way relative association: (row|col) (\d+ \d+ / \d+ \d+)$"), biv_relative_linked),
 )
 
 # --- Distributions ----------------------------------------------------------
@@ -4439,6 +4478,20 @@ def dist_outlying(xs: list) -> bool:
     return any(x < q1 - fence or x > q3 + fence for x in xs)
 
 
+def dist_spread(listing: str) -> str:
+    # An outlier or a clear skew takes the IQR; a set that mirrors itself
+    # about its middle, with no outlier, takes the standard deviation.
+    xs = sorted(int(v) for v in listing.split())
+    if dist_outlying(xs):
+        return "iqr"
+    if len({a + b for a, b in zip(xs, reversed(xs))}) == 1:
+        return "sd"
+    q1, q3 = dist_halves(xs)
+    mean, med = Fraction(sum(xs), len(xs)), median_of(xs)
+    assert abs(mean - med) >= (q3 - q1) / 4, f"{listing} is neither symmetric nor clearly skewed"
+    return "iqr"
+
+
 BY_RULE += (
     (re.compile(r"^box plot (min|q1|median|q3|max|iqr|range): (\d+ \d+ \d+ \d+ \d+)$"), dist_box),
     (re.compile(r"^box plot percent from (min|q1|median|q3) to (q1|median|q3|max): \d+ \d+ \d+ \d+ \d+$"),
@@ -4474,8 +4527,7 @@ CHOICE_RULES += (
      lambda a, b: "A" if dist_sd(a.split()) > dist_sd(b.split()) else "B"),
     (re.compile(rf"^better z: a=(\d+) mean (\d+) sd (\d+), b=(\d+) mean (\d+) sd (\d+)$"),
      lambda x1, m1, s1, x2, m2, s2: "a" if dist_z(x1, m1, s1) > dist_z(x2, m2, s2) else "b"),
-    (re.compile(r"^spread measure: (\d+(?: \d+)+)$"),
-     lambda listing: "iqr" if dist_outlying([int(v) for v in listing.split()]) else "sd"),
+    (re.compile(r"^spread measure: (\d+(?: \d+)+)$"), dist_spread),
 )
 
 # --- Probability ------------------------------------------------------------
@@ -4511,7 +4563,8 @@ def chance_likely(n: str, d: str) -> str:
         return "certain"
     if p == Fraction(1, 2):
         return "even"
-    assert abs(p - Fraction(1, 2)) >= Fraction(1, 5), p
+    # Unlikely below 1/4 and likely above 3/4, strictly: nothing in between is asked.
+    assert p < Fraction(1, 4) or p > Fraction(3, 4), p
     return "likely" if p > Fraction(1, 2) else "unlikely"
 
 
@@ -4533,6 +4586,25 @@ def chance_coins(n, how: str, k) -> Fraction:
     heads = [f.count("H") for f in flips]
     ok = [h for h in heads if (h >= int(k) if how == "at least" else h == int(k))]
     return Fraction(len(ok), len(flips))
+
+
+def chance_space(steps: str) -> list:
+    import itertools
+    return ["".join(o) for o in itertools.product(*(s.split() for s in steps.split(" x ")))]
+
+
+def chance_list(steps: str, listing: str) -> str:
+    # The sample space is every outcome of the steps, each exactly once.
+    want = sorted(chance_space(steps))
+    found = [k for k, v in (item.split("=") for item in listing.split(", ")) if sorted(v.split()) == want]
+    assert len(found) == 1, (steps, listing)
+    return found[0]
+
+
+def chance_missing(steps: str, listed: str, listing: str) -> str:
+    gone = set(chance_space(steps)) - set(listed.split())
+    assert len(gone) == 1 and len(listed.split()) == len(chance_space(steps)) - 1
+    return next(k for k, v in (item.split("=") for item in listing.split(", ")) if v in gone)
 
 
 def chance_results(listing: str) -> dict:
@@ -4560,7 +4632,9 @@ BY_RULE += (
 )
 
 CHOICE_RULES += (
-    (re.compile(r"^likelihood: (\d+)/(\d+)$"), chance_likely),
+    (re.compile(r"^likelihood: (\d+)/(\d+) as (?:fraction|decimal|percent|bag)$"), chance_likely),
+    (re.compile(r"^sample list: ((?:\w(?: \w)*)(?: x \w(?: \w)*)+); options (.+)$"), chance_list),
+    (re.compile(r"^sample missing: ((?:\w(?: \w)*)(?: x \w(?: \w)*)+); listed ([\w ]+); options (.+)$"), chance_missing),
     (re.compile(r"^compare experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
      lambda listing, face: (lambda r: {1: "higher", -1: "lower", 0: "equal"}[
          (r[face] * len(r) > sum(r.values())) - (r[face] * len(r) < sum(r.values()))])(chance_results(listing))),
@@ -4645,11 +4719,11 @@ def count_chance_race(n) -> Fraction:
 
 
 BY_RULE += (
-    (re.compile(r"^multiply choices: ([\d ]+)$"), count_product),
+    (re.compile(r"^multiply choices: ([\d ]+); (?:menu|code|plate|pegs|quiz|coins)$"), lambda choices: count_product(choices)),
     (re.compile(r"^(?:factorial|arrange) (\d+)(?:; \w+)?$"), math.factorial),
     (re.compile(r"^factorial ratio (\d+) (\d+)$"), count_factorial_ratio),
-    (re.compile(r"^permutations (\d+) (\d+); \w+$"), math.perm),
-    (re.compile(r"^combinations (\d+) (\d+); \w+$"), math.comb),
+    (re.compile(r"^permutations (\d+) (\d+); (\w+)$"), lambda n, r, what: math.perm(n, r) if what in COUNT_ORDERED else None),
+    (re.compile(r"^combinations (\d+) (\d+); (\w+)$"), lambda n, r, what: math.comb(n, r) if what in COUNT_UNORDERED else None),
     (re.compile(r"^code: length (\d+), digits, (repeat|no repeat)(?:, )?(.*)$"), count_code),
     (re.compile(r"^code: length (\d+), digits 1 to (\d+), (repeat|no repeat), ends (even|odd)$"), count_small_code),
     (re.compile(r"^row: (\d+) people, (A first|A at an end|A and B together|A and B apart)$"), count_row),
@@ -4663,8 +4737,9 @@ BY_RULE += (
 
 # Whether a selection's order matters is a property of what is chosen: a
 # place or a job makes it a permutation, a group with no first a combination.
-COUNT_ORDERED = {"ranked", "roles", "row", "sequence", "route"}
-COUNT_UNORDERED = {"committee", "toppings", "group", "set", "hand"}
+# Each setting comes both ways: medals in a race and the runners who qualify.
+COUNT_ORDERED = {"medals", "officers", "chairs", "row", "sequence", "ranking", "seats", "shelf", "deal", "route"}
+COUNT_UNORDERED = {"qualify", "planners", "committee", "trip", "download", "toppings", "group", "set", "hand", "passes"}
 
 CHOICE_RULES += (
     (re.compile(r"^order matters: n \d+ r \d+; selection is (\w+)$"),
@@ -4738,6 +4813,18 @@ def compound_table(a, b, d, e, want: str, given: str) -> Fraction:
     return Fraction(sum(n for k, n in cells.items() if inside(k, given) and wanted(k)), whole)
 
 
+def compound_exclusive_or(pa, pb) -> Fraction:
+    # Exclusive events have no overlap, so they cannot add past 1.
+    assert Fraction(pa) + Fraction(pb) <= 1, (pa, pb)
+    return Fraction(pa) + Fraction(pb)
+
+
+def compound_or(pa, pb, pab) -> Fraction:
+    pa, pb, pab = Fraction(pa), Fraction(pb), Fraction(pab)
+    assert pab <= min(pa, pb), (pa, pb, pab)
+    return pa + pb - pab
+
+
 def compound_independent(pa, pb, pab) -> str:
     return "yes" if Fraction(pa) * Fraction(pb) == Fraction(pab) else "no"
 
@@ -4752,20 +4839,23 @@ BY_RULE += (
     (re.compile(r"^venn: ([\d ]+); ask (or|and|neither|only|not)$"), compound_venn),
     (re.compile(r"^deck: (\w+) or (\w+)$"), compound_deck_or),
     (re.compile(r"^or counts: total (\d+), a (\d+), b (\d+), both (\d+)$"), lambda t, a, b, k: Fraction(a + b - k, t)),
-    (re.compile(r"^or exclusive: ([\d.]+) ([\d.]+)$"), lambda pa, pb: Fraction(pa) + Fraction(pb)),
-    (re.compile(r"^or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, pab: Fraction(pa) + Fraction(pb) - Fraction(pab)),
+    (re.compile(r"^or exclusive: ([\d.]+) ([\d.]+)$"), compound_exclusive_or),
+    (re.compile(r"^or: ([\d.]+) ([\d.]+) ([\d.]+)$"), compound_or),
     (re.compile(r"^both from or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, por: Fraction(pa) + Fraction(pb) - Fraction(por)),
     (re.compile(r"^table chance: (\d+) (\d+) / (\d+) (\d+); want ([rc]\d(?: [rc]\d)?) given (r\d|c\d|all)$"), compound_table),
     (re.compile(r"^deck two: both (\w+)$"), compound_deck_two),
     (re.compile(r"^without replacement: ((?:\w+:\d+ ?)+); (.+)$"), compound_bag_two),
-    (re.compile(r"^conditional: ([\d.]+) ([\d.]+)$"), lambda pab, pb: Fraction(pab) / Fraction(pb)),
-    (re.compile(r"^and from conditional: ([\d.]+) ([\d.]+)$"), lambda pb, q: Fraction(pb) * Fraction(q)),
+    (re.compile(r"^conditional: ([\d.]+) ([\d.]+); (?:sport|cloudy|coffee|phone|letters)$"), lambda pab, pb: Fraction(pab) / Fraction(pb)),
+    (re.compile(r"^and from conditional: ([\d.]+) ([\d.]+); (?:sport|cloudy|coffee|phone|letters)$"), lambda pb, q: Fraction(pb) * Fraction(q)),
 )
 
 CHOICE_RULES += (
     (re.compile(r"^independent: ([\d.]+) ([\d.]+) ([\d.]+)$"), compound_independent),
     (re.compile(r"^independent given: ([\d.]+) ([\d.]+)$"), lambda pa, pagb: "yes" if Fraction(pa) == Fraction(pagb) else "no"),
     (re.compile(r"^independent table: (\d+) (\d+) / (\d+) (\d+)$"), compound_independent_table),
+    # Exclusive: P(A and B) is 0, which is the product only if one of them is impossible.
+    (re.compile(r"^independent exclusive: ([\d.]+) ([\d.]+)$"),
+     lambda pa, pb: compound_independent(pa, pb, "0") if Fraction(pa) + Fraction(pb) <= 1 else None),
 )
 
 # --- Trigonometric ratios ---------------------------------------------------
@@ -5104,6 +5194,29 @@ BY_RULE += (
     (re.compile(r"^wheel speed: diameter (\d+) (in|cm), rpm (\d+), want (mi|km) per h to (\d) dp$"), rad_wheel),
 )
 
+# requiem: catalogue/content/probabilities-within-0-and-1
+# No probability lies outside 0 to 1: not a key, and not one given in a
+# question. The keys are every fraction in the chance skills and every
+# decimal in compound probability; the given ones are compound
+# probability's decimals, written in its texts.
+CHANCE_SKILLS = ("probability", "probability-2", "counting")
+
+
+def chance_out_of_range() -> list:
+    found = []
+    for path in sorted(LIB.glob("*.json")):
+        lib = json.loads(path.read_text()) if path.name not in ("manifest.json", "schemas.json") else None
+        if not lib or lib["skill"] not in CHANCE_SKILLS:
+            continue
+        for i, p in enumerate(lib["problems"]):
+            a = p["answer"]
+            keyed = a["type"] == "frac" or (lib["skill"] == "probability-2" and a["type"] == "decimal")
+            given = [Fraction(v) for v in re.findall(r"\d+\.\d+", p["text"])] if lib["skill"] == "probability-2" else []
+            values = ([as_fraction(a["value"])] if keyed else []) + given
+            if any(not 0 <= v <= 1 for v in values):
+                found.append(f"{lib['skill']} L{lib['level'] + 1} row {i}: {p['text']} has a probability outside 0 to 1")
+    return found
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -5333,6 +5446,7 @@ for path in sorted(LIB.glob("*.json")):
 
 for line in unread:
     problems.append(f"{line} -- no rule re-derives this answer")
+problems += chance_out_of_range()
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")

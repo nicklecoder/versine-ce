@@ -52,28 +52,47 @@ function percentOf(part, whole) {
 // requiem: catalogue/content/units-both-systems
 // What a data set measures, in both systems where it has units, with a
 // range its values are drawn from.
+// `step` is the box plots' tick step: every five-number value is a multiple
+// of it, so it sits on a labelled tick. `u` is the spread of a data list.
 const MEASURES = [
-  { what: 'test scores', unit: 'points', of: (v) => `${said(v)}\u00a0points`, lo: 40, hi: 100 },
-  { what: 'commute times', unit: 'minutes', of: (v) => `${said(v)}\u00a0minutes`, lo: 5, hi: 60 },
-  { what: 'heights of plants', unit: 'in', of: (v) => `${said(v)}\u00a0in`, lo: 4, hi: 30 },
-  { what: 'heights of plants', unit: 'cm', of: (v) => `${said(v)}\u00a0cm`, lo: 10, hi: 75 },
-  { what: 'daily high temperatures', unit: '°F', of: (v) => `${said(v)}°F`, lo: 40, hi: 95 },
-  { what: 'daily high temperatures', unit: '°C', of: (v) => `${said(v)}°C`, lo: 2, hi: 35 },
-  { what: 'prices of a T-shirt at different stores', unit: '$', of: (v) => `$${said(v)}`, lo: 8, hi: 40 },
-  { what: 'weights of apples', unit: 'oz', of: (v) => `${said(v)}\u00a0oz`, lo: 4, hi: 12 },
-  { what: 'weights of apples', unit: 'g', of: (v) => `${said(v)}\u00a0g`, lo: 110, hi: 340 },
+  { what: 'test scores', unit: 'points', of: (v) => `${said(v)}\u00a0points`, lo: 40, hi: 100, step: 5, u: 3 },
+  { what: 'commute times', unit: 'minutes', of: (v) => `${said(v)}\u00a0minutes`, lo: 5, hi: 60, step: 5, u: 3 },
+  { what: 'heights of plants', unit: 'in', of: (v) => `${said(v)}\u00a0in`, lo: 4, hi: 30, step: 2, u: 2 },
+  { what: 'heights of plants', unit: 'cm', of: (v) => `${said(v)}\u00a0cm`, lo: 10, hi: 75, step: 5, u: 4 },
+  { what: 'daily high temperatures', unit: '°F', of: (v) => `${said(v)}°F`, lo: 40, hi: 95, step: 5, u: 3 },
+  { what: 'daily high temperatures', unit: '°C', of: (v) => `${said(v)}°C`, lo: 2, hi: 35, step: 2, u: 2 },
+  { what: 'prices of a T-shirt at different stores', unit: '$', of: (v) => `$${said(v)}`, lo: 8, hi: 40, step: 2, u: 2 },
+  { what: 'weights of apples', unit: 'oz', of: (v) => `${said(v)}\u00a0oz`, lo: 4, hi: 12, step: 1, u: 1 },
+  { what: 'weights of apples', unit: 'g', of: (v) => `${said(v)}\u00a0g`, lo: 110, hi: 340, step: 20, u: 12 },
 ];
 const axisTitle = (M) => `${M.what.replace(/ (at|of a) .*$/, '').replace(/^\w/, (c) => c.toUpperCase())} (${M.unit})`;
 
 // ── Box plots ───────────────────────────────────────────────────────────
 
-/** Five increasing whole numbers inside M's range. */
-function fiveOf(rng, M) {
+// requiem: catalogue/content/box-plot-values-on-ticks
+/**
+ * Five increasing values inside M's range, each a multiple of M.step so it
+ * sits on a labelled tick, all within `win` (a stretch of tick positions,
+ * [first, last]), spanning at least `least` steps. Two different values are
+ * then always a whole step or more apart.
+ */
+const tickRange = (M) => [Math.ceil(M.lo / M.step), Math.floor(M.hi / M.step)];
+function fiveOf(rng, M, win = tickRange(M), least = 5) {
+  const [a, b] = win;
   for (;;) {
-    const v = Array.from({ length: 5 }, () => rng.int(M.lo, M.hi)).sort((p, q) => p - q);
-    const gap = (v[4] - v[0]) / 12;
-    if (v[4] - v[0] >= (M.hi - M.lo) / 2 && v.every((x, i) => i === 0 || x - v[i - 1] >= gap)) return v;
+    const ends = [rng.int(a, b), rng.int(a, b)].sort((p, q) => p - q);
+    if (ends[1] - ends[0] < least) continue;
+    const inside = rng.shuffle(Array.from({ length: ends[1] - ends[0] - 1 }, (_, i) => ends[0] + 1 + i)).slice(0, 3);
+    if (inside.length < 3) continue;
+    return [ends[0], ...inside.sort((p, q) => p - q), ends[1]].map((k) => k * M.step);
   }
+}
+/** A window of at most 10 tick steps for a box plot, or two drawn on one axis. */
+function boxWindow(rng, M) {
+  const [a, b] = tickRange(M);
+  const w = Math.min(10, b - a);
+  const s = rng.int(a, b - w);
+  return [s, s + w];
 }
 
 /**
@@ -83,7 +102,8 @@ function fiveOf(rng, M) {
  */
 function boxPlots(M, plots, shown = []) {
   const all = plots.flatMap(([, f]) => f);
-  const x = niceAxis(Math.min(...all), Math.max(...all), 7);
+  // Ticked at the values' own step, one step beyond each end.
+  const x = [Math.max(0, Math.min(...all) - M.step), Math.max(...all) + M.step, M.step];
   const H = 2.2 * plots.length;
   const c = chart({ x, y: [0, H, 1], titles: { x: axisTitle(M) }, W: 11, H, yTicks: false });
   plots.forEach(([name, f], i) => {
@@ -100,11 +120,13 @@ function boxPlots(M, plots, shown = []) {
     );
     if (name) c.spec.marks.push(label([r2(c.X(x[0]) - 0.8), c.Y(y)], name, GIVEN));
   });
-  for (const [i, a, b] of shown) {
+  // Revealed: the line or stretch asked about, with its value written above the box.
+  for (const [i, a, b, name] of shown) {
     const y = 1.1 + 2.2 * i;
     c.spec.answer.push(a === b
       ? { kind: 'segment', from: c.at([a, y - 0.8]), to: c.at([a, y + 0.8]) }
       : { kind: 'segment', from: c.at([a, y - 0.85]), to: c.at([b, y - 0.85]) });
+    c.spec.answer.push({ kind: 'text', at: c.at([(a + b) / 2, y + 1.05]), label: name ?? (a === b ? said(a) : said(b - a)) });
   }
   return c.spec;
 }
@@ -125,8 +147,9 @@ function boxLevel(rng) {
   const mode = rng.pick(['read', 'read', 'share', 'outlier', 'compare']);
   if (mode === 'compare') {
     // Two plots; the one with the longer whiskers need not have the wider box.
+    const win = boxWindow(rng, M);
     for (;;) {
-      const A = fiveOf(rng, M), B = fiveOf(rng, M);
+      const A = fiveOf(rng, M, win, 4), B = fiveOf(rng, M, win, 4);
       const ask = rng.pick(['iqr', 'range', 'median']);
       const [, get] = PARTS[ask];
       if (get(A) === get(B)) continue;
@@ -144,7 +167,7 @@ function boxLevel(rng) {
       };
     }
   }
-  const f = fiveOf(rng, M);
+  const f = fiveOf(rng, M, boxWindow(rng, M));
   const SPAN = { min: [0, 0], q1: [1, 1], median: [2, 2], q3: [3, 3], max: [4, 4], iqr: [1, 3], range: [0, 4] };
   const intro = `The box plot shows ${M.what}, in ${inUnit(M.unit)}.`;
   if (mode === 'read') {
@@ -172,11 +195,11 @@ function boxLevel(rng) {
     const [a, b] = rng.pick(SHARES);
     const share = 25 * (ORDER.indexOf(b) - ORDER.indexOf(a));
     const at = (k) => f[ORDER.indexOf(k)];
-    const visual = boxPlots(M, [[null, f]], [[0, at(a), at(b)]]);
+    const visual = boxPlots(M, [[null, f]], [[0, at(a), at(b), `${share}%`]]);
     return {
       prompt: [T.prose(`${intro} About what percent of the values are between ${M.of(at(a))} and ${M.of(at(b))}?`)],
       text: `box plot percent from ${a} to ${b}: ${fiveAsc(f)}`,
-      answer: num(share),
+      answer: { ...num(share), percent: true },
       visual,
       explain: `${M.of(at(a))} is ${PARTS[a][0]} and ${M.of(at(b))} is ${PARTS[b][0]}. The five numbers cut the data into four parts of 25% each, and ${share / 25} of them ${share === 25 ? 'lies' : 'lie'} between: ${share / 25} × 25% = ${share}%. `
         + `(A longer part is more spread out, not fuller: each holds a quarter.) So ${share}%.`,
@@ -240,11 +263,12 @@ function centers(start, w, counts) {
   return { mean: sum(xs) / n, median };
 }
 
-function histogram(H, start, w, counts, { lit = [], lines = [] } = {}) {
+/** `short` draws it lower, so a level with long options keeps Check on a phone screen. */
+function histogram(H, start, w, counts, { lit = [], lines = [], short = false } = {}) {
   const k = counts.length, top = Math.max(...counts);
   const step = top <= 8 ? 1 : top <= 16 ? 2 : 5;
   const y = [0, Math.ceil(top / step) * step, step];
-  const c = chart({ x: [start, start + w * k, w], y, titles: { x: `${H.what.replace(/^\w/, (ch) => ch.toUpperCase())} (${H.unit})`, y: 'frequency' } });
+  const c = chart({ x: [start, start + w * k, w], y, titles: { x: `${H.what.replace(/^\w/, (ch) => ch.toUpperCase())} (${H.unit})`, y: 'frequency' }, ...(short ? { H: 5.5 } : {}) });
   counts.forEach((n, i) => {
     const a = start + w * i, b = a + w;
     const P = [c.at([a, 0]), c.at([b, 0]), c.at([b, n]), c.at([a, n])];
@@ -272,12 +296,12 @@ function drawHist(rng, shape = rng.pick(['right', 'left', 'symmetric'])) {
   return { H, start, w, counts: countsOf(rng, shape, k), shape };
 }
 
-function histLevel(rng) {
+function histLevel(rng, keep = {}) {
   const { H, start, w, counts } = drawHist(rng);
   const k = counts.length, N = sum(counts);
   const draw = (lit) => histogram(H, start, w, counts, { lit });
   const intro = `The histogram shows ${N} ${H.what}, in ${inUnit(H.unit)}. Each bar includes its left edge but not its right.`;
-  const mode = rng.pick(['count', 'count', 'total', 'percent', 'median']);
+  const mode = keep.mode ?? rng.pick(['count', 'count', 'total', 'percent', 'median']);
   if (mode === 'total') {
     return {
       prompt: [T.prose(`The histogram shows some ${H.what}, in ${inUnit(H.unit)}. How many values are there in all?`)],
@@ -292,10 +316,20 @@ function histLevel(rng) {
     // Only when both middle values share a bar, so the bar is certain.
     const at = (pos) => { let s = 0; for (let i = 0; i < k; i++) { s += counts[i]; if (pos <= s) return i; } return k - 1; };
     const lo = at(Math.floor((N + 1) / 2)), hi = at(Math.ceil((N + 1) / 2));
-    if (lo !== hi) return histLevel(rng);
+    if (lo !== hi) return histLevel(rng, { mode });
     const tallest = counts.indexOf(Math.max(...counts));
-    const pickBins = [...new Set([lo, tallest, rng.int(0, k - 1), rng.int(0, k - 1), (lo + 1) % k, (lo + k - 1) % k])].slice(0, 4).sort((p, q) => p - q);
-    if (!pickBins.includes(lo) || pickBins.length < 3) return histLevel(rng);
+    // requiem: catalogue/content/median-bin-key-anywhere
+    // The options stay in order along the axis, and the key's place among
+    // them is drawn first, so no position is a safe guess; the tallest bar
+    // is among the decoys whenever it fits on its side.
+    const m = keep.m ?? rng.pick([3, 4]), pos = keep.pos ?? rng.int(0, m - 1);
+    const below = Array.from({ length: lo }, (_, i) => i), above = Array.from({ length: k - 1 - lo }, (_, i) => lo + 1 + i);
+    if (below.length < pos || above.length < m - 1 - pos) return histLevel(rng, { mode, m, pos });
+    const side = (pool, n) => {
+      const first = pool.includes(tallest) && n > 0 ? [tallest] : [];
+      return [...first, ...rng.shuffle(pool.filter((b) => b !== tallest)).slice(0, n - first.length)];
+    };
+    const pickBins = [...side(below, pos), lo, ...side(above, m - 1 - pos)].sort((p, q) => p - q);
     const opts = pickBins.map((i, n) => ({ id: LETTERS[n], bin: i, label: binName(start, w, i) }));
     const want = opts.find((o) => o.bin === lo).id;
     let run = 0;
@@ -331,7 +365,7 @@ function histLevel(rng) {
   return {
     prompt: [T.prose(`${intro} What percent of the values are from ${said(lo)} up to ${said(hi)}?${P.rounded ? ' Round to the nearest tenth of a percent.' : ''}`)],
     text: `histogram percent from ${asc(lo)} to ${asc(hi)}: ${histAsc(start, w, counts)}${P.rounded ? ' to 1 dp' : ''}`,
-    answer: P.answer,
+    answer: { ...P.answer, percent: true },
     visual: draw(Array.from({ length: j - i }, (_, n) => i + n)),
     explain: `${j - i === 1 ? 'That bar holds' : `Those bars hold ${counts.slice(i, j).join(' + ')} =`} ${part} of the ${counts.join(' + ')} = ${N} values: ${part} ÷ ${N} × 100 = ${P.rounded ? `${((100 * part) / N).toFixed(3)}…, which is ${P.shown} to 1 dp` : P.shown}. `
       + `(The whole is every value, all the bars together.) So ${P.shown}%.`,
@@ -341,18 +375,27 @@ function histLevel(rng) {
 // ── Shape and center ────────────────────────────────────────────────────
 
 /** The mean and median as lines on a histogram, one line when they meet. */
-const centerLines = (mean, median) => (Math.abs(mean - median) < 1e-9 ? [[mean, 'mean = median']]
-  : [[mean, `mean ${Math.abs(mean * 10 - Math.round(mean * 10)) < 1e-9 ? '' : '≈ '}${said(Math.round(mean * 10) / 10)}`], [median, `median ${said(median)}`]]);
+// Both are estimates, each value taken at its bar's midpoint, and labelled so.
+const centerLines = (mean, median) => (Math.abs(mean - median) < 1e-9 ? [[mean, 'mean ≈ median']]
+  : [[mean, `mean ≈ ${said(Math.round(mean * 10) / 10)}`], [median, `median ≈ ${said(median)}`]]);
+const ESTIMATE = 'The dashed lines are estimates, taking each value at the middle of its bar.';
 
 const SHAPES = { right: 'Skewed right', left: 'Skewed left', symmetric: 'Symmetric' };
 
+/** A histogram of the shape asked for, redrawn until its mean and median show it. */
+function histOfShape(rng, shape) {
+  for (;;) {
+    const h = drawHist(rng, shape);
+    const { mean, median } = centers(h.start, h.w, h.counts);
+    if (shape === 'symmetric' || (Math.abs(mean - median) >= 0.3 * h.w && (mean > median) === (shape === 'right'))) return { ...h, mean, median };
+  }
+}
+
 function shapeLevel(rng) {
+  // The shape is drawn once and kept, so a redraw cannot tilt the keys toward symmetric.
   const shape = rng.pick(['right', 'left', 'symmetric']);
-  const { H, start, w, counts } = drawHist(rng, shape);
-  const { mean, median } = centers(start, w, counts);
-  if (shape !== 'symmetric' && Math.abs(mean - median) < 0.3 * w) return shapeLevel(rng);
-  if (shape !== 'symmetric' && (mean > median) !== (shape === 'right')) return shapeLevel(rng);
-  const visual = histogram(H, start, w, counts, { lines: centerLines(mean, median) });
+  const { H, start, w, counts, mean, median } = histOfShape(rng, shape);
+  const visual = histogram(H, start, w, counts, { lines: centerLines(mean, median), short: true });
   const ask = rng.pick(['shape', 'shape', 'larger', 'center']);
   const tail = shape === 'right' ? 'The bars trail off in a long tail to the right'
     : shape === 'left' ? 'The bars trail off in a long tail to the left' : 'The bars mirror each other about the middle';
@@ -363,7 +406,7 @@ function shapeLevel(rng) {
       text: `histogram shape: ${histAsc(start, w, counts)}`,
       answer: { type: 'choice', value: shape, options: opts },
       visual,
-      explain: `${tail}${shape === 'symmetric' ? '.' : ', and a skew is named for its tail.'} `
+      explain: `${tail}${shape === 'symmetric' ? '.' : ', and a skew is named for its tail.'} ${ESTIMATE} `
         + `(${shape === 'symmetric' ? 'Symmetric means the two halves match, not that the bars are all the same height.' : `The peak is on the ${shape === 'right' ? 'left' : 'right'}; it is the tail that names it.`}) So ${SHAPES[shape].toLowerCase()}.`,
     };
   }
@@ -375,7 +418,7 @@ function shapeLevel(rng) {
       text: `histogram mean or median: ${histAsc(start, w, counts)}`,
       answer: { type: 'choice', value: want, options: opts },
       visual,
-      explain: `${tail}. ${shape === 'symmetric' ? 'Balanced data has its mean and median together in the middle.'
+      explain: `${tail}. ${ESTIMATE} ${shape === 'symmetric' ? 'Balanced data has its mean and median together in the middle.'
         : `The few values far out in the tail pull the mean ${shape === 'right' ? 'up' : 'down'}, while the median only counts how many are on each side.`} `
         + `(${shape === 'symmetric' ? 'With no tail, nothing drags the mean off center.' : 'The mean is not nearer the peak: the tail drags it away from it.'}) So ${opts.find((o) => o.id === want).label.toLowerCase()}.`,
     };
@@ -387,7 +430,7 @@ function shapeLevel(rng) {
     text: `histogram center: ${histAsc(start, w, counts)}`,
     answer: { type: 'choice', value: want, options: opts },
     visual,
-    explain: `${tail}. ${shape === 'symmetric' ? 'With no tail to pull it, the mean uses every value and sits in the middle.'
+    explain: `${tail}. ${ESTIMATE} ${shape === 'symmetric' ? 'With no tail to pull it, the mean uses every value and sits in the middle.'
       : 'The tail pulls the mean away from where most of the data is; the median stays put.'} `
       + `(${shape === 'symmetric' ? 'The median would do too, but the mean is the usual choice for symmetric data.' : 'A skewed set is described by its median, as a set with an outlier is.'}) So the ${want}.`,
   };
@@ -477,11 +520,12 @@ function bandPercent(k1, k2) {
 const NORMALS = [
   { what: 'heights of adult women', unit: 'in', of: (v) => `${said(v)}\u00a0in`, mean: [63, 65], sd: [2, 3] },
   { what: 'heights of adult women', unit: 'cm', of: (v) => `${said(v)}\u00a0cm`, mean: [160, 166], sd: [6, 7] },
-  { what: 'scores on a test', unit: 'points', of: (v) => `${said(v)}\u00a0points`, mean: [70, 80], sd: [5, 10] },
+  // `wide`: the spread can be twice as large and still be believable.
+  { what: 'scores on a test', unit: 'points', of: (v) => `${said(v)}\u00a0points`, mean: [70, 80], sd: [5, 10], wide: true },
   { what: 'battery lives', unit: 'hours', of: (v) => `${said(v)}\u00a0hours`, mean: [20, 40], sd: [2, 5] },
   { what: 'weights of cereal boxes', unit: 'oz', of: (v) => `${said(v)}\u00a0oz`, mean: [16, 20], sd: [1, 1] },
   { what: 'weights of cereal boxes', unit: 'g', of: (v) => `${said(v)}\u00a0g`, mean: [450, 550], sd: [10, 15] },
-  { what: 'commute times', unit: 'minutes', of: (v) => `${said(v)}\u00a0minutes`, mean: [25, 40], sd: [4, 6] },
+  { what: 'commute times', unit: 'minutes', of: (v) => `${said(v)}\u00a0minutes`, mean: [25, 40], sd: [4, 6], wide: true },
 ];
 
 function normalCurve(N, mu, sd, k1, k2) {
@@ -494,7 +538,16 @@ function normalCurve(N, mu, sd, k1, k2) {
   }
   const a = Math.max(k1, -3), b = Math.min(k2, 3);
   const under = zs.filter((z) => z >= a - 1e-9 && z <= b + 1e-9);
-  c.spec.answer.push({ kind: 'region', points: [c.at([mu + a * sd, 0]), ...under.map((z) => c.at([mu + z * sd, pdf(z)])), c.at([mu + b * sd, 0])] });
+  const top = under.map((z) => c.at([mu + z * sd, pdf(z)]));
+  const region = { kind: 'region', points: [c.at([mu + a * sd, 0]), ...top, c.at([mu + b * sd, 0])] };
+  // Revealed: the percent first, where the verdict mark is drawn beside it;
+  // the shading twice over and its edge traced, so it reads on a dark screen.
+  const mid = (a + b) / 2, inner = Math.abs(mid) > 2.2 ? Math.sign(mid) * 1.6 : mid;
+  c.spec.answer.push(
+    { kind: 'text', at: c.at([mu + inner * sd, Math.max(0.08, pdf(inner) / 2)]), label: `${said(bandPercent(k1, k2))}%` },
+    region, region,
+    { kind: 'path', points: [c.at([mu + a * sd, 0]), ...top, c.at([mu + b * sd, 0])] },
+  );
   return c.spec;
 }
 
@@ -534,7 +587,7 @@ function normalLevel(rng) {
   return {
     prompt: [T.prose(`${intro} About what percent are ${range}?`)],
     text: `normal percent: mean ${mu} sd ${sd}, from ${lim(k1)} to ${lim(k2)}`,
-    answer: num(p),
+    answer: { ...num(p), percent: true },
     visual: normalCurve(N, mu, sd, k1, k2),
     explain: `${working} ${trap} So about ${said(p)}%.`,
   };
@@ -546,7 +599,7 @@ const Z_STEPS = [-3, -2.5, -2, -1.5, -1.25, -1, -0.75, -0.5, -0.25, 0.25, 0.5, 0
 
 function zLevel(rng) {
   const N = rng.pick(NORMALS);
-  const mu = rng.int(...N.mean), sd = rng.int(...N.sd) * rng.pick([1, 2]);
+  const mu = rng.int(...N.mean), sd = rng.int(...N.sd) * (N.wide ? rng.pick([1, 2]) : 1);
   const mode = rng.pick(['z', 'z', 'value', 'compare']);
   if (mode === 'compare') {
     // Two people, two different tests: who stands further above their own mean?
@@ -615,8 +668,9 @@ function spreadLevel(rng) {
   if (mode === 'boxes') {
     // Which set is more spread out, by its box or by its whiskers.
     const M = rng.pick(MEASURES);
+    const win = boxWindow(rng, M);
     for (;;) {
-      const A = fiveOf(rng, M), B = fiveOf(rng, M);
+      const A = fiveOf(rng, M, win, 4), B = fiveOf(rng, M, win, 4);
       const byIqr = rng.chance(0.6);
       const ia = A[3] - A[1], ib = B[3] - B[1], ra = A[4] - A[0], rb = B[4] - B[0];
       if (ia === ib || ra === rb || (ia > ib) === (ra > rb)) continue;
@@ -632,41 +686,93 @@ function spreadLevel(rng) {
     }
   }
   if (mode === 'shape') {
-    const shape = rng.pick(['right', 'left', 'symmetric']);
-    const { H, start, w, counts } = drawHist(rng, shape);
-    const { mean, median } = centers(start, w, counts);
-    if (shape !== 'symmetric' && (Math.abs(mean - median) < 0.3 * w || (mean > median) !== (shape === 'right'))) return spreadLevel(rng);
+    // Symmetric half the time, so the keys come out even across the level.
+    const shape = rng.chance(0.5) ? 'symmetric' : rng.pick(['right', 'left']);
+    const { H, start, w, counts, mean, median } = histOfShape(rng, shape);
     const want = shape === 'symmetric' ? 'sd' : 'iqr';
     return {
       prompt: [T.prose(`The histogram shows some ${H.what}, in ${inUnit(H.unit)}. Which measure of spread describes it better?`)],
       text: `histogram spread: ${histAsc(start, w, counts)}`,
       answer: { type: 'choice', value: want, options: SPREADS },
       visual: histogram(H, start, w, counts, { lines: centerLines(mean, median) }),
-      explain: shape === 'symmetric'
-        ? 'The bars mirror each other about the middle, with no tail. For symmetric data the mean and standard deviation use every value fairly. (The IQR would not be wrong, but it ignores half the data.) So the standard deviation, with the mean.'
-        : `The bars trail off to the ${shape}, and the values in that tail pull the mean and stretch the standard deviation. The IQR, built on quartiles, is not moved by them. (The same reasoning as an outlier: a few far values should not set the spread.) So the IQR, with the median.`,
+      explain: `${RULE} `
+        + (shape === 'symmetric'
+          ? 'The bars mirror each other about the middle, with no tail, so the mean and standard deviation use every value fairly. (The IQR would not be wrong, but it ignores half the data.) So the standard deviation, with the mean.'
+          : `The bars trail off to the ${shape}, and the values in that tail pull the mean and stretch the standard deviation. The IQR, built on quartiles, is not moved by them. (The same reasoning as an outlier: a few far values should not set the spread.) So the IQR, with the median.`),
     };
   }
-  // A list, with or without an outlier.
+  return spreadList(rng);
+}
+
+// requiem: catalogue/content/which-spread-rule
+// The rule taught, and keyed: an outlier, or clearly skewed data, takes the
+// IQR; data that is symmetric with no outlier takes the standard deviation.
+// Symmetric lists are drawn mirrored about their middle, skewed ones with a
+// mean at least a quarter of the IQR from the median, and every value stays
+// inside the context's believable range.
+const RULE = 'The rule: with an outlier, or data that is clearly skewed, use the IQR; with roughly symmetric data and no outlier, use the standard deviation.';
+const QUARTILE_METHOD = 'Q1 and Q3 are the medians of the lower and upper halves, leaving out the middle value.';
+
+/** Quartiles the other common way, an odd count's middle value in both halves. */
+function quartilesInclusive(xs) {
+  const s = [...xs].sort((p, q) => p - q), n = s.length;
+  const mid = (ys) => (ys.length % 2 ? ys[(ys.length - 1) / 2] : (ys[ys.length / 2 - 1] + ys[ys.length / 2]) / 2);
+  return [mid(s.slice(0, Math.ceil(n / 2))), mid(s.slice(Math.floor(n / 2)))];
+}
+const outlierBy = (xs, [q1, q3]) => xs.some((x) => x < q1 - 1.5 * (q3 - q1) || x > q3 + 1.5 * (q3 - q1));
+const medianOf = (xs) => { const s = [...xs].sort((p, q) => p - q), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
+
+function spreadList(rng) {
   const M = rng.pick(MEASURES);
   const n = rng.int(8, 11);
-  const withOut = rng.chance(0.5);
+  const kind = rng.pick(['symmetric', 'symmetric', 'skewed', 'outlier']);
+  const range = M.hi - M.lo;
+  // Inside the context's range; only an outlier may run past its top, by half the range at most.
+  const inRange = (xs) => xs.every((x) => x >= M.lo && x <= M.hi + (kind === 'outlier' ? range / 2 : 0));
+  /** n values mirrored about mid: each distance below matched by one above. */
+  const mirrored = (count, mid) => {
+    const ds = Array.from({ length: Math.floor(count / 2) }, () => rng.int(1, 4 * M.u));
+    return [...ds.map((d) => mid - d), ...ds.map((d) => mid + d), ...(count % 2 ? [mid] : [])];
+  };
   for (;;) {
-    const mid = rng.int(M.lo + 5, M.hi - 5), half = Math.max(3, Math.round((M.hi - M.lo) / 8));
-    const xs = Array.from({ length: n }, () => mid + rng.int(-half, half));
-    if (withOut) xs[rng.int(0, n - 1)] = rng.chance(0.5) ? mid + half * rng.int(4, 6) : Math.max(0, mid - half * rng.int(4, 6));
-    if (hasOutlier(xs) !== withOut) continue;
-    const s = [...xs].sort((p, q) => p - q);
-    const [q1, q3] = quartiles(xs), f = 1.5 * (q3 - q1);
+    const mid = rng.int(M.lo + 4 * M.u, M.hi - 4 * M.u);
+    let xs;
+    if (kind === 'symmetric') xs = mirrored(n, mid);
+    else if (kind === 'skewed') {
+      const sign = rng.chance(0.5) ? 1 : -1;
+      xs = Array.from({ length: n }, () => mid + sign * Math.round(M.u * 8 * rng.float() ** 2));
+    } else {
+      xs = mirrored(n - 1, mid);
+      xs.push(mid + (rng.chance(0.5) ? 1 : -1) * M.u * rng.int(7, 11));
+    }
+    xs = rng.shuffle(xs);
+    if (!inRange(xs) || new Set(xs).size < 4) continue;
+    const q = quartiles(xs), iqr = q[1] - q[0];
+    if (iqr <= 0) continue;
+    const out = outlierBy(xs, q);
+    // The verdict must not hang on how the quartiles are found.
+    if (out !== outlierBy(xs, quartilesInclusive(xs))) continue;
+    const mean = sum(xs) / n, median = medianOf(xs);
+    if (kind === 'outlier' && !out) continue;
+    if (kind !== 'outlier' && out) continue;
+    if (kind === 'skewed' && Math.abs(mean - median) < iqr / 4) continue;
+    const s = [...xs].sort((p, q2) => p - q2);
+    const [q1, q3] = q, f = 1.5 * iqr;
     const odd = xs.filter((x) => x < q1 - f || x > q3 + f);
+    const m1 = Math.round(mean * 10) / 10;
+    const meanSaid = `${Math.abs(mean - m1) < 1e-9 ? '' : '≈ '}${said(m1)}`;
+    const fences = `In order: ${s.join(', ')}. Q1 = ${said(q1)} and Q3 = ${said(q3)}, so the IQR is ${said(iqr)} and the fences are ${said(q1)} − ${said(f)} = ${said(q1 - f)} and ${said(q3)} + ${said(f)} = ${said(q3 + f)}. `;
+    const verdict = {
+      outlier: `${[...new Set(odd)].join(' and ')} ${odd.length > 1 ? 'are' : 'is'} outside them, an outlier that would stretch the standard deviation. (The IQR is built on the middle half, so the outlier cannot move it.) So the IQR, with the median.`,
+      skewed: `Nothing is outside them, but the data is skewed: the values bunch at the ${mean > median ? 'low' : 'high'} end and trail off toward the ${mean > median ? 'high' : 'low'} end, pulling the mean, ${meanSaid}, ${mean > median ? 'above' : 'below'} the median, ${said(median)}. (A tail stretches the standard deviation just as an outlier does.) So the IQR, with the median.`,
+      symmetric: `Nothing is outside them, and the values mirror each other about ${said(median)}: the mean and the median are both ${said(median)}. (With no outlier or tail to drag them, the mean and standard deviation use every value fairly.) So the standard deviation, with the mean.`,
+    }[kind];
     return {
-      prompt: [T.prose(`These are ${n} ${M.what}, in ${inUnit(M.unit)}: ${xs.join(', ')}. Which measure of spread describes them better?`)],
+      prompt: [T.prose(`These are ${n} ${M.what}, in ${inUnit(M.unit)}: ${xs.join(', ')}. Which measure of spread describes them better?${n % 2 ? ` (${QUARTILE_METHOD})` : ''}`)],
       text: `spread measure: ${xs.join(' ')}`,
-      answer: { type: 'choice', value: withOut ? 'iqr' : 'sd', options: SPREADS },
+      answer: { type: 'choice', value: kind === 'symmetric' ? 'sd' : 'iqr', options: SPREADS },
       visual: null,
-      explain: `In order: ${s.join(', ')}. Q1 = ${said(q1)} and Q3 = ${said(q3)}, so the fences are ${said(q1)} − ${said(f)} = ${said(q1 - f)} and ${said(q3)} + ${said(f)} = ${said(q3 + f)}. `
-        + (withOut ? `${odd.join(' and ')} ${odd.length > 1 ? 'are' : 'is'} outside them, an outlier that would stretch the standard deviation. (The IQR is built on the middle half, so the outlier cannot move it.) So the IQR, with the median.`
-          : 'Nothing is outside them, and the values sit evenly about the middle. (With no outlier to drag them, the mean and standard deviation use every value.) So the standard deviation, with the mean.'),
+      explain: `${RULE} ${fences}${verdict}`,
     };
   }
 }

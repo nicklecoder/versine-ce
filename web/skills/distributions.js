@@ -19,7 +19,7 @@
 
 export const LEVELS = [
   { name: 'Box Plots', slug: 'box-plots',
-    blurb: 'Five numbers: the least, Q1, the median, Q3, the greatest. Each part holds a quarter of the data.',
+    blurb: 'Five numbers: the least, Q1, the median, Q3, the greatest. Each part holds a quarter of the data. A value more than 1.5 × IQR beyond a quartile is an outlier.',
     dependsOn: [{ skill: 'data-center', level: 3 }] },
   { name: 'Histograms', slug: 'histograms',
     blurb: 'Each bar counts the values in an interval. Add bars for a range; find the middle by counting.' },
@@ -34,7 +34,7 @@ export const LEVELS = [
   { name: 'z-Scores', slug: 'z-scores',
     blurb: 'How many standard deviations above or below the mean: z = (x − mean) ÷ SD.' },
   { name: 'Which Spread', slug: 'which-spread',
-    blurb: 'Skewed or with an outlier: the IQR, with the median. Symmetric: the standard deviation, with the mean.' },
+    blurb: 'Skewed or with an outlier: the IQR, with the median. Roughly symmetric: the standard deviation, with the mean. Q1 and Q3 are the medians of the lower and upper halves.' },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];

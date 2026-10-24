@@ -35,14 +35,16 @@ const PAIRS = [
 
 // requiem: catalogue/content/venn-diagrams-compact
 /**
- * A circle as a closed path of 28 whole-number points. The diagram is drawn
- * on an 80 × 58 grid so whole numbers are smooth enough, which keeps each
- * Venn in the library to well under a kilobyte.
+ * A circle as a closed path of 48 points to one decimal place, on an 80 × 58
+ * grid: smooth at phone width, and still about 1 KB a diagram more than the
+ * 28 whole-number points it replaced.
  */
-const ring = (cx, cy, r) => Array.from({ length: 29 }, (_, i) => {
-  const t = (2 * Math.PI * i) / 28;
-  return [Math.round(cx + r * Math.cos(t)), Math.round(cy + r * Math.sin(t))];
+const ring = (cx, cy, r) => Array.from({ length: 49 }, (_, i) => {
+  const t = (2 * Math.PI * i) / 48;
+  return [Math.round((cx + r * Math.cos(t)) * 10) / 10, Math.round((cy + r * Math.sin(t)) * 10) / 10];
 });
+// Drawn in neutral tones: red is the app's color for a wrong answer.
+const FRAME_TONE = 'var(--muted)', RING_TONE = 'var(--cool)', COUNT_TONE = 'var(--text)';
 const LEFT = ring(28, 30, 18);
 const RIGHT = ring(52, 30, 18);
 
@@ -50,11 +52,11 @@ function venn(P, [a, k, b, n], working) {
   return {
     kind: 'plane', xRange: [0, 80], yRange: [0, 58], grid: 0, axes: false,
     marks: [
-      { kind: 'path', points: [[0, 0], [80, 0], [80, 58], [0, 58], [0, 0]] },
-      { kind: 'path', points: LEFT }, { kind: 'path', points: RIGHT },
-      { kind: 'text', at: [17, 54], label: P.a[1] }, { kind: 'text', at: [63, 54], label: P.b[1] },
-      { kind: 'text', at: [20, 30], label: String(a) }, { kind: 'text', at: [40, 30], label: String(k) },
-      { kind: 'text', at: [60, 30], label: String(b) }, { kind: 'text', at: [74, 5], label: String(n) },
+      { kind: 'path', points: [[0, 0], [80, 0], [80, 58], [0, 58], [0, 0]], tone: FRAME_TONE },
+      { kind: 'path', points: LEFT, tone: RING_TONE }, { kind: 'path', points: RIGHT, tone: RING_TONE },
+      { kind: 'text', at: [17, 54], label: P.a[1], tone: RING_TONE }, { kind: 'text', at: [63, 54], label: P.b[1], tone: RING_TONE },
+      { kind: 'text', at: [20, 30], label: String(a), tone: COUNT_TONE }, { kind: 'text', at: [40, 30], label: String(k), tone: COUNT_TONE },
+      { kind: 'text', at: [60, 30], label: String(b), tone: COUNT_TONE }, { kind: 'text', at: [74, 5], label: String(n), tone: COUNT_TONE },
     ],
     answer: [{ kind: 'text', at: [40, 5], label: working }],
   };
@@ -148,6 +150,10 @@ function addition(rng) {
   }
   // Probabilities in hundredths, all exact.
   const pa = rng.int(10, 60) / 100, pb = rng.int(10, 60) / 100;
+  // requiem: catalogue/content/probabilities-within-0-and-1
+  // Exclusive events cannot add past 1; for the others P(A and B) is at
+  // least P(A) + P(B) − 1, so P(A or B) is at most 1 too.
+  if (mode === 'exclusive' && Math.round((pa + pb) * 100) > 100) return addition(rng);
   if (mode === 'exclusive') {
     const v = Math.round((pa + pb) * 100) / 100;
     return {
@@ -159,8 +165,9 @@ function addition(rng) {
         + `(Multiplying, ${said(pa)} × ${said(pb)}, is for "and" between independent events, not "or".) So ${said(v)}.`,
     };
   }
-  const pab = rng.int(1, Math.round(Math.min(pa, pb) * 100) - 1) / 100;
+  const pab = rng.int(Math.max(1, Math.round((pa + pb) * 100) - 100), Math.round(Math.min(pa, pb) * 100) - 1) / 100;
   const por = Math.round((pa + pb - pab) * 100) / 100;
+  if (por > 1) return addition(rng);
   if (mode === 'probs') {
     return {
       prompt: [T.prose(`P(A) = ${said(pa)}, P(B) = ${said(pb)} and P(A and B) = ${said(pab)}. What is P(A or B)?`)],
@@ -306,14 +313,14 @@ function withoutReplacement(rng) {
 // ── P(A | B) ────────────────────────────────────────────────────────────
 
 const GIVEN = [
-  { b: 'a student plays a sport', a: 'they also play an instrument', ab: 'a student plays a sport and an instrument' },
-  { b: 'a day is cloudy', a: 'it also rains', ab: 'a day is cloudy and rainy' },
-  { b: 'a customer buys coffee', a: 'they also buy a muffin', ab: 'a customer buys coffee and a muffin' },
-  { b: 'a phone is dropped', a: 'its screen cracks', ab: 'a phone is dropped and its screen cracks' },
+  { id: 'sport', b: 'a student plays a sport', a: 'they also play an instrument', ab: 'a student plays a sport and an instrument' },
+  { id: 'cloudy', b: 'a day is cloudy', a: 'it also rains', ab: 'a day is cloudy and rainy' },
+  { id: 'coffee', b: 'a customer buys coffee', a: 'they also buy a muffin', ab: 'a customer buys coffee and a muffin' },
+  { id: 'phone', b: 'a phone is dropped', a: 'its screen cracks', ab: 'a phone is dropped and its screen cracks' },
 ];
 
 function conditionalFormula(rng) {
-  const pb = rng.pick([0.2, 0.25, 0.4, 0.5, 0.8]);
+  const pb = rng.pick([0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.75, 0.8]);
   const q = rng.pick([0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9]);
   const pab = Math.round(pb * q * 10000) / 10000;
   const back = rng.chance(0.35);
@@ -324,7 +331,7 @@ function conditionalFormula(rng) {
       : `P(B) = ${said(pb)} and P(A | B) = ${said(q)}. What is P(A and B)?`;
     return {
       prompt: [T.prose(prompt)],
-      text: `and from conditional: ${said(pb)} ${said(q)}`,
+      text: `and from conditional: ${said(pb)} ${said(q)}; ${C ? C.id : 'letters'}`,
       answer: dec(pab),
       visual: null,
       explain: `P(A | B) = P(A and B) ÷ P(B), so P(A and B) = P(B) × P(A | B) = ${said(pb)} × ${said(q)} = ${said(pab)}. `
@@ -336,7 +343,7 @@ function conditionalFormula(rng) {
     : `P(A and B) = ${said(pab)} and P(B) = ${said(pb)}. What is P(A | B)?`;
   return {
     prompt: [T.prose(prompt)],
-    text: `conditional: ${said(pab)} ${said(pb)}`,
+    text: `conditional: ${said(pab)} ${said(pb)}; ${C ? C.id : 'letters'}`,
     answer: dec(q),
     visual: null,
     explain: `Given B, the whole shrinks to B: P(A | B) = P(A and B) ÷ P(B) = ${said(pab)} ÷ ${said(pb)} = ${said(q)}. `
@@ -346,9 +353,27 @@ function conditionalFormula(rng) {
 
 // ── Independent or Not ──────────────────────────────────────────────────
 
+// requiem: catalogue/content/independence-balanced-keys
+// Every "no" is made from a "yes" by one shift chosen from the numbers
+// themselves, so each set of numbers gives one of each and the library,
+// which keeps distinct problems only, stays near half and half. Mutually
+// exclusive events (never independent, when both can happen) are the rest.
 function independence(rng) {
-  const mode = rng.pick(['probs', 'probs', 'given', 'table']);
+  const mode = rng.pick(['probs', 'probs', 'given', 'table', 'exclusive']);
   const yes = rng.chance(0.5);
+  if (mode === 'exclusive') {
+    const pa = rng.int(1, 6) / 10, pb = rng.int(1, 9) / 10;
+    if (pa + pb > 1 + 1e-9) return independence(rng);
+    const prod = Math.round(pa * pb * 100) / 100;
+    return {
+      prompt: [T.prose(`A and B are mutually exclusive: they cannot both happen. P(A) = ${said(pa)} and P(B) = ${said(pb)}. Are A and B independent?`)],
+      text: `independent exclusive: ${said(pa)} ${said(pb)}`,
+      answer: { type: 'choice', value: 'no', options: YESNO },
+      visual: null,
+      explain: `Mutually exclusive means P(A and B) = 0. Independent would need P(A and B) = P(A) × P(B) = ${said(pa)} × ${said(pb)} = ${said(prod)}, and 0 is not ${said(prod)}. `
+        + `(Exclusive is the opposite of independent: if A happens, B certainly does not, so knowing A changes B's chance to 0.) So not independent.`,
+    };
+  }
   if (mode === 'table') {
     const S = rng.pick(TABLES);
     let c;
@@ -357,7 +382,7 @@ function independence(rng) {
       const k = rng.pick([1, 2, 3, 4]);
       c = r.map((t) => [(t * k) / 5, t - (t * k) / 5]);
       if (!yes) {
-        const shift = rng.pick([-3, -2, 2, 3]);
+        const shift = [-3, -2, 2, 3][(r[0] + r[1] + k) % 4];
         c[0][0] += shift; c[0][1] -= shift;
         if (Math.min(...c.flat()) < 1) continue;
       }
@@ -376,26 +401,29 @@ function independence(rng) {
         + `(Comparing the counts ${a} and ${d} ignores that the rows have different totals.) So ${yes ? 'independent' : 'not independent'}.`,
     };
   }
-  const pa = rng.pick([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]);
-  const pb = rng.pick([0.1, 0.2, 0.3, 0.4, 0.5, 0.6]);
+  const pa = rng.int(1, 9) / 10;
+  const pb = rng.int(1, 9) / 10;
   const prod = Math.round(pa * pb * 100) / 100;
   if (mode === 'given') {
-    const pagb = yes ? pa : Math.round((pa + rng.pick([-0.1, 0.1, 0.2])) * 100) / 100;
+    const pg = rng.int(2, 18) / 20;
+    const step = [-0.1, 0.1, 0.15][Math.round(pg * 20) % 3];
+    const pagb = yes ? pg : Math.round((pg + (pg + step < 1 ? step : -0.1)) * 100) / 100;
+    if (pagb <= 0) return independence(rng);
     return {
-      prompt: [T.prose(`P(A) = ${said(pa)} and P(A | B) = ${said(pagb)}. Are A and B independent?`)],
-      text: `independent given: ${said(pa)} ${said(pagb)}`,
+      prompt: [T.prose(`P(A) = ${said(pg)} and P(A | B) = ${said(pagb)}. Are A and B independent?`)],
+      text: `independent given: ${said(pg)} ${said(pagb)}`,
       answer: { type: 'choice', value: yes ? 'yes' : 'no', options: YESNO },
       visual: null,
-      explain: `Independent means knowing B leaves A's chance where it was: P(A | B) = P(A). Here ${said(pagb)} ${yes ? '=' : '≠'} ${said(pa)}. `
+      explain: `Independent means knowing B leaves A's chance where it was: P(A | B) = P(A). Here ${said(pagb)} ${yes ? '=' : '≠'} ${said(pg)}. `
         + `(${yes ? 'That B happened tells nothing about A' : 'Being near is not enough; any change means B tells something about A'}.) So ${yes ? 'independent' : 'not independent'}.`,
     };
   }
   let pab = prod;
   if (!yes) {
-    for (;;) {
-      pab = Math.round((prod + rng.pick([-0.06, -0.04, -0.02, 0.02, 0.04, 0.06])) * 100) / 100;
-      if (pab > 0 && pab < Math.min(pa, pb)) break;
-    }
+    const shifts = [-0.06, -0.04, -0.02, 0.02, 0.04, 0.06];
+    const fits = shifts.map((d) => Math.round((prod + d) * 100) / 100).filter((v) => v > 0 && v < Math.min(pa, pb) && v >= pa + pb - 1);
+    if (!fits.length) return independence(rng);
+    pab = fits[Math.round(pa * 10 + pb * 10) % fits.length];
   }
   return {
     prompt: [T.prose(`P(A) = ${said(pa)}, P(B) = ${said(pb)} and P(A and B) = ${said(pab)}. Are A and B independent?`)],

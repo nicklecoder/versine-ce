@@ -12,8 +12,14 @@ import { r2, text } from './figures.js';
 export const AXIS = 'var(--muted)';
 export const DOT = 'var(--vec-2)';
 
-/** A number as a tick label: 2.5, 40, −3. */
-const tickText = (v) => (Math.round(v * 1e6) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 6 }).replace('-', '−');
+/**
+ * A number as a tick label: 2.5, 40, −3. Ten thousand and up is written in
+ * thousands, 25k, since a five-digit label centered on its tick runs into
+ * the y-axis at phone width.
+ */
+const tickText = (v) => (Math.abs(v) >= 10000
+  ? `${(Math.round(v / 100) / 10).toLocaleString('en-US').replace('-', '−')}k`
+  : (Math.round(v * 1e6) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 6 }).replace('-', '−'));
 
 /**
  * A frame for x from x0 to x1 in steps of xs, and y from y0 to y1 in steps

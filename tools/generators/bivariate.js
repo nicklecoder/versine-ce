@@ -26,6 +26,8 @@ import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/bivariate.js';
 const clean = (v) => Math.round(v * 1e6) / 1e6;
 /** As written in prose: 2,500, −1.5, 0.25. */
 const said = (v) => clean(v).toLocaleString('en-US', { maximumFractionDigits: 6 }).replace('-', '−');
+/** A number after an operator: a negative one in parentheses, so no "− −4" or "÷ −4". */
+const opd = (v) => (clean(v) < 0 ? `(${said(v)})` : said(v));
 /** As written in `text`: plain ASCII. */
 const asc = (v) => String(clean(v));
 /** A decimal answer over the smallest power of ten that holds it, to three places at most. */
@@ -87,7 +89,7 @@ const MODELS = [
     what: 'the predicted fare', each: 'for each extra kilometer', zero: 'for a ride of 0 km, as the meter starts',
     at: (v) => `for a ${said(v)} km ride`, ask: 'how long a ride, in km,' },
   { id: 'plant-in', xName: 'weeks after planting', yName: 'height (in)', x: [0, 8], m: [0.5, 1.5, 0.25], b: [1, 4, 0.5], yStep: 0.25,
-    xOf: (v) => `${said(v)} week${v === 1 ? '' : 's'}`, yOf: (v) => `${said(v)} inches`,
+    xOf: (v) => `${said(v)} week${v === 1 ? '' : 's'}`, yOf: (v) => `${said(v)} inch${v === 1 ? '' : 'es'}`,
     what: 'the predicted height', each: 'for each extra week', zero: 'on the day it is planted',
     at: (v) => `${said(v)} week${v === 1 ? '' : 's'} after planting`, ask: 'how many weeks after planting' },
   { id: 'plant-cm', xName: 'weeks after planting', yName: 'height (cm)', x: [0, 8], m: [1.5, 3.5, 0.5], b: [3, 10, 1], yStep: 0.5,
@@ -95,7 +97,7 @@ const MODELS = [
     what: 'the predicted height', each: 'for each extra week', zero: 'on the day it is planted',
     at: (v) => `${said(v)} week${v === 1 ? '' : 's'} after planting`, ask: 'how many weeks after planting' },
   { id: 'hike-ft', signed: true, xName: 'elevation (thousands of ft)', yName: 'temperature (°F)', x: [0, 10], m: [-4, -3, 0.5], b: [55, 75, 1], yStep: 1,
-    xOf: (v) => `${said(v * 1000)} ft`, yOf: (v) => `${said(v)}°F`,
+    xOf: (v) => `${said(v * 1000)} ft`, xKey: (v) => `${said(v)} (thousand feet), which is ${said(v * 1000)} ft`, yOf: (v) => `${said(v)}°F`,
     what: 'the predicted temperature', each: 'for each 1,000 ft climbed', zero: 'at sea level',
     at: (v) => `at ${said(v * 1000)} ft`, ask: 'what elevation, in thousands of feet,' },
   { id: 'hike-m', signed: true, xName: 'elevation (km)', yName: 'temperature (°C)', x: [0, 4], m: [-7, -6, 0.5], b: [15, 25, 1], yStep: 0.5,
@@ -233,8 +235,8 @@ function predictions(rng) {
     text: `predict x at y=${asc(y)}: ${lineAsc(line.m, line.b)}`,
     answer: { type: 'decimal', value: decimal(x) },
     visual: c.spec,
-    explain: `Set y = ${said(y)} and solve: ${said(line.m)}x = ${said(y)} − ${said(line.b)} = ${said(y - line.b)}, so x = ${said(y - line.b)} ÷ ${said(line.m)} = ${said(x)}. `
-      + `(Putting ${said(y)} in for x answers a different question.) So ${M.xOf(x)}.`,
+    explain: `Set y = ${said(y)} and solve: ${said(line.m)}x = ${said(y)} − ${opd(line.b)} = ${said(y - line.b)}, so x = ${said(y - line.b)} ÷ ${opd(line.m)} = ${said(x)}. `
+      + `(Putting ${said(y)} in for x answers a different question.) So ${(M.xKey ?? M.xOf)(x)}.`,
   };
 }
 
@@ -286,10 +288,10 @@ function meaning(rng) {
     text: `${askSlope ? 'slope' : 'intercept'} through (${asc(A[0])}, ${asc(A[1])}) (${asc(B[0])}, ${asc(B[1])})`,
     answer: { type: 'decimal', value: decimal(askSlope ? line.m : line.b) },
     visual: c.spec,
-    explain: `The slope is rise over run: (${said(B[1])} − ${said(A[1])}) ÷ (${said(B[0])} − ${said(A[0])}) = ${said(rise)} ÷ ${said(run)} = ${said(line.m)}. `
+    explain: `The slope is rise over run: (${said(B[1])} − ${opd(A[1])}) ÷ (${said(B[0])} − ${opd(A[0])}) = ${said(rise)} ÷ ${opd(run)} = ${said(line.m)}. `
       + (askSlope
-        ? `(Run over rise, ${said(run)} ÷ ${said(rise)}, turns it upside down.) So ${said(line.m)}.`
-        : `Go back from x = ${said(A[0])} to 0: ${said(A[1])} − ${said(line.m)} × ${said(A[0])} = ${said(line.b)}. (The first y given is not the intercept unless its x is 0.) So ${said(line.b)}.`),
+        ? `(Run over rise, ${said(run)} ÷ ${opd(rise)}, turns it upside down.) So ${said(line.m)}.`
+        : `Go back from x = ${said(A[0])} to 0: ${said(A[1])} − ${line.m < 0 ? `(${said(line.m)})` : said(line.m)} × ${said(A[0])} = ${said(line.b)}. (The first y given is not the intercept unless its x is 0.) So ${said(line.b)}.`),
   };
 }
 
@@ -334,17 +336,21 @@ function residuals(rng) {
 // ── Correlation strength ────────────────────────────────────────────────
 
 // requiem: catalogue/content/bivariate-residuals-and-r-bands
+// Bands by the size of r: strong from 0.7, moderate from 0.4, weak from 0.1,
+// and none below. Only values well inside a band are asked about.
 const STRENGTH = {
-  'strong-positive': 'Strong positive', 'weak-positive': 'Weak positive',
-  'strong-negative': 'Strong negative', 'weak-negative': 'Weak negative', none: 'No correlation',
+  'strong-positive': 'Strong positive', 'moderate-positive': 'Moderate positive', 'weak-positive': 'Weak positive',
+  'strong-negative': 'Strong negative', 'moderate-negative': 'Moderate negative', 'weak-negative': 'Weak negative', none: 'No correlation',
 };
+const BANDS = 'strong is 0.7 or more, moderate 0.4 to 0.7, weak 0.1 to 0.4, and below 0.1 is none';
 const rSaid = (r) => `r = ${said(r)}`;
 
 function strength(rng) {
   const mode = rng.pick(['describe', 'describe', 'strongest', 'match']);
   if (mode === 'describe') {
     const band = rng.pick(Object.keys(STRENGTH));
-    const size = band === 'none' ? rng.int(0, 8) / 100 : band.startsWith('strong') ? rng.int(80, 99) / 100 : rng.int(20, 45) / 100;
+    const size = band === 'none' ? rng.int(0, 4) / 100 : band.startsWith('strong') ? rng.int(80, 99) / 100
+      : band.startsWith('moderate') ? rng.int(50, 62) / 100 : rng.int(18, 32) / 100;
     const r = band.endsWith('negative') ? -size : size;
     const others = rng.shuffle(Object.keys(STRENGTH).filter((k) => k !== band)).slice(0, 3);
     const opts = rng.shuffle([band, ...others]).map((k, i) => ({ id: LETTERS[i], band: k, label: STRENGTH[k] }));
@@ -354,8 +360,8 @@ function strength(rng) {
       text: `describe r=${asc(r)}; options ${opts.map((o) => `${o.id}=${o.band}`).join(', ')}`,
       answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
       visual: null,
-      explain: `The sign gives the direction and the size, ignoring the sign, gives the strength: near 1 is tight to a line, near 0 is no line at all. `
-        + `Here the size is ${said(size)}${band === 'none' ? ', next to 0' : band.startsWith('strong') ? ', close to 1' : ', well short of 1'}. `
+      explain: `The sign gives the direction and the size, ignoring the sign, gives the strength: ${BANDS}. `
+        + `Here the size is ${said(size)}, so ${band === 'none' ? 'there is no correlation' : `it is ${band.split('-')[0]}`}. `
         + `(${r < 0 ? 'A negative r is not a weak one: −0.9 is as strong as 0.9.' : 'A positive r only says the points rise; its size says how tightly.'}) So ${STRENGTH[band].toLowerCase()}.`,
     };
   }
@@ -394,7 +400,8 @@ function strength(rng) {
   }
   const opts4 = rng.shuffle([target, ...rng.shuffle(choices.filter((v) => v !== target)).slice(0, 3)]).sort((p, q) => p - q);
   const opts = opts4.map((r, i) => ({ id: LETTERS[i], label: rSaid(r) }));
-  const c = chart({ x: [0, 10, 2], y: [0, 10, 2], titles: { x: 'x', y: 'y' }, W: 8, H: 8, yTicks: true });
+  // Kept short, so the plot and its four choices fit a phone screen together.
+  const c = chart({ x: [0, 10, 2], y: [0, 10, 2], titles: { x: 'x', y: 'y' }, W: 9, H: 6, yTicks: true });
   for (const p of pts) c.spec.marks.push({ kind: 'point', at: c.at(p), tone: DOT });
   const f = trend(pts);
   c.spec.answer.push({ kind: 'segment', from: c.at([0.5, f(0.5)]), to: c.at([9.5, f(9.5)]), dashed: true });
@@ -406,7 +413,7 @@ function strength(rng) {
     explain: (target === 0
       ? 'The points make no line, rising or falling: r is near 0. '
       : `The points ${target > 0 ? 'rise' : 'fall'} from left to right, so r is ${target > 0 ? 'positive' : 'negative'}, and they keep ${Math.abs(target) > 0.7 ? 'close to a line, so it is near ' : 'only loosely to a line, so it is well short of '}${target > 0 ? '1' : '−1'}. `)
-      + `(${Math.abs(target) > 0.7 ? 'A steep line is not what makes r large; the points keeping close to it is.' : 'Loose points can still lean one way; that leaning is a weak correlation, not none.'}) So ${rSaid(target)}.`,
+      + `(${Math.abs(target) > 0.7 ? 'A steep line is not what makes r large; the points keeping close to it is.' : target === 0 ? 'A few points that line up by chance do not make a trend.' : 'Loose points can still lean one way; that leaning is a moderate correlation, not none.'}) So ${rSaid(target)}.`,
   };
 }
 
@@ -441,6 +448,20 @@ const ASSIGNED = [
     cause: 'More water causes more tomatoes.', reverse: 'More tomatoes cause more water.' },
 ];
 
+// Observed pairs with nothing linking them, where a correlation near 0 is
+// what a real study would find. A lurking variable is only offered with a
+// real correlation, since a third thing driving both would make one.
+const UNLINKED = [
+  { x: 'house number', y: 'number of pets', how: 'A survey asked 60 families for their house number and how many pets they have.',
+    cause: 'A higher house number causes more pets.', reverse: 'Having more pets raises the house number.' },
+  { x: 'shoe size', y: 'quiz score', how: 'A teacher recorded the shoe size and the quiz score of every student in one 8th-grade class.',
+    cause: 'Bigger feet cause higher quiz scores.', reverse: 'Higher quiz scores make feet grow.' },
+  { x: 'day of the month born', y: 'height', how: 'A club recorded the day of the month each member was born and each member’s height.',
+    cause: 'Being born later in the month makes people taller.', reverse: 'Being taller changes the day people were born.' },
+  { x: 'last digit of phone number', y: 'minutes to get to school', how: 'A class recorded the last digit of each student’s phone number and how many minutes they take to get to school.',
+    cause: 'A higher last digit causes a longer trip.', reverse: 'A longer trip changes the phone number.' },
+];
+
 function causation(rng) {
   if (rng.chance(0.2)) {
     // Which study could show a cause at all?
@@ -461,8 +482,8 @@ function causation(rng) {
     };
   }
   const experiment = rng.chance(0.4);
-  const S = rng.pick(experiment ? ASSIGNED : OBSERVED);
   const real = rng.chance(0.8);
+  const S = rng.pick(experiment ? ASSIGNED : real ? OBSERVED : UNLINKED);
   const r = (real ? S.sign * rng.int(70, 95) / 100 : rng.sign() * rng.int(0, 6) / 100) || 0;
   const right = !real ? 'none' : experiment ? 'cause' : 'associated';
   const opts = rng.shuffle([
@@ -472,7 +493,7 @@ function causation(rng) {
   ]).map(([meaningId, label], i) => ({ id: LETTERS[i], meaning: meaningId, label }));
   const want = opts.find((o) => o.meaning === right).id;
   const why = !real
-    ? `r = ${said(r)} is next to 0: there is no linear association to explain, ${experiment ? 'even with random assignment' : 'by a cause or anything else'}.`
+    ? `r = ${said(r)} is next to 0: there is no linear association to explain, ${experiment ? 'even with random assignment' : 'which is what two unrelated things should show'}.`
     : experiment
       ? `The amounts of ${S.x} were assigned at random, so the groups differ only in ${S.x}, and a strong r of ${said(r)} shows its effect. (Here the experiment, not the size of r, is what earns the word "causes".)`
       : `r = ${said(r)} is a strong association, but nothing was assigned: ${S.lurking} could drive both. (A strong correlation from data that was only observed never shows a cause, however strong.)`;
@@ -511,20 +532,81 @@ function percentAnswer(part, whole) {
   return { value: { n: q, d: 10, places: 1 }, rounded: true, shown: (q / 10).toFixed(1) };
 }
 
+// requiem: catalogue/content/two-way-totals-always-shown
+// Every count table shows its row and column totals while the question is
+// open, so the whole a percent is taken of is always on the page; a working
+// column, when there is one, is added beside them on reveal.
 function grid(S, c, hide = null, fill = null, working = null) {
   const [[a, b], [d, e]] = c;
   const cells = [[a, b, a + b], [d, e, d + e], [a + d, b + e, a + b + d + e]];
-  // A table that reveals a working column drops its column of row totals, so
-  // it stays four columns wide and fits a phone; the rows are two numbers to add.
-  const keep = working ? 2 : 3;
-  const rows = cells.map((r, i) => [i < 2 ? S.rows[i] : 'Total', ...r.slice(0, keep).map((v, j) => (hide && hide[0] === i && hide[1] === j ? '?' : String(v)))]);
-  return { kind: 'table', cols: ['', ...S.cols, ...(working ? [] : ['Total'])], rows, ...(fill ? { fill } : {}),
+  const rows = cells.map((r, i) => [i < 2 ? S.rows[i] : 'Total', ...r.map((v, j) => (hide && hide[0] === i && hide[1] === j ? '?' : String(v)))]);
+  return { kind: 'table', cols: ['', ...S.cols, 'Total'], rows, ...(fill ? { fill } : {}),
     ...(working ? { workingCol: working[0], working: working[1] } : {}) };
+}
+
+/**
+ * A relative frequency table: each row (or each column) as percents of its
+ * own total, so a row reads across to 100%. `hide` is the cell asked for.
+ */
+function relativeGrid(S, by, pc, hide = null) {
+  const cell = (i, j) => (hide && hide[0] === i && hide[1] === j ? '?' : `${pc[i][j]}%`);
+  if (by === 'row') {
+    return { kind: 'table', cols: ['', ...S.cols, 'Total'], rows: [0, 1].map((i) => [S.rows[i], cell(i, 0), cell(i, 1), '100%']),
+      ...(hide ? { fill: `${pc[hide[0]][hide[1]]}%` } : {}) };
+  }
+  return { kind: 'table', cols: ['', ...S.cols], rows: [...[0, 1].map((i) => [S.rows[i], cell(i, 0), cell(i, 1)]), ['Total', '100%', '100%']],
+    ...(hide ? { fill: `${pc[hide[0]][hide[1]]}%` } : {}) };
+}
+
+function relative(rng, S) {
+  const by = rng.pick(['row', 'col']);
+  const linked = rng.chance(0.5);
+  // Percents of the first column (by row) or of the first row (by column), whole and clear of the edges.
+  let p, q;
+  for (;;) {
+    p = rng.int(2, 18) * 5; q = rng.int(2, 18) * 5;
+    if (linked ? Math.abs(p - q) >= 25 : Math.abs(p - q) <= 5) break;
+  }
+  const pc = by === 'row' ? [[p, 100 - p], [q, 100 - q]] : [[p, q], [100 - p, 100 - q]];
+  const whole = (i, j) => (by === 'row' ? `the ${S.row[i]}` : `the ${S.colWho[j]}`);
+  const intro = by === 'row'
+    ? `The table shows a survey of ${S.who}, with each row as percents of that row's total.`
+    : `The table shows a survey of ${S.who}, with each column as percents of that column's total.`;
+  if (rng.chance(0.55)) {
+    const i = rng.int(0, 1), j = rng.int(0, 1);
+    const v = pc[i][j];
+    const other = by === 'row' ? pc[i][1 - j] : pc[1 - i][j];
+    const ask = by === 'row' ? `of the ${S.row[i]} ${S.col[j]}` : `of the ${S.colWho[j]} are ${S.row[i]}`;
+    return {
+      prompt: [T.prose(`${intro} What percent ${ask}?`)],
+      text: `two-way relative missing: ${by} ${pc.map((r, a) => r.map((x, b) => (a === i && b === j ? '?' : x)).join(' ')).join(' / ')}`,
+      answer: { type: 'decimal', value: decimal(v), percent: true },
+      visual: relativeGrid(S, by, pc, [i, j]),
+      explain: `Each ${by === 'row' ? 'row' : 'column'} is percents of its own total, so its two cells add to 100%. ${cap(whole(i, j))} are split ${other}% and ?%: 100% − ${other}% = ${v}%. `
+        + `(The percents in a ${by === 'row' ? 'column' : 'row'} of this table need not add to 100%: they are shares of different wholes.) So ${v}%.`,
+    };
+  }
+  const [x, y] = by === 'row' ? [pc[0][0], pc[1][0]] : [pc[0][0], pc[0][1]];
+  return {
+    prompt: [T.prose(`${intro} Is there an association between ${S.vars[0]} and ${S.vars[1]}?`)],
+    text: `two-way relative association: ${by} ${pc.map((r) => r.join(' ')).join(' / ')}`,
+    answer: { type: 'choice', value: linked ? 'yes' : 'no', options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }] },
+    // Revealed: the percents compared, as the count table's association rows show them.
+    visual: { ...relativeGrid(S, by, pc), ...(by === 'row'
+      ? { workingCol: `% ${S.cols[0].toLowerCase()}`, working: [`${x}%`, `${y}%`] }
+      : { workingCol: 'gap', working: [`${Math.abs(x - y)} points`, `${Math.abs(x - y)} points`, ''] }) },
+    explain: (by === 'row'
+      ? `Compare the rows: ${x}% of the ${S.row[0]} ${S.col[0]}, against ${y}% of the ${S.row[1]}. `
+      : `Compare the columns: ${x}% of the ${S.colWho[0]} are ${S.row[0]}, against ${y}% of the ${S.colWho[1]}. `)
+      + `${linked ? 'Those are far apart, so knowing one variable changes what to expect of the other.' : 'Those are nearly the same, so one variable tells you nothing about the other.'} `
+      + `(Percents of each ${by === 'row' ? 'row' : 'column'} already allow for groups of different sizes, so they can be compared directly.) So ${linked ? 'yes' : 'no'}.`,
+  };
 }
 
 function twoWay(rng) {
   const S = rng.pick(SURVEYS);
-  const mode = rng.pick(['missing', 'percent', 'percent', 'association']);
+  const mode = rng.pick(['missing', 'percent', 'percent', 'association', 'relative']);
+  if (mode === 'relative') return relative(rng, S);
   let c;
   if (mode === 'association') {
     const linked = rng.chance(0.5);
@@ -587,7 +669,7 @@ function twoWay(rng) {
   return {
     prompt: [T.prose(`The two-way table shows a survey of ${S.who}. What percent ${ask}?${tail}`)],
     text: `two-way percent ${words}: ${a} ${b} / ${d} ${e}${A.rounded ? ' to 1 dp' : ''}`,
-    answer: { type: 'decimal', value: A.value },
+    answer: { type: 'decimal', value: A.value, percent: true },
     visual: grid(S, c, null, null, ['Part ÷ whole',
       [0, 1, 2].map((r) => (r === (kind === 'col' || kind === 'given-col' ? 2 : i) ? `${part} ÷ ${whole}` : ''))]),
     explain: `The whole is ${wholeName}, and the part is ${kind === 'row' ? `${cells[i][0]} + ${cells[i][1]} = ${part}` : part}: ${part} ÷ ${whole} × 100 = ${A.rounded ? `${(pct(part, whole)).toFixed(3)}…, which is ${A.shown} to 1 dp` : A.shown}. `

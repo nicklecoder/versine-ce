@@ -1444,7 +1444,7 @@
       }
     }
   },
-  "sources": "b5d1b898666a5a0c26e8de4bec9057fcdd883864a83d1a6ee3e4112d69aa23ce",
+  "sources": "88ba264329507b1974f9def88a71aae4c47e362aa1ffb7a1150ef2b2f1a9bd30",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5861,8 +5861,8 @@
       "level": 4,
       "slug": "which-is-equivalent",
       "name": "Which Is Equivalent",
-      "count": 876,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "reasoning-4.json"
     },
@@ -5881,7 +5881,7 @@
       "level": 6,
       "slug": "biconditional",
       "name": "Biconditional",
-      "count": 64,
+      "count": 111,
       "exhaustive": true,
       "signed": false,
       "file": "reasoning-6.json"
@@ -6061,7 +6061,7 @@
       "level": 0,
       "slug": "likelihood",
       "name": "Likelihood",
-      "count": 112,
+      "count": 398,
       "exhaustive": true,
       "signed": false,
       "file": "probability-0.json"
@@ -6091,8 +6091,8 @@
       "level": 3,
       "slug": "sample-spaces",
       "name": "Sample Spaces",
-      "count": 179,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "probability-3.json"
     },
@@ -6141,7 +6141,7 @@
       "level": 0,
       "slug": "multiplication-principle",
       "name": "Multiplication Principle",
-      "count": 590,
+      "count": 210,
       "exhaustive": true,
       "signed": false,
       "file": "counting-0.json"
@@ -6151,7 +6151,7 @@
       "level": 1,
       "slug": "factorials",
       "name": "Factorials",
-      "count": 64,
+      "count": 100,
       "exhaustive": true,
       "signed": false,
       "file": "counting-1.json"
@@ -6161,7 +6161,7 @@
       "level": 2,
       "slug": "permutations",
       "name": "Permutations",
-      "count": 120,
+      "count": 240,
       "exhaustive": true,
       "signed": false,
       "file": "counting-2.json"
@@ -6171,7 +6171,7 @@
       "level": 3,
       "slug": "combinations",
       "name": "Combinations",
-      "count": 120,
+      "count": 240,
       "exhaustive": true,
       "signed": false,
       "file": "counting-3.json"
@@ -6181,7 +6181,7 @@
       "level": 4,
       "slug": "does-order-matter",
       "name": "Does Order Matter?",
-      "count": 240,
+      "count": 480,
       "exhaustive": true,
       "signed": false,
       "file": "counting-4.json"
@@ -6191,7 +6191,7 @@
       "level": 5,
       "slug": "restrictions",
       "name": "Restrictions",
-      "count": 90,
+      "count": 124,
       "exhaustive": true,
       "signed": false,
       "file": "counting-5.json"
@@ -6261,7 +6261,7 @@
       "level": 4,
       "slug": "conditional-formula",
       "name": "P(A | B)",
-      "count": 110,
+      "count": 990,
       "exhaustive": true,
       "signed": false,
       "file": "probability-2-4.json"
@@ -6271,8 +6271,8 @@
       "level": 5,
       "slug": "independent-or-not",
       "name": "Independent or Not",
-      "count": 1000,
-      "exhaustive": false,
+      "count": 617,
+      "exhaustive": true,
       "signed": false,
       "file": "probability-2-5.json"
     },
