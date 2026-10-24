@@ -296,7 +296,8 @@ const same = (xs) => xs && xs.every((x) => x.n === xs[0].n && x.d === xs[0].d);
 
 const CHANGES = {
   linear: [
-    (rng) => { const k = rng.int(2, 30); return [`A tank loses ${k} liters of water every hour.`, `-${k} per 1`]; },
+    // requiem: catalogue/content/units-both-systems
+    (rng) => { const k = rng.int(2, 30); return [`A tank loses ${k} gallons of water every hour.`, `-${k} per 1`]; },
     (rng) => { const k = 10 * rng.int(2, 30); return [`Rent goes up by $${k} every year.`, `+${k} per 1`]; },
     (rng) => { const k = rng.int(2, 30); return [`A plant grows ${k} cm taller each week.`, `+${k} per 1`]; },
     (rng) => { const k = rng.int(2, 20); return [`A candle burns ${k} mm shorter every 10 minutes.`, `-${k} per 10`]; },

@@ -236,24 +236,28 @@ function context(rng) {
       + `${ask === 'max' ? `, and h = −${g} × ${t}² + ${v} × ${t}${s ? ` + ${s}` : ''} = ${top} ${unit}` : ''}.`;
   } else if (shape === 'fence' && rng.chance(0.5)) {
     const m = rng.int(3, 30), P = 4 * m;
+    // requiem: catalogue/content/units-both-systems
+    // Fenced in meters or in feet, half each: 12 to 120 of either is a garden.
+    const u = rng.pick(['m', 'ft']);
     // A pen against a wall: two sides of x and one of P − 2x.
     src = `x(${P} - 2x)`;
     ask = rng.chance(0.5) ? 'max' : 'when';
     value = ask === 'max' ? 2 * m * m : m;
-    prompt = `A pen is built against a wall with ${P} m of fence: two sides of x m, and the side facing the wall `
-      + `${P} − 2x m. Its area is x(${P} − 2x). ${ask === 'max' ? 'What is the largest area it can have, in m²?' : 'What x gives the largest area?'}`;
+    prompt = `A pen is built against a wall with ${P} ${u} of fence: two sides of x ${u}, and the side facing the wall `
+      + `${P} − 2x ${u}. Its area is x(${P} − 2x). ${ask === 'max' ? `What is the largest area it can have, in ${u}²?` : 'What x gives the largest area?'}`;
     why = `x(${P} − 2x) = −2x² + ${P}x, which opens down. Its zeros are 0 and ${2 * m}, and the vertex is halfway: x = ${m}`
-      + `${ask === 'max' ? `, giving ${m} × ${P - 2 * m} = ${2 * m * m} m²` : ''}.`;
+      + `${ask === 'max' ? `, giving ${m} × ${P - 2 * m} = ${2 * m * m} ${u}²` : ''}.`;
   } else if (shape === 'fence') {
     const m = rng.int(3, 30), half = 2 * m;
+    const u = rng.pick(['m', 'ft']);
     // A rectangle on its own: sides of x and half the fence less x.
     src = `x(${half} - x)`;
     ask = rng.chance(0.5) ? 'max' : 'when';
     value = ask === 'max' ? m * m : m;
-    prompt = `A rectangle is fenced with ${2 * half} m of fence. With one side x m, the other is ${half} − x m, `
-      + `so its area is x(${half} − x). ${ask === 'max' ? 'What is the largest area it can have, in m²?' : 'What x gives the largest area?'}`;
+    prompt = `A rectangle is fenced with ${2 * half} ${u} of fence. With one side x ${u}, the other is ${half} − x ${u}, `
+      + `so its area is x(${half} − x). ${ask === 'max' ? `What is the largest area it can have, in ${u}²?` : 'What x gives the largest area?'}`;
     why = `x(${half} − x) opens down, with zeros at 0 and ${half}. The vertex is halfway: x = ${m}`
-      + `${ask === 'max' ? `, a square, giving ${m} × ${m} = ${m * m} m²` : ', which makes it a square'}.`;
+      + `${ask === 'max' ? `, a square, giving ${m} × ${m} = ${m * m} ${u}²` : ', which makes it a square'}.`;
   } else {
     const n = rng.int(1, 5), top = 10 * rng.int(4, 20);
     if ((top / n) % 2) return context(rng);
