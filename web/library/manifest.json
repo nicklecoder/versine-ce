@@ -1508,7 +1508,7 @@
       }
     }
   },
-  "sources": "0326d9dea9f96bd394c0b26fb409974465bae2028f768767ced8dc0e011849a6",
+  "sources": "3f6b44168eb59784369089bc23192428bc2f5d6f6de375c46a89a9f93beb21c8",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6504,7 +6504,7 @@
       "skill": "laws-sines-cosines",
       "level": 6,
       "slug": "half-ab-sin-c",
-      "name": "½ab sin C",
+      "name": "½ab sin C & the Proofs",
       "count": 400,
       "exhaustive": false,
       "signed": false,

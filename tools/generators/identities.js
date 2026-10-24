@@ -69,6 +69,7 @@ function pretty(s, angle = null) {
   let out = s.replace(new RegExp(`${FNS}\\(pi\\)`, 'g'), '$1 π').replace(/pi/g, 'π');
   out = out.replace(new RegExp(`${FNS}\\(t\\)\\^(\\d)`, 'g'), (_, f, n) => `${f}${SUP[n]}θ`);
   out = out.replace(new RegExp(`${FNS}\\((\\d+)\\*t\\)\\^(\\d)`, 'g'), (_, f, k, n) => `${f}${SUP[n]}${k}θ`);
+  out = out.replace(new RegExp(`${FNS}\\(([ab])\\)\\^(\\d)`, 'g'), (_, f, x, n) => `${f}${SUP[n]}${x}`);
   out = out.replace(new RegExp(`${FNS}\\(([^()]*)\\)\\^(\\d)`, 'g'), (_, f, x, n) => `${f}${SUP[n]}(${x})`);
   out = out.replace(/\bt\^(\d)/g, (_, n) => `θ${SUP[n]}`);
   out = out.replace(new RegExp(`${FNS}\\(t\\)`, 'g'), '$1 θ');
@@ -763,8 +764,8 @@ function atAngle(l, r, d) {
 /**
  * Whether an equation is an identity, true wherever both sides are defined.
  * Half the yes-or-no rows are identities from the earlier levels, half the
- * slips those levels warn against. About a quarter of all rows instead say
- * the equation is not an identity and ask at which of four angles it fails;
+ * slips those levels warn against. The rest, about a fifth of the library,
+ * say the equation is not an identity and ask at which of four angles it fails;
  * each of the other three makes it true or leaves a side undefined, and at
  * least one makes it true, so a single angle tried would mislead. The
  * explanation of a false one names the special angles where it does hold.
@@ -880,6 +881,26 @@ const PROOFS = [
   ['(1 + cos(2*t))/2', 'cos(t)^2', [['(1 + (2*cos(t)^2 - 1))/2', 'cos 2θ = 2 cos²θ − 1'], ['(2*cos(t)^2)/2', 'the 1s cancel'], ['cos(t)^2', 'the 2s cancel']]],
   ['tan(t)*csc(t)', 'sec(t)', [['(sin(t)/cos(t))*(1/sin(t))', 'tan θ = sin θ/cos θ and csc θ = 1/sin θ'], ['1/cos(t)', 'the sin θ cancels'], ['sec(t)', '1/cos θ = sec θ']]],
   ['sec(t)^2*cot(t)^2', 'csc(t)^2', [['(1/cos(t)^2)*(cos(t)^2/sin(t)^2)', 'sec θ = 1/cos θ and cot θ = cos θ/sin θ'], ['1/sin(t)^2', 'the cos²θ cancels'], ['csc(t)^2', '1/sin²θ = csc²θ']]],
+  // requiem: catalogue/content/proofs-derive-the-formulas
+  // The formulas themselves derived (F-TF.9): cos(α − β) from the length of a
+  // chord, the sum formulas from it, then tan(α + β) and the double angles.
+  ['cos(a - b)', 'cos(a)*cos(b) + sin(a)*sin(b)', [
+    ['(2 - ((cos(a - b) - 1)^2 + sin(a - b)^2))/2', 'the chord from (1, 0) to the point at angle α − β, squared, is 2 − 2 cos(α − β); solve that for the cosine'],
+    ['(2 - ((cos(a) - cos(b))^2 + (sin(a) - sin(b))^2))/2', 'turn both ends of the chord by β: the chord from the point at β to the point at α is just as long'],
+    ['(2 - (cos(a)^2 + sin(a)^2 + cos(b)^2 + sin(b)^2 - 2*cos(a)*cos(b) - 2*sin(a)*sin(b)))/2', 'square out both brackets and regroup'],
+    ['(2 - (2 - 2*cos(a)*cos(b) - 2*sin(a)*sin(b)))/2', 'sin²α + cos²α = 1, and the same for β'],
+    ['cos(a)*cos(b) + sin(a)*sin(b)', 'the 2s cancel, then halve']]],
+  ['cos(a + b)', 'cos(a)*cos(b) - sin(a)*sin(b)', [['cos(a - (-b))', 'α + β = α − (−β)'], ['cos(a)*cos(-b) + sin(a)*sin(-b)', 'cos(α − β) = cos α cos β + sin α sin β, with −β for β'], ['cos(a)*cos(b) - sin(a)*sin(b)', 'cos(−β) = cos β and sin(−β) = −sin β']]],
+  ['sin(a + b)', 'sin(a)*cos(b) + cos(a)*sin(b)', [['cos(pi/2 - (a + b))', 'sin x = cos(π/2 − x)'], ['cos((pi/2 - a) - b)', 'regroup: π/2 − (α + β) is (π/2 − α) − β'], ['cos(pi/2 - a)*cos(b) + sin(pi/2 - a)*sin(b)', 'cos(x − β) = cos x cos β + sin x sin β, with x = π/2 − α'], ['sin(a)*cos(b) + cos(a)*sin(b)', 'cos(π/2 − α) = sin α and sin(π/2 − α) = cos α']]],
+  ['tan(a + b)', '(tan(a) + tan(b))/(1 - tan(a)*tan(b))', [
+    ['sin(a + b)/cos(a + b)', 'tan x = sin x/cos x'],
+    ['(sin(a)*cos(b) + cos(a)*sin(b))/(cos(a)*cos(b) - sin(a)*sin(b))', 'the sum formulas for sine and cosine'],
+    ['((sin(a)*cos(b) + cos(a)*sin(b))/(cos(a)*cos(b)))/((cos(a)*cos(b) - sin(a)*sin(b))/(cos(a)*cos(b)))', 'divide the top and the bottom by cos α cos β'],
+    ['(sin(a)/cos(a) + sin(b)/cos(b))/(1 - (sin(a)*sin(b))/(cos(a)*cos(b)))', 'split each fraction and cancel'],
+    ['(tan(a) + tan(b))/(1 - tan(a)*tan(b))', 'sin x/cos x = tan x']]],
+  ['sin(2*t)', '2*sin(t)*cos(t)', [['sin(t + t)', '2θ = θ + θ'], ['sin(t)*cos(t) + cos(t)*sin(t)', 'sin(α + β) = sin α cos β + cos α sin β, with α = β = θ'], ['2*sin(t)*cos(t)', 'the two terms are the same']]],
+  ['cos(2*t)', 'cos(t)^2 - sin(t)^2', [['cos(t + t)', '2θ = θ + θ'], ['cos(t)*cos(t) - sin(t)*sin(t)', 'cos(α + β) = cos α cos β − sin α sin β, with α = β = θ'], ['cos(t)^2 - sin(t)^2', 'write the products as squares']]],
+  ['tan(2*t)', '(2*tan(t))/(1 - tan(t)^2)', [['tan(t + t)', '2θ = θ + θ'], ['(tan(t) + tan(t))/(1 - tan(t)*tan(t))', 'tan(α + β) = (tan α + tan β)/(1 − tan α tan β), with α = β = θ'], ['(2*tan(t))/(1 - tan(t)^2)', 'add the top, and tan θ tan θ is tan²θ']]],
 ];
 
 /** Single changes a careless step makes: a sign, a square, a swapped function. */

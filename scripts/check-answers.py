@@ -5184,7 +5184,52 @@ BY_RULE += (
     (re.compile(r"^triangle area: a (\d+), b (\d+), C (\d+) to (\d) dp$"), laws_area),
 )
 
+# requiem: catalogue/content/laws-proved-from-the-altitude
+# A proof of a law is checked on concrete triangles, acute and obtuse, built
+# on coordinates: h is the distance from the named corner to the line of the
+# other two, and x the signed distance along it from the corner named in
+# x = PD to the foot D. A line follows when it holds on every triangle, so
+# the altitude facts (h = b sin A, x = b cos A) are measured, not assumed.
+# The goal and every line so far must hold, and exactly one option must hold
+# that is not a line already written.
+LAW_TRIANGLES = [((0.0, 0.0), (c, 0.0), (px, py)) for c, px, py in
+                 ((5.0, 1.7, 3.1), (7.0, 6.2, 2.4), (4.0, -1.3, 2.2), (6.0, 8.1, 1.9), (3.0, 1.5, 4.6),
+                  (9.0, 2.2, 0.8), (2.5, 3.9, 3.3), (8.0, -2.4, 5.5))]
+
+
+def laws_at(P, R: str, foot_from: str) -> dict:
+    corner = dict(zip("ABC", P))
+    env = {k.lower(): v for k, v in laws_sides(P).items()}
+    env.update({k: math.radians(laws_angle_at(P, k)) for k in "ABC"})
+    (ux, uy), (vx, vy) = corner[foot_from], corner[({"A", "B", "C"} - {R, foot_from}).pop()]
+    rx, ry = corner[R]
+    length = math.hypot(vx - ux, vy - uy)
+    env["x"] = ((rx - ux) * (vx - ux) + (ry - uy) * (vy - uy)) / length
+    env["h"] = abs((rx - ux) * (vy - uy) - (ry - uy) * (vx - ux)) / length
+    return env
+
+
+def laws_line_holds(line: str, R: str, foot_from: str) -> bool:
+    import ast
+    left, right = (ast.parse(side.replace("^", "**"), mode="eval") for side in line.split(" = "))
+    for P in LAW_TRIANGLES:
+        env = laws_at(P, R, foot_from)
+        x, y = idn_value(left, env), idn_value(right, env)
+        if abs(x - y) > 1e-9 * max(1.0, abs(x)):
+            return False
+    return True
+
+
+def laws_proof(goal: str, R: str, foot_from: str, so_far: str, options: str) -> str:
+    lines = so_far.split("; ")
+    if not all(laws_line_holds(line, R, foot_from) for line in [goal, *lines]):
+        return "the goal or a line so far does not hold"
+    fits = [oid for oid, opt in tg_options(options).items() if laws_line_holds(opt, R, foot_from) and opt not in lines]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
 CHOICE_RULES += (
+    (re.compile(r"^law proof: goal (.+?); altitude from ([ABC]), x = ([ABC])D; so far (.+?); options (.+)$"), laws_proof),
     (re.compile(r"^ssa count: A (\d+), a (\d+), b (\d+)$"), lambda A, a, b: laws_count(int(A), int(a), int(b))),
     (re.compile(r"^which law: ((?:[ABCabc] \d+(?:, )?)+); want ([ABCabc])$"), laws_which),
 )
@@ -5628,9 +5673,13 @@ def id_expr(written: str):
     return eval(f"lambda t=0, a=0, b=0: {written.replace('^', '**')}", {"__builtins__": {}, **ID_NAMES})
 
 
+# α and β beside each θ, for the proofs of the sum formulas.
+ID_AB = ((0.53, 1.37), (2.2, -0.41), (1.05, 0.88), (-1.6, 2.9), (4.4, 0.3), (0.12, -2.75), (3.3, 1.71))
+
+
 def id_same(e1: str, e2: str) -> bool:
     f, g = id_expr(e1), id_expr(e2)
-    return all(abs(f(t) - g(t)) <= 1e-9 * max(1, abs(f(t))) for t in ID_TESTS)
+    return all(abs(f(t, a, b) - g(t, a, b)) <= 1e-9 * max(1, abs(f(t, a, b))) for t, (a, b) in zip(ID_TESTS, ID_AB))
 
 
 # requiem: catalogue/content/identity-choices-have-one-equal-option

@@ -28,7 +28,11 @@ level mixes values worked from a given ratio with expressions to simplify,
 asked as a choice where exactly one option is equal to the expression, the
 others the slips that expression invites (2 sin θ for sin 2θ, sin 4θ for
 4 sin θ cos θ, 1 + 2 sin²θ for cos 2θ); exact values with two radicals, such
-as cos 15°, are choices too. Next Step in a Proof draws from 37 proofs: it
+as cos 15°, are choices too. Next Step in a Proof draws from 44 proofs,
+seven of them derivations of the formulas themselves (F-TF.9): cos(α − β)
+from the length of a chord of the unit circle, cos(α + β) and sin(α + β)
+from it, tan(α + β) from the sine and cosine sums, and the three double
+angles from the sums. It
 gives a goal and the lines so far and offers the next line among slips a
 student makes, a sign or function swapped, a square dropped, a factor
 doubled, and in about half the rows a line already written, equal but a step
@@ -72,9 +76,14 @@ reference angles by stepping round the circle.
 **Laws of Sines & Cosines**, a new skill under Right Triangles, in eight levels:
 the law of sines for a side and for an angle, the law of cosines for a side and
 for an angle, a strategy level, Which Law?, and How Many Triangles? for two
-sides and an angle not between them, then ½ab sin C and All Together. About
-30% of law-of-sines angle questions have two triangles and name the one they
-mean; the rest have one and say nothing about it.
+sides and an angle not between them, then ½ab sin C & the Proofs and All
+Together. About 30% of law-of-sines angle questions have two triangles and
+name the one they mean; the rest have one and say nothing about it. About
+four rows in ten of ½ab sin C & the Proofs prove a law from the same height
+(G-SRT.10): h = b sin A = a sin B for the law of sines, Pythagoras on each
+side of the altitude and x = b cos A for the law of cosines, each step a
+choice of the next line among the slips made there, checked on eight
+concrete triangles, acute and obtuse, with h and x measured off them.
 `check-answers.py` rebuilds each triangle on coordinates and measures it, rather
 than reusing either law. Triangle coordinates are kept to one decimal place, and
 figure levels are capped at 400 problems.

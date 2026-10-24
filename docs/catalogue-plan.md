@@ -302,7 +302,7 @@ With it, Phase 3 is built.
 | Skill (category) | Levels | Covers |
 |---|---|---|
 | `trig-ratios` (Right Triangles) | Opposite & Adjacent · Ratios · Missing Side · Missing Angle · 45-45-90 · 30-60-90 · Complementary sin/cos · Elevation & Bearings | G-SRT.6–8, TEKS G.9 |
-| `laws-sines-cosines` (Right Triangles) | Sines: Side · Sines: Angle · Cosines: Side · Cosines: Angle · ½ab sin C · Which Law (strategy) | G-SRT.9–11, TEKS P.4G,H |
+| `laws-sines-cosines` (Right Triangles) | Sines: Side · Sines: Angle · Cosines: Side · Cosines: Angle · ½ab sin C & the Proofs · Which Law (strategy) | G-SRT.9–11, TEKS P.4G,H |
 | `radians` (Unit Circle) | Degrees ↔ Radians · Coterminal · Reference Angles · Arc Length s = rθ · Angular Speed | F-TF.1, TEKS P.4B–D |
 | `unit-circle` (Unit Circle) | Special Angles · Signs by Quadrant · Tangent · sec/csc/cot · From One Ratio, the Rest | F-TF.2–4,8 |
 | `trig-graphs` (Unit Circle) | Amplitude · Period · Midline · Phase Shift · Equation From a Graph · Sinusoidal Models | F-TF.5, TEKS P.2O |
@@ -334,8 +334,11 @@ the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
 is, and Complementary sin/cos keeps solve-for-x equations to about four rows
 in ten.
 `laws-sines-cosines` is built, as Sines: Side · Sines: Angle · Cosines: Side
-· Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C ·
-All Together. Which Law? depends on trig-ratios' Missing Side, where a tool is
+· Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C &
+the Proofs · All Together. The proofs of both laws (G-SRT.10) are folded into
+the area level, which rests on the same altitude, rather than made a ninth
+level: about four rows in ten pick the next line of a proof from the height,
+checked on concrete triangles. Which Law? depends on trig-ratios' Missing Side, where a tool is
 first chosen by the sides in play. How Many Triangles? is added for the
 ambiguous case, with an obtuse angle and no triangle among its rows. About
 30% of Sines: Angle rows are the two-triangle case, and those name the one
@@ -375,7 +378,8 @@ agreeing angles prove nothing. Cofunction depends on trig-ratios'
 Complementary sin/cos, so the skill depends on trig-ratios as well as the
 unit circle. Exact values with two radicals are asked as choices, since the
 roots input holds one, and Next Step in a Proof is capped at 300 problems,
-drawn from 37 proofs. Its wrong options are slips, and in about half the
+drawn from 44 proofs, seven of which derive the sum, difference and
+double-angle formulas (F-TF.9), cos(α − β) from a chord of the unit circle. Its wrong options are slips, and in about half the
 rows a line already written, equal but a step back; the question says the
 next line must be new.
 

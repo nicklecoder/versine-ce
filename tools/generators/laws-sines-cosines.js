@@ -291,7 +291,83 @@ function area(rng) {
   }
 }
 
-const CONTENT = [sinesSide, sinesAngle, cosinesSide, cosinesAngle, whichLaw, howMany, area];
+// ── Proving the laws ────────────────────────────────────────────────────
+
+/**
+ * The two derivations from the altitude, written for corners P, Q, R: the
+ * altitude h from R meets line PQ at D, and x = PD, signed, so that every
+ * line holds in an obtuse triangle too. Each step is the line, the reason
+ * it follows, and the slips a student makes at that step. The first line is
+ * given; the student picks each one after it.
+ */
+const LAW_PROOFS = {
+  sines: {
+    goal: 'p/sin(P) = q/sin(Q)',
+    steps: [
+      ['sin(P) = h/q', 'In right triangle PDR, h is opposite P and q = PR is the hypotenuse', []],
+      ['h = q*sin(P)', 'Multiply both sides by q', ['h = sin(P)/q', 'h = q*cos(P)', 'h = q/sin(P)']],
+      ['sin(Q) = h/p', 'In right triangle QDR, h is opposite Q and p = QR is the hypotenuse', ['sin(Q) = h/q', 'sin(Q) = p/h', 'cos(Q) = h/p', 'sin(Q) = h/r']],
+      ['h = p*sin(Q)', 'Multiply both sides by p', ['h = sin(Q)/p', 'h = p*cos(Q)', 'h = q*sin(Q)', 'h = p/sin(Q)']],
+      ['q*sin(P) = p*sin(Q)', 'Both lines are h, so they are equal', ['p*sin(P) = q*sin(Q)', 'q*cos(P) = p*cos(Q)', 'q*sin(Q) = p*sin(P)', 'q + sin(P) = p + sin(Q)']],
+      ['p/sin(P) = q/sin(Q)', 'Divide both sides by sin P sin Q', ['p/sin(Q) = q/sin(P)', 'p*sin(P) = q*sin(Q)', 'sin(P)/p = q/sin(Q)', 'p/q = sin(Q)/sin(P)']],
+    ],
+  },
+  cosines: {
+    goal: 'p^2 = q^2 + r^2 - 2*q*r*cos(P)',
+    steps: [
+      ['q^2 = x^2 + h^2', 'Pythagoras in right triangle PDR', []],
+      ['p^2 = (r - x)^2 + h^2', 'Pythagoras in right triangle QDR, where DQ = r − x', ['p^2 = (r + x)^2 + h^2', 'p^2 = r^2 + h^2', 'p^2 = (r - x)^2 - h^2', 'p^2 = x^2 + h^2']],
+      ['p^2 = r^2 - 2*r*x + x^2 + h^2', 'Square out (r − x)²', ['p^2 = r^2 + x^2 + h^2', 'p^2 = r^2 - x^2 + h^2', 'p^2 = r^2 - r*x + x^2 + h^2', 'p^2 = r^2 + 2*r*x + x^2 + h^2']],
+      ['p^2 = q^2 + r^2 - 2*r*x', 'x² + h² = q², the first line', ['p^2 = q^2 + r^2', 'p^2 = r^2 - 2*r*x + h^2', 'p^2 = r^2 - 2*r*x - q^2', 'p^2 = q^2 - r^2 - 2*r*x']],
+      ['x = q*cos(P)', 'In right triangle PDR, cos P = x/q', ['x = q*sin(P)', 'x = r*cos(P)', 'x = cos(P)/q', 'x = p*cos(P)']],
+      ['p^2 = q^2 + r^2 - 2*q*r*cos(P)', 'Put x = q cos P into the line before last', ['p^2 = q^2 + r^2 + 2*q*r*cos(P)', 'p^2 = q^2 + r^2 - q*r*cos(P)', 'p^2 = q^2 + r^2 - 2*q*r*sin(P)', 'p^2 = q^2 + r^2 - 2*r*cos(P)']],
+    ],
+  },
+};
+const LAW_NAME = { sines: 'the law of sines', cosines: 'the law of cosines' };
+
+/** Corners P, Q, R renamed to A, B and C in some order, sides with them. */
+const relabel = (s, m) => s.replace(/\b[PQRpqr]\b/g, (ch) => (ch === ch.toUpperCase() ? m[ch] : m[ch.toUpperCase()].toLowerCase()))
+  // In alphabetical order where order is free: b² + c², 2bc.
+  .replace(/\b([abc])\^2 \+ ([abc])\^2/g, (w, u, v) => (u < v ? w : `${v}^2 + ${u}^2`))
+  .replace(/\b([abc])\*([abc])\b/g, (w, u, v) => (u < v ? w : `${v}*${u}`));
+/** sin(A) → sin A, 2*b*c → 2bc, ^2 → ², - → −. */
+const lawText = (s) => s.replace(/(sin|cos)\(([A-C])\)/g, '$1 $2').replace(/\*(?=sin|cos)/g, ' ').replace(/\*/g, '')
+  .replace(/\^2/g, '²').replace(/-/g, '−');
+
+// requiem: catalogue/content/laws-proved-from-the-altitude
+function lawProof(rng) {
+  const law = rng.pick(['sines', 'cosines']);
+  // The law of sines pairs P with Q, so those two are taken in order.
+  const R = rng.pick(ANGLES);
+  const [P, Q] = law === 'sines' ? ANGLES.filter((v) => v !== R) : rng.shuffle(ANGLES.filter((v) => v !== R));
+  const m = { P, Q, R };
+  const { goal, steps } = LAW_PROOFS[law];
+  const i = rng.int(1, steps.length - 1);
+  const lines = steps.slice(0, i).map((s) => relabel(s[0], m));
+  const [next0, reason0, slips] = steps[i];
+  const next = relabel(next0, m), reason = relabel(reason0, m);
+  const back = rng.chance(0.5) ? rng.pick(lines) : null;
+  const wrong = [...(back ? [back] : []), ...rng.shuffle(slips.map((e) => relabel(e, m)))].slice(0, 3);
+  const all = rng.shuffle([next, ...wrong]);
+  const opts = all.map((e, j) => ({ id: ['a', 'b', 'c', 'd'][j], e }));
+  const g = relabel(goal, m);
+  const setup = `Drop the altitude h from ${R} to line ${[P, Q].sort().join('')}, meeting it at D${law === 'cosines' ? `, and let x = ${P}D (negative if D falls beyond ${P}), so D${Q} = ${lawText(relabel('r - x', m))}` : ''}.`;
+  return {
+    prompt: [T.prose(`Prove ${LAW_NAME[law]}, ${lawText(g)}, in triangle ABC. ${setup} So far: ${lines.map(lawText).join('; ')}. `
+      + 'Which line comes next? It must follow from the lines so far and be new, a step on toward the law, not one already written.')],
+    text: `law proof: goal ${g}; altitude from ${R}, x = ${P}D; so far ${lines.join('; ')}; options ${opts.map((o) => `${o.id}: ${o.e}`).join(' | ')}`,
+    answer: { type: 'choice', value: opts[all.indexOf(next)].id, options: opts.map((o) => ({ id: o.id, label: lawText(o.e) })) },
+    visual: null,
+    explain: `${reason}: ${lawText(next)}. `
+      + `(${back ? `${lawText(back)} is true too, but it is a line already written, a step back. The others` : 'The other choices'} swap a sine for a cosine, a side for the wrong one, or a sign, so they do not follow.) So ${lawText(next)}.`,
+  };
+}
+
+/** The area, or (about four rows in ten) a step in proving a law from the same height. */
+const heightLevel = (rng) => (rng.chance(0.4) ? lawProof(rng) : area(rng));
+
+const CONTENT = [sinesSide, sinesAngle, cosinesSide, cosinesAngle, whichLaw, howMany, heightLevel];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {

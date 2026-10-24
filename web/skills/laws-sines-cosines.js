@@ -13,6 +13,10 @@
  * since the side opposite the angle can swing to meet the base in two places.
  * Every Sines: Angle problem says which triangle it means.
  *
+ * Both laws are proved from the altitude, the same height that gives the
+ * area: h = b sin A = a sin B for the law of sines, and Pythagoras in the two
+ * right triangles it makes for the law of cosines.
+ *
  * Calculator answers round only at the end, and are kept only where 4-place
  * working gives the same rounded answer.
  */
@@ -33,8 +37,9 @@ export const LEVELS = [
     dependsOn: [{ skill: 'trig-ratios', level: 2 }] },
   { name: 'How Many Triangles?', slug: 'how-many-triangles', libraryCap: 400,
     blurb: 'Two sides and an angle not between them: compare the side across from the angle with the height it must reach.' },
-  { name: '½ab sin C', slug: 'half-ab-sin-c', libraryCap: 400,
-    blurb: 'Two sides and the angle between them give the area: ½ab sin C, since b sin C is the height.' },
+  // requiem: catalogue/content/laws-proved-from-the-altitude
+  { name: '½ab sin C & the Proofs', slug: 'half-ab-sin-c', libraryCap: 400,
+    blurb: 'The height from a corner is b sin C, so the area is ½ab sin C. The same height proves both laws: h = b sin A = a sin B, and Pythagoras on each side of it.' },
   { name: 'All Together', slug: 'all-together', libraryCap: 500,
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];
@@ -53,7 +58,7 @@ export default {
   name: 'Laws of Sines & Cosines',
   category: 'right-triangles',
   glyph: 'a/sin A',
-  blurb: 'The law of sines, the law of cosines, which to use, the ambiguous case, and ½ab sin C.',
+  blurb: 'The law of sines, the law of cosines, which to use, the ambiguous case, ½ab sin C, and proving both laws from a height.',
   answerInput: 'decimal',
   // Sine and cosine, and solving with an inverse, are the ratios' work.
   dependsOn: ['trig-ratios'],
