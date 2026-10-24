@@ -1314,7 +1314,7 @@
       }
     }
   },
-  "sources": "ac79a8bd36848fd51668861d0eb3a89a0f9081f438c4d56cd64927a76a7fbfb8",
+  "sources": "0e7e974e0db572b5fcec0255d606dd8abb729159ac621756e5d662656a76a4a3",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5431,7 +5431,7 @@
       "level": 6,
       "slug": "altitude-to-hypotenuse",
       "name": "Altitude to Hypotenuse",
-      "count": 131,
+      "count": 268,
       "exhaustive": true,
       "signed": false,
       "file": "similarity-6.json"
@@ -5491,7 +5491,7 @@
       "level": 4,
       "slug": "temperature",
       "name": "Temperature",
-      "count": 782,
+      "count": 830,
       "exhaustive": false,
       "signed": true,
       "file": "units-4.json"
@@ -5561,7 +5561,7 @@
       "level": 3,
       "slug": "which-special-quadrilateral",
       "name": "Which Special Quadrilateral",
-      "count": 250,
+      "count": 460,
       "exhaustive": true,
       "signed": false,
       "file": "quadrilaterals-3.json"
@@ -5631,7 +5631,7 @@
       "level": 2,
       "slug": "central-and-inscribed-angles",
       "name": "Central & Inscribed Angles",
-      "count": 1000,
+      "count": 750,
       "exhaustive": false,
       "signed": false,
       "file": "circles-2.json"
@@ -5651,7 +5651,7 @@
       "level": 4,
       "slug": "tangents",
       "name": "Tangents",
-      "count": 1000,
+      "count": 550,
       "exhaustive": false,
       "signed": false,
       "file": "circles-4.json"

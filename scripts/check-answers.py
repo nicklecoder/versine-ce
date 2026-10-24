@@ -3496,9 +3496,30 @@ def across(v, a: str, b: str, p: str, k, q: str) -> Fraction:
     return within(within(v, a, q) / k, p, b)
 
 
+def round_at(x: Fraction, place: int) -> Fraction:
+    """Half up to a place: 1 for tenths, 0 for wholes, -2 for hundreds."""
+    return half_up(x, place) if place >= 0 else half_up(x / 10 ** -place, 0) * 10 ** -place
+
+
+def place_of(rounded) -> int | None:
+    if rounded is None:
+        return None
+    m = re.fullmatch(r" to (?:(\d) dp|the nearest (whole|\d+))", rounded)
+    assert m, rounded
+    return int(m[1]) if m[1] else 0 if m[2] == "whole" else -round(math.log10(int(m[2])))
+
+
+# requiem: catalogue/content/rounded-factor-precision
 def units_given(v, a, b, p, k, q, rounded) -> Fraction:
-    exact_value = across(v, a, b, p, k, q)
-    return half_up(exact_value, 1) if rounded else exact_value
+    given = across(v, a, b, p, k, q)
+    place = place_of(rounded)
+    if place is None:
+        assert Fraction(k) * size_of(q) == size_of(p), (p, k, q)     # only an exact factor is asked exactly
+        return given
+    # A rounded factor is asked only to a place where the true sizes agree.
+    true = Fraction(v) * size_of(a) / size_of(b)
+    assert round_at(given, place) == round_at(true, place), (v, a, b, given, true, place)
+    return round_at(given, place)
 
 
 def to_degrees(v, a: str, b: str, rounded) -> Fraction:
@@ -3510,8 +3531,11 @@ def to_degrees(v, a: str, b: str, rounded) -> Fraction:
 def rate_of(v, top: str, bottom: str, top2: str, bottom2: str, given) -> Fraction:
     if given:
         # 1 mi = 1.61 km, as the question gives it; the hours are unchanged.
+        # The true mile must round the same way, or knowing it would be marked wrong.
         assert bottom == bottom2 == "h"
-        return half_up(across(v, top, top2, "mi", Fraction("1.61"), "km"), 0)
+        given_ = half_up(across(v, top, top2, "mi", Fraction("1.61"), "km"), 0)
+        assert given_ == half_up(Fraction(v) * size_of(top) / size_of(top2), 0), (v, top, top2)
+        return given_
     return within(v, top, top2) / within(1, bottom, bottom2)
 
 
@@ -3542,10 +3566,16 @@ TYPICAL = {
     "the weight of a newborn baby": 3.3, "the weight of a dictionary": 1.4, "the weight of a grain of rice": 0.000025,
     "the water in a full bathtub": 280, "the juice in a glass": 0.24, "the gas a car’s tank holds": 55,
     "the medicine in a teaspoon": 0.0049, "the milk in a large jug": 3.79,
+    "the water in a bottle": 0.5, "the water in a bucket": 10,
 }
+# requiem: catalogue/content/benchmark-decoys-clearly-wrong
+# What each really is, as a range in °C: the key must sit in it, and every
+# decoy must be at least 15°C outside the whole of it.
 TYPICAL_C = {
-    "a cold winter night": -10, "a room": 21, "a hot summer day": 34, "freezing water": 0, "boiling water": 100,
-    "a healthy person": 37, "a cup of hot cocoa": 68, "a fridge": 4, "an oven baking bread": 200,
+    "a cold winter night": (-30, 5), "a cool spring morning": (3, 17), "a room": (18, 25), "a hot summer day": (28, 43),
+    "a swimming pool": (24, 30), "a warm bath": (36, 42), "freezing water": (0, 0), "boiling water": (100, 100),
+    "a healthy person": (36, 38), "a cup of hot cocoa": (50, 80), "a fridge": (1, 5), "a freezer": (-25, -15),
+    "an oven baking bread": (175, 250),
 }
 
 
@@ -3556,7 +3586,7 @@ def nearest_estimate(what: str, listing: str) -> str:
     for item in listing.split(", "):
         n, unit = item.split(" ")
         size = float(n) * float(size_of(unit))
-        off[unit] = abs(math.log10(size / true))
+        off[item] = abs(math.log10(size / true))
     ranked = sorted(off, key=off.get)
     # Only a fair question: the right choice is close, and every other one far.
     assert off[ranked[0]] < math.log10(1.7) and off[ranked[1]] > math.log10(2.5), (what, listing, off)
@@ -3564,14 +3594,14 @@ def nearest_estimate(what: str, listing: str) -> str:
 
 
 def nearest_temperature(what: str, listing: str) -> str:
-    true = TYPICAL_C[what]
+    lo, hi = TYPICAL_C[what]
     off = {}
     for item in listing.split(", "):
         v, unit = item.split(" ")
         c = float(v) if unit == "C" else (float(v) - 32) * 5 / 9
-        off[v] = abs(c - true)
+        off[v] = max(lo - c, c - hi, 0)
     ranked = sorted(off, key=off.get)
-    assert off[ranked[0]] <= 3 and off[ranked[1]] >= 12, (what, listing, off)
+    assert off[ranked[0]] <= 1 and off[ranked[1]] >= 15, (what, listing, off)
     return ranked[0]
 
 
@@ -3582,7 +3612,8 @@ BY_RULE += (
     (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"), within),
     (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} \+ {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"),
      lambda v, a, w, b, c: within(v, a, c) + within(w, b, c)),
-    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME} given 1 {UNIT_NAME} = {AMOUNT} {UNIT_NAME}( to 1 dp)?$"), units_given),
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME} given 1 {UNIT_NAME} = {AMOUNT} {UNIT_NAME}"
+                rf"( to \d dp| to the nearest (?:whole|10|100|1000|10000))?$"), units_given),
     (re.compile(rf"^temperature: {AMOUNT} ([CF]) to ([CF])( to 1 dp)?$"), to_degrees),
     (re.compile(rf"^rate: {AMOUNT} {UNIT_NAME}/{UNIT_NAME} to {UNIT_NAME}/{UNIT_NAME}"
                 rf"( given 1 mi = 1\.61 km to the nearest whole)?$"), rate_of),
@@ -3736,6 +3767,9 @@ def diagonal_angle(shape: str, given: str, value: int, asked: str) -> Fraction:
 def special_name(name: str, listing: str) -> str:
     facts = set(listing.split(", "))
     parallelogram = bool(facts & {"opp-par", "opp-eq", "diag-bis", "pair-eq-par", "opp-ang", "all-right", "all-eq"})
+    # A parallel pair makes neighboring angles co-interior, so one equal pair of
+    # opposite angles brings the other pair with it.
+    parallelogram |= {"pair-par", "pair-opp-ang"} <= facts
     rectangle = "all-right" in facts or (parallelogram and bool(facts & {"right", "diag-eq"}))
     rhombus = "all-eq" in facts or (parallelogram and bool(facts & {"adj-eq", "diag-perp", "diag-bis-ang"}))
     if rectangle and rhombus:
@@ -3748,7 +3782,9 @@ def special_name(name: str, listing: str) -> str:
         return "parallelogram"
     if "one-par" in facts:
         return "trapezoid"
-    if "kite-sides" in facts:
+    # A diagonal bisected at right angles by the other has it as its perpendicular
+    # bisector: two pairs of equal neighboring sides.
+    if "kite-sides" in facts or {"one-diag-bis", "diag-perp"} <= facts:
         return "kite"
     return "none"
 
@@ -3893,6 +3929,12 @@ BY_RULE += (
     (re.compile(rf"^inscribed: (.+); find {CIRCLE_PART}$"), inscribed_angle),
     # From the minor-arc side the angle stands on the major arc, 360° less the central angle.
     (re.compile(r"^inscribed minor: central AOB (\d+); find ADB$"), lambda c: Fraction(360 - c, 2)),
+    # Back the other way: twice the angle at D is the major arc, and AOB the rest of 360°.
+    (re.compile(r"^inscribed minor: ADB (\d+); find AOB$"), lambda d: Fraction(360 - 2 * d)),
+    # C and D on opposite arcs stand on arcs that make the whole circle: their angles add to 180°.
+    (re.compile(r"^inscribed opposite: ACB (\d+); find ADB$"), lambda c: Fraction(180 - c)),
+    # An arc measures its central angle, twice the inscribed angle on it.
+    (re.compile(r"^inscribed: ACB (\d+); find arc AB$"), lambda c: Fraction(2 * c)),
     (re.compile(rf"^semicircle: AB diameter; (.+); find {CIRCLE_PART}$"),
      lambda listing, target: quad_relation(circle_parts(listing), [("angle ACB", 1)], 90, target) if "ACB" in listing
      else 90 - circle_parts(listing)[next(iter(circle_parts(listing)))][1]),

@@ -336,3 +336,129 @@ export function clearLabel(A, B, label, others, tone = GIVEN, { gaps = [0.15, 0.
   }
   return text([r2(best.c[0]), r2(best.c[1])], label, tone);
 }
+
+// ── Angle labels that fit their corner (added for the x-expression angles) ──
+
+/**
+ * A label for the corner at V, between the sides to U and W, set along the
+ * line halving it just far enough in that its box clears both sides. Where
+ * that would run past `room` of the shorter side -- a narrow corner with a
+ * long label, "(7x + 34)°" -- it is written just outside the corner instead,
+ * beside V and away from `away` (the shape's middle), with a short leader
+ * back to the corner. Returns marks: the text, and the leader if there is one.
+ *
+ * `k` is the factor the figure is later scaled up by (see fit), since the
+ * label's size is fixed on the page while the figure's units are not.
+ */
+export function cornerLabel(V, U, W, label, tone = GIVEN, { k = 1, room = 0.62, away = null, min = 0.6 } = {}) {
+  const [from, to] = cornerAt(V, U, W), span = to - from, mid = (from + to) / 2;
+  const short = Math.min(dist(V, U), dist(V, W));
+  // Half the label's box, in the figure's own units: about 22 px to a unit on the page.
+  const w = (0.17 * String(label).length + 0.12) / k, h = 0.36 / k, gap = 0.12 / k;
+  const need = Math.max(...[from, to].map((d) => {
+    const n = [Math.sin(d * RAD), Math.cos(d * RAD)];
+    return (w * Math.abs(n[0]) + h * Math.abs(n[1]) + gap) / Math.sin((span / 2) * RAD);
+  }));
+  const r = Math.max(min / k, need);
+  if (r <= room * short) return [text(toward(mid, r, V), label, tone)];
+  // Outside: square to the halving line, on the side away from the shape.
+  const c = away ?? [(U[0] + W[0]) / 2, (U[1] + W[1]) / 2];
+  const sides = [mid + 90 + span / 4, mid - 90 - span / 4].map((d) => toward(d, w + h + 0.25 / k, V));
+  const at = sides.reduce((a, b) => (dist(b, c) > dist(a, c) ? b : a));
+  const lead = toward(mid, Math.min(0.5, 0.35 * short), V);
+  const toward_ = dirTo(at, lead);
+  const start = toward(toward_, Math.min(w, h) + 0.05 / k, at);
+  return [text(at, label, tone), { kind: 'segment', from: start, to: lead, tone }];
+}
+
+// ── Point names on the grid (added for the coordinate figures) ──────────
+
+/** Four short sides round a point's dot, so a name keeps clear of the dot and not just its center. */
+const dotPieces = (p, r) => [[[p[0] - r, p[1] - r], [p[0] + r, p[1] - r]], [[p[0] + r, p[1] - r], [p[0] + r, p[1] + r]],
+  [[p[0] + r, p[1] + r], [p[0] - r, p[1] + r]], [[p[0] - r, p[1] + r], [p[0] - r, p[1] - r]]];
+
+/**
+ * Where to write each point's name: on the side of the point away from the
+ * shape -- out along the line halving the outside of its corner, or straight
+ * away from the middle for a point with fewer than two sides -- then turned
+ * a little either way until the name is clear of every line, dot and name in
+ * `marks`, and of the axes. The plane writes a point's own label up and to
+ * the right whatever is there, which puts it on a side running that way or
+ * on the next point; these are drawn as text marks instead.
+ *
+ * `points` is [{ at, name, tone, near: [neighbor, neighbor] }]. `unit` is
+ * about how many pixels a grid unit gets on a phone, since the names are a
+ * fixed size on the page. Returns a text mark for each point, in order.
+ */
+export function pointNames(points, marks, { unit = 16, axes = true, middle = null } = {}) {
+  const r = 6 / unit, gap = 3 / unit;
+  const hard = [...piecesOf(marks.filter((m) => m.kind !== 'point' && m.kind !== 'text')),
+    ...marks.filter((m) => m.kind === 'point' || (m.kind === 'text')).flatMap((m) => (m.kind === 'point' ? dotPieces(m.at, r) : piecesOf([m]))),
+    ...points.flatMap((p) => dotPieces(p.at, r))];
+  // The axes, and the strips beside them where the plane writes their numbers:
+  // under the x-axis and left of the y-axis.
+  const soft = axes ? [[[-99, 0], [99, 0]], [[-99, -13 / unit], [99, -13 / unit]], [[0, -99], [0, 99]], [[-16 / unit, -99], [-16 / unit, 99]]] : [];
+  const c = middle ?? centroid(points.map((p) => p.at));
+  const placed = [];
+  return points.map((p) => {
+    const w = (3.9 * String(p.name).length + 1) / unit, h = 6.5 / unit;
+    let out;
+    if (p.near && p.near.length === 2) {
+      const [a, b] = p.near.map((q) => dirTo(p.at, q));
+      // The line halving the corner, turned to face out of the shape.
+      let m = Math.atan2(Math.sin(a * RAD) + Math.sin(b * RAD), Math.cos(a * RAD) + Math.cos(b * RAD)) / RAD + 180;
+      if (Math.cos((m - dirTo(p.at, c)) * RAD) > 0.2) m += 180;
+      out = m;
+    } else if (p.near && p.near.length === 1) out = dirTo(p.near[0], p.at);
+    else out = dist(p.at, c) < 1e-9 ? 135 : dirTo(c, p.at);
+    // Its own dot and the sides that leave it are not in the way of its name.
+    const own = hard.filter(([A, B]) => !(dist(A, p.at) < r * 1.5 && dist(B, p.at) < r * 1.5));
+    const named = placed.flatMap((q) => piecesOf([q]));
+    let best = null;
+    for (const turn of [0, 20, -20, 40, -40, 60, -60, 80, -80, 100, -100, 130, -130, 160, -160, 180]) {
+      for (const far of [0, 0.3, 0.6]) {
+        const d = (out + turn) * RAD;
+        // Far enough that the box clears the dot whichever way it faces.
+        const off = r + gap + Math.abs(Math.cos(d)) * w + Math.abs(Math.sin(d)) * h + far;
+        const at = [p.at[0] + off * Math.cos(d), p.at[1] + off * Math.sin(d)];
+        const clearHard = clearance(at, w, h, [...own, ...named]);
+        const clearSoft = soft.length ? clearance(at, w, h, soft) : 1;
+        const score = (clearHard >= gap ? 10 : clearHard) + (clearSoft >= 0 ? 3 : 0) - Math.abs(turn) / 90 - far * 2;
+        if (!best || score > best.score) best = { at, score };
+      }
+    }
+    const mark = text([r2(best.at[0]), r2(best.at[1])], p.name, p.tone ?? LINE);
+    placed.push(mark);
+    return mark;
+  });
+}
+
+/** About how many pixels a unit of this plane gets on a phone: the plane fits about 286 px across, and draws at most 26 to a unit. */
+export const phoneUnit = (spec) => Math.min(26, 286 / (spec.xRange[1] - spec.xRange[0]));
+
+/**
+ * A plane spec with its points' labels taken off and written instead where
+ * pointNames puts them, clear of everything drawn before or after the
+ * answer. A name stays in the phase its point is in.
+ */
+export function namePoints(spec, opts = {}) {
+  const all = [...spec.marks, ...(spec.answer ?? [])];
+  const same = (P, Q) => P && Q && Math.abs(P[0] - Q[0]) < 1e-9 && Math.abs(P[1] - Q[1]) < 1e-9;
+  // A point's neighbors: the other end of every solid side that leaves it.
+  const edges = all.flatMap((m) => (m.dashed ? [] : m.kind === 'segment' ? [[m.from, m.to]]
+    : m.kind === 'path' ? m.points.slice(1).map((q, i) => [m.points[i], q]) : []));
+  const nearOf = (at) => {
+    const found = edges.flatMap(([A, B]) => (same(A, at) ? [B] : same(B, at) ? [A] : []));
+    return found.filter((q, i) => !same(q, at) && found.findIndex((o) => same(o, q)) === i);
+  };
+  const strip = (list) => list.map((m) => (m.kind === 'point' && 'label' in m ? (({ label, ...rest }) => rest)(m) : m));
+  const named = all.filter((m) => m.kind === 'point' && m.label);
+  const texts = pointNames(named.map((m) => ({ at: m.at, name: m.label, tone: m.tone, near: nearOf(m.at) })), strip(all),
+    { unit: phoneUnit(spec), ...opts });
+  const inAsk = new Set(spec.marks.filter((m) => m.kind === 'point' && m.label));
+  return {
+    ...spec,
+    marks: [...strip(spec.marks), ...texts.filter((_, i) => inAsk.has(named[i]))],
+    answer: [...strip(spec.answer ?? []), ...texts.filter((_, i) => !inAsk.has(named[i]))],
+  };
+}

@@ -19,13 +19,16 @@ export const LEVELS = [
   { name: 'Sector Area', slug: 'sector-area',
     blurb: 'The central angle’s share of 360°, times the area πr².',
     dependsOn: [{ skill: 'area', level: 4 }] },
+  // requiem: catalogue/content/circle-rules-before-equations
+  // Capped so the x-equations, which keep coming after the number rows run
+  // out, stay near a third of the level.
   { name: 'Central & Inscribed Angles', slug: 'central-and-inscribed-angles',
-    blurb: 'An angle at the circle is half the angle at the center on the same arc.' },
+    blurb: 'An angle at the circle is half the angle at the center on the same arc.', libraryCap: 750 },
   { name: 'Semicircles & Cyclic Quadrilaterals', slug: 'semicircles-and-cyclic-quadrilaterals',
     blurb: 'An angle in a semicircle is 90°; opposite angles of a cyclic quadrilateral add to 180°.' },
   { name: 'Tangents', slug: 'tangents',
     blurb: 'A tangent meets the radius at 90°, and two tangents from one point are equal.',
-    dependsOn: [{ skill: 'pythagoras', level: 1 }] },
+    dependsOn: [{ skill: 'pythagoras', level: 1 }], libraryCap: 550 },
   { name: 'Equation of a Circle', slug: 'equation-of-a-circle',
     blurb: '(x − h)² + (y − k)² = r²: the center is (h, k), and the right side is r squared.',
     dependsOn: [{ skill: 'pythagoras', level: 4 }] },

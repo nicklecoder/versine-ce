@@ -112,9 +112,27 @@ const onEdge = (v, p) => Math.abs(((v * 10 ** p) % 1) - 0.5) < 0.04;
  * One conversion, written out: the facts used, the factor they make, and
  * multiply or divide. `v` is in `from`; the answer is in `to`.
  */
+/**
+ * v × size or v ÷ size, worked exactly from v's written digits: whether it
+ * comes out exactly, and the value to write. Floats would say 1.1 × 100,000
+ * is 110,000.00000000001, and so not exact.
+ */
+function exactly(v, size, down) {
+  const [w, fr = ''] = f(Math.abs(v)).split('.');
+  let n = BigInt(w + fr), d = 10n ** BigInt(fr.length);
+  const k = BigInt(Math.round(size));
+  if (down) n *= k; else d *= k;
+  const g = (a, b) => (b === 0n ? a : g(b, a % b)), c = g(n, d);
+  n /= c; d /= c;
+  let rest = d;
+  for (const q of [2n, 5n]) while (rest % q === 0n) rest /= q;
+  return { exact: rest === 1n, value: (v < 0 ? -1 : 1) * (Number(n) / Number(d)) };
+}
+
 function converted(v, from, to) {
   const steps = path(from, to), k = steps.reduce((p, s) => p * s.by, 1), result = v * k;
   const down = k > 1, size = down ? k : 1 / k;
+  const worked = exactly(v, size, down);
   const facts = steps.map((s) => factText(s.fact));
   const joined = facts.length > 1
     ? `${facts.join(' and ')}, so 1 ${UNIT[down ? from : to][1]} = ${amt(size, down ? to : from)}`
@@ -122,8 +140,10 @@ function converted(v, from, to) {
   const shift = METRIC.has(from) && METRIC.has(to) && Number.isInteger(Math.log10(size))
     ? ` ${down ? 'Multiplying' : 'Dividing'} by ${num(size)} moves the decimal point ${Math.log10(size)} place${size === 10 ? '' : 's'} `
       + `${down ? 'right' : 'left'}.` : '';
-  const work = `${joined}. ${down ? `${amt(v, from)} × ${num(size)}` : `${amt(v, from)} ÷ ${num(size)}`} ${ends(result, 4) ? '=' : '≈'} `
-    + `${amt(ends(result, 4) ? result : Number(result.toPrecision(4)), to)}.${shift} `
+  // requiem: catalogue/content/worked-steps-exact
+  // Exact when it is exact, and otherwise to 4 places, the precision every step here carries.
+  const work = `${joined}. ${down ? `${amt(v, from)} × ${num(size)}` : `${amt(v, from)} ÷ ${num(size)}`} ${worked.exact ? '=' : '≈'} `
+    + `${amt(worked.exact ? worked.value : Math.round(result * 1e4) / 1e4, to)}.${shift} `
     + (down ? `(A smaller unit takes more of them, so the number goes up: multiply.)`
       : `(A bigger unit takes fewer of them, so the number goes down: divide.)`);
   return { result, work, down };
@@ -237,6 +257,7 @@ const OBJECTS = [
   ['the weight of a newborn baby', 'weight', 3.4], ['the weight of a dictionary', 'weight', 1.5], ['the weight of a grain of rice', 'weight', 0.00003],
   ['the water in a full bathtub', 'capacity', 300], ['the juice in a glass', 'capacity', 0.25], ['the gas a car’s tank holds', 'capacity', 55],
   ['the medicine in a teaspoon', 'capacity', 0.005], ['the milk in a large jug', 'capacity', 3.8],
+  ['the water in a bottle', 'capacity', 0.5], ['the water in a bucket', 'capacity', 10],
 ];
 const SCALE = {
   length: [['in', 'ft', 'yd', 'mi'], ['mm', 'cm', 'm', 'km']], weight: [['oz', 'lb', 'ton'], ['mg', 'g', 'kg']],
@@ -245,9 +266,12 @@ const SCALE = {
 
 /** About how big is something: one number, read in each unit of one system. */
 // requiem: catalogue/content/units-familiarity-rows
-function estimate(rng, system) {
+// requiem: catalogue/content/benchmarks-match-the-level
+// Only things measured in the level's own kinds of unit: a length level
+// asks about lengths, before pounds and gallons have been met.
+function estimate(rng, system, kinds) {
   for (;;) {
-    const [what, kind, size] = rng.pick(OBJECTS);
+    const [what, kind, size] = rng.pick(OBJECTS.filter(([, k]) => kinds.includes(k)));
     const units = SCALE[kind][system === 'metric' ? 1 : 0];
     // The unit a size is usually given in: the one whose number is nearest 10, between 1 and 1,000.
     const fits = units.map((u) => [u, size / SIZE[u]]).filter(([, n]) => n >= 1 && n < 1000)
@@ -256,15 +280,19 @@ function estimate(rng, system) {
     const [right, n0] = fits[0];
     const n = n0 >= 20 ? Math.round(n0 / 5) * 5 : Math.round(n0 * 10) / 10 >= 10 ? Math.round(n0) : Math.max(1, Math.round(n0 * 2) / 2);
     // Every other choice must be at least three times off, so the right one is the only fair answer.
-    const others = units.filter((u) => u !== right && Math.max(n * SIZE[u] / size, size / (n * SIZE[u])) >= 3);
+    const off = (v, u) => Math.max(v * SIZE[u] / size, size / (v * SIZE[u]));
+    let others = units.filter((u) => u !== right && off(n, u) >= 3).map((u) => [n, u]);
+    // With only two units to the kind (mL and L), the third choice is the same unit a hundred times out.
+    if (others.length < 2) others = [...others, [n * 100, right], [n / 100, right]].filter(([v, u]) => v >= 0.05 && off(v, u) >= 3);
     if (others.length < 2) continue;
-    const options = rng.shuffle([right, ...others.slice(0, 3)]).map((u) => ({ id: u, label: amt(n, u) }));
+    const options = rng.shuffle([[n, right], ...others.slice(0, 3)]).map(([v, u]) => ({ id: `${plain(v)} ${u}`, label: amt(v, u), v, u }));
+    const key = `${plain(n)} ${right}`;
     return {
       prompt: [T.prose(`Which is closest to ${what}?`)],
-      text: `benchmark: ${what}; ${options.map((o) => `${plain(n)} ${o.id}`).join(', ')}`,
-      answer: { type: 'choice', value: right, options },
+      text: `benchmark: ${what}; ${options.map((o) => o.id).join(', ')}`,
+      answer: { type: 'choice', value: key, options: options.map(({ id, label }) => ({ id, label })) },
       visual: null,
-      explain: `Picture each one. ${options.filter((o) => o.id !== right).map((o) => `${o.label} is ${n * SIZE[o.id] > size ? 'far too much' : 'far too little'}`).join('; ')}. `
+      explain: `Picture each one. ${options.filter((o) => o.id !== key).map((o) => `${o.label} is ${o.v * SIZE[o.u] > size ? 'far too much' : 'far too little'}`).join('; ')}. `
         + `${amt(n, right)} is about right. So ${amt(n, right)}.`,
     };
   }
@@ -275,7 +303,7 @@ function estimate(rng, system) {
 const LENGTH_PAIRS = [['ft', 'in'], ['yd', 'ft'], ['yd', 'in'], ['mi', 'ft'], ['mi', 'yd']];
 function customaryLength(rng) {
   const r = rng.float();
-  if (r < 0.1) return estimate(rng, 'customary');
+  if (r < 0.1) return estimate(rng, 'customary', ['length']);
   if (r < 0.2) {
     const [a, ua, b, ub] = rng.pick([
       () => [rng.int(30, 45), 'in', 1, 'yd'], () => [rng.int(4, 8), 'ft', rng.int(1, 3), 'yd'],
@@ -293,7 +321,7 @@ function customaryLength(rng) {
 const WEIGHT_PAIRS = [['lb', 'oz'], ['ton', 'lb'], ['cup', 'floz'], ['pt', 'cup'], ['qt', 'pt'], ['gal', 'qt'], ['gal', 'pt'], ['gal', 'cup'], ['qt', 'cup']];
 function customaryWeight(rng) {
   const r = rng.float();
-  if (r < 0.1) return estimate(rng, 'customary');
+  if (r < 0.1) return estimate(rng, 'customary', ['weight', 'capacity']);
   if (r < 0.2) {
     const [a, ua, b, ub] = rng.pick([
       () => [rng.int(2, 5), 'qt', 1, 'gal'], () => [rng.int(20, 40), 'oz', 2, 'lb'], () => [rng.int(5, 12), 'cup', 2, 'qt'],
@@ -310,7 +338,7 @@ function customaryWeight(rng) {
 const METRIC_PAIRS = [['km', 'm'], ['m', 'cm'], ['cm', 'mm'], ['m', 'mm'], ['km', 'cm'], ['kg', 'g'], ['g', 'mg'], ['L', 'mL']];
 function metricUnits(rng) {
   const r = rng.float();
-  if (r < 0.1) return estimate(rng, 'metric');
+  if (r < 0.1) return estimate(rng, 'metric', ['length', 'weight', 'capacity']);
   if (r < 0.22) {
     const [a, ua, b, ub] = rng.pick([
       () => [rng.int(5, 15) * 100, 'g', 1, 'kg'], () => [rng.int(60, 140), 'cm', 1, 'm'], () => [rng.int(5, 15) * 100, 'mL', 1, 'L'],
@@ -352,23 +380,46 @@ function between(rng) {
     const toSide = factorOf(from, side1), offSide = factorOf(side2, to);
     const atBridge = v * toSide, across = forward ? atBridge * k : atBridge / k, result = across * offSide;
     if (result < 0.1 || result > 100000) continue;
+    // requiem: catalogue/content/rounded-factor-precision
+    // A rounded factor is good to only so many figures -- 2.2 to two, 1.61
+    // to three -- so the answer is asked to that many, and only where the
+    // exact factor gives the same answer: a student who knows 1 lb is
+    // 453.6 g is not marked wrong for knowing it.
     const tidy = isExact && ends(result, 3);
-    if (!tidy && onEdge(result, 1)) continue;
-    const answer = tidy ? answerOf(result) : roundedTo(result, 1);
-    const shown = tidy ? num(result) : fixed(result, 1);
+    // An exact factor keeps the natural precision: tenths, or hundredths under 1 (0.27 m, not 0.3 m).
+    let places = result < 1 ? 2 : 1;
+    if (!isExact) {
+      const figures = k === 2.2 ? 2 : 3;
+      places = figures - 1 - Math.floor(Math.log10(result));
+      if (places > 2) continue;
+      const exactResult = (v * SIZE[from]) / SIZE[to];
+      const at = (x) => Math.round(x * 10 ** places);
+      if (at(result) !== at(exactResult)) continue;
+    }
+    if (!tidy && onEdge(result, places)) continue;
+    const answer = tidy ? answerOf(result) : places >= 0 ? roundedTo(result, places)
+      : { type: 'decimal', value: { n: Math.round(result / 10 ** -places) * 10 ** -places, d: 1 } };
+    const shown = tidy ? num(result) : places >= 0 ? fixed(result, places) : num(answer.value.n);
+    const to_ = places > 0 ? `to ${places} decimal place${places === 1 ? '' : 's'}` : places === 0 ? 'to the nearest whole number'
+      : `to the nearest ${num(10 ** -places)} ${words(to)}`;
+    const said = places > 0 ? `to ${places} dp` : places === 0 ? 'to the nearest whole' : `to the nearest ${num(10 ** -places)}`;
     const fact = `1 ${UNIT[p][1]} ${isExact ? '=' : '≈'} ${amt(k, q)}`;
     const steps = [];
     if (from !== side1) steps.push(`First into ${words(side1)}: ${converted(v, from, side1).work.split(' (')[0]}`);
+    const mid = Math.round(across * 1e4) / 1e4, midExact = Math.abs(across - mid) < 1e-9;
     steps.push(forward
-      ? `Each ${one(p)} is ${amt(k, q)}, so multiply: ${num(atBridge)} × ${num(k)} = ${num(Math.round(across * 1e4) / 1e4)} ${UNIT[q][0]}.`
-      : `Each ${one(p)} is ${amt(k, q)}, so count how many ${num(k)}s fit: ${num(atBridge)} ÷ ${num(k)} ≈ ${num(Math.round(across * 1e4) / 1e4)} ${UNIT[p][0]}.`);
-    if (to !== side2) steps.push(`Then into ${words(to)}: ${converted(Math.round(across * 1e6) / 1e6, side2, to).work.split(' (')[0]}`);
+      ? `Each ${one(p)} is ${amt(k, q)}, so multiply: ${num(atBridge)} × ${num(k)} ${midExact ? '=' : '≈'} ${num(mid)} ${UNIT[q][0]}.`
+      : `Each ${one(p)} is ${amt(k, q)}, so count how many ${num(k)}s fit: ${num(atBridge)} ÷ ${num(k)} ${midExact ? '=' : '≈'} ${num(mid)} ${UNIT[p][0]}.`);
+    if (to !== side2) steps.push(`Then into ${words(to)}: ${converted(mid, side2, to).work.split(' (')[0]}`);
+    const why = isExact ? (tidy ? '' : `That is ${shown} ${said}. `)
+      : `The factor ${num(k)} is itself rounded, so the answer is good to only about ${k === 2.2 ? 'two' : 'three'} figures: ${shown} ${said}. `;
+    const suffix = tidy ? '' : places > 0 ? ` to ${places} dp` : places === 0 ? ' to the nearest whole' : ` to the nearest ${10 ** -places}`;
     return {
-      prompt: [T.prose(`${fact}. What is ${amt(v, from)} in ${words(to)}${tidy ? '' : ', to 1 decimal place'}?`)],
-      text: `units: ${plain(v)} ${from} to ${to} given 1 ${p} = ${plain(k)} ${q}${tidy ? '' : ' to 1 dp'}`,
+      prompt: [T.prose(`Using ${fact}, what is ${amt(v, from)} in ${words(to)}${tidy ? '' : `, ${to_}`}?`)],
+      text: `units: ${plain(v)} ${from} to ${to} given 1 ${p} = ${plain(k)} ${q}${suffix}`,
       answer,
       visual: null,
-      explain: `${steps.join(' ')} ${tidy ? '' : `That is ${shown} to 1 dp. `}`
+      explain: `${steps.join(' ')} ${why}`
         + `(${forward ? `${cap(aOne(q))} is smaller than ${aOne(p)}, so there are more of them: multiply`
           : `${cap(aOne(p))} is bigger than ${aOne(q)}, so there are fewer of them: divide`}.) So ${shown} ${UNIT[to][0]}.`,
     };
@@ -378,22 +429,35 @@ function between(rng) {
 // ── Temperature ─────────────────────────────────────────────────────────
 
 const RULE_F = 'F = (9/5)C + 32', RULE_C = 'C = (5/9)(F − 32)';
+// requiem: catalogue/content/benchmark-decoys-clearly-wrong
+// [what, about how warm in °C, decoys in °C, decoys in °F]. Every decoy is
+// far outside anything the thing really is -- at least 15°C past its whole
+// real range, and most much further -- so the key is the only fair answer.
+// One decoy in each is the other scale's number, the slip being taught.
 const PLACES = [
-  ['a cold winter night', -10], ['a room', 21], ['a hot summer day', 35], ['freezing water', 0], ['boiling water', 100],
-  ['a healthy person', 37], ['a cup of hot cocoa', 70], ['a fridge', 4], ['an oven baking bread', 200],
+  ['a cold winter night', -10, [25, 50], [70, 100]],
+  ['a cool spring morning', 10, [50, -20], [10, 100]],
+  ['a room', 21, [70, -5], [21, 120]],
+  ['a hot summer day', 35, [95, 5], [35, 160]],
+  ['a swimming pool', 26, [79, 5], [26, 130]],
+  ['a warm bath', 40, [104, 15], [40, 180]],
+  ['freezing water', 0, [32, 50], [0, 70]],
+  ['boiling water', 100, [212, 50], [100, 400]],
+  ['a healthy person', 37, [99, 20], [37, 150]],
+  ['a cup of hot cocoa', 70, [158, 20], [70, 300]],
+  ['a fridge', 4, [39, 25], [4, 75]],
+  ['a freezer', -18, [10, 40], [50, 90]],
+  ['an oven baking bread', 220, [428, 100], [220, 800]],
 ];
 
 function temperature(rng) {
   const r = rng.float();
   if (r < 0.12) {
-    const [what, c] = rng.pick(PLACES);
+    const [what, c, inC, inFahrenheit] = rng.pick(PLACES);
     const inF = rng.chance(0.5);
     const right = inF ? Math.round((c * 9) / 5 + 32) : c;
     const unit = inF ? 'F' : 'C';
-    const decoys = (inF ? [right - 40, right + 45, Math.round(c)] : [Math.round((c * 9) / 5 + 32), c + 30, c - 25])
-      .filter((v) => Math.abs((inF ? (v - 32) * 5 / 9 : v) - c) >= 15);
-    const opts = rng.shuffle([right, ...[...new Set(decoys)].slice(0, 2)]);
-    if (opts.length < 3) return temperature(rng);
+    const opts = rng.shuffle([right, ...(inF ? inFahrenheit : inC)]);
     return {
       prompt: [T.prose(`About how warm is ${what}?`)],
       text: `benchmark temperature: ${what}; ${opts.map((v) => `${v} ${unit}`).join(', ')}`,
@@ -475,14 +539,20 @@ function chain(rng) {
 }
 
 /** Rates: [top unit, bottom unit] to [top unit, bottom unit], and how they are said. */
+/** "1 gallon", "2.5 gallons". */
+const many = (v, one_, more) => `${num(v)} ${v === 1 ? one_ : more}`;
+// requiem: catalogue/content/believable-sizes
+// Each rate from what that thing really does: a car at 21-75 mph, a cyclist
+// at 11-29 ft/s (7.5-19.5 mph), a runner at 2-8 m/s, a train at 45-270
+// km/h, a garden hose at 4.5-36 L/min, a faucet pouring up to 10 cups a minute.
 const RATES = [
-  { from: ['mi', 'h'], to: ['ft', 's'], what: (v) => `A car travels at ${num(v)} miles per hour`, values: (rng) => 3 * rng.int(1, 25) },
-  { from: ['ft', 's'], to: ['mi', 'h'], what: (v) => `A cyclist rides at ${num(v)} feet per second`, values: (rng) => 11 * rng.int(1, 10) },
-  { from: ['m', 's'], to: ['km', 'h'], what: (v) => `A runner moves at ${num(v)} meters per second`, values: (rng) => rng.int(2, 40) / 2 },
-  { from: ['km', 'h'], to: ['m', 's'], what: (v) => `A train travels at ${num(v)} kilometers per hour`, values: (rng) => 9 * rng.int(1, 20) },
-  { from: ['L', 'min'], to: ['mL', 's'], what: (v) => `A hose pours ${num(v)} liters per minute`, values: (rng) => (3 * rng.int(1, 40)) / 10 },
-  { from: ['gal', 'min'], to: ['qt', 'h'], what: (v) => `A tank drains at ${num(v)} gallons per minute`, values: (rng) => rng.int(1, 20) / 2 },
-  { from: ['cup', 'min'], to: ['gal', 'h'], what: (v) => `A faucet drips ${num(v)} cups per minute`, values: (rng) => (4 * rng.int(1, 25)) / 10 },
+  { from: ['mi', 'h'], to: ['ft', 's'], what: (v) => `A car travels at ${many(v, 'mile', 'miles')} per hour`, values: (rng) => 3 * rng.int(7, 25) },
+  { from: ['ft', 's'], to: ['mi', 'h'], what: (v) => `A cyclist rides at ${many(v, 'foot', 'feet')} per second`, values: (rng) => Math.round(22 * rng.int(5, 13)) / 10 },
+  { from: ['m', 's'], to: ['km', 'h'], what: (v) => `A runner moves at ${many(v, 'meter', 'meters')} per second`, values: (rng) => rng.int(4, 16) / 2 },
+  { from: ['km', 'h'], to: ['m', 's'], what: (v) => `A train travels at ${many(v, 'kilometer', 'kilometers')} per hour`, values: (rng) => 9 * rng.int(5, 30) },
+  { from: ['L', 'min'], to: ['mL', 's'], what: (v) => `A hose pours ${many(v, 'liter', 'liters')} per minute`, values: (rng) => (3 * rng.int(15, 120)) / 10 },
+  { from: ['gal', 'min'], to: ['qt', 'h'], what: (v) => `A tank drains at ${many(v, 'gallon', 'gallons')} per minute`, values: (rng) => rng.int(1, 20) / 2 },
+  { from: ['cup', 'min'], to: ['gal', 'h'], what: (v) => `A faucet pours ${many(v, 'cup', 'cups')} per minute`, values: (rng) => (4 * rng.int(2, 25)) / 10 },
   { from: ['usd', 'lb'], to: ['cent', 'oz'], what: (v) => `Cheese costs $${money(v)} per pound`, values: (rng) => (16 * rng.int(10, 80)) / 100 },
   { from: ['cent', 'oz'], to: ['usd', 'lb'], what: (v) => `Trail mix costs ${num(v)}¢ per ounce`, values: (rng) => rng.int(10, 90) },
 ];
@@ -510,10 +580,12 @@ function crossRate(rng) {
   const mph = rng.chance(0.5);
   const v = mph ? rng.int(4, 16) * 5 : rng.int(3, 13) * 10;
   const result = mph ? v * 1.61 : v / 1.61;
-  if (onEdge(result, 0)) return crossRate(rng);
+  // requiem: catalogue/content/rounded-factor-precision
+  const exactResult = mph ? (v * SIZE.mi) / SIZE.km : (v * SIZE.km) / SIZE.mi;
+  if (onEdge(result, 0) || Math.round(result) !== Math.round(exactResult)) return crossRate(rng);
   const shown = Math.round(result);
   return {
-    prompt: [T.prose(`1 mi ≈ 1.61 km. A speed limit is ${num(v)} ${mph ? 'miles' : 'kilometers'} per hour. What is that in `
+    prompt: [T.prose(`A speed limit is ${num(v)} ${mph ? 'miles' : 'kilometers'} per hour. Using 1 mi ≈ 1.61 km, what is that in `
       + `${mph ? 'kilometers' : 'miles'} per hour, to the nearest whole number?`)],
     text: `rate: ${v} ${mph ? 'mi' : 'km'}/h to ${mph ? 'km' : 'mi'}/h given 1 mi = 1.61 km to the nearest whole`,
     answer: roundedTo(result, 0),
@@ -582,7 +654,7 @@ function squareCubic(rng) {
     answer: answerOf(c.result),
     visual: null,
     explain: `${why}${c.down ? `${amt(v, from)} × ${num(factorOf(big, small))}` : `${amt(v, from)} ÷ ${num(factorOf(big, small))}`} = ${amt(c.result, to)}. `
-      + (lin ? `(Using ${num(lin[2])} alone forgets that a ${lin[3] === 2 ? 'square has two lengths to scale' : 'cube has three lengths to scale'}.)` : '')
+      + (lin ? `(Using ${num(lin[2])} alone forgets that a ${lin[3] === 2 ? 'square has two lengths to scale' : 'cube has three lengths to scale'}.) ` : '')
       + `So ${amt(c.result, to)}.`,
   };
 }

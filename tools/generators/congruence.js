@@ -20,7 +20,7 @@ import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
 import {
   LINE, GIVEN, ASKED, FRAME, fit, outline, centroid, sideLabel, rightMark, text, toward, linear, ascii, sized,
-  fromAngles, fromSides, beside, cornerNames, ticks, arcs, cornerText, under,
+  fromAngles, fromSides, beside, cornerNames, ticks, arcs, cornerText, under, cornerLabel, dashed,
 } from './figures.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/congruence.js';
 
@@ -69,7 +69,7 @@ export function pair(rng, P, { second = rng.pick(SECOND), perm = rng.pick(PERMS.
   const turn = rng.pick([45, 60, 90, 120, 150, 180, 210, 240, 270, 300]) + rng.int(-10, 10), flip = rng.chance(0.5);
   const Q = beside(P, P, { turn, flip, scale });
   const names2 = perm.map((k) => second[k]);
-  return { P, Q, second, perm, names2, flip, statement: names2.join('') };
+  return { P, Q, second, perm, names2, flip, turn, statement: names2.join('') };
 }
 /** The corners of ABC laid out from three positions, so A is not always bottom left. */
 export function placed(rng, points, angles) {
@@ -181,7 +181,7 @@ function sideCorresponding(rng) {
     prompt: [T.prose(`△ABC ≅ △${f.statement}. AB = ${L[0]}, BC = ${L[1]} and CA = ${L[2]}. What is ${name2}?`)],
     text: `corresponding: ABC = ${f.statement}; AB ${L[0]}, BC ${L[1]}, CA ${L[2]}; find ${name2}`,
     answer: { type: 'int', value },
-    visual: drawing(f, [...labels, sideLabel(f.Q[i], f.Q[j], '?', c2, ASKED)], [sideLabel(f.Q[i], f.Q[j], `${value}`, c2, RESULT, 1.05)]),
+    visual: drawing(f, [...labels, sideLabel(f.Q[i], f.Q[j], '?', c2, ASKED)], [text_(under([...P, ...f.Q]), `${name2} = ${value}`)]),
     explain: `The order of the letters is the matching: ${matching(f)}. ${name2} joins the partners of ${ABC[i]} and ${ABC[j]}, `
       + `so it matches ${own}, which is ${value}. `
       + `(Matching by where the sides sit on the page goes wrong once the second triangle is turned or flipped.) So ${name2} = ${value}.`,
@@ -294,28 +294,28 @@ function criterionWork(crit, parts) {
   const sides = parts.filter((p) => p.side).map((p) => sideKey(...p.side));
   const angs = parts.filter((p) => p.angle !== undefined).map((p) => p.angle);
   const between = (i, j) => sideKey(i, j);
-  if (crit === 'sss') return 'All three pairs of sides are marked equal. That is SSS.';
+  if (crit === 'sss') return 'All three pairs of sides are marked equal, which is what SSS asks for.';
   if (crit === 'sas') {
     const [v] = angs;
     return `Two sides, ${sides[0]} and ${sides[1]}, are marked, and the marked angle, ∠${ABC[v]}, is at the corner where they meet: `
-      + 'the angle between them. That is SAS. (An angle at another corner would make it SSA, which proves nothing.)';
+      + 'the angle between them, as SAS asks. (An angle at another corner would make it SSA, which proves nothing.)';
   }
   if (crit === 'asa') {
     const [i, j] = angs;
     return `Two angles, ∠${ABC[i]} and ∠${ABC[j]}, are marked, and the marked side ${sides[0]} joins their corners: `
-      + 'the side between them. That is ASA. (A side not between them would make it AAS.)';
+      + 'the side between them, as ASA asks. (A side not between them would make it AAS.)';
   }
   if (crit === 'aas') {
     const [i, j] = angs;
     return `Two angles, ∠${ABC[i]} and ∠${ABC[j]}, are marked, and the marked side ${sides[0]} is not the one between them, `
-      + `which would be ${between(i, j)}. That is AAS. (Two angles fix the third, so AAS proves as much as ASA.)`;
+      + `which would be ${between(i, j)}: the pattern AAS. (Two angles fix the third, so AAS proves as much as ASA.)`;
   }
   if (crit === 'hl') {
     const r = parts.find((p) => p.right !== undefined).right;
     const hyp = sideKey(...SIDES.find(([a, b]) => a !== r && b !== r));
     const leg = sides.find((s) => s !== hyp);
     return `Both are right triangles, the right angle at ${ABC[r]}. The marked sides are the hypotenuse ${hyp}, opposite the right angle, `
-      + `and a leg ${leg}. That is HL. (Two sides and an angle not between them is usually not enough, but with a right angle `
+      + `and a leg ${leg}, as HL asks. (Two sides and an angle not between them is usually not enough, but with a right angle `
       + 'Pythagoras fixes the third side.)';
   }
   if (crit === 'ssa') {
@@ -341,6 +341,11 @@ function criterion(rng, enough, crit) {
     marks.push(...both(f, part, n));
   }
   const id = crit === 'ssa' || crit === 'aaa' ? 'none' : crit;
+  // requiem: catalogue/content/not-enough-shows-the-counterexample
+  // Drawn alike while the question is open, since a second triangle that
+  // looked different would give the answer away; on the reveal, the other
+  // triangle the same marks allow is drawn dashed over the second one.
+  const other = id === 'none' ? counterexample(crit, m, f) : [];
   const listed = m.parts.map(partKey).join(', ');
   return {
     prompt: [T.prose(enough
@@ -348,9 +353,40 @@ function criterion(rng, enough, crit) {
       : `The marks show which parts of △ABC and △${f.statement} are equal. Which criterion proves the triangles congruent?`)],
     text: `${enough ? 'enough' : 'criterion'}: ABC = ${f.statement}; ${listed}`,
     answer: { type: 'choice', value: id, options: enough ? [...OPTIONS, NONE] : OPTIONS },
-    visual: drawing(f, marks, [text_(under([...f.P, ...f.Q]), VERDICT[crit] === 'not enough' ? 'Not enough' : VERDICT[crit])]),
-    explain: `${criterionWork(crit, m.parts)} So ${VERDICT[crit] === 'not enough' ? 'not enough' : VERDICT[crit]}.`,
+    visual: drawing(f, marks, [...other, text_(under([...f.P, ...f.Q]), VERDICT[crit] === 'not enough' ? 'Not enough' : VERDICT[crit])]),
+    explain: `${criterionWork(crit, m.parts)} So ${VERDICT[crit] === 'not enough' ? 'not enough' : `the triangles are congruent by ${VERDICT[crit]}`}.`,
   };
+}
+/** Where a point of the first triangle lands on the second: the same mix of its corners. */
+function carried(P, Q, X) {
+  const [a, b, c] = P, det = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]);
+  const u = ((X[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (X[1] - a[1])) / det;
+  const v = ((b[0] - a[0]) * (X[1] - a[1]) - (X[0] - a[0]) * (b[1] - a[1])) / det;
+  return [0, 1].map((k) => Math.round((Q[0][k] + u * (Q[1][k] - Q[0][k]) + v * (Q[2][k] - Q[0][k])) * 100) / 100);
+}
+/**
+ * The triangle the same marks also allow, dashed over the second: for SSA
+ * the side facing the angle swung to its other place on the angle's arm; for
+ * AAA the same angles, larger.
+ */
+function counterexample(crit, m, f) {
+  const P = m.pts, Q = f.Q, tone = RESULT;
+  const line = (A, B) => ({ ...dashed(A, B), tone });
+  if (crit === 'ssa') {
+    const { v, near, far } = m.info, V = P[v], N = P[near], F = P[far];
+    const len = Math.hypot(F[0] - V[0], F[1] - V[1]), d = [(F[0] - V[0]) / len, (F[1] - V[1]) / len];
+    const facing = Math.hypot(F[0] - N[0], F[1] - N[1]);
+    // On the arm V→F, the points `facing` from N: t² − 2t(d·VN) + |VN|² − facing² = 0, one root being F itself.
+    const c = (N[0] - V[0]) ** 2 + (N[1] - V[1]) ** 2 - facing ** 2;
+    const t2 = c / len;                                  // the product of the two roots is c
+    const F2 = carried(P, Q, [V[0] + t2 * d[0], V[1] + t2 * d[1]]);
+    return [line(Q[near], F2), line(Q[v], F2)];
+  }
+  // A smaller copy inside the second triangle, sharing a corner: the same angles, a different size, and it
+  // stays inside the frame and off the other triangle, where an enlargement ran into both.
+  const k = 0.6, V = Q[0];
+  const big = Q.map((q) => [Math.round((V[0] + k * (q[0] - V[0])) * 100) / 100, Math.round((V[1] + k * (q[1] - V[1])) * 100) / 100]);
+  return [line(big[0], big[1]), line(big[1], big[2]), line(big[2], big[0])];
 }
 const whichCriterion = (rng) => criterion(rng, false, rng.pick(CRITERIA));
 function enoughOrNot(rng) {
@@ -457,7 +493,7 @@ function isosceles(rng) {
     const P = fromSides(5, 5, 5);
     const c = centroid(P);
     const marks = [...outline(P), ...cornerNames(P, ABC), ...SIDES.flatMap(([i, j]) => ticks(P[i], P[j], 1)),
-      cornerText(P[v], P[(v + 1) % 3], P[(v + 2) % 3], sized(e))];
+      ...cornerLabel(P[v], P[(v + 1) % 3], P[(v + 2) % 3], sized(e), GIVEN, { k: 1.2, away: c })];
     const s = solve(e, [0, 60]);
     return {
       prompt: [T.prose(`△ABC is equilateral, and ∠${ABC[v]} = ${sized(e)}. What is x?`)],
@@ -556,8 +592,9 @@ function useIt(rng) {
   const listed = rng.shuffle([[name2(k), e2], [name2(d), e3]]);
   const c1 = centroid(P), c2 = centroid(f.Q);
   const at = (T, v) => [T[v], T[(v + 1) % 3], T[(v + 2) % 3]];
-  const label = (T, i, e, c) => (bySide ? sideLabel(T[SIDES[i][0]], T[SIDES[i][1]], linear(...e), c) : cornerText(...at(T, i), `${linear(...e)}°`));
-  const marks = [label(P, k, e1, c1), label(f.Q, k, e2, c2), label(f.Q, d, e3, c2)];
+  const label = (T, i, e, c) => (bySide ? [sideLabel(T[SIDES[i][0]], T[SIDES[i][1]], linear(...e), c)]
+    : cornerLabel(...at(T, i), sized(e), GIVEN, { k: 1.15, away: c }));
+  const marks = [...label(P, k, e1, c1), ...label(f.Q, k, e2, c2), ...label(f.Q, d, e3, c2)];
   const value = values[k];
   const unit = bySide ? '' : '°';
   return {

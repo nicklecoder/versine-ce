@@ -19,6 +19,7 @@
 import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/coord-geometry.js';
+import { namePoints, sideLabel, centroid } from './figures.js';
 
 const LINE = 'var(--vec-1)', GIVEN = 'var(--vec-2)', RESULT = 'var(--result)';
 const SPAN = 9;
@@ -120,7 +121,7 @@ function perimeter(rng, exact = rng.chance(0.4)) {
   const count = rng.chance(0.65) ? 3 : 4;
   for (;;) {
     const P = exact ? wholeShape(rng) : Array.from({ length: count }, () => randPt(rng, 7));
-    const sides = P.length;
+    const sides = P.length, q = (i) => P[(i + 1) % sides];
     // Convex and in order round, every side at least 2 long.
     const cross = P.map((p, i) => {
       const q = P[(i + 1) % sides], r = P[(i + 2) % sides];
@@ -136,23 +137,36 @@ function perimeter(rng, exact = rng.chance(0.4)) {
     if (!whole) {
       const tenths = total * 10;
       if (Math.abs(tenths - Math.floor(tenths) - 0.5) < 0.02) continue;      // too near a rounding edge
+      // requiem: catalogue/content/round-only-at-the-end
+      // The prompt says to round only at the end, and this level is about the
+      // distance formula, not about early rounding: so no row where rounding
+      // each side first would land on another tenth.
+      const early = work.reduce((t, [L]) => t + Math.round(L * 10), 0);
+      if (early !== Math.round(tenths)) continue;
     }
     const shape = sides === 3 ? 'triangle' : 'quadrilateral';
     const answer = whole ? { type: 'decimal', value: { n: total, d: 1 } }
       : { type: 'decimal', value: { n: Math.round(total * 10), d: 10, places: 1 } };
     const shown = whole ? `${total}` : (Math.round(total * 10) / 10).toFixed(1);
-    const labels = P.map((p, i) => {
-      const q = P[(i + 1) % sides];
-      return { kind: 'text', at: [(p[0] + q[0]) / 2 + 0.6, (p[1] + q[1]) / 2 + 0.4], label: root(d2(p, q)), tone: RESULT };
+    const labels = P.map((p, i) => sideLabel(p, P[(i + 1) % sides], root(d2(p, q(i))), centroid(P), RESULT, 0.55));
+    // Right triangles on the slanted sides: the run and the rise the formula
+    // uses. A leg that is already a side of the shape is not drawn again.
+    const along = (A, B) => P.some((p, i) => {
+      const Q = q(i);
+      if (p[0] === Q[0] && A[0] === p[0] && B[0] === p[0]) return Math.min(A[1], B[1]) >= Math.min(p[1], Q[1]) && Math.max(A[1], B[1]) <= Math.max(p[1], Q[1]);
+      if (p[1] === Q[1] && A[1] === p[1] && B[1] === p[1]) return Math.min(A[0], B[0]) >= Math.min(p[0], Q[0]) && Math.max(A[0], B[0]) <= Math.max(p[0], Q[0]);
+      return false;
     });
-    // Right triangles on the slanted sides: the run and the rise the formula uses.
     const legs = P.flatMap((p, i) => {
-      const q = P[(i + 1) % sides];
-      if (p[0] === q[0] || p[1] === q[1]) return [];
-      return [seg(p, [q[0], p[1]], GIVEN, { dashed: true }), seg([q[0], p[1]], q, GIVEN, { dashed: true })];
+      const Q = q(i);
+      if (p[0] === Q[0] || p[1] === Q[1]) return [];
+      // The legs go on the shape's side of the slanted side, so its length, labelled outside, stays clear of them.
+      const c = centroid(P), far = (k) => Math.hypot(k[0] - c[0], k[1] - c[1]);
+      const k = [[Q[0], p[1]], [p[0], Q[1]]].sort((u, v) => far(u) - far(v))[0];
+      return [[p, k], [k, Q]].filter(([A, B]) => !along(A, B)).map(([A, B]) => seg(A, B, GIVEN, { dashed: true }));
     });
     return {
-      prompt: [T.prose(`What is the perimeter of the ${shape} ${P.map((_, i) => NAMES[i]).join('')} with ${listed(P)}${whole ? '' : ', to 1 decimal place'}?`)],
+      prompt: [T.prose(`What is the perimeter of the ${shape} ${P.map((_, i) => NAMES[i]).join('')} with ${listed(P)}${whole ? '?' : ', to 1 decimal place? Round only at the end.'}`)],
       text: `perimeter: ${P.map(ascii).join(', ')}${whole ? '' : ' to 1 dp'}`,
       answer,
       visual: { ...PLANE, marks: [polygon(P), ...corners(P)], answer: [...legs, ...labels] },
@@ -275,13 +289,18 @@ function slopes(rng) {
     // Not on the line AB itself, for the parallel case.
     if (!perp && (C[0] - A[0]) * rise === (C[1] - A[1]) * run) continue;
     const mAB = slopeText(rise, run), want = slopeText(dir[1], dir[0]);
+    // At the top of the line, or its foot if a point is up there.
+    const side = D[0] > 5 ? -1.6 : 1.6, high = [A, B, C, D].some((p) => p[1] > 6 && Math.abs(p[0] - (D[0] + side)) < 2.6);
+    const lineName = [D[0] + side, high ? -SPAN + 0.6 : SPAN - 0.6];
     const dx = D[0] - C[0];
     return {
       prompt: [T.prose(`A ${pt(A)}, B ${pt(B)}, C ${pt(C)} and D (${num(D[0])}, k). CD is ${perp ? 'perpendicular' : 'parallel'} to AB. What is k?`)],
       text: `k for ${perp ? 'perpendicular' : 'parallel'}: ${ascii(A)}, ${ascii(B)}, ${ascii(C)}, x = ${D[0]}`,
       answer: { type: 'int', value: D[1] },
       visual: { ...PLANE, marks: [seg(A, B), point(A, 'A'), point(B, 'B'), point(C, 'C'),
-        seg([D[0], -SPAN], [D[0], SPAN], GIVEN, { dashed: true, label: `x = ${num(D[0])}` })],
+        seg([D[0], -SPAN], [D[0], SPAN], GIVEN, { dashed: true }),
+        // The line's name at its top, beside it, rather than at its middle where the axis and the points are.
+        { kind: 'text', at: lineName, label: `x = ${num(D[0])}`, tone: GIVEN }],
         answer: [seg(C, D, RESULT), point(D, 'D', RESULT)] },
       explain: `The slope of AB is rise over run: ${num(rise)} ÷ ${br(run)} = ${mAB}. `
         + (perp ? `Perpendicular slopes multiply to −1, so CD's slope is the negative reciprocal: ${want}. ${Math.abs(rise) === Math.abs(run) ? '(Turned over, 1 stays 1, so here only the sign changes.) ' : `(Only changing the sign, ${slopeText(-rise, run)}, is not enough: it must be turned over too.) `}`
@@ -336,7 +355,7 @@ function classify(rng, want = rng.pick(KINDS).id) {
       text: `classify triangle: ${P.map(ascii).join(', ')}`,
       answer: { type: 'choice', value: want, options: KINDS },
       visual: { ...PLANE, marks: [polygon(P), ...corners(P)],
-        answer: P.map((p, i) => { const q = P[(i + 1) % 3]; return { kind: 'text', at: [(p[0] + q[0]) / 2 + 0.6, (p[1] + q[1]) / 2 + 0.4], label: root(s[i]), tone: RESULT }; }) },
+        answer: P.map((p, i) => sideLabel(p, P[(i + 1) % 3], root(s[i]), centroid(P), RESULT, 0.55)) },
       explain: `${lengths}${isoWords}${rightWords}So ${KINDS.find((k) => k.id === want).label.toLowerCase()}.`,
     };
   }
@@ -370,6 +389,8 @@ const CONTENT = [(rng) => midpoint(rng), (rng) => perimeter(rng), partition, are
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
   const p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
+  // requiem: catalogue/content/point-names-outside-the-shape
+  p.visual = namePoints(p.visual);
   p.parSeconds = PAR_SECONDS[level];
   return p;
 }
