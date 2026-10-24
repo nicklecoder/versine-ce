@@ -5967,6 +5967,21 @@ BY_RULE += (
     (re.compile(r"^compose: (sin|cos|tan)\(a(sin|cos|tan)\((-?\d+)/(\d+)\)\)$"), te_compose),
 )
 
+# requiem: catalogue/content/choice-labels-distinct
+# Two options that read the same are one option shown twice: the right one
+# twice made a free guess of a half, a wrong one twice a decoy wasted. Held
+# for trig-equations, domain-range, radical-eq and composition, whose options
+# are built from sets, families and polynomials that can print alike.
+for path in sorted(LIB.glob("*.json")):
+    if not path.stem.rsplit("-", 1)[0] in ("trig-equations", "domain-range", "radical-eq", "composition"):
+        continue
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "choice":
+            continue
+        labels = [json.dumps(o["label"], ensure_ascii=False) for o in p["answer"]["options"]]
+        if len(set(labels)) != len(labels):
+            problems.append(f"{path.stem} row {i}: two options read the same, {labels}")
+
 # --- Domain & Range ----------------------------------------------------------
 #
 # A formula's domain is found by trying it, in exact rationals, at every
@@ -6151,8 +6166,43 @@ def dr_kind(unit: str, most: str, each: str, listing: str) -> str:
     return fit[0] if len(fit) == 1 else f"{len(fit)} options are {want}"
 
 
+# requiem: catalogue/content/piecewise-and-step-ask-domain-range
+def dr_rules(listing: str) -> list:
+    """Each piece's rule and its condition, a chain like -3 <= x < 2."""
+    out = []
+    for piece in listing.split("; "):
+        expr, cond = piece.split(" if ")
+        assert re.fullmatch(r"-?\d+ <=? x <=? -?\d+", cond), cond
+        out.append((dr_fn(expr), cond))
+    return out
+
+
+def dr_holds(cond: str, x) -> bool:
+    return eval(cond, {"__builtins__": {}}, {"x": x})
+
+
+def dr_piecewise_domain(listing: str) -> frozenset:
+    rules = dr_rules(listing)
+    return frozenset(x for x in SAMPLES_ON_LINE if any(dr_holds(c, x) for _, c in rules))
+
+
+def dr_values(listing: str) -> OnGrid:
+    """Every height f reaches, found by trying it at every twelfth its
+    conditions allow: a line's height at a half is reached at a twelfth, a
+    floor's at the first x of its step, and nothing else is reached."""
+    seen = set()
+    for f, cond in dr_rules(listing):
+        for x in DR_X:
+            if dr_holds(cond, x):
+                seen.add(Fraction(f(x)))
+    return on_grid(seen & set(DR_Y), DR_Y)
+
+
 SET_RULES += (
     (re.compile(r"^domain: (.+)$"), dr_domain),
+    (re.compile(r"^piecewise domain: (.+)$"), dr_piecewise_domain),
+    (re.compile(r"^piecewise range: (.+)$"), dr_values),
+    (re.compile(r"^step range: (.+)$"), dr_values),
     (re.compile(r"^range: (.+)$"), dr_range),
     (re.compile(r"^graph (domain|range): (.+)$"), dr_graph),
     (re.compile(r"^context domain: (.+) >= 0, t >= 0$"), dr_context),
@@ -6201,7 +6251,8 @@ for path in sorted(LIB.glob("domain-range-*.json")):
 # one formula into the other as a string -- every x in f replaced by "(g)" --
 # so the evaluator does the algebra and no rule for multiplying out is shared
 # with the generator. A polynomial answer is compared by its coefficients and
-# must be expanded and collected; a number must be a plain integer.
+# must be expanded and collected; a number is a whole number in its own box.
+# A domain is found by trying f(g(x)) itself, unsimplified, along the line.
 
 def cf_into(outer: str, inner: str) -> str:
     return re.sub(r"x", f"({inner})", outer)
@@ -6216,20 +6267,24 @@ def cf_compose(f: str, g: str, outer: str, inner: str, answer: str) -> str:
     return same_polynomial(cf_into(fs[outer], fs[inner]), answer)
 
 
-def cf_number(want: Fraction, answer: str) -> str:
-    if not re.fullmatch(r"-?\d+", answer.strip()):
-        return "is not a plain number"
-    return "ok" if Fraction(answer) == want else f"is not {want}"
-
-
-def cf_at(f: str, g: str, outer: str, inner: str, a: str, answer: str) -> str:
+# f(g(2)) is a whole number, typed in the whole-number box.
+def cf_at(f: str, g: str, outer: str, inner: str, a) -> Fraction:
     fs = {"f": f, "g": g}
-    return cf_number(at(fs[outer], {"x": at(fs[inner], {"x": Fraction(int(a))})}), answer)
+    return at(fs[outer], {"x": at(fs[inner], {"x": Fraction(int(a))})})
 
 
-def cf_table(f: str, g: str, outer: str, inner: str, a: str, answer: str) -> str:
+def cf_table(f: str, g: str, outer: str, inner: str, a) -> Fraction:
     fs = {"f": [int(v) for v in f.split(", ")], "g": [int(v) for v in g.split(", ")]}
-    return cf_number(Fraction(fs[outer][fs[inner][int(a)]]), answer)
+    return Fraction(fs[outer][fs[inner][int(a)]])
+
+
+# requiem: catalogue/content/composition-domain-level
+def cf_domain(f: str, g: str) -> OnGrid:
+    """Every twelfth at which f(g(x)), written out with g in brackets in
+    place of f's x, can be worked out: g's own limits and f's on g(x) come
+    from the evaluation itself, never from simplifying."""
+    h = dr_fn(cf_into(f, g))
+    return on_grid({x for x in DR_X if dr_defined(h, x)}, DR_X)
 
 
 def cf_coefficients(src: str) -> list:
@@ -6288,10 +6343,17 @@ def cf_same(f: str, g: str) -> str:
 EXPR_RULES += (
     (re.compile(r"^combine: f\(x\) = (.+); g\(x\) = (.+); \(f ([-+*]) g\)\(x\)$"), cf_combine),
     (re.compile(r"^compose: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\(x\)\)$"), cf_compose),
-    (re.compile(r"^compose at: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\((-?\d+)\)\)$"), cf_at),
-    (re.compile(r"^compose table: f ([\d, ]+) \| g ([\d, ]+); ([fg])\(([fg])\((\d)\)\)$"), cf_table),
     (re.compile(r"^decompose inner: h\(x\) = (.+); f\(x\) = (.+)$"), cf_inner),
     (re.compile(r"^decompose outer: h\(x\) = (.+); g\(x\) = (.+)$"), cf_outer),
+)
+
+BY_RULE += (
+    (re.compile(r"^compose at: f\(x\) = (.+); g\(x\) = (.+); ([fg])\(([fg])\((-?\d+)\)\)$"), cf_at),
+    (re.compile(r"^compose table: f ([\d, ]+) \| g ([\d, ]+); ([fg])\(([fg])\((\d)\)\)$"), cf_table),
+)
+
+SET_RULES += (
+    (re.compile(r"^compose domain: f\(x\) = (.+); g\(x\) = (.+)$"), cf_domain),
 )
 
 CHOICE_RULES += (

@@ -11,6 +11,9 @@ relationships:
     - to: catalogue/content/prompt-names-wanted-form
       type: refines
       via: batch
+    - to: catalogue/content/answer-stated-as-typed
+      type: supersedes
+      via: link
 ---
 
 An explanation never states its answer in a form the answer box would refuse: a student who copies it back must be marked right. rational-expr's Excluded Values once ended 'So x = −5 and x = 0 are excluded', which the solutions box refuses ('x cannot be both at once'), and now ends 'So it is undefined at x = −5 or x = 0'.
