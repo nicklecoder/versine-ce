@@ -212,6 +212,7 @@ export function canonical(node) {
   return negative ? `-(${body})` : body;
 }
 
+// requiem: play/answers/signs-lifted-out
 /**
  * A node's canonical body, with its sign lifted out to the front.
  *
@@ -268,6 +269,13 @@ function signed(node) {
         gather(node, false);
         parts.sort();
         return [false, `(${parts.join('+')})`];
+      }
+      // A quotient's sign comes out the same way a product's does: −4/x²,
+      // −(4/x²) and 4/(−x²) are one answer.
+      if (node.op === '/') {
+        const [na, a] = signed(node.a);
+        const [nb, b] = signed(node.b);
+        return [na !== nb, `(${a}/${b})`];
       }
       return [false, `(${canonical(node.a)}${node.op}${canonical(node.b)})`];
     }

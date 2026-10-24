@@ -64,11 +64,14 @@ for (const [src, mustNot] of [['4/8', '1/2'], ['2+3', '5'], ['sqrt(4)', '2'], ['
 // ── 3. Judged the same, and judged apart ─────────────────────────────────
 for (const [a, b] of [['x+1', '1+x'], ['2x', 'x*2'], ['x-1', '-1+x'],
                       ['5sqrt(2)', 'sqrt(2)*5'], ['a+b+c', 'c+b+a'], ['2.0', '2'],
+                      // requiem: play/answers/signs-lifted-out
                       // A leading minus is read as (−2)·x, a subtraction as minus 2·x:
                       // the same expression, and once refused as a wrong answer.
                       ['-2x+3', '3-2x'], ['-(-x)', 'x'], ['10-3a', '-3a+10'],
                       // Letters side by side are a product, as on paper.
-                      ['6ab', '6ba'], ['3xy^2', '3y^2x'], ['xyz', 'x*y*z']]) {
+                      ['6ab', '6ba'], ['3xy^2', '3y^2x'], ['xyz', 'x*y*z'],
+                      // And a quotient's sign comes out as a product's does.
+                      ['-4/x^2', '-(4/x^2)'], ['-4/x^2', '4/(-x^2)']]) {
   if (canon(a) !== canon(b)) fail.push(`${a} and ${b} should be accepted for each other`);
 }
 for (const [a, b] of [['a-b', 'b-a'], ['1/2', '2^-1'], ['x-1', 'x+1'], ['2/x', 'x/2'], ['-3x', '3x'],
