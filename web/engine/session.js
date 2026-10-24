@@ -114,7 +114,15 @@ export class Session {
     // (x + 3)² and (x + 3)(x + 3) are both a finished factorisation, and
     // comparing canonical forms alone cannot see that a power is a product.
     const forms = [spec.value, ...(spec.accept ?? []).map((a) => type.parse(a)).filter((r) => r.ok).map((r) => r.value)];
-    if (!forms.some((v) => type.equals(parsed.value, v))) return this.#wrong();
+    if (!forms.some((v) => type.equals(parsed.value, v))) {
+      // requiem: play/answers/percent-typed-as-decimal
+      // Asked for a percent, 0.34 for 34 is the right amount in the wrong
+      // units: said so, rather than a bare "not quite".
+      if (spec.percent && parsed.value?.d && type.equals({ n: parsed.value.n * 100, d: parsed.value.d }, spec.value)) {
+        return { ...this.#wrong(), hint: `${String(raw).trim()} is the decimal. The question asks for a percent.` };
+      }
+      return this.#wrong();
+    }
 
     // Right value said in a way that does not answer this question, such as
     // the wrong letter: told why, the same as a form not finished.

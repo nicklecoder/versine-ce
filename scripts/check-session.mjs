@@ -344,6 +344,28 @@ for (const skill of SKILLS) {
   }
 }
 
+// requiem: play/answers/decimal-in-a-fraction-box
+// A right decimal in the fraction boxes is told to be a fraction; a wrong one is wrong.
+// requiem: play/answers/percent-typed-as-decimal
+// Asked for a percent, the same amount as a decimal is told so.
+{
+  const skill = SKILLS.find((s) => s.id === 'frac-addsub');
+  const play = (problem, raw) => {
+    const s = new Session({ skill, level: 0, mode: MODES.practice, onEvent() {} });
+    s.deal = () => problem;
+    s.start();
+    return s.submit(raw);
+  };
+  const quarter = { ...libOf(skill, 0).problems[0], answer: { type: 'frac', value: { n: 1, d: 4 }, accept: ['1/4'] } };
+  const right = play(quarter, '0.25');
+  if (right.status !== 'wrong' || !/as a fraction/.test(right.hint ?? '')) fail.push('frac box: a right 0.25 was not told to be a fraction');
+  if (play(quarter, '0.3').hint) fail.push('frac box: a wrong decimal was given the fraction hint');
+  const pct = { ...quarter, answer: { type: 'decimal', value: { n: 34, d: 1 }, accept: ['34'], percent: true } };
+  const r = play(pct, '0.34');
+  if (r.status !== 'wrong' || !/asks for a percent/.test(r.hint ?? '')) fail.push('percent: 0.34 for 34% was not told it is the decimal');
+  if (play(pct, '34').status !== 'correct') fail.push('percent: 34 refused');
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

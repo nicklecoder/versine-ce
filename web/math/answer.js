@@ -68,6 +68,15 @@ defineType({
     const s = normalize(raw);
     // A whole number is a fraction over one -- accept it rather than nitpick.
     if (/^[+-]?\d+$/.test(s)) return { ok: true, value: { n: parseInt(s, 10), d: 1 } };
+    // requiem: play/answers/decimal-in-a-fraction-box
+    // A decimal is read for its value, so a right one is told to be written
+    // as a fraction instead of being marked wrong as a different number.
+    const dm = s.match(/^([+-]?)(\d*)\.(\d+)$/);
+    if (dm) {
+      const d = 10 ** dm[3].length;
+      const n = (parseInt(dm[2] || '0', 10) * d + parseInt(dm[3], 10)) * (dm[1] === '-' ? -1 : 1);
+      return { ok: true, value: { n, d }, decimal: true };
+    }
     const m = s.match(/^([+-]?\d+)\/(\d+)$/);
     if (!m) return { ok: false };
     const d = parseInt(m[2], 10);
@@ -75,6 +84,7 @@ defineType({
     return { ok: true, value: { n: parseInt(m[1], 10), d } };
   },
   equals: (a, b) => a.n * b.d === b.n * a.d,
+  formHint: (parsed) => (parsed.decimal ? 'That is the right value as a decimal. Write it as a fraction instead.' : null),
   /** Stacked notation, matching how the question is written. */
   html: (v) => (v.d === 1 ? String(v.n)
     : `<span class="frac-term"><span class="fn">${v.n}</span>`

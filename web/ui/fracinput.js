@@ -28,7 +28,10 @@ export function fracInput(spec, opts = {}) {
     oninput: (e) => {
       // A denominator is never negative, so it does not keep a minus at all.
       const clean = signable
-        ? e.target.value.replace(/[−–—]/g, '-').replace(/[^0-9-]/g, '').replace(/(?!^)-/g, '')
+        // The top keeps one point: a decimal typed here is answered with a
+        // hint, where stripping the point turned 0.25 into 25 and marked it.
+        ? e.target.value.replace(/[−–—]/g, '-').replace(/[^0-9.-]/g, '').replace(/(?!^)-/g, '')
+          .replace(/(\..*)\./g, '$1')
         : e.target.value.replace(/[^0-9]/g, '');
       if (clean !== e.target.value) e.target.value = clean;
     },
