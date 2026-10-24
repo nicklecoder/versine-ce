@@ -456,7 +456,10 @@ function wholeSd(rng, lo, hi) {
 function sdLevel(rng) {
   const mode = rng.pick(['find', 'find', 'find', 'compare', 'change']);
   if (mode === 'change') {
-    const k = rng.int(2, 9), times = rng.chance(0.5), sd = rng.int(2, 9);
+    const k = rng.int(2, 9), times = rng.chance(0.5);
+    // requiem: catalogue/content/choice-labels-distinct
+    // 2 + 2 and 2 × 2 are both 4, which would print one option twice.
+    const sd = k === 2 ? rng.int(3, 9) : rng.int(2, 9);
     const want = times ? 'times' : 'same';
     const opts = [{ id: 'same', label: `It stays ${sd}` }, { id: 'plus', label: `It becomes ${sd + k}` }, { id: 'times', label: `It becomes ${sd * k}` }];
     return {
