@@ -404,6 +404,7 @@
     "mixed",
     "decimal",
     "expr",
+    "equivalent",
     "choice",
     "linear",
     "rule",

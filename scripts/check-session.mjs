@@ -366,6 +366,113 @@ for (const skill of SKILLS) {
   if (play(pct, '34').status !== 'correct') fail.push('percent: 34 refused');
 }
 
+// requiem: play/answers/equivalent-judged-by-value
+// requiem: play/answers/equivalent-finished-form
+// Judged by value: every finished spelling is right, an unfinished one is
+// told so and costs the attempt, and a different function is wrong.
+{
+  const playAt = (skillId, level, problem) => (raw) => {
+    const skill = SKILLS.find((s) => s.id === skillId);
+    const s = new Session({ skill, level, mode: MODES.practice, onEvent() {} });
+    s.deal = () => problem;
+    s.start();
+    const r = s.submit(raw);
+    return { ...r, attempts: s.attempts };
+  };
+  const row = (skillId, level, answer, text = 'test') => ({ ...libOf(SKILLS.find((s) => s.id === skillId), level).problems[0], text,
+    answer: { type: 'equivalent', value: answer, accept: [answer], requireSimplest: true } });
+  const CASES = [
+    ['inverses', 1, '(x - 3)/2', ['x/2 - 3/2', '0.5x - 1.5', '(1/2)(x - 3)', 'y = (x - 3)/2', 'f⁻¹(x) = x/2 − 3/2', '(3 - x)/(-2)'], ['x/2 - 6/4', '(2x - 6)/4'], ['(x + 3)/2', 'x/2 - 3']],
+    ['inverses', 1, 'root(3, x - 5)', ['(x - 5)^(1/3)', 'y = root(3, x - 5)'], [], ['root(3, x) - 5', 'root(3, x + 5)']],
+    ['rational-expr', 3, '(-x - 6)/(x + 4)', ['-(x + 6)/(x + 4)', '(x + 6)/(-x - 4)', '(-x-6)/(4+x)'], ['(2x + 2 - 3x - 8)/(x + 4)', '(2x + 2)/(x + 4) - (3x + 8)/(x + 4)'], ['(x + 6)/(x + 4)']],
+    ['rational-expr', 4, '(2x + 5)/((x + 1)(x + 4))', ['(2x + 5)/(x^2 + 5x + 4)', '(5 + 2x)/((x + 4)(x + 1))'], ['(4x + 10)/(2x^2 + 10x + 8)', '1/(x + 1) + 1/(x + 4)'], ['(2x + 5)/((x + 1)(x - 4))']],
+    ['rational-expr', 0, '(x + 3)/(x - 1)', [], ['(x + 2)(x + 3)/((x + 2)(x - 1))', '(x^2 + 5x + 6)/(x^2 + x - 2)'], ['x + 3']],
+  ];
+  for (const [skillId, level, key, right, unfinished, wrong] of CASES) {
+    const play = playAt(skillId, level, row(skillId, level, key));
+    for (const raw of [key, ...right]) {
+      const r = play(raw);
+      if (r.status !== 'correct') fail.push(`equivalent: "${raw}" for ${key} was ${r.status}${r.hint ? ` — ${r.hint}` : ''}`);
+    }
+    for (const raw of unfinished) {
+      const r = play(raw);
+      if (r.status !== 'wrong' || !r.hint?.includes('simplest form') || r.attempts !== 1) fail.push(`equivalent: unfinished "${raw}" for ${key} not told so (${r.status}, ${r.hint})`);
+    }
+    for (const raw of wrong) {
+      const r = play(raw);
+      if (r.status !== 'wrong' || r.hint) fail.push(`equivalent: "${raw}" was not plainly wrong for ${key} (${r.status}, ${r.hint})`);
+    }
+  }
+  // Every stored answer of the type is itself finished: a student typing it is right.
+  for (const skill of SKILLS) {
+    for (let level = 0; level < skill.levels.length; level++) {
+      for (const p of libOf(skill, level)?.problems ?? []) {
+        if (p.answer.type !== 'equivalent') continue;
+        const r = playAt(skill.id, level, p)(p.answer.accept[0]);
+        if (r.status !== 'correct') { fail.push(`${skill.id} L${level + 1}: its own "${p.answer.accept[0]}" was ${r.status} — ${r.hint}`); break; }
+      }
+    }
+  }
+}
+
+// requiem: play/answers/expression-name-prefix-stripped
+// y = and f(x) = in front of an expression are its name, not part of it.
+{
+  const expr = getType('expr');
+  for (const raw of ['y = 2x + 1', 'f(x) = 2x + 1', 'f⁻¹(x) = 2x + 1', 'f^-1(x)=2x+1', 'g(x) = 1 + 2x']) {
+    const r = expr.parse(raw);
+    if (!r.ok || !expr.equals(r.value, '2x + 1')) fail.push(`expr: "${raw}" was not read as 2x + 1`);
+  }
+  if (expr.parse('x = 2x + 1').ok) fail.push('expr: "x = 2x + 1" was read as an expression');
+}
+
+// requiem: play/answers/signs-lifted-out
+// A sum's sign comes out as a product's does; it is still no arithmetic.
+{
+  const expr = getType('expr');
+  const same = (a, b) => expr.equals(a, b);
+  for (const [a, b] of [['-(x + 6)', '-x - 6'], ['3 - x', '-(x - 3)'], ['-(x + 6)/(x + 4)', '(-x - 6)/(x + 4)'], ['(2 - x)(x - 3)', '-(x - 2)(x - 3)']]) {
+    if (!same(a, b)) fail.push(`expr: "${a}" was not accepted for ${b}`);
+  }
+  for (const [a, b] of [['x + 1', '-x - 1'], ['x - 1', '1 - x'], ['5', '2 + 3']]) {
+    if (same(a, b)) fail.push(`expr: "${a}" was accepted for ${b}`);
+  }
+}
+
+// requiem: play/answers/set-comma-after-not-equal
+// requiem: play/answers/set-all-but-points-shown
+// requiem: play/answers/set-complement-told
+{
+  const sets = getType('solutions');
+  const read = (raw) => sets.parse(raw);
+  const want = read('x != -2 and x != 6').value;
+  for (const raw of ['x ≠ −2, 6', 'x != -2, x != 6', 'x ≠ -2 and 6', 'x != 6, -2']) {
+    const r = read(raw);
+    if (!r.ok || !sets.equals(r.value, want)) fail.push(`solutions: "${raw}" was not read as x ≠ −2 and x ≠ 6`);
+  }
+  const hole = read('x ≥ −1, x ≠ 1');
+  if (!hole.ok || !sets.equals(hole.value, read('x >= -1 and x != 1').value)) fail.push('solutions: "x ≥ −1, x ≠ 1" was not read as a ray with a hole');
+  if (read('x > -2, x < 5').ok) fail.push('solutions: "x > −2, x < 5" was read, when its comma could mean either');
+  if (sets.format(want) !== 'x ≠ −2 and x ≠ 6') fail.push(`solutions: every number but −2 and 6 shown as "${sets.format(want)}"`);
+  const back = read(sets.format(want));
+  if (!back.ok || !sets.equals(back.value, want)) fail.push('solutions: "x ≠ −2 and x ≠ 6" does not read back');
+
+  const skill = SKILLS.find((s) => s.id === 'rational-expr');
+  const p = libOf(skill, 1).problems.find((q) => q.answer.value.parts.length === 2);
+  const play = (raw) => {
+    const s = new Session({ skill, level: 1, mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return { ...s.submit(raw), attempts: s.attempts };
+  };
+  const [a, b] = p.answer.value.parts.map((q) => `${q.lo.n}`);
+  const r = play(`x != ${a}, ${b}`);
+  if (r.status !== 'wrong' || !/where it is defined|leaves out/.test(r.hint ?? '') || r.attempts !== 1) fail.push(`rational-expr: "x ≠ ${a}, ${b}" for x = ${a} or x = ${b} was not told it is the other way round (${r.status}, ${r.hint})`);
+  if (play(`x = ${a} or x = ${b}`).status !== 'correct') fail.push(`rational-expr: "x = ${a} or x = ${b}" refused`);
+  const ray = read('x < 3').value;
+  if (sets.missHint(read('x >= 3').value, { value: ray })) fail.push('solutions: x ≥ 3 for x < 3 was told it is the opposite, which hands over the answer');
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

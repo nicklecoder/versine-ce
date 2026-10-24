@@ -6908,7 +6908,8 @@ for path in sorted(LIB.glob("*.json")):
             continue
 
         # A simplified expression: the same value as the question, and finished.
-        if answer["type"] == "expr":
+        # An answer judged by value (equivalent) is held to the same rules.
+        if answer["type"] in ("expr", "equivalent"):
             rule = next((r for r in EXPR_RULES if r[0].match(text)), None)
             if rule:
                 # Every form the level accepts is held to the same test.

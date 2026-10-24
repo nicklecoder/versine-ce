@@ -15,9 +15,10 @@
 
 import { parseExpression, canonical } from './parse.js';
 import { valueAt, lettersIn } from './exact.js';
-import { parseSet, sameSet, formatSet, previewSet, combined } from './solutions.js';
+import { parseSet, sameSet, formatSet, previewSet, combined, isComplement } from './solutions.js';
 import { parseRoots, sameRoots, formatRoots, rootTexts } from './surds.js';
 import { previewOf } from '../ui/express.js';
+import { sameFunction, finished, withoutName, parseNamed } from './equivalent.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -232,9 +233,12 @@ defineType({
    * answer shown on reveal is legible rather than `((2*x)+6)`.
    */
   parse(raw) {
-    const parsed = parseExpression(raw);
+    // requiem: play/answers/expression-name-prefix-stripped
+    // y = 2x + 1 and f⁻¹(x) = 2x + 1 are the expression 2x + 1, named.
+    const text = withoutName(raw);
+    const parsed = parseExpression(text);
     if (!parsed.ok) return { ok: false, why: parsed.error };
-    return { ok: true, value: String(raw).trim() };
+    return { ok: true, value: text };
   },
   equals(a, b) {
     if (a === b) return true;
@@ -242,6 +246,46 @@ defineType({
     const y = parseExpression(b);
     return x.ok && y.ok && canonical(x.ast) === canonical(y.ast);
   },
+  format: (v) => String(v),
+});
+
+// requiem: play/answers/equivalent-judged-by-value
+defineType({
+  id: 'equivalent',
+  input: 'free',
+  hint: 'Type an expression, like (x + 1)/(x − 2). Powers with ^, as in x^2; a cube root as root(3, x).',
+  /**
+   * An expression judged by value, and then by whether it is finished: the
+   * opt-in a level takes when the form is not the point. Where `expr` would
+   * refuse x/2 − 3/2 for (x − 3)/2, this accepts it, and 0.5x − 1.5, and
+   * (1/2)(x − 3): each is the same function, written in a finished form.
+   * Equal but unfinished -- 2/4 left in, a factor left uncancelled, like
+   * terms not collected, the question copied back -- is told so, as a
+   * fraction not in lowest terms is. web/math/equivalent.js has both tests.
+   *
+   * A level that is about the arithmetic does not take this, so 5 for 2 + 3
+   * stays refused there.
+   *
+   * Value: the expression as written, the same as `expr`.
+   */
+  parse(raw) {
+    const { text, parsed } = parseNamed(raw);
+    if (!parsed.ok) return { ok: false, why: parsed.error };
+    return { ok: true, value: text, ast: parsed.ast };
+  },
+  equals(a, b) {
+    if (a === b) return true;
+    const x = parseExpression(a), y = parseExpression(b);
+    return x.ok && y.ok && sameFunction(x.ast, y.ast);
+  },
+  // The key is the finished form, and the degree of its denominator is what
+  // a typed one is held to.
+  isSimplest(v, parsed, key) {
+    const x = parsed?.ast ? { ok: true, ast: parsed.ast } : parseExpression(v);
+    const y = parseExpression(key ?? v);
+    return !(x.ok && y.ok) || finished(x.ast, y.ast);
+  },
+  unfinished: 'in its simplest form',
   format: (v) => String(v),
 });
 
@@ -532,6 +576,11 @@ defineType({
     return typed && value.letter && typed !== value.letter
       ? `The question is about ${value.letter}: write it with ${value.letter}, not ${typed}.` : null;
   },
+  // requiem: play/answers/set-complement-told
+  // Where it is defined, typed for where it is not: right numbers, the
+  // other way round. A level can say it in its own words.
+  missHint: (v, spec) => (isComplement(v, spec.value)
+    ? spec.complementHint ?? 'That is every number the answer leaves out: the question asks for the others.' : null),
   // A level asking for the simplest form means the conditions combined.
   isSimplest: (v, parsed) => combined(v, parsed?.pieces),
   unfinished: 'combined into its simplest form',
