@@ -38,13 +38,24 @@ const NUM = {
   ends0: ['ends in 0', 'does not end in 0', (n) => n % 10 === 0],
   ends5: ['ends in 5', 'does not end in 5', (n) => n % 10 === 5],
   square: ['is a perfect square', 'is not a perfect square', (n) => Number.isInteger(Math.sqrt(n))],
+  // Tests stated another way, so some statements are true in both directions.
+  evenend: ['ends in 0, 2, 4, 6 or 8', 'does not end in 0, 2, 4, 6 or 8', (n) => [0, 2, 4, 6, 8].includes(n % 10)],
+  oddend: ['ends in 1, 3, 5, 7 or 9', 'does not end in 1, 3, 5, 7 or 9', (n) => n % 2 === 1],
+  ends05: ['ends in 0 or 5', 'does not end in 0 or 5', (n) => n % 5 === 0],
+  digits3: ['has digits that add up to a multiple of 3', 'does not have digits that add up to a multiple of 3', (n) => n % 3 === 0],
+  digits9: ['has digits that add up to a multiple of 9', 'does not have digits that add up to a multiple of 9', (n) => n % 9 === 0],
+  by2and3: ['is divisible by both 2 and 3', 'is not divisible by both 2 and 3', (n) => n % 6 === 0],
+  by3and4: ['is divisible by both 3 and 4', 'is not divisible by both 3 and 4', (n) => n % 12 === 0],
+  twofactors: ['has exactly two factors', 'does not have exactly two factors', isPrime],
+  div2: ['is divisible by 2', 'is not divisible by 2', (n) => n % 2 === 0],
+  by2and5: ['is divisible by both 2 and 5', 'is not divisible by both 2 and 5', (n) => n % 10 === 0],
 };
 // Quadrilaterals by kind, each kind excluding the more special ones.
 const QUAD_KINDS = {
-  square: ['a square', ['sq', 'rect', 'rhom', 'para', 'eq4', 'right4', 'perp', 'diageq', 'oppang', 'par1']],
-  rectangle: ['a rectangle that is not a square', ['rect', 'para', 'right4', 'diageq', 'oppang', 'par1']],
-  rhombus: ['a rhombus that is not a square', ['rhom', 'para', 'eq4', 'perp', 'oppang', 'par1']],
-  parallelogram: ['a parallelogram with no right angle and unequal neighboring sides', ['para', 'oppang', 'par1']],
+  square: ['a square', ['sq', 'rect', 'rhom', 'para', 'eq4', 'right4', 'perp', 'diageq', 'oppang', 'par1', 'par2', 'bisect', 'rhomright', 'rectperp', 'paradiag']],
+  rectangle: ['a rectangle that is not a square', ['rect', 'para', 'right4', 'diageq', 'oppang', 'par1', 'par2', 'bisect', 'paradiag']],
+  rhombus: ['a rhombus that is not a square', ['rhom', 'para', 'eq4', 'perp', 'oppang', 'par1', 'par2', 'bisect']],
+  parallelogram: ['a parallelogram with no right angle and unequal neighboring sides', ['para', 'oppang', 'par1', 'par2', 'bisect']],
   isotrap: ['an isosceles trapezoid', ['diageq', 'par1']],
   kite: ['a kite that is not a rhombus', ['perp']],
 };
@@ -59,13 +70,18 @@ const QUAD = {
   diageq: ['has diagonals of equal length', 'does not have diagonals of equal length'],
   oppang: ['has both pairs of opposite angles equal', 'does not have both pairs of opposite angles equal'],
   par1: ['has a pair of parallel sides', 'has no pair of parallel sides'],
+  par2: ['has two pairs of parallel sides', 'does not have two pairs of parallel sides'],
+  bisect: ['has diagonals that bisect each other', 'does not have diagonals that bisect each other'],
+  rhomright: ['is a rhombus with a right angle', 'is not a rhombus with a right angle'],
+  rectperp: ['is a rectangle with perpendicular diagonals', 'is not a rectangle with perpendicular diagonals'],
+  paradiag: ['is a parallelogram with diagonals of equal length', 'is not a parallelogram with diagonals of equal length'],
 };
 const TRI_KINDS = {
-  equilateral: ['an equilateral triangle', ['equi', 'iso', 'acute', 'ang3', 'ang2']],
+  equilateral: ['an equilateral triangle', ['equi', 'iso', 'acute', 'ang3', 'ang2', 'ang60']],
   'isosceles-acute': ['an acute isosceles triangle that is not equilateral', ['iso', 'acute', 'ang2']],
   'isosceles-obtuse': ['an obtuse isosceles triangle', ['iso', 'obtuse', 'ang2']],
-  'right-isosceles': ['a right isosceles triangle', ['iso', 'right', 'ang2']],
-  'right-scalene': ['a right scalene triangle', ['right']],
+  'right-isosceles': ['a right isosceles triangle', ['iso', 'right', 'ang2', 'comp']],
+  'right-scalene': ['a right scalene triangle', ['right', 'comp']],
   'acute-scalene': ['an acute scalene triangle', ['acute']],
   'obtuse-scalene': ['an obtuse scalene triangle', ['obtuse']],
 };
@@ -77,6 +93,8 @@ const TRI = {
   right: ['has a right angle', 'has no right angle'],
   ang3: ['has three equal angles', 'does not have three equal angles'],
   ang2: ['has two equal angles', 'does not have two equal angles'],
+  comp: ['has two angles that add up to 90°', 'does not have two angles that add up to 90°'],
+  ang60: ['has three 60° angles', 'does not have three 60° angles'],
 };
 const DOMAINS = {
   numbers: { subject: 'a whole number', it: 'it', atoms: NUM, cases: NUMBERS, holds: (id, n) => NUM[id][2](n), caseWords: (n) => `${n}` },
@@ -95,8 +113,15 @@ const LIFE = {
   cold: ['the water is colder than 32°F (0°C)', 'the water is not colder than 32°F (0°C)'], ice: ['the water freezes', 'the water does not freeze'],
   save: ['you save $5 a week', 'you do not save $5 a week'], bike: ['you can buy the bike by June', 'you cannot buy the bike by June'],
   late: ['the bus is late', 'the bus is not late'], miss: ['you miss first period', 'you do not miss first period'],
+  alarm: ['the alarm rings', 'the alarm does not ring'], wake: ['you wake up', 'you do not wake up'],
+  homework: ['you finish your homework', 'you do not finish your homework'], tv: ['you can watch TV', 'you cannot watch TV'],
+  sunny: ['it is sunny', 'it is not sunny'], beach: ['we go to the beach', 'we do not go to the beach'],
+  charge: ['the phone is charged', 'the phone is not charged'], call: ['you can make a call', 'you cannot make a call'],
+  ticket: ['you have a ticket', 'you do not have a ticket'], board: ['you can board the train', 'you cannot board the train'],
+  practice: ['you practice every day', 'you do not practice every day'], team: ['you make the team', 'you do not make the team'],
 };
-const LIFE_PAIRS = [['rain', 'cancel'], ['study', 'pass'], ['red', 'stop'], ['dry', 'wilt'], ['saturday', 'school'], ['cold', 'ice'], ['save', 'bike'], ['late', 'miss']];
+const LIFE_PAIRS = [['rain', 'cancel'], ['study', 'pass'], ['red', 'stop'], ['dry', 'wilt'], ['saturday', 'school'], ['cold', 'ice'], ['save', 'bike'], ['late', 'miss'],
+  ['alarm', 'wake'], ['homework', 'tv'], ['sunny', 'beach'], ['charge', 'call'], ['ticket', 'board'], ['practice', 'team']];
 
 // requiem: catalogue/content/reasoning-truth-only-when-testable
 // Statements whose truth can be tested, each [domain, p, q].
@@ -118,6 +143,27 @@ const TESTED = [
   ['quadrilaterals', 'rect', 'right4'], ['quadrilaterals', 'oppang', 'para'], ['quadrilaterals', 'para', 'par1'], ['quadrilaterals', 'rhom', 'para'],
   ['quadrilaterals', 'para', 'rhom'], ['quadrilaterals', 'sq', 'para'], ['quadrilaterals', 'sq', 'diageq'], ['quadrilaterals', 'eq4', 'para'],
   ['triangles', 'equi', 'ang3'], ['triangles', 'equi', 'ang2'], ['triangles', 'acute', 'iso'], ['triangles', 'iso', 'obtuse'],
+  // True both ways: a property and the same test stated another way.
+  ['numbers', 'evenend', 'even'], ['numbers', 'even', 'evenend'], ['numbers', 'oddend', 'odd'], ['numbers', 'odd', 'oddend'],
+  ['numbers', 'ends05', 'div5'], ['numbers', 'div5', 'ends05'], ['numbers', 'digits3', 'div3'], ['numbers', 'div3', 'digits3'],
+  ['numbers', 'digits9', 'div9'], ['numbers', 'div9', 'digits9'], ['numbers', 'by2and3', 'div6'], ['numbers', 'div6', 'by2and3'],
+  ['numbers', 'by3and4', 'div12'], ['numbers', 'div12', 'by3and4'], ['numbers', 'twofactors', 'prime'], ['numbers', 'prime', 'twofactors'],
+  ['quadrilaterals', 'par2', 'para'], ['quadrilaterals', 'para', 'par2'], ['quadrilaterals', 'bisect', 'para'], ['quadrilaterals', 'para', 'bisect'],
+  ['quadrilaterals', 'rhomright', 'sq'], ['quadrilaterals', 'sq', 'rhomright'], ['quadrilaterals', 'rectperp', 'sq'], ['quadrilaterals', 'sq', 'rectperp'],
+  ['quadrilaterals', 'paradiag', 'rect'], ['quadrilaterals', 'rect', 'paradiag'],
+  ['triangles', 'comp', 'right'], ['triangles', 'right', 'comp'],
+  ['numbers', 'div2', 'even'], ['numbers', 'even', 'div2'], ['numbers', 'div2', 'evenend'], ['numbers', 'evenend', 'div2'],
+  ['numbers', 'by2and5', 'div10'], ['numbers', 'div10', 'by2and5'], ['numbers', 'by2and5', 'ends0'], ['numbers', 'ends0', 'by2and5'],
+  ['quadrilaterals', 'rhomright', 'rectperp'], ['quadrilaterals', 'rectperp', 'rhomright'], ['quadrilaterals', 'par2', 'bisect'], ['quadrilaterals', 'bisect', 'par2'],
+  ['quadrilaterals', 'paradiag', 'right4'], ['quadrilaterals', 'right4', 'paradiag'], ['triangles', 'ang60', 'equi'], ['triangles', 'equi', 'ang60'],
+  // True one way only, or not at all.
+  ['numbers', 'evenend', 'div4'], ['numbers', 'digits3', 'div9'], ['numbers', 'by2and3', 'div12'], ['numbers', 'square', 'even'],
+  ['numbers', 'odd', 'ends5'], ['numbers', 'div3', 'odd'], ['numbers', 'div5', 'odd'], ['numbers', 'twofactors', 'odd'],
+  ['numbers', 'div12', 'evenend'], ['numbers', 'oddend', 'div3'],
+  ['quadrilaterals', 'par1', 'rect'], ['quadrilaterals', 'diageq', 'sq'], ['quadrilaterals', 'perp', 'sq'], ['quadrilaterals', 'oppang', 'rect'],
+  ['quadrilaterals', 'par1', 'eq4'], ['quadrilaterals', 'bisect', 'rect'], ['quadrilaterals', 'par2', 'rhom'], ['quadrilaterals', 'rhom', 'bisect'],
+  ['triangles', 'acute', 'ang2'], ['triangles', 'ang2', 'right'], ['triangles', 'obtuse', 'ang2'], ['triangles', 'comp', 'iso'],
+  ['triangles', 'iso', 'comp'], ['triangles', 'equi', 'comp'],
 ];
 
 // ── Statements ──────────────────────────────────────────────────────────
@@ -191,7 +237,10 @@ function parts(rng) {
     ['q-if-p', `${cap(domain === 'life' ? Q : `${DOMAINS[domain].subject} ${DOMAINS[domain].atoms[q.id][0]}`)} if ${domain === 'life' ? P : `${DOMAINS[domain].it} ${DOMAINS[domain].atoms[p.id][0]}`}.`],
     ['p-only-if-q', `${cap(P)} only if ${domain === 'life' ? Q : `${DOMAINS[domain].it} ${DOMAINS[domain].atoms[q.id][0]}`}.`],
   ];
-  const [form, words] = rng.pick(wordings);
+  // "p only if q" reads naturally about numbers and shapes ("a number is
+  // divisible by 4 only if it is even") and backward about events, so
+  // everyday statements are only worded the other two ways.
+  const [form, words] = rng.pick(domain === 'life' ? wordings.slice(0, 2) : wordings);
   const opts = rng.shuffle([[p, P], [q, Q], [not(p), alone(domain, not(p))], [not(q), alone(domain, not(q))]])
     .map(([l, label], i) => ({ id: LETTERS[i], l, label: cap(label) }));
   const want = opts.find((o) => o.l === (ask === 'hypothesis' ? p : q)).id;
@@ -259,24 +308,54 @@ function formLevel(rng, form) {
 
 // ── Which is equivalent ─────────────────────────────────────────────────
 
+/** How `b` is made from `a`: the converse, the inverse or the contrapositive of it. */
+function relation(a, b) {
+  const same = (x, y) => x[0].id === y[0].id && x[0].neg === y[0].neg && x[1].id === y[1].id && x[1].neg === y[1].neg;
+  return ['converse', 'inverse', 'contrapositive'].find((f) => same(FORMS[f](a), b));
+}
+
 function equivalent(rng) {
-  if (rng.chance(0.45)) {
-    // Told one truth, what follows for another form?
-    const known = rng.pick(['original', 'converse']), truth = rng.pick(['true', 'false']);
-    const asked = rng.pick(known === 'original' ? ['contrapositive', 'converse', 'inverse'] : ['inverse', 'original', 'contrapositive']);
-    const partner = { original: 'contrapositive', contrapositive: 'original', converse: 'inverse', inverse: 'converse' };
-    const want = partner[known] === asked ? truth : 'unknown';
-    const name = (f) => (f === 'original' ? 'the statement' : `its ${f}`);
+  if (rng.chance(0.34)) {
+    // Told one sentence's truth, what follows for another made from it?
+    const truth = rng.pick(['true', 'false']);
+    if (rng.chance(0.15)) {
+      const known = rng.pick(['original', 'converse', 'inverse', 'contrapositive']);
+      const asked = rng.pick(['original', 'converse', 'inverse', 'contrapositive'].filter((f) => f !== known));
+      const partner = { original: 'contrapositive', contrapositive: 'original', converse: 'inverse', inverse: 'converse' };
+      const want = partner[known] === asked ? truth : 'unknown';
+      const name = (f) => (f === 'original' ? 'the statement' : `its ${f}`);
+      // Two forms that are not partners are each other's converse or inverse.
+      const swapped = [['original', 'converse'], ['inverse', 'contrapositive']].some((pair) => pair.includes(known) && pair.includes(asked));
+      const rel = swapped ? 'converse' : 'inverse';
+      return {
+        prompt: [T.prose(`${known === 'original' ? 'A conditional statement' : `The ${known} of a conditional statement`} is ${truth}. What can be said about ${asked === 'original' ? 'the statement itself' : name(asked)}?`)],
+        text: `truth follows: ${known} ${truth}; find ${asked}`,
+        answer: { type: 'choice', value: want, options: [{ id: 'true', label: 'It is true' }, { id: 'false', label: 'It is false' }, { id: 'unknown', label: 'It could be either' }] },
+        visual: null,
+        explain: `A statement and its contrapositive always share their truth value, and so do the converse and the inverse (the inverse is the converse’s contrapositive). `
+          + (want === 'unknown'
+            ? `${cap(name(asked))} is the ${rel} of ${name(known)}, not its partner, so it is not tied to it: “every square is a rectangle” is true and its ${rel} false, while “a number divisible by 10 ends in 0” is true and so is its ${rel}. `
+            : `${cap(name(asked))} is the partner of ${name(known)}, so it is ${truth} too. `)
+          + `So ${want === 'unknown' ? 'it could be either' : `it is ${truth}`}.`,
+      };
+    }
+    // The same question with two everyday sentences, so the form has to be recognized first.
+    const [p, q] = rng.pick(LIFE_PAIRS), neg = rng.chance(0.3);
+    const st = [lit(p, neg), lit(q, neg)];
+    const known = FORMS[rng.pick(['original', 'converse', 'inverse', 'contrapositive'])](st);
+    const asked = FORMS[rng.pick(['converse', 'inverse', 'contrapositive'])](known);
+    const how = relation(known, asked);
+    const want = how === 'contrapositive' ? truth : 'unknown';
     return {
-      prompt: [T.prose(`${known === 'original' ? 'A conditional statement' : 'The converse of a conditional statement'} is ${truth}. What can be said about ${asked === 'original' ? 'the statement itself' : name(asked)}?`)],
-      text: `truth follows: ${known} ${truth}; find ${asked}`,
+      prompt: [T.prose(`Suppose “${bare(sentence('life', known))}” is ${truth}. What can be said about “${bare(sentence('life', asked))}”?`)],
+      text: `truth follows: life ${condText(known)} is ${truth}; find ${condText(asked)}`,
       answer: { type: 'choice', value: want, options: [{ id: 'true', label: 'It is true' }, { id: 'false', label: 'It is false' }, { id: 'unknown', label: 'It could be either' }] },
       visual: null,
-      explain: `A statement and its contrapositive always agree, and so do the converse and the inverse (the inverse is the converse’s contrapositive). `
-        + (want === 'unknown'
-          ? `${cap(name(asked))} is not the partner of ${name(known)}, so it is not tied to it: “every square is a rectangle” is true and its converse false, while “a number divisible by 10 ends in 0” is true and so is its converse. `
-          : `${cap(name(asked))} is the partner of ${name(known)}, so it is ${truth} too. `)
-        + `So ${want === 'unknown' ? 'it could be either' : `it is ${truth}`}.`,
+      explain: `The second sentence ${{ converse: 'swaps the two parts of the first', inverse: 'negates both parts of the first, in place', contrapositive: 'swaps the two parts of the first and negates both' }[how]}: it is the first one’s ${how}. `
+        + (how === 'contrapositive'
+          ? `A statement and its contrapositive always share their truth value, so it is ${truth} too.`
+          : `A statement and its ${how} need not share their truth value: “every square is a rectangle” is true and its ${how} is false, while “a number divisible by 10 ends in 0” is true and so is its ${how}.`)
+        + ` So ${want === 'unknown' ? 'it could be either' : `it is ${truth}`}.`,
     };
   }
   const { domain, st } = pickStatement(rng);
@@ -291,10 +370,11 @@ function equivalent(rng) {
     text: `same truth as ${of}: ${domainOf(domain)} ${condText(st)}; options ${optionsText(opts)}`,
     answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
     visual: null,
+    // requiem: catalogue/content/reasoning-explanations-true
     explain: (of === 'original'
       ? `A statement is logically equivalent to its contrapositive: if p always brings q, then without q there can be no p. `
-      : `This is the converse of “${sentence(domain, st)}”, and the converse is equivalent to the inverse, its contrapositive. `)
-      + `(The ${of === 'original' ? 'converse and the inverse' : 'statement and its contrapositive'} can be true or false on their own.) `
+      : `This is the converse of “${bare(sentence(domain, st))}”, and the converse is equivalent to the inverse, its contrapositive. `)
+      + `(${of === 'original' ? 'The converse and the inverse can differ from the statement.' : 'The original statement and its contrapositive can differ from the converse.'}) `
       + `So “${sentence(domain, FORMS[target](st))}”`,
   };
 }
@@ -322,14 +402,14 @@ function counterexample(rng) {
     const cases = rng.shuffle([right, ...others.slice(0, 3)]);
     const opts = cases.map((c, i) => ({ id: LETTERS[i], c, label: cap(D.caseWords(c)) }));
     const want = opts.find((o) => o.c === right).id;
-    const why = (c) => `${D.caseWords(c)}: ${D.holds(p, c) ? D.atoms[p][0] : D.atoms[p][1]}, and ${D.holds(q, c) ? D.atoms[q][0] : D.atoms[q][1]}`;
+    const why = (c) => `${D.caseWords(c)} ${D.holds(p, c) ? D.atoms[p][0] : D.atoms[p][1]} and ${D.holds(q, c) ? D.atoms[q][0] : D.atoms[q][1]}`;
     return {
       prompt: [T.prose(`Which is a counterexample to “${bare(sentence(domain, st))}”?`)],
       text: `counterexample: ${domain} ${condText(st)}; options ${opts.map((o) => `${o.id}=${o.c}`).join(', ')}`,
       answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
       visual: null,
       explain: `A counterexample makes the hypothesis true and the conclusion false. Check each: ${opts.map((o) => why(o.c)).join('; ')}. `
-        + `Only ${D.caseWords(right)} meets the hypothesis and misses the conclusion. `
+        + `Of these, only ${D.caseWords(right)} meets the hypothesis and misses the conclusion. `
         + `(A case where the hypothesis fails says nothing about the statement, whatever the conclusion does.) So ${D.caseWords(right)}.`,
     };
   }
@@ -337,8 +417,15 @@ function counterexample(rng) {
 
 // ── Biconditional ───────────────────────────────────────────────────────
 
+// Balanced: about half the statements asked are true in both directions,
+// and the rest are true in exactly one, the near miss a biconditional is
+// about. A statement false both ways is no question here.
+const holdsWay = ([d, p, q]) => failure(d, [lit(p), lit(q)]) === null;
+const BOTH_WAYS = TESTED.filter(([d, p, q]) => holdsWay([d, p, q]) && holdsWay([d, q, p]));
+const ONE_WAY = TESTED.filter(([d, p, q]) => holdsWay([d, p, q]) !== holdsWay([d, q, p]));
+
 function biconditional(rng) {
-  const [domain, p, q] = rng.pick(TESTED);
+  const [domain, p, q] = rng.pick(rng.chance(0.5) ? BOTH_WAYS : ONE_WAY);
   const st = [lit(p), lit(q)], D = DOMAINS[domain];
   const forward = failure(domain, st), back = failure(domain, [st[1], st[0]]);
   const yes = forward === null && back === null;
@@ -354,7 +441,7 @@ function biconditional(rng) {
     explain: `“p if and only if q” claims both “if p, then q” and its converse “if q, then p”. `
       + `${sentence(domain, st)} ${forward === null ? 'That is true.' : `That is false: ${D.caseWords(forward)} breaks it.`} `
       + `${sentence(domain, [st[1], st[0]])} ${back === null ? 'That is true.' : `That is false: ${D.caseWords(back)} breaks it.`} `
-      + `(${yes ? 'Both directions hold, which also makes it a good definition.' : 'One true direction is not enough: both must hold.'}) So ${yes ? 'yes' : 'no'}.`,
+      + `(${yes ? 'Both directions hold, so the two parts are true of exactly the same cases.' : 'One true direction is not enough: both must hold.'}) So ${yes ? 'yes' : 'no'}.`,
   };
 }
 

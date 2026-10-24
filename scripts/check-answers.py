@@ -4029,12 +4029,20 @@ CHOICE_RULES += (
 def logic_number(atom: str, n: int) -> bool:
     if atom.startswith("div"):
         return n % int(atom[3:]) == 0
-    if atom.startswith("ends"):
+    if atom in ("ends0", "ends5"):
         return n % 10 == int(atom[4:])
+    digits = [int(c) for c in str(n)]
     return {
         "even": n % 2 == 0, "odd": n % 2 == 1,
         "prime": n > 1 and all(n % k for k in range(2, int(n ** 0.5) + 1)),
         "square": int(n ** 0.5) ** 2 == n,
+        # The same tests stated another way, read from the digits or the factors.
+        "evenend": digits[-1] in (0, 2, 4, 6, 8), "oddend": digits[-1] in (1, 3, 5, 7, 9),
+        "ends05": digits[-1] in (0, 5),
+        "digits3": sum(digits) % 3 == 0, "digits9": sum(digits) % 9 == 0,
+        "by2and3": n % 2 == 0 and n % 3 == 0, "by3and4": n % 3 == 0 and n % 4 == 0,
+        "twofactors": sum(1 for k in range(1, n + 1) if n % k == 0) == 2,
+        "by2and5": n % 2 == 0 and n % 5 == 0,
     }[atom]
 
 
@@ -4053,6 +4061,8 @@ def logic_quad(atom: str, kind: str) -> bool:
         "eq4": eq4, "right4": right4, "perp": perp, "diageq": diageq,
         "para": pairs == 2, "oppang": pairs == 2,          # opposite angles equal exactly in a parallelogram
         "par1": pairs >= 1, "rect": right4, "rhom": eq4, "sq": eq4 and right4,
+        "par2": pairs == 2, "bisect": pairs == 2,          # diagonals bisect each other exactly in a parallelogram
+        "rhomright": eq4 and right4, "rectperp": right4 and perp, "paradiag": pairs == 2 and diageq,
     }[atom]
 
 
@@ -4068,6 +4078,7 @@ def logic_tri(atom: str, kind: str) -> bool:
     return {
         "equi": equal == 3, "iso": equal >= 2, "ang3": equal == 3, "ang2": equal >= 2,   # equal sides face equal angles
         "acute": largest == "acute", "right": largest == "right", "obtuse": largest == "obtuse",
+        "comp": largest == "right", "ang60": equal == 3,                         # the other two make 90 degrees exactly when the third does
     }[atom]
 
 
@@ -4136,6 +4147,13 @@ def logic_follows(known: str, truth: str, asked: str) -> str:
     return truth if frozenset({known, asked}) in tied else "unknown"
 
 
+def logic_follows_said(known: str, truth: str, asked: str) -> str:
+    # Two sentences share their truth exactly when one is the other's contrapositive.
+    k, a = logic_cond(known), logic_cond(asked)
+    assert a in [logic_form(f, k) for f in ("converse", "inverse", "contrapositive")], (known, asked)
+    return truth if logic_form("contrapositive", k) == a else "unknown"
+
+
 def logic_counterexample(domain: str, cond: str, listing: str) -> str:
     cases, test = LOGIC_DOMAINS[domain]
     (p, pn), (q, qn) = logic_cond(cond)
@@ -4151,7 +4169,8 @@ CHOICE_RULES += (
      lambda form, domain, cond: "true" if logic_holds(domain, logic_form(form, logic_cond(cond))) else "false"),
     (re.compile(r"^(converse|inverse|contrapositive) of: (\w+) (.+ -> [^;]+); options (.+)$"), logic_pick),
     (re.compile(r"^same truth as (original|converse): (\w+) (.+ -> [^;]+); options (.+)$"), logic_same_truth),
-    (re.compile(r"^truth follows: (original|converse) (true|false); find (\w+)$"), logic_follows),
+    (re.compile(r"^truth follows: (original|converse|inverse|contrapositive) (true|false); find (original|converse|inverse|contrapositive)$"), logic_follows),
+    (re.compile(r"^truth follows: life (.+ -> .+) is (true|false); find (.+ -> .+)$"), logic_follows_said),
     (re.compile(r"^counterexample: (\w+) (.+ -> [^;]+); options (.+)$"), logic_counterexample),
     (re.compile(r"^biconditional: (\w+) (.+ -> .+)$"),
      lambda domain, cond: "yes" if all(logic_holds(domain, logic_form(f, logic_cond(cond))) for f in ("original", "converse")) else "no"),
@@ -4162,8 +4181,9 @@ CHOICE_RULES += (
 # Worked from the data and the line as the question gives them: r from the
 # points by its definition, predictions and residuals from y = mx + b, and
 # every two-way question from the four counts, its totals added here. The
-# bands for describing r are kept apart (strong from 0.7, weak 0.15 to 0.5,
-# none to 0.1), so a value between them is reported rather than judged.
+# bands for describing r are strong from 0.7, moderate 0.4 to 0.7, weak 0.1
+# to 0.4 and none below 0.1, and a value within 0.05 of an edge is reported
+# rather than judged.
 
 BIV_NUM = r"-?\d+(?:\.\d+)?"
 BIV_LINE = rf"y = ({BIV_NUM})x \+ ({BIV_NUM})"
