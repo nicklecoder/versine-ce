@@ -1,5 +1,5 @@
 {
-  "built": 576,
+  "built": 577,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -721,6 +721,7 @@
       "common-denominator",
       "unlike-denominators",
       "complex-fractions",
+      "opposite-factors",
       "all-together"
     ],
     "rational-eq": [
@@ -1614,14 +1615,17 @@
         "composition",
         "equations",
         "functions",
-        "quadratic-graphs"
+        "quadratic-graphs",
+        "roots"
       ],
       "levels": {
         "undo-a-function": [
-          "functions"
+          "functions",
+          "roots"
         ],
         "solve-for-x-y": [
-          "equations"
+          "equations",
+          "roots"
         ],
         "check-by-composing": [
           "composition"
@@ -1714,7 +1718,7 @@
       }
     }
   },
-  "sources": "b71fd502e61cb8de9a48e99423be264a5d7e3c79507d4f88283ade58dd1769d5",
+  "sources": "138db5ef0e0046be8957419f9ef813466e98cf957daf9725dd49af7b149e638e",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7241,8 +7245,8 @@
       "level": 1,
       "slug": "solve-for-x-y",
       "name": "Solve for x ↔ y",
-      "count": 288,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "inverses-1.json"
     },
@@ -7401,20 +7405,30 @@
       "level": 5,
       "slug": "complex-fractions",
       "name": "Complex Fractions",
-      "count": 323,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "rational-expr-5.json"
     },
     {
       "skill": "rational-expr",
       "level": 6,
+      "slug": "opposite-factors",
+      "name": "Opposite Factors",
+      "count": 260,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-expr-6.json"
+    },
+    {
+      "skill": "rational-expr",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "rational-expr-6.json"
+      "file": "rational-expr-7.json"
     },
     {
       "skill": "rational-eq",

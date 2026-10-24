@@ -274,7 +274,8 @@ export function answerTerm(type, value) {
     // shown is set exactly as their own typing was a moment earlier. Returned
     // as a list rather than wrapped: wrapping made the whole answer as tight
     // as a product, so "5a + 4" lost the spacing its question had.
-    case 'expr': return exprTerms(value);
+    case 'expr':
+    case 'equivalent': return exprTerms(value);
     // A line, a rule and a pair are shown in the notation their own type
     // writes, which the expression preview can draw: y = 3/4x − 2, 4n − 1, (3, −2).
     case 'linear':

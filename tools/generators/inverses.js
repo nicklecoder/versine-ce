@@ -20,8 +20,6 @@ import { LINE, ASKED } from './figures.js';
 
 const optionIds = ['a', 'b', 'c', 'd'];
 const fracAns = (n, d = 1) => ({ type: 'frac', value: reduce(n, d), requireSimplest: false });
-const q = (n, d = 1) => { const r = reduce(n, d); return r.d < 0 ? { n: -r.n, d: -r.d } : r; };
-const qText = ({ n, d }, fancy = false) => { const s = d === 1 ? String(n) : `${n}/${d}`; return fancy ? s.replace(/-/g, '−') : s; };
 const pm = (k, fancy) => (k < 0 ? `${fancy ? ' − ' : ' - '}${-k}` : ` + ${k}`);
 
 /** ax + b, written plainly: 3x - 5, -x + 2, x. */
@@ -29,35 +27,30 @@ function lin(a, b, fancy = false) {
   const lead = a === 1 ? 'x' : a === -1 ? (fancy ? '−x' : '-x') : `${fancy ? minus(a) : a}x`;
   return b === 0 ? lead : `${lead}${pm(b, fancy)}`;
 }
-/** A coefficient on x that may be a fraction: 1/3x, -2/5x, 2x. */
-function coefX({ n, d }, fancy) {
-  if (d === 1) return n === 1 ? 'x' : n === -1 ? (fancy ? '−x' : '-x') : `${fancy ? minus(n) : n}x`;
-  return `${fancy ? minus(n) : n}/${d}x`;
-}
-function plusQ({ n, d }, fancy) {
-  if (n === 0) return '';
-  return `${n < 0 ? (fancy ? ' − ' : ' - ') : ' + '}${qText({ n: Math.abs(n), d })}`;
-}
 
 /*
- * The families of one-to-one rules, each with its inverse in every form a
- * student is likely to write it: (x + 5)/3, x/3 + 5/3 and 1/3x + 5/3 are
- * one function, and the expression box compares by form, so each is listed.
+ * The families of one-to-one rules, each with its inverse written once: the
+ * answer box judges f⁻¹(x) by value, so (x + 5)/3, x/3 + 5/3 and
+ * 0.333…-free forms like (1/3)(x + 5) are all one answer and none is listed.
+ * Beyond lines, a cube and a cube root undo each other, and (ax + b)/(cx + d)
+ * is undone by solving for x across the fraction bar (F-BF.4a).
  */
+const gcdOf = (...ns) => ns.reduce((g, n) => { let a = Math.abs(g), b = Math.abs(n); while (b) [a, b] = [b, a % b]; return a; }, 0);
+const cbrt = (v) => (v < 0 ? -Math.round(Math.cbrt(-v)) : Math.round(Math.cbrt(v)));
+
+// requiem: catalogue/content/inverse-families-widened
 function family(rng) {
-  const kind = rng.pick(['ax+b', 'ax+b', 'ax+b', '(x+b)/a', 'a(x+b)']);
+  const kind = rng.pick(['ax+b', 'ax+b', '(x+b)/a', 'a(x+b)', 'p/q x+b', 'a-bx', 'cube', 'cube root', 'ratio', 'ratio']);
+  const pickX = () => rng.int(-6, 8);
   if (kind === 'ax+b') {
     const a = rng.pick([2, 3, 4, 5, -2, -3, -4, 6]), b = rng.nonZero(-9, 9);
     const A = Math.abs(a);
     const num = a > 0 ? lin(1, -b) : lin(-1, b);
     const numF = a > 0 ? lin(1, -b, true) : lin(-1, b, true);
-    const m = q(1, a), c = q(-b, a);
-    const xa = (f) => `${a < 0 ? (f ? '−' : '-') : ''}x/${A}${plusQ(c, f)}`;
     return {
-      f: lin(a, b), show: lin(a, b, true), at: (x) => a * x + b,
+      f: lin(a, b), show: lin(a, b, true), at: (x) => a * x + b, pickX,
       work: (c) => `${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)}: ${minus(a)}x = ${minus(c - b)}; then divide by ${minus(a)}: x = ${minus((c - b) / a)}`,
-      inv: [`(${num})/${A}`, `${coefX(m)}${plusQ(c)}`, xa(false)],
-      invShow: `(${numF})/${A}`,
+      inv: `(${num})/${A}`, invShow: `(${numF})/${A}`,
       solve: `x = ${lin(a, b, true).replace(/x/g, 'y')}, so x ${b < 0 ? '+' : '−'} ${Math.abs(b)} = ${minus(a)}y, and y = (${numF})/${A}`,
     };
   }
@@ -65,20 +58,79 @@ function family(rng) {
     const a = rng.pick([2, 3, 4, 5]), b = rng.nonZero(-9, 9);
     const inside = lin(1, b), insideF = lin(1, b, true);
     return {
-      f: `(${inside})/${a}`, show: `(${insideF})/${a}`, at: (x) => (x + b) / a,
+      f: `(${inside})/${a}`, show: `(${insideF})/${a}`, at: (x) => (x + b) / a, pickX,
       work: (c) => `multiply by ${a}: ${insideF} = ${minus(a * c)}; then ${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)}: x = ${minus(a * c - b)}`,
-      inv: [lin(a, -b)], invShow: lin(a, -b, true),
+      inv: lin(a, -b), invShow: lin(a, -b, true),
       solve: `x = (${insideF.replace(/x/g, 'y')})/${a}, so ${a}x = ${insideF.replace(/x/g, 'y')}, and y = ${lin(a, -b, true)}`,
     };
   }
-  const a = rng.pick([2, 3, 4, 5, -2, -3]), b = rng.nonZero(-6, 6);
-  return {
-    f: `${a}(${lin(1, b)})`, show: `${minus(a)}(${lin(1, b, true)})`, at: (x) => a * (x + b),
-    work: (c) => `divide by ${minus(a)}: ${lin(1, b, true)} = ${minus(c / a)}; then ${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)}: x = ${minus(c / a - b)}`,
-    inv: [`${a < 0 ? '-' : ''}x/${Math.abs(a)}${pm(-b)}`, `${coefX(q(1, a))}${pm(-b)}`, `(${a > 0 ? lin(1, -a * b) : lin(-1, a * b)})/${Math.abs(a)}`].filter((s, i, all) => all.indexOf(s) === i),
-    invShow: `${a < 0 ? '−' : ''}x/${Math.abs(a)}${pm(-b, true)}`,
-    solve: `x = ${minus(a)}(${lin(1, b, true).replace(/x/g, 'y')}), so x/${a < 0 ? `(${minus(a)})` : a} = ${lin(1, b, true).replace(/x/g, 'y')}, and y = ${a < 0 ? '−' : ''}x/${Math.abs(a)}${pm(-b, true)}`,
-  };
+  if (kind === 'a(x+b)') {
+    const a = rng.pick([2, 3, 4, 5, -2, -3]), b = rng.nonZero(-6, 6);
+    return {
+      f: `${a}(${lin(1, b)})`, show: `${minus(a)}(${lin(1, b, true)})`, at: (x) => a * (x + b), pickX,
+      work: (c) => `divide by ${minus(a)}: ${lin(1, b, true)} = ${minus(c / a)}; then ${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)}: x = ${minus(c / a - b)}`,
+      inv: `${a < 0 ? '-' : ''}x/${Math.abs(a)}${pm(-b)}`,
+      invShow: `${a < 0 ? '−' : ''}x/${Math.abs(a)}${pm(-b, true)}`,
+      solve: `x = ${minus(a)}(${lin(1, b, true).replace(/x/g, 'y')}), so x/${a < 0 ? `(${minus(a)})` : a} = ${lin(1, b, true).replace(/x/g, 'y')}, and y = ${a < 0 ? '−' : ''}x/${Math.abs(a)}${pm(-b, true)}`,
+    };
+  }
+  if (kind === 'p/q x+b') {
+    // (2/3)x + 4: undone by taking the 4 away and multiplying by 3/2.
+    const [p, qq] = rng.pick([[2, 3], [3, 4], [3, 2], [2, 5], [4, 3], [5, 2], [3, 5]]), b = rng.nonZero(-9, 9);
+    const back = `${qq}(${lin(1, -b)})/${p}`, backF = `${qq}(${lin(1, -b, true)})/${p}`;
+    return {
+      f: `(${p}/${qq})x${pm(b)}`, show: `(${p}/${qq})x${pm(b, true)}`, at: (x) => (p * x) / qq + b,
+      pickX: () => qq * rng.int(-3, 4),
+      work: (c) => `${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)}: (${p}/${qq})x = ${minus(c - b)}; then multiply by ${qq}/${p}: x = ${minus(((c - b) * qq) / p)}`,
+      inv: back, invShow: backF,
+      solve: `x = (${p}/${qq})y${pm(b, true)}, so x ${b < 0 ? '+' : '−'} ${Math.abs(b)} = (${p}/${qq})y, and multiplying by ${qq}/${p}, y = ${backF}`,
+    };
+  }
+  if (kind === 'a-bx') {
+    const a = rng.nonZero(-9, 9), b = rng.int(2, 5);
+    return {
+      f: `${a} - ${b}x`, show: `${minus(a)} − ${b}x`, at: (x) => a - b * x, pickX,
+      work: (c) => `${a > 0 ? 'subtract' : 'add'} ${Math.abs(a)}: −${b}x = ${minus(c - a)}; then divide by −${b}: x = ${minus((a - c) / b)}`,
+      inv: `(${a} - x)/${b}`, invShow: `(${minus(a)} − x)/${b}`,
+      solve: `x = ${minus(a)} − ${b}y, so ${b}y = ${minus(a)} − x, and y = (${minus(a)} − x)/${b}`,
+    };
+  }
+  if (kind === 'cube') {
+    const b = rng.nonZero(-9, 9);
+    return {
+      f: `x^3${pm(b)}`, show: `x³${pm(b, true)}`, at: (x) => x ** 3 + b, pickX: () => rng.int(-3, 3),
+      work: (c) => `${b > 0 ? 'subtract' : 'add'} ${Math.abs(b)}: x³ = ${minus(c - b)}; then take the cube root: x = ${minus(cbrt(c - b))}`,
+      inv: `root(3, ${lin(1, -b)})`, invShow: `∛(${lin(1, -b, true)})`, cube: true,
+      solve: `x = y³${pm(b, true)}, so y³ = ${lin(1, -b, true)}, and the cube root undoes the cube: y = ∛(${lin(1, -b, true)})`,
+    };
+  }
+  if (kind === 'cube root') {
+    const b = rng.nonZero(-9, 9);
+    return {
+      f: `root(3, ${lin(1, -b)})`, show: `∛(${lin(1, -b, true)})`, at: (x) => cbrt(x - b) ** 3 === x - b ? cbrt(x - b) : NaN,
+      pickX: () => b + rng.int(-3, 3) ** 3,
+      work: (c) => `cube both sides: ${lin(1, -b, true)} = ${minus(c ** 3)}; then ${b > 0 ? 'add' : 'subtract'} ${Math.abs(b)}: x = ${minus(c ** 3 + b)}`,
+      inv: `x^3${pm(b)}`, invShow: `x³${pm(b, true)}`, cube: true,
+      solve: `x = ∛(${lin(1, -b, true).replace(/x/g, 'y')}), so cubing both sides, x³ = ${lin(1, -b, true).replace(/x/g, 'y')}, and y = x³${pm(b, true)}`,
+    };
+  }
+  // (ax + b)/(cx + d): y(cx + d) = ax + b, so x(cy − a) = b − dy.
+  for (;;) {
+    const a = rng.pick([1, 1, 2, 3]), c = rng.pick([1, 1, 2]), b = rng.nonZero(-6, 6), d = rng.nonZero(-6, 6);
+    if (a * d === b * c || gcdOf(a, b, c, d) > 1) continue;
+    const top = lin(a, b), bottom = lin(c, d);
+    const inv = `(${lin(-d, b)})/(${lin(c, -a)})`, invShow = `(${lin(-d, b, true)})/(${lin(c, -a, true)})`;
+    const Y = (t) => t.replace(/x/g, 'y');
+    return {
+      f: `(${top})/(${bottom})`, show: `(${lin(a, b, true)})/(${lin(c, d, true)})`,
+      at: (x) => (c * x + d === 0 ? NaN : (a * x + b) / (c * x + d)), pickX, solved: true,
+      work: (k) => `multiply both sides by ${lin(c, d, true)}: ${lin(a, b, true)} = ${minus(k)}(${lin(c, d, true)}) = ${lin(k * c, k * d, true)}; `
+        + `gather the x terms: ${minus(a - k * c)}x = ${minus(k * d - b)}, so x = ${minus((k * d - b) / (a - k * c))}`,
+      inv, invShow,
+      solve: `x = (${Y(lin(a, b, true))})/(${Y(lin(c, d, true))}), so x(${Y(lin(c, d, true))}) = ${Y(lin(a, b, true))}. Gather the y terms on one side: `
+        + `${c === 1 ? '' : c}xy − ${a === 1 ? '' : a}y = ${lin(-d, b, true)}, so y(${lin(c, -a, true)}) = ${lin(-d, b, true)}, and y = ${invShow}`,
+    };
+  }
 }
 
 // --- Undo a Function -------------------------------------------------------
@@ -91,7 +143,9 @@ const stepWords = (s) => s.map(([op, k]) => STEP_WORDS[op](k)).join(', then ');
 function undoValue(rng) {
   const shape = rng.pick(['rule', 'rule', 'cube', 'table', 'table', 'steps', 'steps']);
   if (shape === 'table') {
-    const xs = [-2, -1, 0, 1, 2, 3];
+    // Six inputs in a row, not always the same six: from −6 up to 2, one or two apart.
+    const start = rng.int(-6, 2), step = rng.pick([1, 1, 2]);
+    const xs = [0, 1, 2, 3, 4, 5].map((i) => start + step * i);
     const ys = new Set();
     while (ys.size < xs.length) ys.add(rng.int(-9, 12));
     const f = rng.shuffle([...ys]);
@@ -126,7 +180,7 @@ function undoValue(rng) {
   }
   for (;;) {
     const F = family(rng);
-    const x = rng.int(-6, 8);
+    const x = F.pickX();
     const c = F.at(x);
     if (!Number.isInteger(c)) continue;
     return {
@@ -135,7 +189,7 @@ function undoValue(rng) {
       answer: fracAns(x),
       visual: null,
       explain: `f⁻¹(${minus(c)}) is the input that gives the output ${minus(c)}, so solve f(x) = ${minus(c)}: ${F.show} = ${minus(c)}. `
-        + `Undo f's steps, the last one first: ${F.work(c)}. Check: f(${minus(x)}) = ${minus(c)}. `
+        + `${F.solved ? 'Solve it' : "Undo f's steps, the last one first"}: ${F.work(c)}. Check: f(${minus(x)}) = ${minus(c)}. `
         + `(f⁻¹(${minus(c)}) is not f(${minus(c)}), and not 1/f(${minus(c)}): the −1 means undo, not a power.) So f⁻¹(${minus(c)}) = ${minus(x)}.`,
     };
   }
@@ -170,10 +224,13 @@ function undoSteps(rng) {
 
 function formula(rng) {
   const F = family(rng);
+  // requiem: play/answers/equivalent-judged-by-value
+  // Any finished way of writing f⁻¹(x) is right: (x + 5)/3, x/3 + 5/3 and
+  // (1/3)(x + 5) are one function, so none of them is listed.
   return {
-    prompt: [T.prose(`f(x) = ${F.show}. Find f⁻¹(x).`)],
+    prompt: [T.prose(`f(x) = ${F.show}. Find f⁻¹(x).${F.inv.startsWith('root') ? ' (Type ∛ as root(3, …).)' : ''}`)],
     text: `inverse formula: f(x) = ${F.f}`,
-    answer: { type: 'expr', value: F.inv[0], ...(F.inv.length > 1 ? { accept: F.inv.slice(1) } : {}) },
+    answer: { type: 'equivalent', value: F.inv, requireSimplest: true },
     visual: null,
     explain: `Write y = ${F.show}, then swap x and y, since f⁻¹ takes f's outputs as its inputs: ${F.solve}. `
       + `So f⁻¹(x) = ${F.invShow}. Check: f(f⁻¹(x)) = x.`,
@@ -282,7 +339,7 @@ function restrict(rng) {
     const order = rng.shuffle([0, 1, 2, 3]);
     const label = (s) => (s === 'all' ? 'All real numbers' : s.replace('>=', '≥').replace('<=', '≤').replace(/-/g, '−'));
     return {
-      prompt: [T.prose(`f(x) = ${show}. On which domain is f one-to-one, so that it has an inverse?`)],
+      prompt: [T.prose(`f(x) = ${show}. Which of these domains makes f one-to-one, so that it has an inverse?`)],
       text: `one-to-one: f(x) = ${f}; options ${order.map((j, i) => `${optionIds[i]}: ${all[j]}`).join(' | ')}`,
       answer: { type: 'choice', value: optionIds[order.indexOf(0)], options: order.map((j, i) => ({ id: optionIds[i], label: label(all[j]) })) },
       visual: null,
@@ -307,7 +364,7 @@ function restrict(rng) {
     text: `restricted formula: f(x) = ${f}; ${branch}; options ${order.map((j, i) => `${optionIds[i]}: ${opts[j]}`).join(' | ')}`,
     answer: { type: 'choice', value: optionIds[order.indexOf(0)], options: order.map((j, i) => ({ id: optionIds[i], label: pretty(opts[j]) })) },
     visual: null,
-    explain: `Swap x and y: x = (${sqF(h).replace(/x/, 'y')})²${pm(k, true)}, so (${sqF(h).replace(/x/, 'y')})² = ${sqF(k)} and y ${pm(-h, true)} = ±√(${sqF(k)}). `
+    explain: `Swap x and y: x = (${sqF(h).replace(/x/, 'y')})²${pm(k, true)}, so (${sqF(h).replace(/x/, 'y')})² = ${sqF(k)} and y${pm(-h, true)} = ±√(${sqF(k)}). `
       + `f's inputs were ${branchF}, so f⁻¹'s outputs must be too: y ${right ? '≥' : '≤'} ${minus(h)} takes the ${right ? '+' : '−'} sign. So f⁻¹(x) = ${pretty(opts[0])}. `
       + `(The other sign is the inverse of the other half of the parabola.)`,
   };

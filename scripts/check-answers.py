@@ -6424,12 +6424,20 @@ def iv_into(outer: str, inner: str) -> str:
     return re.sub(r"x", f"({inner})", outer)
 
 
+def iv_cbrt(v: float) -> float:
+    return -((-v) ** (1 / 3)) if v < 0 else v ** (1 / 3)
+
+
 def iv_float(expr: str, x: float) -> float:
-    """expr at x in floats, for formulas with a square root in them."""
-    py = expr.replace("^", "**")
-    py = re.sub(r"(\d)\s*(?=[x(s])", r"\1*", py)
-    py = re.sub(r"\)\s*(?=[x(s])", ")*", py)
-    return eval(py, {"__builtins__": {}, "sqrt": math.sqrt, "x": x})  # noqa: S307 -- our own text
+    """expr at x in floats, for formulas with a square or cube root in them."""
+    py = expr.replace("root(3, ", "cbrt(").replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(sc])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(sc])", ")*", py)
+    return eval(py, {"__builtins__": {}, "sqrt": math.sqrt, "cbrt": iv_cbrt, "x": x})  # noqa: S307 -- our own text
+
+
+def iv_rooted(*texts: str) -> bool:
+    return any("sqrt" in t or "root" in t for t in texts)
 
 
 IV_TRY = [Fraction(n, 2) for n in range(-240, 241)]
@@ -6442,7 +6450,7 @@ def iv_solve(f: str, c, ok=lambda x: True) -> Fraction:
         if not ok(x):
             continue
         try:
-            y = at(f, {"x": x}) if "sqrt" not in f else iv_float(f, float(x))
+            y = at(f, {"x": x}) if not iv_rooted(f) else iv_float(f, float(x))
         except (ValueError, ZeroDivisionError):
             continue
         if abs(y - Fraction(c)) < 1e-9:
@@ -6487,7 +6495,11 @@ def iv_undoes(f: str, g: str) -> bool:
     agreed = 0
     for x in IV_POINTS:
         try:
-            if at(iv_into(f, g), {"x": x}) != x or at(iv_into(g, f), {"x": x}) != x:
+            if iv_rooted(f, g):
+                # A cube root is irrational at most points: floats, to a billionth.
+                if abs(iv_float(iv_into(f, g), float(x)) - x) > 1e-9 or abs(iv_float(iv_into(g, f), float(x)) - x) > 1e-9:
+                    return False
+            elif at(iv_into(f, g), {"x": x}) != x or at(iv_into(g, f), {"x": x}) != x:
                 return False
         except ZeroDivisionError:
             continue
@@ -6495,7 +6507,7 @@ def iv_undoes(f: str, g: str) -> bool:
     return agreed >= 20
 
 
-# requiem: catalogue/content/inverse-formula-forms-listed
+# requiem: catalogue/content/inverse-formula-judged-by-value
 def iv_formula(f: str, answer: str) -> str:
     return "ok" if iv_undoes(f, answer) else f"does not undo {f}"
 
@@ -6736,7 +6748,7 @@ def ra_gcd_degree(p: list, q: list) -> int:
     return len(p) - 1
 
 
-# requiem: catalogue/content/rational-answer-lowest-terms
+# requiem: catalogue/content/rational-answer-finished-by-value
 def ra_finished(answer: str) -> bool:
     top, bottom = ra_split(answer.strip())
     if bottom is None:
@@ -7127,7 +7139,8 @@ for path in sorted(LIB.glob("*.json")):
             continue
 
         # A simplified expression: the same value as the question, and finished.
-        if answer["type"] == "expr":
+        # An answer judged by value (equivalent) is held to the same rules.
+        if answer["type"] in ("expr", "equivalent"):
             rule = next((r for r in EXPR_RULES if r[0].match(text)), None)
             if rule:
                 # Every form the level accepts is held to the same test.
