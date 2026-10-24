@@ -2148,8 +2148,14 @@ def terminates(x: Fraction) -> bool:
 JUDGED = {
     # decimals: a decimal to measure, place or compare; a fraction to stay exact
     "You need to compare # with #.": "decimal",
-    "You need to say which of # and # is the better price.": "decimal",
-    "You need to measure a length of about # metres with a ruler.": "decimal",
+    # A price per gram, and a length measured out with a ruler: a ruler is
+    # read in centimetres and millimetres, which are decimals of a metre,
+    # whatever fraction of a metre was asked for.
+    "One brand costs £# a gram and another costs £# a gram. You need to say which is cheaper.": "decimal",
+    "You need to measure out #/# of a metre with a ruler.": "decimal",
+    # Two measurements with their points lined up; as fractions they would
+    # be over 100 and 1000 and need a common bottom first.
+    "You need to add # kg and # kg.": "decimal",
     "You need to plot # on a number line.": "decimal",
     "You need to add #/# to #/#.": "fraction",
     # exponents: keep the power while an exponent rule applies to it
@@ -2206,6 +2212,9 @@ JUDGED = {
 
 def judged(text: str) -> str:
     # A fraction for exactness only where the decimal would not terminate.
+    # An exact quotient of a decimal: fine as a decimal exactly when it ends.
+    if m := re.match(r"^You need the exact answer to (\d+\.\d+) ÷ (\d+)\.$", text):
+        return "decimal" if terminates(Fraction(m[1]) / int(m[2])) else "fraction"
     m = (re.match(r"^You need the exact value of (\d+/\d+) of something\.$", text)
          or re.match(r"^You need to multiply by (\d+/\d+) and keep the answer exact\.$", text)
          or re.match(r"^You need to divide (\d+ into \d+) equal shares, exactly\.$", text))
