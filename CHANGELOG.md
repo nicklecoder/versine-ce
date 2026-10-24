@@ -139,6 +139,12 @@ solving for x from the relationship, and a strategy level on which equation a
 relationship gives, including none when the lines are not parallel. The plane can now
 draw a figure without axes (`axes: false`) and write text inside it (a `text` mark),
 which check-reveal.mjs checks.
+
+**Triangles and Polygons** (Lines & Angles), in eight levels: a triangle's angle sum, in
+numbers and in x; the exterior angle as the two far angles added; isosceles triangles,
+in numbers and in x; the interior sum of a polygon and a missing angle; regular polygons,
+their angles, their sides from an angle, and the gap left where several meet at a point;
+the exterior sum of 360°; and the triangle inequality as a yes or no.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

@@ -2093,6 +2093,67 @@ CHOICE_RULES += (
     (re.compile(r"^which equation: ([a-z -]+), \d*x(?: [+-] \d+)?, \d*x(?: [+-] \d+)?$"), equation_from_relation),
 )
 
+
+# --- Triangles and Polygons --------------------------------------------------
+#
+# Everything from two facts, applied again: a polygon of n sides has angles
+# adding to (n - 2) × 180, and its exterior angles add to 360. An exterior
+# angle of a triangle is 180 less the angle beside it, which is the two far
+# ones added. Three lengths make a triangle when the two shorter add to more
+# than the longest.
+
+def polygon_sum(n: int) -> int:
+    return (n - 2) * 180
+
+
+def regular_each(n: int) -> Fraction:
+    return Fraction(polygon_sum(n), n)
+
+
+def sides_from_exterior(each) -> Fraction:
+    return Fraction(360) / Fraction(each)
+
+
+def triangle_in_x(listing: str) -> Fraction:
+    terms = [linear_in_x(t) for t in listing.split(", ")]
+    return Fraction(180 - sum(b for _, b in terms), sum(a for a, _ in terms))
+
+
+def isosceles_in_x(e1: str, other: str, e2: str) -> Fraction:
+    (a1, b1), (a2, b2) = linear_in_x(e1), linear_in_x(e2)
+    if other == "base":
+        return Fraction(b2 - b1, a1 - a2)
+    return Fraction(180 - 2 * b1 - b2, 2 * a1 + a2)
+
+
+def makes_triangle(listing: str) -> str:
+    x, y, z = sorted(angle_sum(listing))
+    return "yes" if x + y > z else "no"
+
+
+BY_RULE += (
+    (re.compile(r"^triangle: (\d+, \d+)$"), lambda xs: 180 - sum(angle_sum(xs))),
+    (re.compile(r"^triangle in x: (\d*x(?: [+-] \d+)?(?:, \d*x(?: [+-] \d+)?){2})$"), triangle_in_x),
+    (re.compile(r"^exterior angle: remote (\d+), (\d+)$"), lambda a, c: a + c),
+    (re.compile(r"^remote angle: exterior (\d+), other (\d+)$"), lambda e, k: e - k),
+    (re.compile(r"^isosceles: apex (\d+)$"), lambda apex: Fraction(180 - apex, 2)),
+    (re.compile(r"^isosceles: base (\d+)$"), lambda base: 180 - 2 * base),
+    (re.compile(r"^isosceles in x: base (\d*x(?: [+-] \d+)?), (base|apex) (\d*x(?: [+-] \d+)?)$"), isosceles_in_x),
+    (re.compile(r"^interior sum: (\d+)$"), polygon_sum),
+    (re.compile(r"^missing interior: (\d+) sides, (\d+(?:, \d+)*)$"), lambda n, xs: polygon_sum(n) - sum(angle_sum(xs))),
+    (re.compile(r"^regular interior: (\d+)$"), regular_each),
+    (re.compile(r"^regular from sum: (\d+)$"), lambda total: Fraction(total, total // 180 + 2)),
+    (re.compile(r"^regular sides from interior: (\d+)$"), lambda each: sides_from_exterior(180 - each)),
+    (re.compile(r"^regular gap: (\d+(?:, \d+)*)$"), lambda ns: 360 - sum(regular_each(n) for n in angle_sum(ns))),
+    (re.compile(r"^regular exterior: (\d+)$"), lambda n: Fraction(360, n)),
+    (re.compile(r"^regular sides from exterior: (\d+)$"), sides_from_exterior),
+    (re.compile(r"^missing exterior: (\d+(?:, \d+)*)$"), lambda xs: 360 - sum(angle_sum(xs))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^triangle sides: (\d+, \d+, \d+)$"), makes_triangle),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A level none of whose texts any rule reads would pass by saying nothing:
 # a prefix spelled one way in the generator and another here does that.

@@ -19,67 +19,10 @@
 import * as T from '../terms.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/angles.js';
 
-const LINE = 'var(--vec-1)';
-const GIVEN = 'var(--vec-2)';
-const ASKED = 'var(--gold)';
-
-const RAD = Math.PI / 180;
-const r2 = (v) => Math.round(v * 100) / 100;
-/** The point `r` from `c` in direction `deg`. */
-const toward = (deg, r, c = [0, 0]) => [r2(c[0] + r * Math.cos(deg * RAD)), r2(c[1] + r * Math.sin(deg * RAD))];
-
-const FRAME = { kind: 'plane', xRange: [-5, 5], yRange: [-4.2, 4.2], grid: 0, axes: false };
-
-const ray = (deg, c = [0, 0], len = 3.8) => ({ kind: 'segment', from: c, to: toward(deg, len, c), tone: LINE });
-function arc(from, to, r, c = [0, 0], tone = GIVEN) {
-  const pts = [];
-  const steps = Math.max(3, Math.ceil((to - from) / 8));
-  for (let i = 0; i <= steps; i++) pts.push(toward(from + ((to - from) * i) / steps, r, c));
-  return { kind: 'path', points: pts, tone };
-}
-/** The little square that says a corner is 90°. */
-const square = (deg, c = [0, 0], s = 0.45) => ({ kind: 'path', tone: LINE,
-  points: [toward(deg, s, c), toward(deg + 45, s * Math.SQRT2, c), toward(deg + 90, s, c)] });
-/** How far out a label sits: further for a narrow angle, so it fits between the arms. */
-const reach = (size, base = 1.25) => Math.min(2.6, Math.max(base, 0.62 / Math.sin((size / 2) * RAD)));
-const text = (at, label, tone = GIVEN) => ({ kind: 'text', at, label, tone });
-
-/**
- * The marks for one angle between two directions: an arc, and either its
- * size or its letter. The asked angle's size arrives with the answer, a
- * little further out along the same line.
- */
-function angleMarks(from, to, { label, asked = false, answer = null, c = [0, 0], right = false }) {
-  const size = to - from, mid = (from + to) / 2, out = reach(size, label.length > 5 ? 2 : 1.25);
-  const marks = [right ? square(from, c) : arc(from, to, 0.7, c, asked ? ASKED : GIVEN)];
-  marks.push(text(toward(mid, out, c), label, asked ? ASKED : GIVEN));
-  const reveal = answer === null ? [] : [text(toward(mid, out + 0.85, c), answer, 'var(--result)')];
-  return { marks, reveal };
-}
-function figure(parts) {
-  return fit({ ...FRAME, marks: parts.flatMap((p) => p.marks ?? [p]), answer: parts.flatMap((p) => p.reveal ?? []) }, 1.55);
-}
-
-/**
- * Scale a figure up by k and frame it tightly. The plane draws at most 26px
- * to a unit, so a figure drawn small in a big frame comes out small, and one
- * filling a single quadrant wastes the other three.
- */
-function fit(spec, k) {
-  const scale = (m) => ({
-    ...m,
-    ...(m.from ? { from: m.from.map((v) => r2(v * k)) } : {}),
-    ...(m.to ? { to: m.to.map((v) => r2(v * k)) } : {}),
-    ...(m.at ? { at: m.at.map((v) => r2(v * k)) } : {}),
-    ...(m.points ? { points: m.points.map((pt) => pt.map((v) => r2(v * k))) } : {}),
-  });
-  const marks = spec.marks.map(scale), answer = spec.answer.map(scale);
-  const pts = [...marks, ...answer].flatMap((m) => [m.from, m.to, m.at, ...(m.points ?? [])].filter(Boolean));
-  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-  const pad = 0.9;
-  return { ...spec, xRange: [r2(Math.min(...xs) - pad), r2(Math.max(...xs) + pad)],
-    yRange: [r2(Math.min(...ys) - pad), r2(Math.max(...ys) + pad)], marks, answer };
-}
+import {
+  LINE, GIVEN, ASKED, RAD, r2, toward, FRAME, ray, arc, square, reach, text, angleMarks, figure, fit,
+  linear, ascii, sized, putIn,
+} from './figures.js';
 
 const LETTERS = ['a', 'b', 'c', 'x', 'y', 'p', 'q'];
 const deg = (n) => `${n}°`;
@@ -333,10 +276,6 @@ function parallel(rng) {
   };
 }
 
-/** a·x + b as it is written on an angle: 3x + 10, x − 25, 4x. */
-const linear = (a, b) => `${a === 1 ? '' : a}x${b === 0 ? '' : b > 0 ? ` + ${b}` : ` − ${-b}`}`;
-const ascii = (a, b) => linear(a, b).replace('−', '-');
-
 /**
  * Two angles as expressions in x, made to agree with a relationship at a
  * whole x: equal, or adding to 90 or 180.
@@ -418,12 +357,6 @@ function exprFigure(setting, A, B, l1, l2, answer) {
   return transversalFigure(d, p, q, { givenLabel: l1, askedLabel: l2, givenAnswer: answer && deg(A),
     askedAnswer: answer && deg(B), askedTone: false });
 }
-
-/** (3x + 10)° for a sentence, held in one piece so it never wraps before the degree sign. */
-const sized = (e) => `(${linear(...e).replace(/ /g, '\u00a0')})\u2060°`;
-
-/** a·x + b with x put in: 3(20) + 10. */
-const putIn = (a, b, x) => `${a === 1 ? x : `${a}(${x})`}${b === 0 ? '' : b > 0 ? ` + ${b}` : ` − ${-b}`}`;
 
 function solveForX(rng, setting = rng.pick(Object.keys(SETTINGS))) {
   const { rule, words, why } = SETTINGS[setting];

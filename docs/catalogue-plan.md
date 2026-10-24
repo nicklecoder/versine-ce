@@ -157,6 +157,9 @@ arbitrates. That completes the milestone.
 a Point · Parallel Lines · Solve for x · Which Equation? (strategy, on
 equations-both's Gather Then Undo) · All Together. Its figures are drawn on
 the plane with no axes, which the plane now allows.
+`triangle-angles` is built, as Angle Sum · Exterior Angle · Isosceles
+Triangles · Polygon Angle Sum · Regular Polygons · The Exterior Sum · Triangle
+Inequality · All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

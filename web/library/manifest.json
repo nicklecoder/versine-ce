@@ -1,5 +1,5 @@
 {
-  "built": 357,
+  "built": 365,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -452,6 +452,16 @@
       "parallel-lines",
       "solve-for-x",
       "which-equation",
+      "all-together"
+    ],
+    "triangle-angles": [
+      "angle-sum",
+      "exterior-angle",
+      "isosceles-triangles",
+      "polygon-angle-sum",
+      "regular-polygons",
+      "the-exterior-sum",
+      "triangle-inequality",
       "all-together"
     ]
   },
@@ -1037,9 +1047,15 @@
           "equations-both"
         ]
       }
+    },
+    "triangle-angles": {
+      "dependsOn": [
+        "angles"
+      ],
+      "levels": {}
     }
   },
-  "sources": "db1adce1213cc16013b290046b9a536fe8f4a2b13792530b1fd757d302ce5b5a",
+  "sources": "33e4a0e799c70d94d6e2235082d57a168ca6bc739fbbc7959b2d8fa96b84036b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4610,6 +4626,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "angles-7.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 0,
+      "slug": "angle-sum",
+      "name": "Angle Sum",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-0.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 1,
+      "slug": "exterior-angle",
+      "name": "Exterior Angle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-1.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 2,
+      "slug": "isosceles-triangles",
+      "name": "Isosceles Triangles",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-2.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 3,
+      "slug": "polygon-angle-sum",
+      "name": "Polygon Angle Sum",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-3.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 4,
+      "slug": "regular-polygons",
+      "name": "Regular Polygons",
+      "count": 188,
+      "exhaustive": true,
+      "signed": false,
+      "file": "triangle-angles-4.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 5,
+      "slug": "the-exterior-sum",
+      "name": "The Exterior Sum",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-5.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 6,
+      "slug": "triangle-inequality",
+      "name": "Triangle Inequality",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-6.json"
+    },
+    {
+      "skill": "triangle-angles",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "triangle-angles-7.json"
     }
   ]
 }
