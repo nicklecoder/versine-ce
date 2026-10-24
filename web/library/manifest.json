@@ -1,5 +1,5 @@
 {
-  "built": 570,
+  "built": 576,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -721,6 +721,14 @@
       "common-denominator",
       "unlike-denominators",
       "complex-fractions",
+      "all-together"
+    ],
+    "rational-eq": [
+      "clear-denominators",
+      "extraneous",
+      "proportions-with-x",
+      "inverse-variation",
+      "work-and-rate",
       "all-together"
     ]
   },
@@ -1674,9 +1682,39 @@
           "frac-addsub"
         ]
       }
+    },
+    "rational-eq": {
+      "dependsOn": [
+        "equations",
+        "proportional",
+        "quadratic-eq",
+        "ratio",
+        "rational-expr",
+        "word-equations"
+      ],
+      "levels": {
+        "clear-denominators": [
+          "equations",
+          "rational-expr"
+        ],
+        "extraneous": [
+          "quadratic-eq",
+          "rational-expr"
+        ],
+        "proportions-with-x": [
+          "quadratic-eq"
+        ],
+        "inverse-variation": [
+          "proportional"
+        ],
+        "work-and-rate": [
+          "ratio",
+          "word-equations"
+        ]
+      }
     }
   },
-  "sources": "eb1ac3b1585ad53d1ebff9c6ce519295c8ea2a882a44cedf6375d41eb271a976",
+  "sources": "c7880327b5555d37bcb17017b64b8302abccbc108f259596d243c602439f1b93",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7377,6 +7415,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "rational-expr-6.json"
+    },
+    {
+      "skill": "rational-eq",
+      "level": 0,
+      "slug": "clear-denominators",
+      "name": "Clear Denominators",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-eq-0.json"
+    },
+    {
+      "skill": "rational-eq",
+      "level": 1,
+      "slug": "extraneous",
+      "name": "Extraneous",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-eq-1.json"
+    },
+    {
+      "skill": "rational-eq",
+      "level": 2,
+      "slug": "proportions-with-x",
+      "name": "Proportions With x",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-eq-2.json"
+    },
+    {
+      "skill": "rational-eq",
+      "level": 3,
+      "slug": "inverse-variation",
+      "name": "Inverse Variation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-eq-3.json"
+    },
+    {
+      "skill": "rational-eq",
+      "level": 4,
+      "slug": "work-and-rate",
+      "name": "Work & Rate",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-eq-4.json"
+    },
+    {
+      "skill": "rational-eq",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-eq-5.json"
     }
   ]
 }

@@ -6771,6 +6771,215 @@ SET_RULES += (
     (re.compile(r"^excluded: (.+)$"), ra_excluded),
 )
 
+# --- Rational Equations -------------------------------------------------------
+#
+# Each side is read into an exact quotient of two polynomials, the sides are
+# subtracted over one denominator, and the numerator's zeros are found
+# exactly: every p/q the rational root theorem allows is tried, and what is
+# left once those are divided out must have no real zeros at all. A zero
+# counts only if the question as written, evaluated there in exact
+# arithmetic, divides by nothing that is 0 and has both sides equal. Work,
+# rate and variation questions are written here as such an equation, from
+# their numbers alone, and solved the same way.
+
+def qe_trim(c: list) -> list:
+    c = list(c)
+    while len(c) > 1 and c[-1] == 0:
+        c.pop()
+    return c
+
+
+def qe_plus(p: list, q: list) -> list:
+    n = max(len(p), len(q))
+    return qe_trim([(p[i] if i < len(p) else 0) + (q[i] if i < len(q) else 0) for i in range(n)])
+
+
+def qe_times(p: list, q: list) -> list:
+    out = [Fraction(0)] * (len(p) + len(q) - 1)
+    for i, a in enumerate(p):
+        for j, b in enumerate(q):
+            out[i + j] += a * b
+    return qe_trim(out)
+
+
+class QeRat:
+    """num/den, each a list of Fraction coefficients from x^0 up."""
+
+    def __init__(self, num, den=(Fraction(1),)):
+        self.num, self.den = qe_trim(num), qe_trim(den)
+
+    @staticmethod
+    def of(v):
+        return v if isinstance(v, QeRat) else QeRat([Fraction(v)])
+
+    def __add__(self, o):
+        o = QeRat.of(o)
+        return QeRat(qe_plus(qe_times(self.num, o.den), qe_times(o.num, self.den)), qe_times(self.den, o.den))
+
+    __radd__ = __add__
+
+    def __neg__(self):
+        return QeRat([-a for a in self.num], self.den)
+
+    def __pos__(self):
+        return self
+
+    def __sub__(self, o):
+        return self + -QeRat.of(o)
+
+    def __rsub__(self, o):
+        return QeRat.of(o) - self
+
+    def __mul__(self, o):
+        o = QeRat.of(o)
+        return QeRat(qe_times(self.num, o.num), qe_times(self.den, o.den))
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, o):
+        o = QeRat.of(o)
+        assert o.num != [0], "a division by the zero polynomial"
+        return QeRat(qe_times(self.num, o.den), qe_times(self.den, o.num))
+
+    def __rtruediv__(self, o):
+        return QeRat.of(o) / self
+
+    def __pow__(self, k):
+        out = QeRat([Fraction(1)])
+        for _ in range(int(k)):
+            out = out * self
+        return out
+
+
+def qe_py(src: str) -> str:
+    py = src.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[x(])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[x(\d])", ")*", py)
+    py = re.sub(r"x\s*(?=[(\d])", "x*", py)
+    return re.sub(r"(?<![\w.])(\d+)", r"F(\1)", py)
+
+
+def qe_eval(src: str, x):
+    return eval(qe_py(src), {"__builtins__": {}, "F": Fraction, "x": x})  # noqa: S307
+
+
+def qe_at(c: list, r: Fraction) -> Fraction:
+    return sum((a * r ** i for i, a in enumerate(c)), Fraction(0))
+
+
+def qe_deflate(c: list, r: Fraction) -> list:
+    hi = c[::-1]
+    out = [hi[0]]
+    for a in hi[1:-1]:
+        out.append(a + out[-1] * r)
+    return out[::-1]
+
+
+def qe_divisors(n: int) -> list:
+    n = abs(n)
+    return [d for d in range(1, math.isqrt(n) + 1) if n % d == 0 for d in {d, n // d}]
+
+
+def qe_zeros(c: list) -> set:
+    """Every real zero of the polynomial, each of which must be rational."""
+    c = qe_trim(c)
+    assert c != [0], "the two sides are the same for every x"
+    zeros = set()
+    while len(c) > 1 and c[0] == 0:
+        zeros.add(Fraction(0))
+        c = c[1:]
+    scale = math.lcm(*(a.denominator for a in c))
+    ints = [int(a * scale) for a in c]
+    cands = {s * Fraction(p, q) for p in qe_divisors(ints[0]) for q in qe_divisors(ints[-1]) for s in (1, -1)}
+    for r in sorted(cands):
+        while len(c) > 1 and qe_at(c, r) == 0:
+            zeros.add(r)
+            c = qe_deflate(c, r)
+    deg = len(c) - 1
+    assert deg == 0 or (deg == 2 and c[1] ** 2 - 4 * c[0] * c[2] < 0), f"zeros that are not rational are left in {c}"
+    return zeros
+
+
+# requiem: catalogue/content/rational-extraneous-mixes-outcomes
+def qe_roots(lhs: str, rhs: str) -> set:
+    x = QeRat([Fraction(0), Fraction(1)])
+    gap = QeRat.of(qe_eval(lhs, x)) - QeRat.of(qe_eval(rhs, x))
+    out = set()
+    for r in qe_zeros(gap.num):
+        try:
+            if qe_eval(lhs, r) == qe_eval(rhs, r):
+                out.add(r)
+        except ZeroDivisionError:
+            pass  # a denominator in the question is 0 there: extraneous
+    return out
+
+
+def qe_solutions(lhs: str, rhs: str) -> OnGrid:
+    roots = qe_roots(lhs, rhs)
+    return on_grid(roots, sorted(set(SAMPLES_ON_LINE) | roots))
+
+
+def qe_only(roots: set, keep=lambda r: True) -> Fraction:
+    hits = [r for r in roots if keep(r)]
+    assert len(hits) == 1, f"{len(hits)} answers fit: {sorted(hits)}"
+    return hits[0]
+
+
+def qe_over(v: Fraction) -> str:
+    return f"({v.numerator})/({v.denominator})"
+
+
+def qe_variation(y1, x1, _y, xa, _x, yb, _k) -> Fraction:
+    # y = k/x: k is the one number that makes y1 = k/x1 true.
+    k = qe_only(qe_roots(f"({y1})", f"x/({x1})"))
+    if _k:
+        return k
+    if _y:
+        return qe_eval(f"{qe_over(k)}/({xa})", None)
+    return qe_only(qe_roots(f"({yb})", f"{qe_over(k)}/x"))
+
+
+def qe_together(a, b) -> Fraction:
+    return qe_only(qe_roots(f"1/({a}) + 1/({b})", "1/x"), lambda r: r > 0)
+
+
+def qe_alone(t, a) -> Fraction:
+    return qe_only(qe_roots(f"1/({a}) + 1/x", f"1/({t})"), lambda r: r > 0)
+
+
+def qe_fill(a, b) -> Fraction:
+    return qe_only(qe_roots(f"1/({a}) - 1/({b})", "1/x"), lambda r: r > 0)
+
+
+def qe_current(v, down, up) -> Fraction:
+    return qe_only(qe_roots(f"({down})/({v} + x)", f"({up})/({v} - x)"), lambda r: 0 < r < int(v))
+
+
+SET_RULES += (
+    (re.compile(r"^rational eq: (.+) = (.+)$"), qe_solutions),
+)
+
+BY_RULE += (
+    (re.compile(r"^inverse variation: y = (-?\d+) when x = (-?\d+); (?:(y) when x = (-?\d+)|(x) when y = (-?\d+)|(k))$"), qe_variation),
+    (re.compile(r"^work together: (\d+), (\d+)$"), qe_together),
+    (re.compile(r"^work alone: together (\d+), (\d+)$"), qe_alone),
+    (re.compile(r"^fill drain: (\d+), (\d+)$"), qe_fill),
+    (re.compile(r"^current: speed (\d+), downstream (\d+), upstream (\d+)$"), qe_current),
+)
+
+# The sets above are read at the half-steps from -60 to 60 and at the roots
+# found, so a key anywhere else would go unread: every key must be one of
+# those half-steps.
+QE_LINE = set(SAMPLES_ON_LINE)
+for path in sorted(LIB.glob("rational-eq-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "solutions":
+            continue
+        where = f"rational-eq L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
+                problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

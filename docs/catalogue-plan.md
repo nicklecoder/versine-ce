@@ -431,6 +431,16 @@ Values on quadratic equations' Zero Product, Multiply & Divide on
 fraction multiplication's Dividing Fractions, and the two adding levels on
 fraction addition's Same Denominator and Unlike Denominators.
 
+`rational-eq` is built, in the plan's five levels and All Together. Clear
+Denominators depends on rational expressions' Unlike Denominators and
+equations' Two Steps, Extraneous on rational expressions' Excluded Values
+and quadratic equations' By Factoring, Proportions With x on quadratic
+equations' Rearrange to Zero First, Inverse Variation on proportional
+relationships' Using y = kx, and Work & Rate on writing equations' Two
+Things Equal and ratio's Unit Rate. As in radical-eq, the Extraneous level
+keeps one answer in about three rows of five, both in one and neither in
+one.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

@@ -13,6 +13,19 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Rational Equations**, a new skill under Equations, in six levels:
+Clear Denominators (numbers under x, and x under numbers), Extraneous
+(clearing gives two answers that may each land on an excluded value, so
+one, both or neither stand, and a linear one whose only answer is
+excluded), Proportions With x (cross-multiplying, some to a quadratic),
+Inverse Variation (in symbols and in stories), Work & Rate (working
+together, one alone, a fill against a drain, and a current), then All
+Together. The equations take a set in the solutions input; variation and
+work take a number. `check-answers.py` puts both sides over one
+denominator, finds the numerator's zeros by the rational root theorem,
+and keeps those where the question as written divides by nothing that is
+0; it writes its own equation for each variation and work question.
+
 **Rational Expressions**, a new skill under Expressions, in seven levels:
 Simplify (cancelling a shared factor, a number, or a factor with its sign
 reversed), Excluded Values (including one whose factor cancels), Multiply
