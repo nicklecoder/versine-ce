@@ -5967,6 +5967,21 @@ BY_RULE += (
     (re.compile(r"^compose: (sin|cos|tan)\(a(sin|cos|tan)\((-?\d+)/(\d+)\)\)$"), te_compose),
 )
 
+# requiem: catalogue/content/choice-labels-distinct
+# Two options that read the same are one option shown twice: the right one
+# twice made a free guess of a half, a wrong one twice a decoy wasted. Held
+# for trig-equations, domain-range, radical-eq and composition, whose options
+# are built from sets, families and polynomials that can print alike.
+for path in sorted(LIB.glob("*.json")):
+    if not path.stem.rsplit("-", 1)[0] in ("trig-equations", "domain-range", "radical-eq", "composition"):
+        continue
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "choice":
+            continue
+        labels = [json.dumps(o["label"], ensure_ascii=False) for o in p["answer"]["options"]]
+        if len(set(labels)) != len(labels):
+            problems.append(f"{path.stem} row {i}: two options read the same, {labels}")
+
 # --- Domain & Range ----------------------------------------------------------
 #
 # A formula's domain is found by trying it, in exact rationals, at every

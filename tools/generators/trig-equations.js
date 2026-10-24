@@ -64,6 +64,11 @@ const listed = (items) => (items.length <= 1 ? items.join('') : `${items.slice(0
 const degText = (x) => `${minus(x)}°`;
 const radText = (x) => { const q = reduce(Math.round(x * 2), 360); return piText(q.n, q.d); };
 const anglesText = (xs, radians) => (xs.length ? listed(xs.map(radians ? radText : degText)) : 'none');
+// requiem: catalogue/content/answer-stated-as-typed
+/** The answer as the solutions box reads it: x = 30° or x = 150°. */
+const orText = (xs, radians) => xs.map((x) => `x = ${radians ? radText(x) : degText(x)}`).join(' or ');
+/** The closing "So …", in that form, or that there is none. */
+const soText = (xs, radians) => (xs.length ? orText(xs, radians) : 'there is no solution');
 /** The option's label for a set in [0, 2π): π/6 and 5π/6, or No solution. */
 const setLabel = (xs) => (xs.length ? listed(xs.map(radText)) : 'No solution');
 /** The option as the checker reads it: coefficients of π, or none. */
@@ -120,51 +125,82 @@ const coef = (a) => (a === 1 ? '' : a === -1 ? '−' : `${minus(a)} `);
 const tailShow = (b) => (b === 0 ? '' : ` ${b < 0 ? '−' : '+'} ${Math.abs(b)}`);
 const tailAscii = (b) => (b === 0 ? '' : ` ${b < 0 ? '-' : '+'} ${Math.abs(b)}`);
 
+/** fn of x, 2x, 3x or x/2, as shown and as ASCII. */
+function argForms(fn, arg) {
+  if (arg === 'x') return { F: `${fn} x`, Fa: `${fn}(x)` };
+  if (arg === 'x/2') return { F: `${fn}(x/2)`, Fa: `${fn}(x/2)` };
+  return { F: `${fn} ${arg}`, Fa: `${fn}(${arg[0]}*x)` };
+}
+
+/** "+ 3", "− 2√3", or nothing, after a term already written. */
+const signed = (t) => (t === '0' ? '' : t.startsWith('−') ? ` − ${t.slice(1)}` : ` + ${t}`);
+const signedA = (t) => (t === '0' ? '' : t.startsWith('-') ? ` - ${t.slice(1)}` : ` + ${t}`);
+
 /**
  * An equation that comes to fn(arg) = v, as shown, as ASCII, and the
- * working that isolates fn. `arg` is x, 2x or 3x.
+ * working that isolates fn. `arg` is x, 2x, 3x or x/2.
  */
 function linear(rng, fn, v, arg = 'x') {
-  const k = arg === 'x' ? 1 : +arg[0];
-  const F = `${fn} ${arg}`, Fa = `${fn}(${k === 1 ? 'x' : `${k}*x`})`;
+  const { F, Fa } = argForms(fn, arg);
+  // A·F + tail = rhs, before any F is moved to the right.
+  let A, tail = '', tailA = '', rhs, rhsA;
+  const steps = [];
   if (v.r === 1) {
     // A value with no solution is asked plainly, so that it stays a few
     // problems among many rather than a third of a small level.
     const none = !inRange(fn, v);
     const m = none ? (v.d === 1 ? rng.pick([2, 3]) : 1) : v.n === 0 ? rng.pick([2, 3, 4, 5]) : rng.pick([1, 1, 2, 3]);
-    const A = v.n === 0 ? m : v.d * m, R = v.n === 0 ? 0 : v.n * m;
+    A = v.n === 0 ? m : v.d * m;
+    const R = v.n === 0 ? 0 : v.n * m;
     const B = !none && rng.chance(0.6) ? rng.pick([-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]) : 0;
-    const C = R + B;
     if (A === 1 && B === 0) return linear(rng, fn, v, arg);
-    const steps = [];
+    tail = tailShow(B); tailA = tailAscii(B); rhs = minus(R + B); rhsA = String(R + B);
     if (B) steps.push(`${B > 0 ? 'Take away' : 'Add'} ${Math.abs(B)}: ${coef(A)}${F} = ${minus(R)}.`);
     if (A !== 1) steps.push(`Divide by ${A}: ${F} = ${valText(v)}.`);
-    return { show: `${coef(A)}${F}${tailShow(B)} = ${minus(C)}`, ascii: `${A}*${Fa}${tailAscii(B)} = ${C}`, steps: steps.join(' ') };
+  } else {
+    const rad = `√${v.r}`, radA = `sqrt(${v.r})`;
+    const forms = ['plain', 'zero'];
+    if ((v.r === 2 && v.d === 2) || (v.r === 3 && v.d === 3)) forms.push('rational', 'rational');
+    const form = rng.pick(forms);
+    const s = v.n < 0;
+    if (form === 'rational') {
+      return { show: `${rad} ${F} = ${s ? '−1' : '1'}`, ascii: `${radA}*${Fa} = ${s ? -1 : 1}`,
+        steps: `Divide by ${rad}: ${F} = ${s ? '−' : ''}1/${rad} = ${valText(v)}.` };
+    }
+    // 2 sin x = √3, or the same doubled: 4 sin x = 2√3.
+    const m = rng.pick([1, 1, 2, 3]);
+    A = v.d * m;
+    if (A === 1 && form === 'plain') return linear(rng, fn, v, arg);
+    const R = `${m === 1 ? '' : m}${rad}`, RA = `${m === 1 ? '' : `${m}*`}${radA}`;
+    if (form === 'plain') { rhs = `${s ? '−' : ''}${R}`; rhsA = `${s ? '-' : ''}${RA}`; }
+    else {
+      tail = ` ${s ? '+' : '−'} ${R}`; tailA = ` ${s ? '+' : '-'} ${RA}`; rhs = '0'; rhsA = '0';
+      steps.push(`${s ? 'Take away' : 'Add'} ${R}: ${coef(A)}${F} = ${s ? '−' : ''}${R}.`);
+    }
+    if (A !== 1) steps.push(`Divide by ${A}: ${F} = ${valText(v)}.`);
   }
-  const rad = `√${v.r}`, radA = `sqrt(${v.r})`;
-  const forms = ['plain', 'zero'];
-  if ((v.r === 2 && v.d === 2) || (v.r === 3 && v.d === 3)) forms.push('rational', 'rational');
-  const form = rng.pick(forms);
-  const s = v.n < 0;
-  if (form === 'rational') {
-    return { show: `${rad} ${F} = ${s ? '−1' : '1'}`, ascii: `${radA}*${Fa} = ${s ? -1 : 1}`,
-      steps: `Divide by ${rad}: ${F} = ${s ? '−' : ''}1/${rad} = ${valText(v)}.` };
+  // Now and then F is on both sides, and gathering it comes first.
+  if (rng.chance(0.3)) {
+    const c = rng.pick([1, 2, 3]);
+    steps.unshift(`Take away ${coef(c)}${F} from both sides: ${coef(A)}${F}${tail} = ${rhs}.`);
+    return { show: `${coef(A + c)}${F}${tail} = ${coef(c)}${F}${signed(rhs)}`,
+      ascii: `${A + c}*${Fa}${tailA} = ${c}*${Fa}${signedA(rhsA)}`, steps: steps.join(' ') };
   }
-  const A = v.d;
-  const div = A === 1 ? '' : ` Divide by ${A}: ${F} = ${valText(v)}.`;
-  if (form === 'plain') {
-    if (A === 1) return linear(rng, fn, v, arg);
-    return { show: `${coef(A)}${F} = ${s ? '−' : ''}${rad}`, ascii: `${A}*${Fa} = ${s ? '-' : ''}${radA}`, steps: div.trim() };
-  }
-  return { show: `${coef(A)}${F} ${s ? '+' : '−'} ${rad} = 0`, ascii: `${A}*${Fa} ${s ? '+' : '-'} ${radA} = 0`,
-    steps: `${s ? 'Take away' : 'Add'} ${rad}: ${coef(A)}${F} = ${s ? '−' : ''}${rad}.${div}` };
+  return { show: `${coef(A)}${F}${tail} = ${rhs}`, ascii: `${A}*${Fa}${tailA} = ${rhsA}`, steps: steps.join(' ') };
 }
 
-/** A value of fn with solutions, or now and then one with none. */
-function pickValue(rng, fn, { none = 0.08, axis = true } = {}) {
+const onAxis = (fn, v) => v.n === 0 || (fn !== 'tan' && v.r === 1 && Math.abs(v.n) === v.d);
+
+// requiem: catalogue/content/trig-equations-reference-angle-share
+/**
+ * A value of fn: now and then one with no solution, now and then one on an
+ * axis (0 or ±1), and otherwise one solved through a reference angle, which
+ * is the method these levels teach.
+ */
+function pickValue(rng, fn, { none = 0.04, axis = 0.1 } = {}) {
   if (fn !== 'tan' && rng.chance(none)) return rng.pick(NONE);
-  const pool = (fn === 'tan' ? TAN : SIN_COS).filter((v) => axis || (v.n !== 0 && Math.abs(v.n / v.d) * Math.sqrt(v.r) !== 1));
-  return rng.pick(pool);
+  const wantAxis = rng.chance(axis);
+  return rng.pick((fn === 'tan' ? TAN : SIN_COS).filter((v) => onAxis(fn, v) === wantAxis));
 }
 
 // ── arcsin, arccos, arctan ──────────────────────────────────────────────
@@ -302,7 +338,9 @@ function compose(rng, fn, name) {
 /** fn x = v on [0, 360) in degrees, typed. */
 function solveDegrees(rng) {
   const fn = rng.pick(['sin', 'cos', 'tan', 'sin', 'cos']);
-  const v = pickValue(rng, fn);
+  // Fewer on an axis here than elsewhere: the reference-angle values come in
+  // fewer forms, so the library would otherwise fill up with the axis ones.
+  const v = pickValue(rng, fn, { axis: 0.06 });
   const eq = linear(rng, fn, v);
   const xs = solveDeg(fn, v);
   return {
@@ -310,7 +348,7 @@ function solveDegrees(rng) {
     text: `solve degrees: ${eq.ascii}`,
     answer: setAnswer(xs),
     visual: null,
-    explain: `${eq.steps ? `${eq.steps} ` : ''}${solveWords(fn, v, false)} ${trapWords(fn, v, false)} So ${xs.length ? `x = ${anglesText(xs, false)}` : 'there is no solution'}.`,
+    explain: `${eq.steps ? `${eq.steps} ` : ''}${solveWords(fn, v, false)} ${trapWords(fn, v, false)} So ${soText(xs, false)}.`,
   };
 }
 
@@ -358,7 +396,7 @@ function solveRadians(rng) {
       text: `solve radians: ${eq.ascii}; options ${c.key}`,
       answer: c.answer,
       visual: null,
-      explain: `${eq.steps ? `${eq.steps} ` : ''}${solveWords(fn, v, true)} ${trapWords(fn, v, true)} So ${xs.length ? `x = ${anglesText(xs, true)}` : 'there is no solution'}.`,
+      explain: `${eq.steps ? `${eq.steps} ` : ''}${solveWords(fn, v, true)} ${trapWords(fn, v, true)} So ${soText(xs, true)}.`,
     };
   }
 }
@@ -378,14 +416,16 @@ function families(xs) {
   }
   return out;
 }
-const famText = ([b, p]) => `x = ${b === 0 ? '' : `${radText(b)} + `}${p === 180 ? 'π' : '2π'}k`;
+/** A period in degrees as a multiple of π: 180 is π, 360 is 2π, 720 is 4π. */
+const perText = (p) => (p === 180 ? 'π' : `${p / 180}π`);
+const famText = ([b, p]) => `x = ${b === 0 ? '' : `${radText(b)} + `}${perText(p)}k`;
 const famLabel = (fs) => (fs.length ? fs.map(famText).join(' or ') : 'No solution');
 const famKey = (fs) => (fs.length ? fs.map(([b, p]) => { const q = reduce(b, 180); return `${q.d === 1 ? q.n : `${q.n}/${q.d}`}@${p / 180}`; }).join(', ') : 'none');
 /** Every member of the families in [−720°, 720°), to tell two apart. */
 const members = (fs) => union(fs.flatMap(([b, p]) => { const o = []; for (let x = b - 4 * 360; x < 720; x += p) if (x >= -720) o.push(x); return o; }));
 
 function general(rng) {
-  const kind = rng.pick(['family', 'family', 'family', 'turns', 'turns', 'multiple', 'multiple']);
+  const kind = rng.pick(['family', 'family', 'family', 'turns', 'turns']);
   if (kind === 'family') {
     for (;;) {
       const fn = rng.pick(['sin', 'cos', 'tan']);
@@ -398,7 +438,9 @@ function general(rng) {
         right.map(([b]) => [b, P === 360 ? 180 : 360]),
         right.slice(0, 1),
         ...wrongSets(fn, v).map(families),
-        right.map(([b, p]) => [b, p === 360 ? 720 : 360]),
+        // Tangent's half-turn step borrowed for sine or cosine: the first
+        // solution alone, + πk, as if its partner were half a turn on.
+        right.slice(0, 1).map(([b]) => [b, P === 360 ? 180 : 360]),
       ].filter((fs) => fs.length && !sameSet(members(fs), members(right)));
       const picked = [];
       for (const fs of rng.shuffle(wrongs)) if (picked.length < 3 && !picked.some((p) => sameSet(members(p), members(fs)))) picked.push(fs);
@@ -416,7 +458,8 @@ function general(rng) {
       };
     }
   }
-  if (kind === 'turns') {
+  // A window wider than one turn.
+  {
     const fn = rng.pick(['sin', 'cos', 'tan']);
     const v = pickValue(rng, fn, { none: 0 });
     const eq = linear(rng, fn, v);
@@ -431,26 +474,72 @@ function general(rng) {
       visual: null,
       explain: `${eq.steps ? `${eq.steps} ` : ''}${solveWords(fn, v, false)} Every solution is one of those plus a whole number of periods, ${P}° each: ${one.filter((x) => x < P).map((x) => `x = ${x}° + ${P}°k`).join(' or ')}. `
         + `The ones from ${minus(lo)}° up to ${hi}° are ${anglesText(xs, false)}. `
-        + `(${lo < 0 ? 'Negative angles count too: take a period away as well as adding one.' : 'A second turn has its own copy of every solution; stopping at 360° misses them.'}) So x = ${anglesText(xs, false)}.`,
+        + `(${lo < 0 ? 'Negative angles count too: take a period away as well as adding one.' : 'A second turn has its own copy of every solution; stopping at 360° misses them.'}) So ${orText(xs, false)}.`,
     };
   }
-  // A multiple angle: let θ = kx, which runs over k turns.
-  const fn = rng.pick(['sin', 'cos', 'tan', 'sin', 'cos']);
-  const k = rng.pick([2, 2, 3]);
-  const v = pickValue(rng, fn, { none: 0, axis: rng.chance(0.3) });
-  const eq = linear(rng, fn, v, `${k}x`);
-  const thetas = solveDeg(fn, v, { hi: 360 * k });
-  const xs = thetas.map((t) => t / k);
-  const turnWord = k === 2 ? 'two turns' : 'three turns';
-  return {
-    prompt: [T.prose(`Solve ${eq.show} for 0° ≤ x < 360°. Give every solution in degrees.`)],
-    text: `solve degrees: ${eq.ascii}`,
-    answer: setAnswer(xs),
-    visual: null,
-    explain: `${eq.steps ? `${eq.steps} ` : ''}Let θ = ${k}x. As x runs from 0° to 360°, θ runs from 0° to ${360 * k}°, ${turnWord}. `
-      + `${solveWords(fn, v, false, 'θ')} Adding 360° each turn, θ = ${anglesText(thetas, false)}. Divide each by ${k}: x = ${anglesText(xs, false)}. `
-      + `(Solving for θ in one turn only would find ${solveDeg(fn, v).length} of the ${xs.length}.) So x = ${anglesText(xs, false)}.`,
-  };
+}
+
+// ── Multiple angles ─────────────────────────────────────────────────────
+
+const ARGS = [
+  { arg: '2x', k: 2, turns: 'two turns' }, { arg: '2x', k: 2, turns: 'two turns' },
+  { arg: '3x', k: 3, turns: 'three turns' }, { arg: 'x/2', k: 1 / 2, turns: 'half a turn' },
+];
+/** Every x in [0°, 360°) with θ = kx a solution of fn θ = v. */
+const multiSet = (fn, v, k) => solveDeg(fn, v, { hi: 360 * k }).map((t) => t / k);
+
+/**
+ * fn(kx) = v on one turn of x: θ = kx runs over k turns (or half of one),
+ * so the solutions for θ are taken over that whole stretch before dividing
+ * by k. In degrees typed; in radians chosen from four, the wrong ones being
+ * one turn of θ divided by k, θ itself never divided, and θ multiplied.
+ */
+function multiAngle(rng) {
+  for (;;) {
+    const fn = rng.pick(['sin', 'cos', 'tan', 'sin', 'cos']);
+    const { arg, k, turns } = rng.pick(ARGS);
+    const v = pickValue(rng, fn, { none: 0.04 });
+    const eq = linear(rng, fn, v, arg);
+    const thetas = solveDeg(fn, v, { hi: 360 * k });
+    const xs = thetas.map((t) => t / k);
+    const one = solveDeg(fn, v);
+    const radians = rng.chance(0.4);
+    const A = (d) => (radians ? radText(d) : degText(d));
+    const AS = (ds) => (ds.length ? listed(ds.map(A)) : 'none');
+    const half = k < 1;
+    const work = !inRange(fn, v)
+      ? `${solveWords(fn, v, radians, 'θ')}`
+      : `Let θ = ${arg}. As x runs from ${A(0)} to ${A(360)}, θ runs from ${A(0)} to ${A(360 * k)}, ${turns}. `
+        + `${solveWords(fn, v, radians, 'θ')} `
+        + (half ? `Only those below ${A(180)} are in that half turn: θ = ${AS(thetas)}. Multiply each by 2: x = ${AS(xs)}. `
+          : `Adding ${A(360)} each turn, θ = ${AS(thetas)}. Divide each by ${k}: x = ${AS(xs)}. `)
+        + (half ? `(A θ past ${A(180)} gives an x past ${A(360)}, outside the interval.) `
+          : `(Solving for θ in one turn only would find ${one.length} of the ${xs.length}.) `);
+    if (!radians) {
+      return {
+        prompt: [T.prose(`Solve ${eq.show} for 0° ≤ x < 360°. Give every solution in degrees, or say there is none.`)],
+        text: `solve degrees: ${eq.ascii}`,
+        answer: setAnswer(xs),
+        visual: null,
+        explain: `${eq.steps ? `${eq.steps} ` : ''}${work}So ${soText(xs, false)}.`,
+      };
+    }
+    const wrong = [
+      one.map((t) => t / k).filter((x) => x < 360),
+      one,
+      union(...one.map((t) => [t * k % 360])),
+      ...wrongSets(fn, v).map((s) => union(...[0, 1, 2].map((j) => s.map((t) => (t + 360 * j) / k))).filter((x) => x < 360)),
+    ].map((s) => union(s)).filter((s) => s.length);
+    const c = setChoice(rng, xs, wrong);
+    if (!c) continue;
+    return {
+      prompt: [T.prose(`Solve ${eq.show} for 0 ≤ x < 2π.`)],
+      text: `solve radians: ${eq.ascii}; options ${c.key}`,
+      answer: c.answer,
+      visual: null,
+      explain: `${eq.steps ? `${eq.steps} ` : ''}${work}So ${soText(xs, true)}.`,
+    };
+  }
 }
 
 // ── Quadratic-type ──────────────────────────────────────────────────────
@@ -555,6 +644,10 @@ function quadraticType(rng) {
     const sets = q.conds.map(([f, v]) => solveDeg(f, v));
     const xs = union(...sets);
     if (!xs.length && rng.chance(0.8)) continue;
+    // requiem: catalogue/content/trig-equations-reference-angle-share
+    // Factors that land only on the axes (sin x = 0, cos x = ±1) skip the
+    // reference angle: kept to a few, since most of the pool is 0 and ±1.
+    if (xs.every((x) => x % 90 === 0) && rng.chance(0.8)) continue;
     const radians = rng.chance(0.25);
     const perWords = q.conds.map(([f, v], i) => (inRange(f, v) ? `${f} x = ${valText(v)} at ${anglesText(sets[i], radians)}` : `${f} x = ${valText(v)} has no solution`));
     if (!radians) {
@@ -563,7 +656,7 @@ function quadraticType(rng) {
         text: `solve degrees: ${q.ascii}`,
         answer: setAnswer(xs),
         visual: null,
-        explain: `${q.work} In one turn, ${listed(perWords)}. ${q.trap} So ${xs.length ? `x = ${anglesText(xs, false)}` : 'there is no solution'}.`,
+        explain: `${q.work} In one turn, ${listed(perWords)}. ${q.trap} So ${soText(xs, false)}.`,
       };
     }
     // Wrong: one factor alone, one root with its sign flipped.
@@ -578,12 +671,12 @@ function quadraticType(rng) {
       text: `solve radians: ${q.ascii}; options ${c.key}`,
       answer: c.answer,
       visual: null,
-      explain: `${q.work} In one turn, ${listed(perWords)}. ${q.trap} So ${xs.length ? `x = ${anglesText(xs, true)}` : 'there is no solution'}.`,
+      explain: `${q.work} In one turn, ${listed(perWords)}. ${q.trap} So ${soText(xs, true)}.`,
     };
   }
 }
 
-const CONTENT = [inverse, solveDegrees, solveRadians, general, quadraticType];
+const CONTENT = [inverse, solveDegrees, solveRadians, general, multiAngle, quadraticType];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
