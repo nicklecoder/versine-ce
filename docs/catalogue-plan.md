@@ -160,6 +160,10 @@ the plane with no axes, which the plane now allows.
 `triangle-angles` is built, as Angle Sum · Exterior Angle · Isosceles
 Triangles · Polygon Angle Sum · Regular Polygons · The Exterior Sum · Triangle
 Inequality · All Together.
+`area` is built, as Rectangles and Parallelograms · Triangles · Trapezoids ·
+Circumference · Area of a Circle · Composite Figures · Missing Dimension · All
+Together, with no strategy level: whether π is kept or taken as 3.14 is said
+in each question, not chosen.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

@@ -82,3 +82,27 @@ export const sized = (e) => `(${linear(...e).replace(/ /g, '\u00a0')})\u2060°`;
 
 /** a·x + b with x put in: 3(20) + 10. */
 export const putIn = (a, b, x) => `${a === 1 ? x : `${a}(${x})`}${b === 0 ? '' : b > 0 ? ` + ${b}` : ` − ${-b}`}`;
+
+/** The sides of a closed shape, corner to corner. */
+export const outline = (P, tone = LINE) => P.map((p, i) => ({ kind: 'segment', from: p, to: P[(i + 1) % P.length], tone }));
+export const centroid = (P) => [P.reduce((s, p) => s + p[0], 0) / P.length, P.reduce((s, p) => s + p[1], 0) / P.length];
+/**
+ * A length written beside a side, `gap` out from its middle on the side away
+ * from `inside`, so it never sits on the shape it measures.
+ */
+export function sideLabel(P, Q, label, inside, tone = GIVEN, gap = 0.45) {
+  const m = [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2];
+  const len = Math.hypot(Q[0] - P[0], Q[1] - P[1]) || 1;
+  let n = [-(Q[1] - P[1]) / len, (Q[0] - P[0]) / len];
+  if ((inside[0] - m[0]) * n[0] + (inside[1] - m[1]) * n[1] > 0) n = [-n[0], -n[1]];
+  // A label beside an upright side spreads sideways, so it stands further off.
+  const g = gap + Math.abs(n[0]) * 0.11 * Math.max(0, label.length - 2);
+  return text([r2(m[0] + n[0] * g), r2(m[1] + n[1] * g)], label, tone);
+}
+/** A circle, or an arc of one, as the plane draws it: a path. */
+export function circlePath(c, r, tone = LINE, from = 0, to = 360) {
+  const pts = [];
+  const steps = Math.max(8, Math.ceil((to - from) / 8));
+  for (let i = 0; i <= steps; i++) pts.push(toward(from + ((to - from) * i) / steps, r, c));
+  return { kind: 'path', points: pts, tone };
+}

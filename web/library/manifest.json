@@ -1,5 +1,5 @@
 {
-  "built": 365,
+  "built": 373,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -462,6 +462,16 @@
       "regular-polygons",
       "the-exterior-sum",
       "triangle-inequality",
+      "all-together"
+    ],
+    "area": [
+      "rectangles-and-parallelograms",
+      "triangles",
+      "trapezoids",
+      "circumference",
+      "area-of-a-circle",
+      "composite-figures",
+      "missing-dimension",
       "all-together"
     ]
   },
@@ -1053,9 +1063,15 @@
         "angles"
       ],
       "levels": {}
+    },
+    "area": {
+      "dependsOn": [
+        "decimals"
+      ],
+      "levels": {}
     }
   },
-  "sources": "c54cc32fd71456bd20c2945e13a5c9dccb59b0135197fad0acdb2da83c9e32ca",
+  "sources": "64602c8799f922f60ab0066c223de3fc9a25f0d4b3f8dd09c341ec0f0252198e",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4706,6 +4722,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "triangle-angles-7.json"
+    },
+    {
+      "skill": "area",
+      "level": 0,
+      "slug": "rectangles-and-parallelograms",
+      "name": "Rectangles and Parallelograms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-0.json"
+    },
+    {
+      "skill": "area",
+      "level": 1,
+      "slug": "triangles",
+      "name": "Triangles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-1.json"
+    },
+    {
+      "skill": "area",
+      "level": 2,
+      "slug": "trapezoids",
+      "name": "Trapezoids",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-2.json"
+    },
+    {
+      "skill": "area",
+      "level": 3,
+      "slug": "circumference",
+      "name": "Circumference",
+      "count": 416,
+      "exhaustive": true,
+      "signed": false,
+      "file": "area-3.json"
+    },
+    {
+      "skill": "area",
+      "level": 4,
+      "slug": "area-of-a-circle",
+      "name": "Area of a Circle",
+      "count": 212,
+      "exhaustive": true,
+      "signed": false,
+      "file": "area-4.json"
+    },
+    {
+      "skill": "area",
+      "level": 5,
+      "slug": "composite-figures",
+      "name": "Composite Figures",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-5.json"
+    },
+    {
+      "skill": "area",
+      "level": 6,
+      "slug": "missing-dimension",
+      "name": "Missing Dimension",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-6.json"
+    },
+    {
+      "skill": "area",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-7.json"
     }
   ]
 }

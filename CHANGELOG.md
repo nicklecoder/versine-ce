@@ -145,6 +145,14 @@ numbers and in x; the exterior angle as the two far angles added; isosceles tria
 in numbers and in x; the interior sum of a polygon and a missing angle; regular polygons,
 their angles, their sides from an angle, and the gap left where several meet at a point;
 the exterior sum of 360°; and the triangle inequality as a yes or no.
+
+**Area and Circles**, the first skill under Area & Volume, in eight levels: rectangles
+and parallelograms, with the slanted side labelled so base times height is a choice;
+triangles, the height falling outside an obtuse one; trapezoids; circumference and the
+area of a circle, kept as a number of π or with 3.14, and run backwards to the radius;
+composite figures (an L, a hole, a roof, a half circle); and a missing side from the
+area. Shapes are drawn to scale with their heights dashed, and the area is shaded on
+reveal.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

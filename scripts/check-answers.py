@@ -2444,6 +2444,89 @@ CHOICE_RULES += (
     (re.compile(r"^triangle sides: (\d+, \d+, \d+)$"), makes_triangle),
 )
 
+# --- Area and Circles ---------------------------------------------------------
+#
+# Base times height for a parallelogram, half that for a triangle, the mean
+# of the parallel sides times the height for a trapezoid. C = πd and A = πr²,
+# answered either as the number of π or with π taken as 3.14, which the text
+# says. Composites are added or taken away piece by piece, and a missing
+# length runs a formula backwards. Exact throughout: 3.14 is 314/100.
+
+LENGTH = r"(\d+(?:\.\d+)?)"
+PI_FORM = r"\((pi|3\.14)\)"
+
+
+def pi_as(form: str) -> Fraction:
+    """π as the answer counts it: kept, so the answer is a number of π, or 3.14."""
+    return Fraction(1) if form == "pi" else Fraction("3.14")
+
+
+def circumference_of(what: str, g: str, form: str) -> Fraction:
+    d = Fraction(g) * (2 if what == "radius" else 1)
+    return pi_as(form) * d
+
+
+def circle_area_of(what: str, g: str, form: str) -> Fraction:
+    r = Fraction(g) / (1 if what == "radius" else 2)
+    return pi_as(form) * r * r
+
+
+def length_from_circumference(what: str, c: str, form: str) -> Fraction:
+    d = Fraction(c) / pi_as(form)
+    return d / 2 if what == "radius" else d
+
+
+def length_from_area(what: str, k: str) -> Fraction:
+    r = math.isqrt(int(k))
+    assert r * r == int(k), k
+    return Fraction(r * (2 if what == "diameter" else 1))
+
+
+def rect_less_circle(W: str, H: str, r: str) -> Fraction:
+    return Fraction(W) * Fraction(H) - Fraction("3.14") * Fraction(r) ** 2
+
+
+def rect_and_half_circle(W: str, H: str, r: str) -> Fraction:
+    assert Fraction(W) == 2 * Fraction(r), (W, r)        # the half circle spans the side
+    return Fraction(W) * Fraction(H) + Fraction("3.14") * Fraction(r) ** 2 / 2
+
+
+def side_of_square(a: str) -> Fraction:
+    s = math.isqrt(int(a))
+    assert s * s == int(a), a
+    return Fraction(s)
+
+
+BY_RULE += (
+    (re.compile(rf"^rectangle: {LENGTH} by {LENGTH}$"), lambda w, h: Fraction(w) * Fraction(h)),
+    (re.compile(rf"^square area: side {LENGTH}$"), lambda s: Fraction(s) ** 2),
+    (re.compile(rf"^parallelogram: base {LENGTH}, height {LENGTH}, slant {LENGTH}$"),
+     lambda b, h, s: Fraction(b) * Fraction(h)),
+    (re.compile(rf"^triangle area: base {LENGTH}, height {LENGTH} \((?:right|acute|obtuse)[^)]*\)$"),
+     lambda b, h: Fraction(b) * Fraction(h) / 2),
+    (re.compile(rf"^trapezoid: {LENGTH}, {LENGTH}, height {LENGTH}, (?:slant|top from) {LENGTH}$"),
+     lambda a, c, h, _: (Fraction(a) + Fraction(c)) * Fraction(h) / 2),
+    (re.compile(rf"^circumference: (radius|diameter) {LENGTH} {PI_FORM}$"), circumference_of),
+    (re.compile(rf"^(radius|diameter) from circumference: {LENGTH} {PI_FORM}$"), length_from_circumference),
+    (re.compile(rf"^circle area: (radius|diameter) {LENGTH} {PI_FORM}$"), circle_area_of),
+    (re.compile(rf"^(radius|diameter) from area: (\d+) \(pi\)$"), length_from_area),
+    (re.compile(rf"^composite \((?:L|hole)\): rect {LENGTH} x {LENGTH} - rect {LENGTH} x {LENGTH}$"),
+     lambda W, H, w, h: Fraction(W) * Fraction(H) - Fraction(w) * Fraction(h)),
+    (re.compile(rf"^composite \(hole\): rect {LENGTH} x {LENGTH} - circle radius {LENGTH} \(3\.14\)$"), rect_less_circle),
+    (re.compile(rf"^composite \(house\): rect {LENGTH} x {LENGTH} \+ tri {LENGTH} x {LENGTH}$"),
+     lambda W, H, b, t: Fraction(W) * Fraction(H) + Fraction(b) * Fraction(t) / 2),
+    (re.compile(rf"^composite \(semi\): rect {LENGTH} x {LENGTH} \+ semicircle radius {LENGTH} \(3\.14\)$"), rect_and_half_circle),
+    (re.compile(r"^missing: square area (\d+)$"), side_of_square),
+    (re.compile(rf"^missing: (?:rectangle|parallelogram) area {LENGTH}, (?:length|width|base|height) {LENGTH}$"),
+     lambda a, k: Fraction(a) / Fraction(k)),
+    (re.compile(rf"^missing: triangle area {LENGTH}, (?:base|height) {LENGTH}$"),
+     lambda a, k: 2 * Fraction(a) / Fraction(k)),
+    (re.compile(rf"^missing: trapezoid area {LENGTH}, sides {LENGTH} and {LENGTH}$"),
+     lambda a, p, q: 2 * Fraction(a) / (Fraction(p) + Fraction(q))),
+    (re.compile(rf"^missing: trapezoid area {LENGTH}, height {LENGTH}, side {LENGTH}$"),
+     lambda a, h, p: 2 * Fraction(a) / Fraction(h) - Fraction(p)),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
