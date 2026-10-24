@@ -268,6 +268,9 @@
       "axes": {
         "type": "bool"
       },
+      "titles": {
+        "type": "object"
+      },
       "marks": {
         "type": "array",
         "of": {

@@ -287,6 +287,7 @@ function graphStory(rng, want = rng.int(0, 2)) {
     visual: {
       // Fitted to the journey, so a short one is not squeezed into a corner.
       kind: 'plane', xRange: [0, pts[3][0] + 1], yRange: [0, Math.max(4, ...pts.map(([, y]) => y)) + 1], grid: 1,
+      titles: { x: 'hours', y: 'km from home' },
       marks: [0, 1, 2].map((i) => ({ kind: 'segment', from: pts[i], to: pts[i + 1], label: 'ABC'[i],
         tone: 'var(--vec-1)' })),
       answer: [{ kind: 'segment', from: pts[pick], to: pts[pick + 1],

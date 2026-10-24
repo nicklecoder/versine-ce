@@ -174,6 +174,8 @@ export const VISUALS = {
       grid: { type: 'number', min: 0, max: 20 },
       // false for a figure, an angle or a polygon, that has no coordinates.
       axes: { type: 'bool' },
+      // What each axis measures, { x: 'hours', y: 'km from home' }.
+      titles: { type: 'object' },
       marks: { type: 'array', of: { type: 'object' } },
       // Anything that would answer the question is withheld until one is
       // committed, so the renderer never receives it and cannot leak it.

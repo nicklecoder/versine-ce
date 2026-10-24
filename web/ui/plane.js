@@ -36,6 +36,8 @@
  * @property {boolean} [axes]            false for a figure with no coordinates:
  *   an angle or a polygon drawn on axes says its corners have positions the
  *   question never gave, and invites reading them off.
+ * @property {{x?: string, y?: string}} [titles]  what each axis measures,
+ *   "hours" and "km": a story graph read without them is two bare numbers.
  * @property {Mark[]} [marks]            drawn while the question is open
  * @property {Mark[]} [answer]           withheld until an answer is committed
  */
@@ -51,7 +53,7 @@ const make = (tag, attrs) => {
 const PAD = 22;
 
 export function drawPlane(svg, spec, { verdict = null } = {}) {
-  const { xRange, yRange, grid = 1, axes: withAxes = true, marks = [], answer = [] } = spec;
+  const { xRange, yRange, grid = 1, axes: withAxes = true, titles = {}, marks = [], answer = [] } = spec;
   const [x0, x1] = xRange;
   const [y0, y1] = yRange;
 
@@ -106,6 +108,19 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
       ticks.append(t);
     }
     svg.append(ticks);
+
+    // requiem: play/visuals/plane-axis-titles
+    // At the far end of each axis, where the eye goes to ask what it counts.
+    if (titles.x) {
+      const t = make('text', { x: px(x1) - 4, y: originY - 6, 'text-anchor': 'end', class: 'pl__title' });
+      t.textContent = titles.x;
+      svg.append(t);
+    }
+    if (titles.y) {
+      const t = make('text', { x: originX + 6, y: py(y1) - 8, 'text-anchor': 'start', class: 'pl__title' });
+      t.textContent = titles.y;
+      svg.append(t);
+    }
   }
 
   // ── Marks ─────────────────────────────────────────────────────────────

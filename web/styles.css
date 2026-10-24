@@ -1211,6 +1211,7 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .pl { display: block; width: 100%; height: auto; overflow: visible; }
 .pl__grid line { stroke: var(--line); stroke-width: 1; opacity: .45; }
 .pl__axes line { stroke: var(--muted); stroke-width: 1.5; }
+.pl__title { fill: var(--muted); font-size: 11px; font-weight: 600; }
 .pl__ticks text {
   fill: var(--dim); font-family: var(--display); font-size: 10px;
   font-variant-numeric: tabular-nums;
