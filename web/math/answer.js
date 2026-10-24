@@ -16,6 +16,8 @@
 import { parseExpression, canonical } from './parse.js';
 import { valueAt, lettersIn } from './exact.js';
 import { parseSet, sameSet, formatSet, previewSet } from './solutions.js';
+import { parseRoots, sameRoots, formatRoots, rootTexts } from './surds.js';
+import { previewOf } from '../ui/express.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -481,6 +483,42 @@ defineType({
   preview: previewSet,
   equals: sameSet,
   format: formatSet,
+});
+
+// requiem: play/answers/roots-judged-exactly
+defineType({
+  id: 'roots',
+  input: 'free',
+  hint: 'Type the solutions, like x = 3 ± √5, or x = −2 or x = 5.',
+  /**
+   * The real roots of a quadratic, judged as an exact set: web/math/surds.js
+   * evaluates each in a + b√r, so (−3 ± √17)/4 and −3/4 ± √17/4 agree and
+   * a decimal near one never does.
+   *
+   * The preview draws each entry with its ± read both ways, x = (−3 + √17)/4
+   * or x = (−3 − √17)/4, which is exactly how the answer is understood.
+   *
+   * Value: { letter, roots }, roots a sorted list of {a, b, r}.
+   */
+  parse(raw) {
+    const r = parseRoots(raw);
+    return r.ok ? r : { ok: false, hint: r.hint };
+  },
+  preview(raw) {
+    const r = rootTexts(raw);
+    if (!r.ok) return { ok: false, error: r.hint };
+    if (!r.texts.length) return { ok: true, terms: [{ t: 'prose', v: 'no real solutions' }] };
+    const terms = [];
+    for (const [i, text] of r.texts.entries()) {
+      const drawn = previewOf(`${r.letter} = ${text}`);
+      if (!drawn.ok) return drawn;
+      if (i) terms.push({ t: 'prose', v: 'or' });
+      terms.push(...drawn.terms);
+    }
+    return { ok: true, terms };
+  },
+  equals: sameRoots,
+  format: formatRoots,
 });
 
 defineType({

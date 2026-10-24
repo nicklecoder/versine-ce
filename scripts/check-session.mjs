@@ -162,6 +162,23 @@ for (const skill of SKILLS) {
   if (half.parse('y = 2x + 1').ok) fail.push('halfplane: an equation was accepted as a region');
 }
 
+// requiem: play/answers/roots-judged-exactly
+// The spellings of one pair of roots, and the near misses: a decimal that is
+// close, the wrong denominator, and one root of the two.
+{
+  const roots = getType('roots');
+  const want = roots.parse('x = (-3 ± sqrt(17))/4').value;
+  for (const raw of ['(-3 +- √17)/4', '-3/4 ± sqrt(17)/4', 'x = (-3 + sqrt(17))/4 or x = (-3 - sqrt(17))/4', '(-6 ± sqrt(68))/8']) {
+    const got = roots.parse(raw);
+    if (!got.ok || !roots.equals(got.value, want)) fail.push(`roots: "${raw}" was not accepted for (−3 ± √17)/4`);
+  }
+  for (const raw of ['x = 0.28 or x = -1.78', '(-3 ± sqrt(17))/2', 'x = (-3 + sqrt(17))/4']) {
+    const got = roots.parse(raw);
+    if (got.ok && roots.equals(got.value, want)) fail.push(`roots: "${raw}" was accepted for (−3 ± √17)/4`);
+  }
+  if (!roots.parse('no real solutions').ok) fail.push('roots: "no real solutions" was not read');
+}
+
 // requiem: play/answers/accepted-forms-judged
 // A second accepted form is right: (x + 3)(x + 3) for (x + 3)². The loop
 // above only ever types the stored value.
