@@ -145,6 +145,30 @@ numbers and in x; the exterior angle as the two far angles added; isosceles tria
 in numbers and in x; the interior sum of a polygon and a missing angle; regular polygons,
 their angles, their sides from an angle, and the gap left where several meet at a point;
 the exterior sum of 360°; and the triangle inequality as a yes or no.
+
+**Area and Circles**, the first skill under Area & Volume, in eight levels: rectangles
+and parallelograms, with the slanted side labelled so base times height is a choice;
+triangles, the height falling outside an obtuse one; trapezoids; circumference and the
+area of a circle, kept as a number of π or with 3.14, and run backwards to the radius;
+composite figures (an L, a hole, a roof, a half circle); and a missing side from the
+area. Shapes are drawn to scale with their heights dashed, and the area is shaded on
+reveal.
+
+**Volume and Surface Area** (Area & Volume), in eight levels: prisms (boxes, cubes and
+right-triangle prisms, and a box's height from its volume); cylinders, and a height from
+the volume; cones and pyramids as a third, with the slant drawn beside the height;
+spheres and hemispheres, and a radius from the volume; the surface of boxes, cubes and
+triangular prisms; of cylinders closed, open at the top or open at both ends; and of
+cones, spheres and solid hemispheres, and a radius from the surface. Solids are drawn in
+an oblique view with hidden edges dashed.
+
+**Transformations** (Coordinates), in eight levels: translations, by words, by a rule, or
+shown by one corner; reflections over the axes and over lines like x = 2; over y = x and
+y = −x; rotations of 90°, 180° and 270° about the origin or another point; dilations by
+whole and fractional factors about the origin or another point; sequences of two moves,
+with the other order worked out when it differs; and naming a move from its picture, or
+calling a rule or a sequence congruent, similar or neither. Each corner is asked about on a
+drawn triangle, and the image arrives with the answer.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

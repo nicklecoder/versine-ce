@@ -1,5 +1,5 @@
 {
-  "built": 365,
+  "built": 389,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -462,6 +462,36 @@
       "regular-polygons",
       "the-exterior-sum",
       "triangle-inequality",
+      "all-together"
+    ],
+    "area": [
+      "rectangles-and-parallelograms",
+      "triangles",
+      "trapezoids",
+      "circumference",
+      "area-of-a-circle",
+      "composite-figures",
+      "missing-dimension",
+      "all-together"
+    ],
+    "volume": [
+      "prisms",
+      "cylinders",
+      "cones-and-pyramids",
+      "spheres",
+      "surface-area-prisms",
+      "surface-area-cylinders",
+      "cones-and-spheres",
+      "all-together"
+    ],
+    "transformations-g": [
+      "translate",
+      "reflect-over-an-axis",
+      "reflect-over-y-equals-x",
+      "rotate",
+      "dilate",
+      "sequences",
+      "which-transformation",
       "all-together"
     ]
   },
@@ -1053,9 +1083,27 @@
         "angles"
       ],
       "levels": {}
+    },
+    "area": {
+      "dependsOn": [
+        "decimals"
+      ],
+      "levels": {}
+    },
+    "volume": {
+      "dependsOn": [
+        "area"
+      ],
+      "levels": {}
+    },
+    "transformations-g": {
+      "dependsOn": [
+        "coords"
+      ],
+      "levels": {}
     }
   },
-  "sources": "c3d567d9ac49890b40ab211146b336adc72439bd75ca3a5a8c875db17f007d22",
+  "sources": "c995338e27f65750fb64f02bb8b45843c26da269e8ba7ce062014dff945a6d70",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4706,6 +4754,246 @@
       "exhaustive": false,
       "signed": false,
       "file": "triangle-angles-7.json"
+    },
+    {
+      "skill": "area",
+      "level": 0,
+      "slug": "rectangles-and-parallelograms",
+      "name": "Rectangles and Parallelograms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-0.json"
+    },
+    {
+      "skill": "area",
+      "level": 1,
+      "slug": "triangles",
+      "name": "Triangles",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-1.json"
+    },
+    {
+      "skill": "area",
+      "level": 2,
+      "slug": "trapezoids",
+      "name": "Trapezoids",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-2.json"
+    },
+    {
+      "skill": "area",
+      "level": 3,
+      "slug": "circumference",
+      "name": "Circumference",
+      "count": 416,
+      "exhaustive": true,
+      "signed": false,
+      "file": "area-3.json"
+    },
+    {
+      "skill": "area",
+      "level": 4,
+      "slug": "area-of-a-circle",
+      "name": "Area of a Circle",
+      "count": 212,
+      "exhaustive": true,
+      "signed": false,
+      "file": "area-4.json"
+    },
+    {
+      "skill": "area",
+      "level": 5,
+      "slug": "composite-figures",
+      "name": "Composite Figures",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-5.json"
+    },
+    {
+      "skill": "area",
+      "level": 6,
+      "slug": "missing-dimension",
+      "name": "Missing Dimension",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-6.json"
+    },
+    {
+      "skill": "area",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "area-7.json"
+    },
+    {
+      "skill": "volume",
+      "level": 0,
+      "slug": "prisms",
+      "name": "Prisms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-0.json"
+    },
+    {
+      "skill": "volume",
+      "level": 1,
+      "slug": "cylinders",
+      "name": "Cylinders",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-1.json"
+    },
+    {
+      "skill": "volume",
+      "level": 2,
+      "slug": "cones-and-pyramids",
+      "name": "Cones and Pyramids",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-2.json"
+    },
+    {
+      "skill": "volume",
+      "level": 3,
+      "slug": "spheres",
+      "name": "Spheres",
+      "count": 140,
+      "exhaustive": true,
+      "signed": false,
+      "file": "volume-3.json"
+    },
+    {
+      "skill": "volume",
+      "level": 4,
+      "slug": "surface-area-prisms",
+      "name": "Surface Area: Prisms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-4.json"
+    },
+    {
+      "skill": "volume",
+      "level": 5,
+      "slug": "surface-area-cylinders",
+      "name": "Surface Area: Cylinders",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-5.json"
+    },
+    {
+      "skill": "volume",
+      "level": 6,
+      "slug": "cones-and-spheres",
+      "name": "Cones and Spheres",
+      "count": 552,
+      "exhaustive": true,
+      "signed": false,
+      "file": "volume-6.json"
+    },
+    {
+      "skill": "volume",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-7.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 0,
+      "slug": "translate",
+      "name": "Translate",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-g-0.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 1,
+      "slug": "reflect-over-an-axis",
+      "name": "Reflect Over an Axis",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-g-1.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 2,
+      "slug": "reflect-over-y-equals-x",
+      "name": "Reflect Over y = x",
+      "count": 312,
+      "exhaustive": true,
+      "signed": true,
+      "file": "transformations-g-2.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 3,
+      "slug": "rotate",
+      "name": "Rotate",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-g-3.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 4,
+      "slug": "dilate",
+      "name": "Dilate",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-g-4.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 5,
+      "slug": "sequences",
+      "name": "Sequences",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-g-5.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 6,
+      "slug": "which-transformation",
+      "name": "Which Transformation?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "transformations-g-6.json"
+    },
+    {
+      "skill": "transformations-g",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-g-7.json"
     }
   ]
 }

@@ -2632,6 +2632,326 @@ CHOICE_RULES += (
     (re.compile(r"^triangle sides: (\d+, \d+, \d+)$"), makes_triangle),
 )
 
+# --- Area and Circles ---------------------------------------------------------
+#
+# Base times height for a parallelogram, half that for a triangle, the mean
+# of the parallel sides times the height for a trapezoid. C = πd and A = πr²,
+# answered either as the number of π or with π taken as 3.14, which the text
+# says. Composites are added or taken away piece by piece, and a missing
+# length runs a formula backwards. Exact throughout: 3.14 is 314/100.
+
+LENGTH = r"(\d+(?:\.\d+)?)"
+PI_FORM = r"\((pi|3\.14)\)"
+
+
+def pi_as(form: str) -> Fraction:
+    """π as the answer counts it: kept, so the answer is a number of π, or 3.14."""
+    return Fraction(1) if form == "pi" else Fraction("3.14")
+
+
+def circumference_of(what: str, g: str, form: str) -> Fraction:
+    d = Fraction(g) * (2 if what == "radius" else 1)
+    return pi_as(form) * d
+
+
+def circle_area_of(what: str, g: str, form: str) -> Fraction:
+    r = Fraction(g) / (1 if what == "radius" else 2)
+    return pi_as(form) * r * r
+
+
+def length_from_circumference(what: str, c: str, form: str) -> Fraction:
+    d = Fraction(c) / pi_as(form)
+    return d / 2 if what == "radius" else d
+
+
+def length_from_area(what: str, k: str) -> Fraction:
+    r = math.isqrt(int(k))
+    assert r * r == int(k), k
+    return Fraction(r * (2 if what == "diameter" else 1))
+
+
+def rect_less_circle(W: str, H: str, r: str) -> Fraction:
+    return Fraction(W) * Fraction(H) - Fraction("3.14") * Fraction(r) ** 2
+
+
+def rect_and_half_circle(W: str, H: str, r: str) -> Fraction:
+    assert Fraction(W) == 2 * Fraction(r), (W, r)        # the half circle spans the side
+    return Fraction(W) * Fraction(H) + Fraction("3.14") * Fraction(r) ** 2 / 2
+
+
+def side_of_square(a: str) -> Fraction:
+    s = math.isqrt(int(a))
+    assert s * s == int(a), a
+    return Fraction(s)
+
+
+BY_RULE += (
+    (re.compile(rf"^rectangle: {LENGTH} by {LENGTH}$"), lambda w, h: Fraction(w) * Fraction(h)),
+    (re.compile(rf"^square area: side {LENGTH}$"), lambda s: Fraction(s) ** 2),
+    (re.compile(rf"^parallelogram: base {LENGTH}, height {LENGTH}, slant {LENGTH}$"),
+     lambda b, h, s: Fraction(b) * Fraction(h)),
+    (re.compile(rf"^triangle area: base {LENGTH}, height {LENGTH} \((?:right|acute|obtuse)[^)]*\)$"),
+     lambda b, h: Fraction(b) * Fraction(h) / 2),
+    (re.compile(rf"^trapezoid: {LENGTH}, {LENGTH}, height {LENGTH}, (?:slant|top from) {LENGTH}$"),
+     lambda a, c, h, _: (Fraction(a) + Fraction(c)) * Fraction(h) / 2),
+    (re.compile(rf"^circumference: (radius|diameter) {LENGTH} {PI_FORM}$"), circumference_of),
+    (re.compile(rf"^(radius|diameter) from circumference: {LENGTH} {PI_FORM}$"), length_from_circumference),
+    (re.compile(rf"^circle area: (radius|diameter) {LENGTH} {PI_FORM}$"), circle_area_of),
+    (re.compile(rf"^(radius|diameter) from area: (\d+) \(pi\)$"), length_from_area),
+    (re.compile(rf"^composite \((?:L|hole)\): rect {LENGTH} x {LENGTH} - rect {LENGTH} x {LENGTH}$"),
+     lambda W, H, w, h: Fraction(W) * Fraction(H) - Fraction(w) * Fraction(h)),
+    (re.compile(rf"^composite \(hole\): rect {LENGTH} x {LENGTH} - circle radius {LENGTH} \(3\.14\)$"), rect_less_circle),
+    (re.compile(rf"^composite \(house\): rect {LENGTH} x {LENGTH} \+ tri {LENGTH} x {LENGTH}$"),
+     lambda W, H, b, t: Fraction(W) * Fraction(H) + Fraction(b) * Fraction(t) / 2),
+    (re.compile(rf"^composite \(semi\): rect {LENGTH} x {LENGTH} \+ semicircle radius {LENGTH} \(3\.14\)$"), rect_and_half_circle),
+    (re.compile(r"^missing: square area (\d+)$"), side_of_square),
+    (re.compile(rf"^missing: (?:rectangle|parallelogram) area {LENGTH}, (?:length|width|base|height) {LENGTH}$"),
+     lambda a, k: Fraction(a) / Fraction(k)),
+    (re.compile(rf"^missing: triangle area {LENGTH}, (?:base|height) {LENGTH}$"),
+     lambda a, k: 2 * Fraction(a) / Fraction(k)),
+    (re.compile(rf"^missing: trapezoid area {LENGTH}, sides {LENGTH} and {LENGTH}$"),
+     lambda a, p, q: 2 * Fraction(a) / (Fraction(p) + Fraction(q))),
+    (re.compile(rf"^missing: trapezoid area {LENGTH}, height {LENGTH}, side {LENGTH}$"),
+     lambda a, h, p: 2 * Fraction(a) / Fraction(h) - Fraction(p)),
+)
+
+# --- Volume and Surface Area -------------------------------------------------
+#
+# A prism or cylinder is its base times its height, a pyramid or cone a third
+# of that, a sphere 4/3 πr³ and a hemisphere half. Surfaces are every face
+# added: a box's three pairs, a cylinder's circles and the rectangle as long
+# as its circumference, πrl round a cone with l the slant, 4πr² round a
+# sphere and 3πr² over a solid hemisphere. A slant and a height both given
+# must make a right triangle with the radius, or the figure is impossible.
+
+def radius_of(what: str, g: str) -> Fraction:
+    return Fraction(g) / (2 if what == "diameter" else 1)
+
+
+def right_triangle(a, b, c) -> None:
+    assert Fraction(a) ** 2 + Fraction(b) ** 2 == Fraction(c) ** 2, (a, b, c)
+
+
+def cone_volume(what: str, g: str, h: str, s, form: str) -> Fraction:
+    r = radius_of(what, g)
+    if s is not None:
+        right_triangle(r, h, s)
+    return pi_as(form) * r * r * Fraction(h) / 3
+
+
+def pyramid_volume(L: str, W: str, H: str, s) -> Fraction:
+    if s is not None:                                  # up the middle of a face
+        assert L == W, (L, W)
+        right_triangle(Fraction(L) / 2, H, s)
+    return Fraction(L) * Fraction(W) * Fraction(H) / 3
+
+
+def ball_volume(solid: str, what: str, g: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    return pi_as(form) * Fraction(4 if solid == "sphere" else 2, 3) * r ** 3
+
+
+def ball_radius(solid: str, k: str) -> Fraction:
+    cube = Fraction(k) * 3 / (4 if solid == "sphere" else 2)
+    r = Fraction(round(float(cube) ** (1 / 3) * 2), 2)          # radii here are whole or halves
+    assert r ** 3 == cube, k
+    return r
+
+
+def tri_prism(a: str, b: str, c: str, length: str, what: str) -> Fraction:
+    right_triangle(a, b, c)
+    a, b, c, length = map(Fraction, (a, b, c, length))
+    return a * b / 2 * length if what == "volume" else a * b + (a + b + c) * length
+
+
+CYLINDER_ENDS = {"closed": 2, "open": 1, "no ends": 0}
+
+
+def cylinder_surface(what: str, g: str, h: str, ends: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    return pi_as(form) * (CYLINDER_ENDS[ends] * r * r + 2 * r * Fraction(h))
+
+
+def cone_surface(what: str, g: str, s: str, h: str, part: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    right_triangle(r, h, s)
+    return pi_as(form) * (r * Fraction(s) + (r * r if part == "closed" else 0))
+
+
+def ball_surface(solid: str, what: str, g: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    return pi_as(form) * (4 if solid == "sphere" else 3) * r * r
+
+
+def radius_from_sphere_surface(k: str) -> Fraction:
+    square = Fraction(k) / 4
+    r = Fraction(round(float(square) ** 0.5 * 2), 2)
+    assert r * r == square, k
+    return r
+
+
+BY_RULE += (
+    (re.compile(rf"^box volume: {LENGTH} x {LENGTH} x {LENGTH}$"),
+     lambda L, W, H: Fraction(L) * Fraction(W) * Fraction(H)),
+    (re.compile(rf"^cube volume: side {LENGTH}$"), lambda s: Fraction(s) ** 3),
+    (re.compile(rf"^box height from volume: {LENGTH}, base {LENGTH} x {LENGTH}$"),
+     lambda V, L, W: Fraction(V) / (Fraction(L) * Fraction(W))),
+    (re.compile(rf"^triangular prism (volume|surface): legs {LENGTH}, {LENGTH}, hypotenuse {LENGTH}, length {LENGTH}$"),
+     lambda what, a, b, c, L: tri_prism(a, b, c, L, what)),
+    (re.compile(rf"^cylinder volume: (radius|diameter) {LENGTH}, height {LENGTH} {PI_FORM}$"),
+     lambda what, g, h, form: pi_as(form) * radius_of(what, g) ** 2 * Fraction(h)),
+    (re.compile(rf"^cylinder height from volume: {LENGTH}, radius {LENGTH} \(pi\)$"),
+     lambda k, r: Fraction(k) / Fraction(r) ** 2),
+    (re.compile(rf"^pyramid volume: base {LENGTH} x {LENGTH}, height {LENGTH}(?:, slant {LENGTH})?$"), pyramid_volume),
+    (re.compile(rf"^cone volume: (radius|diameter) {LENGTH}, height {LENGTH}(?:, slant {LENGTH})? {PI_FORM}$"), cone_volume),
+    (re.compile(rf"^(sphere|hemisphere) volume: (radius|diameter) {LENGTH} {PI_FORM}$"), ball_volume),
+    (re.compile(rf"^(sphere|hemisphere) radius from volume: {LENGTH} \(pi\)$"), ball_radius),
+    (re.compile(rf"^box surface: {LENGTH} x {LENGTH} x {LENGTH}$"),
+     lambda L, W, H: 2 * (Fraction(L) * Fraction(W) + Fraction(L) * Fraction(H) + Fraction(W) * Fraction(H))),
+    (re.compile(rf"^cube surface: side {LENGTH}$"), lambda s: 6 * Fraction(s) ** 2),
+    (re.compile(rf"^cylinder surface: (radius|diameter) {LENGTH}, height {LENGTH}, (closed|open|no ends) {PI_FORM}$"),
+     cylinder_surface),
+    (re.compile(rf"^cone surface: (radius|diameter) {LENGTH}, slant {LENGTH}, height {LENGTH}, (closed|curved) {PI_FORM}$"),
+     cone_surface),
+    (re.compile(rf"^(sphere|hemisphere) surface: (radius|diameter) {LENGTH} {PI_FORM}$"), ball_surface),
+    (re.compile(rf"^sphere radius from surface: {LENGTH} \(pi\)$"), radius_from_sphere_surface),
+)
+
+# --- Transformations ---------------------------------------------------------
+#
+# Each move is applied again from its own rule: a translation adds, a
+# reflection over an axis changes one sign and over x = k keeps the distance
+# to the line, y = x swaps, a rotation about a centre turns the offset from
+# it, and a dilation scales that offset. A figure is named from coordinates
+# alone -- sides scaled, then turned over, then pointing the same way -- and
+# a rule or sequence is congruent when it keeps every length, similar when it
+# scales them all alike, and neither otherwise.
+
+POINT = r"\((-?\d+), (-?\d+)\)"
+
+
+def as_point(x, y) -> tuple:
+    return Fraction(x), Fraction(y)
+
+
+def reflect_over(line: str):
+    if line == "x-axis":
+        return lambda x, y: (x, -y)
+    if line == "y-axis":
+        return lambda x, y: (-x, y)
+    if line == "y = x":
+        return lambda x, y: (y, x)
+    if line == "y = -x":
+        return lambda x, y: (-y, -x)
+    axis, k = re.fullmatch(r"([xy]) = (-?\d+)", line).groups()
+    k = Fraction(k)
+    return (lambda x, y: (2 * k - x, y)) if axis == "x" else (lambda x, y: (x, 2 * k - y))
+
+
+QUARTER_TURNS = {"90 ccw": 1, "180": 2, "90 cw": 3, "270 ccw": 3}
+
+
+def turned(x, y, quarters: int) -> tuple:
+    for _ in range(quarters):                          # a quarter turn counterclockwise each time
+        x, y = -y, x
+    return x, y
+
+
+def rotate_about(x, y, turn: str, h, k) -> tuple:
+    a, b = turned(Fraction(x) - Fraction(h), Fraction(y) - Fraction(k), QUARTER_TURNS[turn])
+    return a + Fraction(h), b + Fraction(k)
+
+
+def dilate_about(x, y, factor: str, h, k) -> tuple:
+    f, h, k = Fraction(factor), Fraction(h), Fraction(k)
+    return h + f * (Fraction(x) - h), k + f * (Fraction(y) - k)
+
+
+def move_step(step: str):
+    """One step of a sequence, in the text's words, as a function of a point."""
+    if step.startswith("reflect "):
+        return reflect_over(step[len("reflect "):])
+    if step.startswith("rotate "):
+        q = QUARTER_TURNS[step[len("rotate "):]]
+        return lambda x, y: turned(x, y, q)
+    if step.startswith("dilate "):
+        f = Fraction(step[len("dilate "):])
+        return lambda x, y: (f * x, f * y)
+    a, b = re.fullmatch(rf"translate {POINT}", step).groups()
+    return lambda x, y: (x + Fraction(a), y + Fraction(b))
+
+
+def after_steps(steps: str):
+    moves = [move_step(s) for s in steps.split("; ")]
+
+    def go(x, y):
+        for m in moves:
+            x, y = m(x, y)
+        return x, y
+    return go
+
+
+def points_of(listing: str) -> list:
+    return [as_point(x, y) for x, y in re.findall(POINT, listing)]
+
+
+def name_the_move(before: str, after: str) -> str:
+    P, Q = points_of(before), points_of(after)
+    side = lambda A, B: (B[0] - A[0], B[1] - A[1])
+    length2 = lambda v: v[0] ** 2 + v[1] ** 2
+    ratios = {length2(side(Q[i], Q[j])) / length2(side(P[i], P[j])) for i, j in ((0, 1), (1, 2), (2, 0))}
+    assert len(ratios) == 1, (before, after)           # every side scaled alike, or it is no single move
+    if ratios != {1}:
+        return "dilation"
+    area = lambda T: (T[1][0] - T[0][0]) * (T[2][1] - T[0][1]) - (T[1][1] - T[0][1]) * (T[2][0] - T[0][0])
+    if (area(P) > 0) != (area(Q) > 0):
+        return "reflection"
+    return "translation" if side(P[0], P[1]) == side(Q[0], Q[1]) and side(P[1], P[2]) == side(Q[1], Q[2]) else "rotation"
+
+
+def kind_of_map(go) -> str:
+    """Congruent, similar or neither, from where the map sends three points."""
+    o, e1, e2 = go(Fraction(0), Fraction(0)), go(Fraction(1), Fraction(0)), go(Fraction(0), Fraction(1))
+    a, c = e1[0] - o[0], e1[1] - o[1]
+    b, d = e2[0] - o[0], e2[1] - o[1]
+    far = go(Fraction(2), Fraction(3))
+    assert far == (o[0] + 2 * a + 3 * b, o[1] + 2 * c + 3 * d)     # a straight-line map, as all of these are
+    if a * b + c * d != 0 or a * a + c * c != b * b + d * d:
+        return "neither"
+    return "congruent" if a * a + c * c == 1 else "similar"
+
+
+def kind_of_rule(rule: str) -> str:
+    inner = rule.strip()[1:-1]
+    depth, cut = 0, None
+    for i, ch in enumerate(inner):
+        depth += ch == "("
+        depth -= ch == ")"
+        if ch == "," and depth == 0:
+            cut = i
+    fx, fy = inner[:cut], inner[cut + 1:]
+    return kind_of_map(lambda x, y: (at_xy(fx, x, y), at_xy(fy, x, y)))
+
+
+PAIR_RULES += (
+    (re.compile(rf"^translate {POINT} by {POINT}$"),
+     lambda x, y, a, b: (Fraction(x) + Fraction(a), Fraction(y) + Fraction(b))),
+    (re.compile(rf"^translate {POINT} like {POINT} -> {POINT}$"),
+     lambda x, y, x0, y0, x1, y1: (Fraction(x) + Fraction(x1) - Fraction(x0), Fraction(y) + Fraction(y1) - Fraction(y0))),
+    (re.compile(rf"^reflect {POINT} over (x-axis|y-axis|y = x|y = -x|[xy] = -?\d+)$"),
+     lambda x, y, line: reflect_over(line)(*as_point(x, y))),
+    (re.compile(rf"^rotate {POINT} by (90 ccw|180|90 cw|270 ccw) about {POINT}$"), rotate_about),
+    (re.compile(rf"^dilate {POINT} by (\d+(?:/\d+)?) about {POINT}$"), dilate_about),
+    (re.compile(rf"^sequence {POINT}: (.+)$"), lambda x, y, steps: after_steps(steps)(*as_point(x, y))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^which move: (.+) -> (.+)$"), name_the_move),
+    (re.compile(r"^congruent or similar: \(x, y\) -> (\(.+\))$"), kind_of_rule),
+    (re.compile(r"^congruent or similar: ([a-z].+)$"),
+     lambda steps: kind_of_map(after_steps(steps))),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
