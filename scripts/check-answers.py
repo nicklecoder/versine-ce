@@ -6665,6 +6665,16 @@ SET_RULES += (
     (re.compile(r"^radical: (.+) = (.+)$"), re_solutions),
 )
 
+# The search above only sees whole numbers from -1000 to 1000, so every key
+# must be one of those: a lone whole number inside that range.
+for path in sorted(LIB.glob("radical-eq-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"radical-eq L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            lo, hi = part["lo"], part["hi"]
+            if lo != hi or lo["d"] != 1 or not -1000 <= lo["n"] <= 1000:
+                problems.append(f"{where}: key {part} is outside the whole numbers -1000 to 1000 the check searches")
+
 # --- Rational Expressions -----------------------------------------------------
 #
 # The question's expression and the answer are compared by value at rational
