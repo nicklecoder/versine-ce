@@ -2161,8 +2161,15 @@ def gather_side(a, c) -> str:
     return "left" if a > c else "right"
 
 
-def flips(k: str) -> str:
-    return "flip" if k.startswith("−") else "keep"
+def flips(left: str) -> str:
+    """Whether solving left op number turns the sign: what multiplies the letter
+    in the end, found by evaluating the left side at 0 and 1, not by where a
+    minus sign happens to stand -- 12 − 3x flips, x − 7 does not."""
+    v = var_in(left)
+    k = evaluate(left.replace("−", "-"), v, 1) - evaluate(left.replace("−", "-"), v, 0)
+    if k == 0:
+        raise ValueError(f"no letter to solve for: {left}")
+    return "flip" if k < 0 else "keep"
 
 
 def sign_of(src: str) -> str:
@@ -2272,8 +2279,7 @@ CHOICE_RULES += (
     (re.compile(r"^first move for (\d+)\([a-z] \+ (\d+)\) = (\d+)$"), first_move),
     (re.compile(r"^first move for \d+[a-z] \+ \d+ = \d+$"), lambda: "subtract"),
     (re.compile(r"^which side for (\d*)([a-z]) \+ \d+ = (\d*)\2 \+ \d+$"), lambda a, v, c: gather_side(a, c)),
-    (re.compile(r"^does (−?)\d+[a-z] [<>≤≥] −?\d+ flip$"), flips),
-    (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
+    (re.compile(r"^does (.+) [<>≤≥] −?\d+ flip$"), flips),
     (re.compile(r"^sign of (.+)$"), sign_of),
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
     (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
