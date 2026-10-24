@@ -18,6 +18,8 @@ import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/word-equations.js';
 const tm = (s) => s.replace(/-/g, '−');
 const plus = (c) => (c < 0 ? ` - ${-c}` : ` + ${c}`);
 const money = (n) => `$${n}`;
+/** "an $8 fee", "a $9 fee": the article goes by how the number is said. */
+const an = (n) => (/^(8|11|18|8\d)$/.test(String(n)) ? 'an' : 'a');
 
 /**
  * Number puzzles. The number may be negative, and the result too: "I think
@@ -94,7 +96,11 @@ const STORIES = [
         + `bracket: ${k}(n + ${add}) = ${k * (n + add)}.` };
   },
   (rng) => {
-    const w = rng.int(2, 12), more = rng.int(1, 9);
+    let w = rng.int(2, 12);
+    const more = rng.int(1, 9);
+    // Never where the area equals the perimeter (3 by 6 is 18 both ways):
+    // there the area equation balances too, and two options are right.
+    while (w * (w + more) === 2 * w + 2 * (w + more)) w = rng.int(2, 12);
     const p = 2 * w + 2 * (w + more);
     return { story: `A rectangle is ${more} cm longer than it is wide, and its perimeter is ${p} cm. Which `
       + 'equation gives the width, w?', right: `2w + 2(w + ${more}) = ${p}`,
@@ -122,10 +128,9 @@ const STORIES = [
 
 function whichEquation(rng) {
   const s = rng.pick(STORIES)(rng);
-  // Shortest first, so the right one is not always in the same place.
-  const options = [s.right, ...s.wrong]
-    .sort((p, q) => p.length - q.length || (p < q ? -1 : 1))
-    .map((e) => ({ id: e, label: tm(e) }));
+  // Shuffled by the draw. Sorted shortest first, the right one sat second or
+  // third in four rows of five, and its length was a clue.
+  const options = rng.shuffle([s.right, ...s.wrong]).map((e) => ({ id: e, label: tm(e) }));
   return {
     prompt: [T.prose(s.story)],
     text: `equation for: ${s.story}`,
@@ -145,7 +150,7 @@ const RATES = [
     total: (t) => `A ride costs ${money(t)}.`, ask: 'How many miles was it?', letter: 'n', unit: 'miles' },
   { setup: (f, r) => `A gym costs ${money(f)} to join and ${money(r)} a month.`,
     total: (t) => `So far it has cost ${money(t)}.`, ask: 'How many months is that?', letter: 'n', unit: 'months' },
-  { setup: (f, r) => `A plumber charges a ${money(f)} call-out fee plus ${money(r)} an hour.`,
+  { setup: (f, r) => `A plumber charges ${an(f)} ${money(f)} call-out fee plus ${money(r)} an hour.`,
     total: (t) => `The bill is ${money(t)}.`, ask: 'How many hours did the job take?', letter: 't', unit: 'hours' },
   { setup: (f, r) => `A candle starts ${f} cm tall and burns down ${r} cm every hour.`,
     total: (t) => `It is now ${t} cm tall.`, ask: 'How many hours has it burned?', letter: 't', unit: 'hours',
@@ -210,9 +215,10 @@ function parts(rng) {
     const pieces = Array.from({ length: k }, (_, i) => (i === 0 ? 'x' : `(x + ${i})`));
     const eq = `${pieces.join(' + ')} = ${sum}`;
     return {
-      prompt: [T.prose(`${['', '', 'Two', 'Three', 'Four'][k]} integers in a row add up to ${minus(sum)}. What is the smallest?`)],
+      prompt: [T.prose(`${['', '', 'Two', 'Three', 'Four'][k]} integers in a row add up to ${minus(sum)}. `
+        + `What is the ${k === 2 ? 'smaller' : 'smallest'}?`)],
       text: eq, answer: { type: 'int', value: first }, visual: null,
-      explain: `Call the smallest x. The next ${k === 2 ? 'is' : 'are'} ${pieces.slice(1).join(', ')
+      explain: `Call the ${k === 2 ? 'smaller' : 'smallest'} x. The next ${k === 2 ? 'is' : 'are'} ${pieces.slice(1).join(', ')
         .replace(/[()]/g, '')}: ${tm(eq)}. That is ${k}x + ${(k * (k - 1)) / 2} = ${minus(sum)}, so `
         + `${k}x = ${minus(sum - (k * (k - 1)) / 2)} and x = ${minus(first)}.`,
     };
@@ -262,7 +268,8 @@ function twoEqual(rng) {
   const fill = rng.int(3, 12), drain = rng.int(2, 10);
   const startB = rng.int(10, 60) * 5;
   const startA = startB - (fill + drain) * when;
-  if (startA < 0) return twoEqual(rng);
+  // Ten litres or more: "holds 0 litres" is an empty tank, and "1 litres" is not English.
+  if (startA < 10) return twoEqual(rng);
   const eq = `${startA} + ${fill}t = ${startB} - ${drain}t`;
   return {
     prompt: [T.prose(`Tank A holds ${startA} litres and is filling at ${fill} litres a minute. Tank B holds `
@@ -275,15 +282,20 @@ function twoEqual(rng) {
 }
 
 /**
- * At least, at most. The boundary is never whole, so the rounding is a real
- * decision -- and the words make it: the fewest weeks to reach at least a
- * target rounds up, the most boxes a lift can take rounds down.
+ * At least, at most. The boundary is usually not whole, so the rounding is
+ * a real decision -- and the words make it: the fewest weeks to reach at
+ * least a target rounds up, the most boxes a lift can take rounds down.
+ *
+ * A quarter come out exactly, and there "at least" and "at most" include the
+ * boundary itself: if every row needed rounding, a student could round
+ * without ever reading whether equal counts.
  */
 function atLeastAtMost(rng) {
   const most = rng.chance(0.5);
+  const exact = rng.chance(0.25);
   if (!most) {
     const start = rng.int(5, 60), save = rng.int(4, 25);
-    const goal = start + save * rng.int(3, 20) + rng.int(1, save - 1);   // not a whole number of weeks
+    const goal = start + save * rng.int(3, 20) + (exact ? 0 : rng.int(1, save - 1));
     const weeks = Math.ceil((goal - start) / save);
     const ineq = `${start} + ${save}t ≥ ${goal}`;
     return {
@@ -291,12 +303,15 @@ function atLeastAtMost(rng) {
         + `whole weeks until she has at least ${money(goal)}?`)],
       text: `${ineq}, smallest`, answer: { type: 'int', value: weeks }, visual: null,
       explain: `"At least ${money(goal)}" is ${ineq}. So ${save}t ≥ ${goal - start}, and t ≥ `
-        + `${goal - start} ÷ ${save}, which is between ${weeks - 1} and ${weeks}. After ${weeks - 1} weeks she is `
-        + `still short, so the fewest whole weeks is ${weeks}.`,
+        + (exact
+          ? `${goal - start} ÷ ${save} = ${weeks} exactly. After ${weeks} weeks she has exactly ${money(goal)}, `
+            + `and "at least" includes exactly, so the fewest whole weeks is ${weeks}.`
+          : `${goal - start} ÷ ${save}, which is between ${weeks - 1} and ${weeks}. After ${weeks - 1} weeks she is `
+            + `still short, so the fewest whole weeks is ${weeks}.`),
     };
   }
   const already = rng.int(50, 150), box = rng.int(15, 60);
-  const limit = already + box * rng.int(3, 20) + rng.int(1, box - 1);
+  const limit = already + box * rng.int(3, 20) + (exact ? 0 : rng.int(1, box - 1));
   const boxes = Math.floor((limit - already) / box);
   const ineq = `${already} + ${box}n ≤ ${limit}`;
   return {
@@ -304,8 +319,11 @@ function atLeastAtMost(rng) {
       + `weighs ${box} kg. What is the greatest number of boxes it can take?`)],
     text: `${ineq}, largest`, answer: { type: 'int', value: boxes }, visual: null,
     explain: `"At most ${limit} kg" is ${ineq}. So ${box}n ≤ ${limit - already}, and n ≤ `
-      + `${limit - already} ÷ ${box}, which is between ${boxes} and ${boxes + 1}. One more box would be over `
-      + `the limit, so the most it can take is ${boxes}.`,
+      + (exact
+        ? `${limit - already} ÷ ${box} = ${boxes} exactly. With ${boxes} boxes the lift carries exactly ${limit} kg, `
+          + `and "at most" includes exactly, so it can take ${boxes}.`
+        : `${limit - already} ÷ ${box}, which is between ${boxes} and ${boxes + 1}. One more box would be over `
+          + `the limit, so the most it can take is ${boxes}.`),
   };
 }
 

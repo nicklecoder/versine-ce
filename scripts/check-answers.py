@@ -420,6 +420,13 @@ def real_atom(text: str):
     text = text.replace("−", "-")
     if "π" in text or "gaps growing" in text:
         return None                                  # pi, or a decimal that never settles
+    if text.startswith("-√"):
+        return -real_atom(text[1:])
+    if text.startswith("∛"):
+        n = int(text[1:])
+        r = round(n ** (1 / 3))
+        cube = next((k for k in (r - 1, r, r + 1) if k ** 3 == n), None)
+        return None if cube is None else Surd({1: Fraction(cube)})  # None: irrational, as for pi
     if text.startswith("√"):
         inside = text[1:].strip("()")
         return Surd.root(amount(inside) if "/" in inside else Fraction(inside))
@@ -432,7 +439,7 @@ def rational_or_not(text: str) -> str:
     # One operator at most, by construction of the questions: "2 + √10",
     # "√10 × √10", "0 × √10". pi is the one irrational not built from roots,
     # and nothing rational is ever added to or multiplied by it to cancel it.
-    m = re.fullmatch(r"(.+?) ([+−×]) (.+)", text)
+    m = re.fullmatch(r"(.+?) ([+−×÷]) (.+)", text)
     if not m:
         a = real_atom(text)
         return "irrational" if a is None or not a.rational() else "rational"
@@ -440,7 +447,12 @@ def rational_or_not(text: str) -> str:
     if left is None or right is None:
         zero = (left or right)
         return "rational" if op == "×" and zero is not None and not zero.t else "irrational"
-    value = left * right if op == "×" else left + (-right if op == "−" else right)
+    if op == "÷":
+        # Only ever one root divided by another, so its inverse is one term too.
+        assert len(right.t) == 1, f"{m[3]} is not a single term"
+        (r, c), = right.t.items()
+        right = Surd({r: 1 / (c * r)})                  # 1/(c√r) = √r/(c·r)
+    value = left * right if op in "×÷" else left + (-right if op == "−" else right)
     return "rational" if value.rational() else "irrational"
 
 

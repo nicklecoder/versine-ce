@@ -74,9 +74,9 @@ const signed = (s, sg) => (sg < 0 ? `−${s}` : s);
 
 /** Big numbers: how far the point slides left is the power. */
 function big(rng) {
-  // Ten to the nought, now and then: 7.2 is already in scientific notation,
-  // and a student who thinks the power must be at least one has a gap.
-  const e = rng.chance(0.06) ? 0 : rng.pick([1, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 9]);
+  // A hundred or more: the level is Big Numbers, and 43 or −1 asked nothing
+  // a big number does.
+  const e = rng.pick([2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 8, 9]);
   const m = digitsFor(rng, Math.min(3, e + 1));
   const n = withExp(m, e);
   const sg = sign(rng);
@@ -93,11 +93,8 @@ function big(rng) {
               `${tenTo(e)} is 10${sup(e)}`],
       hint: 'How far does the point slide to leave one digit in front?',
     },
-    explain: e === 0
-      ? `${std} already has one digit in front of the point, so the point does not move. `
-        + `That is ten to the nought, which is 1: ${std} = ${signed(sci(m, 0), sg)}.`
-      : `Sliding the point ${places(e)} left turns ${std} into ${fr}, which divided it by `
-        + `${tenTo(e)}. Multiplying by 10${sup(e)} puts that back: ${std} = ${signed(sci(m, e), sg)}.`,
+    explain: `Sliding the point ${places(e)} left turns ${std} into ${fr}, which divided it by `
+      + `${tenTo(e)}. Multiplying by 10${sup(e)} puts that back: ${std} = ${signed(sci(m, e), sg)}.`,
   };
 }
 
@@ -228,7 +225,7 @@ function compare(rng) {
   const [x, y] = rng.chance(0.5) ? [a, b] : [b, a];
   const label = ({ m, e }) => sci(m, e);
   const why = a.e === b.e
-    ? `Both are counted in 10${sup(a.e)}s, so the front numbers decide: `
+    ? `Both are counted in lots of 10${sup(a.e)}, so the front numbers decide: `
       + `${front(bigger.m)} is more than ${front(smaller.m)}. ${label(bigger)} is bigger.`
     : `The powers decide before the front numbers do. 10${sup(bigger.e)} is ${bigger.e - smaller.e === 1 ? 'ten' : `${tenTo(bigger.e - smaller.e)}`} `
       + `times 10${sup(smaller.e)}, and no front number below 10 can make that up. ${label(bigger)} is bigger.`;
@@ -338,7 +335,7 @@ function addSub(rng) {
   const lines = [`${sci(x.m, xe)} ${op} ${yStr}`,
                  `${xFront} × 10${sup(xe)} ${op} ${yInX} × 10${sup(xe)}`,
                  `${combined} × 10${sup(xe)}`];
-  const rules = [`write both in 10${sup(xe)}s`, `${xFront} ${op} ${yInX} = ${combined}`];
+  const rules = [`write both as lots of 10${sup(xe)}`, `${xFront} ${op} ${yInX} = ${combined}`];
   if (re !== xe) {
     lines.push(sci(rm, re));
     rules.push('tidy the front number');
@@ -352,7 +349,7 @@ function addSub(rng) {
       kind: 'evalmodel', lines, rules,
       hint: 'There is no rule for adding powers. What has to match first?',
     },
-    explain: `The powers have to match before anything can be ${subtract ? 'taken away' : 'added'}. In 10${sup(xe)}s, `
+    explain: `The powers have to match before anything can be ${subtract ? 'taken away' : 'added'}. In lots of 10${sup(xe)}, `
       + `${yStr} is ${yInX} × 10${sup(xe)}, so this is ${xFront} ${op} ${yInX} = ${combined} `
       + `lots of 10${sup(xe)}`
       + (re !== xe ? `, which tidies to ${sci(rm, re)}.` : `: ${sci(rm, re)}.`),

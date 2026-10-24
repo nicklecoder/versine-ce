@@ -54,6 +54,12 @@ function draw(poly, v) {
 }
 const bracket = (poly, v) => T.group(draw(poly, v));
 
+// requiem: catalogue/content/expression-prompts-name-the-form
+// The answer is expanded and collected, and the prompt says so: (x + 3)² is
+// an equivalent form too, and only the instruction says it is not the answer.
+const SIMPLIFY = 'Simplify:';
+const EXPAND = 'Expand and simplify:';
+
 /** A polynomial with `n` terms of distinct powers from 0..top. */
 function some(rng, n, top, { constant = null } = {}) {
   const powers = rng.shuffle(Array.from({ length: top + 1 }, (_, i) => i)).slice(0, n);
@@ -116,7 +122,7 @@ function adding(rng) {
   const out = collect([...p, ...q]);
   if (out.length < 2 || out.length === p.length + q.length) return adding(rng);
   return {
-    prompt: [bracket(p, v), T.op('+'), bracket(q, v), T.op('='), T.blank()],
+    prompt: [T.prose(SIMPLIFY), bracket(p, v), T.op('+'), bracket(q, v), T.op('='), T.blank()],
     text: `polynomial: (${write(p, v)}) + (${write(q, v)})`,
     answer: answerOf(out, v),
     visual: null,
@@ -133,7 +139,7 @@ function takingAway(rng) {
   const out = collect([...p, ...flipped]);
   if (out.length < 2 || out.length === p.length + q.length) return takingAway(rng);
   return {
-    prompt: [bracket(p, v), T.op('−'), bracket(q, v), T.op('='), T.blank()],
+    prompt: [T.prose(SIMPLIFY), bracket(p, v), T.op('−'), bracket(q, v), T.op('='), T.blank()],
     text: `polynomial: (${write(p, v)}) - (${write(q, v)})`,
     answer: answerOf(out, v),
     visual: null,
@@ -151,7 +157,7 @@ function monomialTimes(rng) {
   const src = `${write(m, v)}(${write(p, v)})`;
   const M = pretty(m, v);
   return {
-    prompt: [...previewOf(src).terms, T.op('='), T.blank()],
+    prompt: [T.prose(EXPAND), ...previewOf(src).terms, T.op('='), T.blank()],
     text: `polynomial: ${src}`,
     answer: answerOf(out, v),
     visual: null,
@@ -177,7 +183,7 @@ function binomialTimes(rng) {
   const parts = times(a, b), out = collect(parts);
   const src = `(${write(a, v)})(${write(b, v)})`;
   return {
-    prompt: [...previewOf(src).terms, T.op('='), T.blank()],
+    prompt: [T.prose(EXPAND), ...previewOf(src).terms, T.op('='), T.blank()],
     text: `polynomial: ${src}`,
     answer: answerOf(out, v),
     visual: null,
@@ -210,7 +216,7 @@ function special(rng) {
       + `and the last squared, ${signed(sign * k)}² = ${k * k}.`;
   }
   return {
-    prompt: [...previewOf(src).terms, T.op('='), T.blank()],
+    prompt: [T.prose(EXPAND), ...previewOf(src).terms, T.op('='), T.blank()],
     text: `polynomial: ${src}`,
     answer: answerOf(out, v),
     visual: null,
@@ -226,7 +232,7 @@ function trinomialTimes(rng) {
   if (out.length < 3) return trinomialTimes(rng);
   const src = `(${write(a, v)})(${write(b, v)})`;
   return {
-    prompt: [...previewOf(src).terms, T.op('='), T.blank()],
+    prompt: [T.prose(EXPAND), ...previewOf(src).terms, T.op('='), T.blank()],
     text: `polynomial: ${src}`,
     answer: answerOf(out, v),
     visual: null,

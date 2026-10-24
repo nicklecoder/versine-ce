@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "dab4292381ad78be51fdadc8bdd520a9ea5c123574b58ebc54d582acb6f8498b",
+  "sources": "18e093f11b7649589df5ce22d6dfa56d7bdeec06b3a224e501ddeed2c8fd7dd6",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2059,8 +2059,8 @@
       "level": 0,
       "slug": "ends-or-repeats",
       "name": "Ends or Repeats",
-      "count": 914,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "real-numbers-0.json"
     },
