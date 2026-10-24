@@ -251,7 +251,9 @@ const SITUATIONS = [
   },
   (rng) => {
     const longer = rng.int(2, 20);
-    return { story: `A rectangle is w cm wide and ${longer} cm longer than it is wide. What is its perimeter?`,
+    // requiem: catalogue/content/units-both-systems
+    const u = rng.pick(['cm', 'inches']);
+    return { story: `A rectangle is w ${u} wide and ${longer} ${u} longer than it is wide. What is its perimeter?`,
       right: `2w + 2(w + ${longer})`, wrong: [`w(w + ${longer})`, `2w + ${longer}`],
       why: `The length is w + ${longer}. A perimeter goes round all four sides, two of each: `
         + `2w + 2(w + ${longer}). w(w + ${longer}) is the area.` };

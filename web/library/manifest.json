@@ -1158,7 +1158,7 @@
       }
     }
   },
-  "sources": "b37344af0baacc97286a54a02586fc4d4bba1ce09e2bea7ad8a291008170fdcd",
+  "sources": "b4b77cf233bd6f23e453c08fa06773948e16fff03405107c4c51ea6400c2c8bf",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3665,7 +3665,7 @@
       "level": 4,
       "slug": "which-expression-fits",
       "name": "Which Expression Fits",
-      "count": 533,
+      "count": 552,
       "exhaustive": true,
       "signed": false,
       "file": "evaluate-4.json"
