@@ -5217,6 +5217,390 @@ def chance_out_of_range() -> list:
                 found.append(f"{lib['skill']} L{lib['level'] + 1} row {i}: {p['text']} has a probability outside 0 to 1")
     return found
 
+
+# --- The Unit Circle ---------------------------------------------------------
+#
+# Every exact value is worked out again with the calculator, from the angle
+# the text gives in degrees or as a multiple of π, and the stored a + b√r
+# must agree (exact_holds). A sign or a quadrant is read off the calculator's
+# value; a ratio from a point is y/x and the rest, after checking the point
+# is on the circle. A value from one ratio places θ in its quadrant with the
+# inverse function and evaluates the other there, with no triangle.
+
+UC_ANGLE = r"(-?\d+(?:/\d+ pi)?)"
+UC = {
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "sec": lambda t: 1 / math.cos(t), "csc": lambda t: 1 / math.sin(t), "cot": lambda t: math.cos(t) / math.sin(t),
+}
+ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4}
+
+
+def uc_angle(written: str) -> float:
+    """Radians, from 210 (degrees) or 7/6 pi."""
+    written = str(written)
+    if written.endswith(" pi"):
+        return float(Fraction(written[:-3])) * math.pi
+    return math.radians(int(written))
+
+
+def uc_quadrant_signs(q: int) -> tuple:
+    """(cos, sin) signs at the middle of quadrant q."""
+    t = math.radians(45 + 90 * (q - 1))
+    return (math.cos(t) > 0, math.sin(t) > 0)
+
+
+def uc_sign(fn: str, angle: str) -> str:
+    v = UC[fn](uc_angle(angle))
+    assert abs(v) > 1e-9, f"{fn} {angle} is zero"
+    return "positive" if v > 0 else "negative"
+
+
+def uc_sign_in_quadrant(fn: str, q: str) -> str:
+    return "positive" if UC[fn](math.radians(45 + 90 * (ROMAN[q] - 1))) > 0 else "negative"
+
+
+def uc_quadrant_from_signs(f: str, sf: str, g: str, sg: str) -> str:
+    fits = [name for name, q in ROMAN.items()
+            if (UC[f](math.radians(45 + 90 * (q - 1))) > 0) == (sf == "+")
+            and (UC[g](math.radians(45 + 90 * (q - 1))) > 0) == (sg == "+")]
+    return fits[0] if len(fits) == 1 else f"ambiguous {fits}"
+
+
+def uc_defined(fn: str, angle: str) -> str:
+    t = uc_angle(angle)
+    below = math.cos(t) if fn == "tan" else math.sin(t)
+    if abs(below) < 1e-12:
+        return "undefined"
+    return str(round(UC[fn](t)))
+
+
+def uc_from_point(fn: str, x: str, y: str) -> Fraction:
+    X, Y = Fraction(x), Fraction(y)
+    assert X * X + Y * Y == 1, f"({x}, {y}) is not on the unit circle"
+    return {"sin": Y, "cos": X, "tan": Y / X, "sec": 1 / X, "csc": 1 / Y, "cot": X / Y}[fn]
+
+
+# requiem: catalogue/content/one-ratio-fixes-the-quadrant
+def uc_from_ratio(fn: str, value: str, q: str, want: str) -> float:
+    v = Fraction(value)
+    t0 = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn](abs(float(v)))
+    t = [t0, math.pi - t0, math.pi + t0, 2 * math.pi - t0][ROMAN[q] - 1]
+    if (UC[fn](t) > 0) != (v > 0):
+        return math.nan  # the given ratio cannot have that sign in that quadrant
+    return UC[want](t)
+
+
+EXACT_RULES += (
+    (re.compile(rf"^exact: (sin|cos|tan|sec|csc|cot) {UC_ANGLE}$"), lambda f, a: UC[f](uc_angle(a))),
+    (re.compile(rf"^point coordinate: (x|y), {UC_ANGLE}$"), lambda c, a: (math.cos if c == "x" else math.sin)(uc_angle(a))),
+    (re.compile(r"^from ratio: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (\w+)$"), uc_from_ratio),
+)
+
+BY_RULE += (
+    (re.compile(r"^ratio from point: (tan|sec|csc|cot), (-?\d+/\d+), (-?\d+/\d+)$"), uc_from_point),
+    # A rational value from one ratio: the calculator's value, which is a
+    # fraction with a small denominator when the sides are a triple.
+    (re.compile(r"^from ratio: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (\w+)$"),
+     lambda *g: Fraction(uc_from_ratio(*g)).limit_denominator(1000)),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^sign: (sin|cos|tan|sec|csc|cot) {UC_ANGLE}$"), uc_sign),
+    (re.compile(r"^sign in quadrant: (sin|cos|tan|sec|csc|cot) (I|II|III|IV)$"), uc_sign_in_quadrant),
+    (re.compile(r"^quadrant from signs: (\w+) ([+-]), (\w+) ([+-])$"), uc_quadrant_from_signs),
+    (re.compile(rf"^defined: (tan|cot) {UC_ANGLE}$"), uc_defined),
+)
+
+
+# --- Graphs of Sine & Cosine -------------------------------------------------
+#
+# The equation in each text is the one the student reads, and it is evaluated
+# here as written, with nothing taken from the generator's parameters: the
+# period is the smallest shift that maps the wave onto itself, the maximum
+# and minimum are found by searching one period, and the amplitude and
+# midline follow from those. A phase shift is tested by sliding (or lifting)
+# the parent wave and comparing, and exactly one option may fit. A model is
+# turned into its wave and measured the same way.
+
+TG_SAFE = re.compile(r"^[\d\s+\-*/().xπsincopi]+$")
+
+
+def tg_wave(rhs: str):
+    """y as a function of x, from '−3 sin(2x) + 1' written in ASCII."""
+    s = rhs.replace("pi", "π")
+    assert TG_SAFE.match(s), f"unexpected characters in {rhs!r}"
+    s = re.sub(r"(?<=[\dxπ)])\s*(?=[xπ(]|sin|cos)", "*", s).replace("π", "pi")
+    return eval(f"lambda x: {s}", {"__builtins__": {}, "sin": math.sin, "cos": math.cos, "pi": math.pi})
+
+
+TG_TESTS = (0.31, 1.07, 2.42, 3.71, 5.23, 7.9, -1.6, 11.3)
+TG_PERIODS = sorted(
+    [(n / d * math.pi, ("pi", Fraction(n, d))) for d in (1, 2, 3, 4, 6, 8, 12) for n in range(1, 8 * d + 1)]
+    + [(n / d, ("plain", Fraction(n, d))) for d in (1, 2, 4, 5, 10) for n in range(1, 30 * d + 1)]
+)
+
+
+def tg_period(f):
+    for p, kind in TG_PERIODS:
+        if all(abs(f(x + p) - f(x)) < 1e-9 for x in TG_TESTS):
+            return p, kind
+    raise AssertionError("no period found")
+
+
+def tg_extreme(f, p: float, top: bool) -> Fraction:
+    sign = 1 if top else -1
+    n = 720
+    xs = [p * i / n for i in range(n)]
+    best = max(xs, key=lambda x: sign * f(x))
+    lo, hi = best - p / n, best + p / n
+    for _ in range(80):  # golden-section search near the best sample
+        m1, m2 = lo + (hi - lo) * 0.382, lo + (hi - lo) * 0.618
+        if sign * f(m1) < sign * f(m2):
+            lo = m1
+        else:
+            hi = m2
+    v = f((lo + hi) / 2)
+    q = Fraction(round(v * 12), 12)
+    assert abs(v - q) < 1e-6, f"extreme {v} is not a twelfth"
+    return q
+
+
+def tg_feature(f, want: str) -> Fraction:
+    p, (kind, coef) = tg_period(f)
+    if want.startswith("period"):
+        assert (kind == "pi") == want.endswith("(pi)"), f"period {p} asked {want}"
+        return coef
+    top, bottom = tg_extreme(f, p, True), tg_extreme(f, p, False)
+    return {"amplitude": (top - bottom) / 2, "midline": (top + bottom) / 2, "max": top, "min": bottom}[want]
+
+
+def tg_options(written: str) -> dict:
+    return dict(part.split(": ", 1) for part in written.split(" | "))
+
+
+def tg_shift(rhs: str, base_rhs: str, options: str) -> str:
+    f, base = tg_wave(rhs), tg_wave(base_rhs)
+    fits = []
+    for oid, opt in tg_options(options).items():
+        way, amount = opt.split(" ", 1)
+        v = float(Fraction(amount.removesuffix(" pi"))) * math.pi
+        moved = {"right": lambda x: base(x - v), "left": lambda x: base(x + v),
+                 "up": lambda x: base(x) + v, "down": lambda x: base(x) - v}[way]
+        if all(abs(f(x) - moved(x)) < 1e-9 for x in TG_TESTS):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def tg_from_graph(x1: str, top: str, x2: str, bottom: str, options: str) -> str:
+    """The one sinusoid with a peak at (x1, top) and the next trough at (x2, bottom)."""
+    a, b = float(Fraction(x1)) * math.pi, float(Fraction(x2)) * math.pi
+    hi, lo = int(top), int(bottom)
+    drawn = lambda x: (hi + lo) / 2 + (hi - lo) / 2 * math.cos(math.pi * (x - a) / (b - a))
+    fits = [oid for oid, opt in tg_options(options).items()
+            if all(abs(tg_wave(opt.removeprefix("y = "))(x) - drawn(x)) < 1e-9 for x in TG_TESTS)]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def tg_ferris(dia, unit, center, turn, want) -> Fraction:
+    r = Fraction(dia, 2)
+    f = lambda t: center - float(r) * math.cos(2 * math.pi * t / turn)
+    return 2 / tg_feature(f, "period") if want == "b (pi)" else tg_feature(f, want)
+
+
+def tg_ferris_height(dia, unit, center, turn, t, places) -> Fraction:
+    t = float(t)
+    angle = 2 * math.pi * t / turn
+    x = center - dia / 2 * math.cos(angle)
+    if places is None:
+        q = Fraction(round(x))
+        assert abs(x - q) < 1e-9, f"height {x} is not whole"
+        return q
+    return trig_agree(x, center - dia / 2 * round(math.cos(angle), 4), int(places))
+
+
+def tg_tide(high, unit, low, half, want) -> Fraction:
+    h = float(half)
+    f = lambda t: (high + low) / 2 + (high - low) / 2 * math.cos(math.pi * t / h)
+    return tg_feature(f, want)
+
+
+def tg_cycle(lo, hi, period, want) -> Fraction:
+    p = Fraction(str(period))
+    f = lambda t: (hi + lo) / 2 + (hi - lo) / 2 * math.cos(2 * math.pi * t / float(p))
+    return 2 / tg_feature(f, "period") if want == "b (pi)" else tg_feature(f, want)
+
+
+BY_RULE += (
+    (re.compile(r"^wave(?: graph)?: y = (.+); want (amplitude|midline|max|min|period(?: \(pi\))?)$"),
+     lambda rhs, want: tg_feature(tg_wave(rhs), want)),
+    (re.compile(r"^ferris: diameter (\d+) (ft|m), center (\d+), turn (\d+) min; want (amplitude|midline|max|min|period|b \(pi\))$"), tg_ferris),
+    (re.compile(r"^ferris: diameter (\d+) (ft|m), center (\d+), turn (\d+) min; want height at ([\d.]+)(?: to (\d) dp)?$"), tg_ferris_height),
+    (re.compile(r"^tide: high (\d+) (ft|m), low (\d+), half cycle ([\d.]+) h; want (amplitude|midline|period)$"), tg_tide),
+    (re.compile(r"^temperature: low (-?\d+), high (\d+) (?:C|F); want (amplitude|midline|period|b \(pi\))$"),
+     lambda lo, hi, want: tg_cycle(int(lo), hi, 12, want)),
+    (re.compile(r"^spring: between (\d+) and (\d+) (?:cm|in), cycle ([\d.]+) s; want (amplitude|midline|period|b \(pi\))$"), tg_cycle),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^shift: y = (.+) from y = (.+); options (.+)$"), tg_shift),
+    (re.compile(r"^graph equation: peak \((-?\d+/\d+) pi, (-?\d+)\), trough \((-?\d+/\d+) pi, (-?\d+)\); options (.+)$"), tg_from_graph),
+)
+
+
+# requiem: catalogue/content/wave-graphs-drawn-from-their-equation
+# A graph is the student's only copy of the wave, so every point drawn must
+# lie on the equation the text names (the stored option, for Equation From a
+# Graph): x is drawn on exact tenths, so y may differ by the 0.05 of its own
+# rounding and no more, and every dot is a true peak or trough.
+for path in sorted(LIB.glob("trig-graphs-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if not p.get("visual"):
+            continue
+        where = f"trig-graphs L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        m = re.match(r"^wave graph: y = (.+?);", p["text"])
+        if m:
+            rhs = m[1]
+        else:
+            rhs = tg_options(p["text"].split("; options ", 1)[1])[p["answer"]["value"]].removeprefix("y = ")
+        f = tg_wave(rhs)
+        period, _ = tg_period(f)
+        hi, lo = tg_extreme(f, period, True), tg_extreme(f, period, False)
+        curves = [mk for mk in p["visual"]["marks"] if mk["kind"] == "path"]
+        assert len(curves) == 1, where
+        off = [pt for pt in curves[0]["points"] if abs(f(pt[0]) - pt[1]) > 0.0501]
+        if off:
+            problems.append(f"{where}: the drawn wave leaves y = {rhs} at {off[0]}")
+        for dot in (mk["at"] for mk in p["visual"]["marks"] if mk["kind"] == "point"):
+            if min(abs(dot[1] - float(hi)), abs(dot[1] - float(lo))) > 0.0501 or abs(f(dot[0]) - dot[1]) > 0.1:
+                problems.append(f"{where}: the dot at {dot} is not a peak or trough of y = {rhs}")
+
+
+# --- Trig Identities ---------------------------------------------------------
+#
+# Each expression is the ASCII the student's version is drawn from, evaluated
+# here at seven angles (t for θ). A "simplify" question, or a proof's next
+# step, must have exactly one option equal to the expression (or to the
+# proof's last line), and every line of a proof must equal the one before.
+# A value is worked out at an angle placed in its quadrant by the inverse
+# function; one that needs no quadrant is evaluated at both angles the given
+# ratio allows, and they must agree.
+
+ID_NAMES = {
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "sec": lambda x: 1 / math.cos(x), "csc": lambda x: 1 / math.sin(x), "cot": lambda x: math.cos(x) / math.sin(x),
+    "sqrt": math.sqrt, "pi": math.pi,
+}
+ID_TESTS = (0.37, 0.91, 1.23, 2.05, 2.71, 4.0, 5.3)
+
+
+def id_expr(written: str):
+    words = set(re.findall(r"[a-z]+", written))
+    assert words <= set(ID_NAMES) | {"t", "a", "b"}, f"unexpected names in {written!r}"
+    assert re.fullmatch(r"[\w\s+\-*/().^]+", written), f"unexpected characters in {written!r}"
+    return eval(f"lambda t=0, a=0, b=0: {written.replace('^', '**')}", {"__builtins__": {}, **ID_NAMES})
+
+
+def id_same(e1: str, e2: str) -> bool:
+    f, g = id_expr(e1), id_expr(e2)
+    return all(abs(f(t) - g(t)) <= 1e-9 * max(1, abs(f(t))) for t in ID_TESTS)
+
+
+# requiem: catalogue/content/identity-choices-have-one-equal-option
+def id_pick(expr: str, options: str) -> str:
+    fits = [oid for oid, opt in tg_options(options).items() if id_same(expr, opt)]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def id_proof(goal: str, so_far: str, options: str) -> str:
+    left, right = goal.split(" = ")
+    lines = so_far.split(" = ")
+    if not id_same(left, right):
+        return "the goal is not an identity"
+    if lines[0] != left or any(not id_same(x, y) for x, y in zip(lines, lines[1:])):
+        return "a line so far is not equal to the one before"
+    return id_pick(lines[-1], options)
+
+
+def id_place(fn: str, value: str, q: str) -> float:
+    """An angle in quadrant q with fn of it equal to value."""
+    v = Fraction(value)
+    t0 = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn](abs(float(v)))
+    t = [t0, math.pi - t0, math.pi + t0, 2 * math.pi - t0][ROMAN[q] - 1]
+    assert (ID_NAMES[fn](t) > 0) == (v > 0), f"{fn} = {value} cannot be in quadrant {q}"
+    return t
+
+
+def id_either(fn: str, value: str, want: str) -> float:
+    """want, which must not depend on which angle with fn = value is meant."""
+    v = float(Fraction(value))
+    t0 = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[fn](v)
+    t1 = {"sin": math.pi - t0, "cos": -t0, "tan": t0 + math.pi}[fn]
+    f = id_expr(want)
+    x, y = f(t0), f(t1)
+    assert abs(x - y) < 1e-9, f"{want} differs between the two angles with {fn} = {value}"
+    return x
+
+
+def id_reciprocal(f: str, v: str, g, w, want: str) -> float:
+    if g is None:
+        assert want == {"sin": "csc", "cos": "sec", "tan": "cot"}[f], f"{want} needs more than {f}"
+        return id_either(f, v, f"{want}(t)")
+    s, c = Fraction(v), Fraction(w)
+    assert s * s + c * c == 1, f"sin {v} and cos {w} are not on the unit circle"
+    return ID_NAMES[want](math.atan2(float(s), float(c)))
+
+
+def id_cofunction_pair(f: str, a: int, g: str) -> int:
+    fits = [x for x in range(1, 90) if abs(ID_NAMES[g](math.radians(x)) - ID_NAMES[f](math.radians(a))) < 1e-9]
+    assert len(fits) == 1, f"{f} {a} = {g} of {fits}"
+    return fits[0]
+
+
+def id_cofunction_rad(f: str, n: int, d: int, g: str) -> Fraction:
+    want = ID_NAMES[f](math.pi * n / d)
+    fits = {Fraction(k, m) for m in range(1, 37) for k in range(1, m) if Fraction(k, m) < Fraction(1, 2)
+            and abs(ID_NAMES[g](math.pi * k / m) - want) < 1e-9}
+    assert len(fits) == 1, f"{f} {n}/{d} pi = {g} of {fits}"
+    return fits.pop()
+
+
+def id_exact_choice(f: str, angle: str, options: str) -> str:
+    want = ID_NAMES[f](uc_angle(angle))
+    fits = [oid for oid, opt in tg_options(options).items() if abs(id_expr(opt)() - want) < 1e-9]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def id_sum(f: str, v: str, q: str, g: str, w: str, r: str, want: str) -> float:
+    return id_expr(want)(a=id_place(f, v, q), b=id_place(g, w, r))
+
+
+def id_double(f: str, v: str, q: str, want: str) -> float:
+    return id_expr(want)(t=id_place(f, v, q))
+
+
+id_ratio = lambda solve: lambda *g: Fraction(solve(*g)).limit_denominator(100000)
+ID_VALUE = r"^identity value: (.+) at (-?\d+(?:/\d+ pi)?)$"
+
+EXACT_RULES += (
+    (re.compile(ID_VALUE), lambda e, a: id_expr(e)(uc_angle(a))),
+)
+
+BY_RULE += (
+    (re.compile(ID_VALUE), id_ratio(lambda e, a: id_expr(e)(uc_angle(a)))),
+    (re.compile(r"^reciprocal: (sin|cos|tan) (-?\d+/\d+)(?:, (cos) (-?\d+/\d+))?, want (\w+)$"), id_ratio(id_reciprocal)),
+    (re.compile(r"^(?:even odd|cofunction of): (sin|cos|tan) (-?\d+/\d+), want (.+)$"), id_ratio(id_either)),
+    (re.compile(r"^cofunction pair: (\w+) (\d+) = (\w+) \?$"), id_cofunction_pair),
+    (re.compile(r"^cofunction rad: (\w+) (\d+)/(\d+) pi = (\w+) \?$"), id_cofunction_rad),
+    (re.compile(r"^sum: (sin) a (-?\d+/\d+) quadrant (I|II|III|IV), (cos) b (-?\d+/\d+) quadrant (I|II|III|IV), want (.+)$"), id_ratio(id_sum)),
+    (re.compile(r"^double: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (.+)$"), id_ratio(id_double)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^trig simplify: (.+?); options (.+)$"), id_pick),
+    (re.compile(r"^proof: goal (.+?); so far (.+?); options (.+)$"), id_proof),
+    (re.compile(r"^exact choice: (sin|cos|tan) (-?\d+(?:/\d+ pi)?); options (.+)$"), id_exact_choice),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

@@ -1,5 +1,5 @@
 {
-  "built": 509,
+  "built": 531,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -642,6 +642,34 @@
       "arc-length",
       "sector-area",
       "angular-speed",
+      "all-together"
+    ],
+    "unit-circle": [
+      "special-angles",
+      "signs-by-quadrant",
+      "around-the-circle",
+      "tangent",
+      "sec-csc-cot",
+      "from-one-ratio",
+      "all-together"
+    ],
+    "trig-graphs": [
+      "amplitude",
+      "period",
+      "midline",
+      "phase-shift",
+      "equation-from-a-graph",
+      "sinusoidal-models",
+      "all-together"
+    ],
+    "identities": [
+      "pythagorean",
+      "reciprocal-and-quotient",
+      "even-and-odd",
+      "cofunction",
+      "sum-and-difference",
+      "double-angle",
+      "next-step-in-a-proof",
       "all-together"
     ]
   },
@@ -1442,9 +1470,45 @@
           "circles"
         ]
       }
+    },
+    "unit-circle": {
+      "dependsOn": [
+        "radians",
+        "trig-ratios"
+      ],
+      "levels": {
+        "special-angles": [
+          "trig-ratios"
+        ],
+        "around-the-circle": [
+          "radians"
+        ]
+      }
+    },
+    "trig-graphs": {
+      "dependsOn": [
+        "transformations-f",
+        "unit-circle"
+      ],
+      "levels": {
+        "phase-shift": [
+          "transformations-f"
+        ]
+      }
+    },
+    "identities": {
+      "dependsOn": [
+        "trig-ratios",
+        "unit-circle"
+      ],
+      "levels": {
+        "cofunction": [
+          "trig-ratios"
+        ]
+      }
     }
   },
-  "sources": "88ba264329507b1974f9def88a71aae4c47e362aa1ffb7a1150ef2b2f1a9bd30",
+  "sources": "2609f40cb461ec9382f4805a27c3aa0db61755f9c6defdd78fe48c879a897433",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6535,6 +6599,226 @@
       "exhaustive": false,
       "signed": false,
       "file": "radians-7.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 0,
+      "slug": "special-angles",
+      "name": "Special Angles",
+      "count": 60,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-0.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 1,
+      "slug": "signs-by-quadrant",
+      "name": "Signs by Quadrant",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "unit-circle-1.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 2,
+      "slug": "around-the-circle",
+      "name": "Around the Circle",
+      "count": 108,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-2.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 3,
+      "slug": "tangent",
+      "name": "Tangent",
+      "count": 112,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-3.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 4,
+      "slug": "sec-csc-cot",
+      "name": "sec, csc, cot",
+      "count": 202,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-4.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 5,
+      "slug": "from-one-ratio",
+      "name": "From One Ratio, the Rest",
+      "count": 720,
+      "exhaustive": true,
+      "signed": true,
+      "file": "unit-circle-5.json"
+    },
+    {
+      "skill": "unit-circle",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "unit-circle-6.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 0,
+      "slug": "amplitude",
+      "name": "Amplitude",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-0.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 1,
+      "slug": "period",
+      "name": "Period",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-1.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 2,
+      "slug": "midline",
+      "name": "Midline",
+      "count": 400,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-graphs-2.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 3,
+      "slug": "phase-shift",
+      "name": "Phase Shift",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-3.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 4,
+      "slug": "equation-from-a-graph",
+      "name": "Equation From a Graph",
+      "count": 300,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-4.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 5,
+      "slug": "sinusoidal-models",
+      "name": "Sinusoidal Models",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-graphs-5.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-graphs-6.json"
+    },
+    {
+      "skill": "identities",
+      "level": 0,
+      "slug": "pythagorean",
+      "name": "Pythagorean",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-0.json"
+    },
+    {
+      "skill": "identities",
+      "level": 1,
+      "slug": "reciprocal-and-quotient",
+      "name": "Reciprocal & Quotient",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-1.json"
+    },
+    {
+      "skill": "identities",
+      "level": 2,
+      "slug": "even-and-odd",
+      "name": "Even & Odd",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-2.json"
+    },
+    {
+      "skill": "identities",
+      "level": 3,
+      "slug": "cofunction",
+      "name": "Cofunction",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "identities-3.json"
+    },
+    {
+      "skill": "identities",
+      "level": 4,
+      "slug": "sum-and-difference",
+      "name": "Sum & Difference",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-4.json"
+    },
+    {
+      "skill": "identities",
+      "level": 5,
+      "slug": "double-angle",
+      "name": "Double Angle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-5.json"
+    },
+    {
+      "skill": "identities",
+      "level": 6,
+      "slug": "next-step-in-a-proof",
+      "name": "Next Step in a Proof",
+      "count": 300,
+      "exhaustive": false,
+      "signed": false,
+      "file": "identities-6.json"
+    },
+    {
+      "skill": "identities",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "identities-7.json"
     }
   ]
 }

@@ -148,10 +148,65 @@ const lightArc = (from, to, r, c, tone) => {
   return { kind: 'path', tone, points: Array.from({ length: n + 1 }, (_, i) => toward(from + ((to - from) * i) / n, r, c)) };
 };
 /** Every coordinate to one decimal place: about a pixel at this scale, and a third fewer bytes. */
-function tenths(spec) {
+export function tenths(spec) {
   const t = (v) => Math.round(v * 10) / 10;
   const pt = (p) => p.map(t);
   const one = (m) => ({ ...m, ...(m.from ? { from: pt(m.from) } : {}), ...(m.to ? { to: pt(m.to) } : {}),
     ...(m.at ? { at: pt(m.at) } : {}), ...(m.points ? { points: m.points.map(pt) } : {}) });
   return { ...spec, xRange: pt(spec.xRange), yRange: pt(spec.yRange), marks: spec.marks.map(one), answer: spec.answer.map(one) };
+}
+
+// ── The unit circle: exact values at multiples of 30° and 45° ────────────
+
+/** k·π as written, for k = n/d: π, 2π, π/6, −5π/6, 0. */
+export function piText(n, d = 1) {
+  const q = Q(n, d);
+  if (q.n === 0) return '0';
+  const top = `${q.n === 1 ? '' : q.n === -1 ? '−' : String(q.n).replace('-', '−')}π`;
+  return q.d === 1 ? top : `${top}/${q.d}`;
+}
+
+/** An angle in degrees as asked: 210° or, in radians, 7π/6. */
+export const angleText = (deg, radians) => (radians ? piText(deg, 180) : `${String(deg).replace('-', '−')}°`);
+
+/** f θ as written: sin 210°, cos(7π/6), tan(−π/4), sin(−45°). */
+export const fnText = (fn, deg, radians) => (radians || deg < 0 ? `${fn}(${angleText(deg, radians)})` : `${fn} ${angleText(deg, false)}`);
+
+/** The acute angle (or 0 or 90) between θ's terminal side and the x-axis. */
+export function refAngle(deg) {
+  const t = ((deg % 360) + 360) % 360;
+  return t <= 90 ? t : t <= 180 ? 180 - t : t <= 270 ? t - 180 : 360 - t;
+}
+
+/** 1-4 for an angle off the axes, else 0. */
+export function quadrantOf(deg) {
+  const t = ((deg % 360) + 360) % 360;
+  return t % 90 === 0 ? 0 : Math.floor(t / 90) + 1;
+}
+
+// (n/d)√r at each reference angle; null where the function is undefined.
+const AT_REF = {
+  sin: { 0: [0, 1, 1], 30: [1, 2, 1], 45: [1, 2, 2], 60: [1, 2, 3], 90: [1, 1, 1] },
+  cos: { 0: [1, 1, 1], 30: [1, 2, 3], 45: [1, 2, 2], 60: [1, 2, 1], 90: [0, 1, 1] },
+  tan: { 0: [0, 1, 1], 30: [1, 3, 3], 45: [1, 1, 1], 60: [1, 1, 3], 90: null },
+  cot: { 0: null, 30: [1, 1, 3], 45: [1, 1, 1], 60: [1, 3, 3], 90: [0, 1, 1] },
+  sec: { 0: [1, 1, 1], 30: [2, 3, 3], 45: [1, 1, 2], 60: [2, 1, 1], 90: null },
+  csc: { 0: null, 30: [2, 1, 1], 45: [1, 1, 2], 60: [2, 3, 3], 90: [1, 1, 1] },
+};
+// The sign each function takes from the signs of (cos, sin) on the terminal side.
+const SIGN = { sin: (c, s) => s, cos: (c) => c, tan: (c, s) => c * s, cot: (c, s) => c * s, sec: (c) => c, csc: (c, s) => s };
+const sgn = (x) => (Math.abs(x) < 1e-9 ? 1 : Math.sign(x));
+
+/**
+ * f(θ) exactly, as {n, d, r} for (n/d)√r, at a multiple of 30° or 45°; null
+ * where f is undefined. The value is the reference angle's, with the sign
+ * of the quadrant the terminal side is in.
+ */
+export function exactTrig(fn, deg) {
+  const v = AT_REF[fn][refAngle(deg)];
+  if (v === undefined) throw new Error(`${deg}° is not a special angle`);
+  if (v === null) return null;
+  const s = SIGN[fn](sgn(Math.cos(deg * RAD)), sgn(Math.sin(deg * RAD)));
+  const q = Q(s * v[0], v[1]);
+  return { n: q.n, d: q.d, r: v[2] };
 }

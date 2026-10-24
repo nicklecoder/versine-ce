@@ -13,6 +13,37 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Trig Identities**, a new skill under Identities, in eight levels:
+Pythagorean, reciprocal and quotient, even and odd, cofunction, sum and
+difference, double angle, Next Step in a Proof, then All Together. Each
+level mixes values worked from a given ratio with expressions to simplify,
+asked as a choice where exactly one option is equal to the expression;
+exact values with two radicals, such as cos 15°, are choices too. Next Step
+in a Proof gives a goal and the lines so far and offers the next line among
+slips a student makes: a sign or function swapped, a square dropped, a
+factor doubled. `check-answers.py` evaluates every option at several angles
+to find the one equal option, and works every value again from the
+calculator.
+
+**Graphs of Sine & Cosine**, a new skill under the Unit Circle, in seven
+levels: amplitude, period, midline (with the maximum and minimum), phase
+shift with b factored out, the equation of a drawn wave, and sinusoidal
+models of Ferris wheels, tides, springs and the seasons in US and metric
+units, then All Together. Waves are drawn on exact tenths of x with dots at
+each peak and trough, and figure levels are capped at 300 to 400 problems.
+`check-answers.py` evaluates each equation as the student reads it, finds
+its period and extremes numerically, slides the parent wave to test each
+phase-shift option, and checks every drawn point against the equation.
+
+**The Unit Circle**, a new skill under the Unit Circle, in seven levels:
+special angles, signs by quadrant, any multiple of 30° or 45° by its
+reference angle (drawn on the circle), tangent, sec, csc and cot, and the
+rest of the ratios from one, then All Together. Exact values use the roots
+type, so √3/3 and 1/√3 are both right; an undefined tangent or cotangent is
+asked as a choice. A question that gives one ratio always fixes the
+quadrant. `check-answers.py` works every value out again with the
+calculator and places θ in its quadrant with the inverse function.
+
 **Radians**, a new skill under the Unit Circle, in eight levels: degrees to
 radians and back, coterminal angles, reference angles on a drawn angle, arc
 length s = rθ, sector area ½r²θ, and angular and linear speed in rpm, radians
