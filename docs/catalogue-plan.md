@@ -235,6 +235,13 @@ Circle · Complete the Square for Center · All Together. Semicircles and
 cyclic quadrilaterals get a level of their own (G-C.3), as the inscribed
 angle theorem's two consequences. Like area, each arc and sector question
 says whether π is kept or taken as 3.14, and a 3.14 answer is to 1 dp.
+`reasoning` is built, as Hypothesis & Conclusion · Converse · Inverse ·
+Contrapositive · Which Is Equivalent · Counterexample · Biconditional · All
+Together. Hypothesis & Conclusion is added first, since "q if p" and "p only
+if q" have to be read before a form can be built. Each form level both builds
+the form and asks whether it is true; truth is only asked about whole numbers,
+quadrilaterals and triangles, where it can be tested, and everyday statements
+appear only in questions about structure.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
@@ -247,8 +254,8 @@ says whether π is kept or taken as 3.14, and a 3.14 answer is to 1 dp.
 | `coord-geometry` (Coordinates) | Midpoint · Distance Formula · Partition in a Ratio · Area on a Grid · Parallel/Perpendicular by Slope | G-GPE.4–7 |
 | `congruence` (Shapes) | Corresponding Parts · Which Criterion · Not Enough (SSA) · Isosceles & Equilateral · Use the Congruence | G-CO.7–8, TEKS G.6B,C |
 | `similarity` (Shapes) | Scale Factor · Missing Side · AA or Not · Scale Drawings · Area & Volume Scale · Side Splitter · Altitude to Hypotenuse | 7.G.1, G-SRT.1–5, TEKS G.8, G.10B |
-| `quadrilaterals` (Shapes) | Parallelogram Properties · Diagonals · Which Special Quadrilateral · Triangle Midsegment · Verify on Coordinates | G-CO.11, TEKS G.6E |
-| `circles` (Shapes) | Arc Length · Sector Area · Central & Inscribed Angles · Tangents · Equation of a Circle · Complete the Square for Center | G-C.2,5, G-GPE.1 |
+| `quadrilaterals` (Shapes) | Parallelogram Properties · Diagonals · Angles with Diagonals · Which Special Quadrilateral · Trapezoids & Kites · Triangle Midsegment · Verify on Coordinates | G-CO.11, TEKS G.6E |
+| `circles` (Shapes) | Arc Length · Sector Area · Central & Inscribed Angles · Semicircles & Cyclic Quadrilaterals · Tangents · Equation of a Circle · Complete the Square for Center | G-C.2,5, G-GPE.1 |
 | `reasoning` (Shapes) | Converse · Inverse · Contrapositive · Which Is Equivalent · Counterexample · Biconditional | TEKS G.4A–C |
 | `data-center` (Statistics) | Mean · Median · Missing Value for a Mean · Quartiles & IQR · MAD · Representative Sample · Which Measure (strategy) | 6.SP, 7.SP.1–2 |
 | `bivariate` (Statistics) | Association · Line-of-Fit Predictions · Slope & Intercept in Context · Correlation Strength · Correlation vs Causation · Two-Way Tables | 8.SP, S-ID.5–9, TEKS A.4 |

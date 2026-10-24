@@ -3969,6 +3969,146 @@ CHOICE_RULES += (
     (re.compile(r"^circle point: (.+) = (\d+); point \((-?\d+), (-?\d+)\)$"), circle_point),
 )
 
+# --- Logical reasoning -------------------------------------------------------
+#
+# A statement p -> q is a pair of literals; the converse, inverse and
+# contrapositive are built from it here. Truth is tested over every case of
+# the domain with definitions kept here: whole numbers 1 to 200, and the
+# kinds of quadrilateral and triangle described by their measurable facts
+# (equal sides, right angles, parallel sides, diagonals), from which each
+# named property follows.
+
+def logic_number(atom: str, n: int) -> bool:
+    if atom.startswith("div"):
+        return n % int(atom[3:]) == 0
+    if atom.startswith("ends"):
+        return n % 10 == int(atom[4:])
+    return {
+        "even": n % 2 == 0, "odd": n % 2 == 1,
+        "prime": n > 1 and all(n % k for k in range(2, int(n ** 0.5) + 1)),
+        "square": int(n ** 0.5) ** 2 == n,
+    }[atom]
+
+
+# Each quadrilateral by its facts: (all four sides equal, four right angles,
+# pairs of parallel sides, diagonals perpendicular, diagonals equal).
+LOGIC_QUADS = {
+    "square": (True, True, 2, True, True), "rectangle": (False, True, 2, False, True),
+    "rhombus": (True, False, 2, True, False), "parallelogram": (False, False, 2, False, False),
+    "isotrap": (False, False, 1, False, True), "kite": (False, False, 0, True, False),
+}
+
+
+def logic_quad(atom: str, kind: str) -> bool:
+    eq4, right4, pairs, perp, diageq = LOGIC_QUADS[kind]
+    return {
+        "eq4": eq4, "right4": right4, "perp": perp, "diageq": diageq,
+        "para": pairs == 2, "oppang": pairs == 2,          # opposite angles equal exactly in a parallelogram
+        "par1": pairs >= 1, "rect": right4, "rhom": eq4, "sq": eq4 and right4,
+    }[atom]
+
+
+# Each triangle by how many sides are equal (1 = none) and its largest angle.
+LOGIC_TRIS = {
+    "equilateral": (3, "acute"), "isosceles-acute": (2, "acute"), "isosceles-obtuse": (2, "obtuse"),
+    "right-isosceles": (2, "right"), "right-scalene": (1, "right"), "acute-scalene": (1, "acute"), "obtuse-scalene": (1, "obtuse"),
+}
+
+
+def logic_tri(atom: str, kind: str) -> bool:
+    equal, largest = LOGIC_TRIS[kind]
+    return {
+        "equi": equal == 3, "iso": equal >= 2, "ang3": equal == 3, "ang2": equal >= 2,   # equal sides face equal angles
+        "acute": largest == "acute", "right": largest == "right", "obtuse": largest == "obtuse",
+    }[atom]
+
+
+LOGIC_DOMAINS = {
+    "numbers": (range(1, 201), logic_number),
+    "quadrilaterals": (list(LOGIC_QUADS), logic_quad),
+    "triangles": (list(LOGIC_TRIS), logic_tri),
+}
+
+
+def logic_lit(s: str) -> tuple:
+    s = s.strip()
+    return (s[4:], True) if s.startswith("not ") else (s, False)
+
+
+def logic_cond(s: str) -> tuple:
+    a, b = s.split(" -> ")
+    return logic_lit(a), logic_lit(b)
+
+
+def logic_form(form: str, cond: tuple) -> tuple:
+    (p, pn), (q, qn) = cond
+    return {
+        "original": ((p, pn), (q, qn)),
+        "converse": ((q, qn), (p, pn)),
+        "inverse": ((p, not pn), (q, not qn)),
+        "contrapositive": ((q, not qn), (p, not pn)),
+    }[form]
+
+
+def logic_holds(domain: str, cond: tuple) -> bool:
+    cases, test = LOGIC_DOMAINS[domain]
+    val = lambda lit, c: test(lit[0], c) != lit[1]
+    return all(val(cond[1], c) for c in cases if val(cond[0], c))
+
+
+def logic_options(listing: str) -> dict:
+    return dict(item.split("=", 1) for item in listing.split(", "))
+
+
+def logic_part(part: str, form: str, domain: str, cond: str, listing: str) -> str:
+    # However it is worded, p is the hypothesis and q the conclusion.
+    p, q = logic_cond(cond)
+    want = p if part == "hypothesis" else q
+    return next(k for k, v in logic_options(listing).items() if logic_lit(v) == want)
+
+
+def logic_pick(form: str, domain: str, cond: str, listing: str) -> str:
+    want = logic_form(form, logic_cond(cond))
+    found = [k for k, v in logic_options(listing).items() if logic_cond(v) == want]
+    assert len(found) == 1, (form, cond, listing)
+    return found[0]
+
+
+def logic_same_truth(of: str, domain: str, cond: str, listing: str) -> str:
+    # A statement agrees with its contrapositive; the converse with its own contrapositive, the inverse.
+    shown = logic_form(of, logic_cond(cond))
+    want = logic_form("contrapositive", shown)
+    found = [k for k, v in logic_options(listing).items() if logic_cond(v) == want]
+    assert len(found) == 1
+    return found[0]
+
+
+def logic_follows(known: str, truth: str, asked: str) -> str:
+    tied = {frozenset({"original", "contrapositive"}), frozenset({"converse", "inverse"})}
+    return truth if frozenset({known, asked}) in tied else "unknown"
+
+
+def logic_counterexample(domain: str, cond: str, listing: str) -> str:
+    cases, test = LOGIC_DOMAINS[domain]
+    (p, pn), (q, qn) = logic_cond(cond)
+    as_case = (lambda s: int(s)) if domain == "numbers" else (lambda s: s)
+    found = [k for k, v in logic_options(listing).items() if test(p, as_case(v)) != pn and test(q, as_case(v)) == qn]
+    assert len(found) == 1, (cond, listing)
+    return found[0]
+
+
+CHOICE_RULES += (
+    (re.compile(r"^(hypothesis|conclusion) of (if-then|q-if-p|p-only-if-q): (\w+) (.+ -> .+); options (.+)$"), logic_part),
+    (re.compile(r"^truth of (converse|inverse|contrapositive): (\w+) (.+ -> .+)$"),
+     lambda form, domain, cond: "true" if logic_holds(domain, logic_form(form, logic_cond(cond))) else "false"),
+    (re.compile(r"^(converse|inverse|contrapositive) of: (\w+) (.+ -> [^;]+); options (.+)$"), logic_pick),
+    (re.compile(r"^same truth as (original|converse): (\w+) (.+ -> [^;]+); options (.+)$"), logic_same_truth),
+    (re.compile(r"^truth follows: (original|converse) (true|false); find (\w+)$"), logic_follows),
+    (re.compile(r"^counterexample: (\w+) (.+ -> [^;]+); options (.+)$"), logic_counterexample),
+    (re.compile(r"^biconditional: (\w+) (.+ -> .+)$"),
+     lambda domain, cond: "yes" if all(logic_holds(domain, logic_form(f, logic_cond(cond))) for f in ("original", "converse")) else "no"),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

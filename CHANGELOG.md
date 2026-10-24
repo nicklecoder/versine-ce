@@ -13,6 +13,15 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Logical Reasoning**, a new skill under Shapes, in eight levels: the hypothesis and
+conclusion of a conditional, however it is worded ("q if p", "p only if q"); the
+converse, inverse and contrapositive, both built and judged true or false; which
+statements must share a truth value; counterexamples; and biconditionals. Truth is
+only asked about whole numbers, quadrilaterals and triangles, where it can be
+tested; everyday statements appear only in questions about structure.
+`check-answers.py` builds each form itself and tests it over every whole number
+from 1 to 200 and every kind of quadrilateral and triangle, from their defining facts.
+
 **Circles**, a new skill under Shapes, in eight levels: arc length and sector area as
 the central angle's share of the circle, and back to the angle or radius; central and
 inscribed angles; angles in a semicircle, on the same arc and in a cyclic

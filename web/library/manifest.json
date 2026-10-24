@@ -1,5 +1,5 @@
 {
-  "built": 437,
+  "built": 445,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -552,6 +552,16 @@
       "tangents",
       "equation-of-a-circle",
       "complete-the-square-for-center",
+      "all-together"
+    ],
+    "reasoning": [
+      "hypothesis-and-conclusion",
+      "converse",
+      "inverse",
+      "contrapositive",
+      "which-is-equivalent",
+      "counterexample",
+      "biconditional",
       "all-together"
     ]
   },
@@ -1243,9 +1253,16 @@
           "quadratic-formula"
         ]
       }
+    },
+    "reasoning": {
+      "dependsOn": [
+        "factors",
+        "quadrilaterals"
+      ],
+      "levels": {}
     }
   },
-  "sources": "5e2c3cf529afb678c4e947e633817e92c0b1a9ce7e713f347dfc82fc328d001d",
+  "sources": "598b5c22f04143bb7deb8179639299a545cc5dac68c3bb3ed470efe5460689c1",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5616,6 +5633,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "circles-7.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 0,
+      "slug": "hypothesis-and-conclusion",
+      "name": "Hypothesis & Conclusion",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-0.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 1,
+      "slug": "converse",
+      "name": "Converse",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-1.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 2,
+      "slug": "inverse",
+      "name": "Inverse",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-2.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 3,
+      "slug": "contrapositive",
+      "name": "Contrapositive",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-3.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 4,
+      "slug": "which-is-equivalent",
+      "name": "Which Is Equivalent",
+      "count": 876,
+      "exhaustive": true,
+      "signed": false,
+      "file": "reasoning-4.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 5,
+      "slug": "counterexample",
+      "name": "Counterexample",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-5.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 6,
+      "slug": "biconditional",
+      "name": "Biconditional",
+      "count": 64,
+      "exhaustive": true,
+      "signed": false,
+      "file": "reasoning-6.json"
+    },
+    {
+      "skill": "reasoning",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "reasoning-7.json"
     }
   ]
 }
