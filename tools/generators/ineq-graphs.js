@@ -17,7 +17,7 @@ import * as T from '../terms.js';
 import { minus, signed } from '../../web/ui/dom.js';
 import { previewOf } from '../../web/ui/express.js';
 import { getType } from '../../web/math/answer.js';
-import { ratio, clip } from '../lines.js';
+import { ratio, clip, lineText } from '../lines.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/ineq-graphs.js';
 
 const SPAN = 10;
@@ -50,12 +50,36 @@ const keeps = (h, p) => ({ '<': (v) => v < 0, '<=': (v) => v <= 0, '>': (v) => v
 const valueOf = (h) => ('x' in h ? { x: ratio(h.x, 1), op: h.op } : { m: h.m, b: ratio(h.k, 1), op: h.op });
 const shown = (h) => getType('halfplane').format(valueOf(h));
 const ascii = (h) => shown(h).replace(/−/g, '-').replace(/≤/g, '<=').replace(/≥/g, '>=');
+/**
+ * The inequality in running text. A fractional slope is bracketed, (3/2)x,
+ * because "3/2x" in a sentence reads as three over 2x; the typed form the
+ * answer box and the plain-text checker read keeps 3/2x.
+ */
+const said = (h) => ('x' in h ? `x ${SIGN[h.op]} ${minus(h.x)}`
+  : `y ${SIGN[h.op]} ${lineText(h.m, ratio(h.k, 1)).slice(4)}`);
+/** 1 hour, 2 hours: a count with its noun, singular for one. */
 
 /** The boundary, drawn as the inequality says: dashed when it is left out. */
 function edge(h, { tone = LINE, style = true, label } = {}) {
   const [from, to] = 'x' in h ? [[h.x, -SPAN], [h.x, SPAN]] : clip(h.m, ratio(h.k, 1), SPAN);
   return { kind: 'segment', from, to, tone: style ? tone : GUIDE, ...(style && strict(h.op) ? { dashed: true } : {}),
     ...(label ? { label } : {}) };
+}
+
+// requiem: catalogue/content/boundary-question-marks-points
+/**
+ * Two whole-number points on the boundary, for a question about how the
+ * boundary is drawn. Not the line itself: a neutral line under the answer's
+ * dashed one shows through its gaps on reveal, and a dashed edge then looks
+ * solid -- the one thing these levels exist to teach. The points say where
+ * the line runs and the reveal draws it, dashed or solid, through them.
+ */
+function guide(h) {
+  if ('x' in h) return [[h.x, -3], [h.x, 3]].map((at) => ({ kind: 'point', at, tone: GUIDE }));
+  const on = [0, 1, -1, 2, -2, 3, -3].map((i) => i * h.m.d).map((x) => [x, h.m.n * x / h.m.d + h.k])
+    .filter(([, y]) => Math.abs(y) <= 9).slice(0, 2);
+  if (on.length < 2) throw new Error('boundary leaves the grid');
+  return on.map((at) => ({ kind: 'point', at, tone: GUIDE }));
 }
 
 /** The grid square, cut down to the half (or halves) kept. Sutherland–Hodgman. */
@@ -93,7 +117,7 @@ function isSolution(rng) {
   const check = 'x' in h ? `${minus(p[0])} ${SIGN[h.op]} ${minus(h.x)}`
     : `${minus(p[1])} ${SIGN[h.op]} ${minus(rhs)}`;
   return {
-    prompt: [math(ascii(h)), T.prose(`Is ${pt(p)} a solution?`)],
+    prompt: [T.prose(`Does ${pt(p)} make`), math(ascii(h)), T.prose('true?')],
     text: `solution? ${pt(p).replace(/−/g, '-')} of ${ascii(h)}`,
     answer: { type: 'choice', value: yes ? 'yes' : 'no', options: [
       { id: 'yes', label: 'Yes', note: 'it makes the inequality true' },
@@ -103,8 +127,10 @@ function isSolution(rng) {
       answer: [region([h], LINE)] },
     explain: ('x' in h
       ? `Only x matters: is ${check}? `
-      : `Work out the right side at x = ${minus(p[0])}: ${h.m.d === 1 ? minus(h.m.n) : `${minus(h.m.n)}/${h.m.d}`} × ${signed(p[0])}`
-        + `${h.k === 0 ? '' : ` ${h.k < 0 ? '−' : '+'} ${Math.abs(h.k)}`} = ${minus(rhs)}. Is y = ${check}? `)
+      : h.m.n === 0
+        ? `The line is y = ${minus(h.k)} everywhere, whatever x is. Is y = ${check}? `
+        : `Work out the right side at x = ${minus(p[0])}: ${h.m.d === 1 ? minus(h.m.n) : `(${minus(h.m.n)}/${h.m.d})`} × ${signed(p[0])}`
+          + `${h.k === 0 ? '' : ` ${h.k < 0 ? '−' : '+'} ${Math.abs(h.k)}`} = ${minus(rhs)}. Is y = ${check}? `)
       + `${yes ? 'Yes' : 'No'}, so ${pt(p)} ${yes ? 'is' : 'is not'} a solution, and ${yes ? 'is' : 'is not'} in the shaded half.`
       + (onLine ? ` It is on the line itself, which ${strict(h.op) ? 'a strict < or > leaves out' : '≤ and ≥ keep'}.` : ''),
   };
@@ -122,10 +148,10 @@ function dashedOrSolid(rng) {
   const h = halfPlane(rng);
   const id = drawnAs(h);
   return {
-    prompt: [math(ascii(h)), T.prose('How is it drawn?')],
+    prompt: [T.prose('How is'), math(ascii(h)), T.prose('drawn on a graph?')],
     text: `drawn: ${ascii(h)}`,
     answer: { type: 'choice', value: id, options: DRAWN },
-    visual: { kind: 'plane', ...PLANE, marks: [edge(h, { style: false })], answer: [region([h], LINE), edge(h)] },
+    visual: { kind: 'plane', ...PLANE, marks: guide(h), answer: [region([h], LINE), edge(h)] },
     explain: `${SIGN[h.op]} ${strict(h.op) ? 'has no line under it, so points on the line do not count: dashed'
       : 'has a line under it, so points on the line count: solid'}. `
       + `y ${SIGN[h.op]} means y is ${up(h.op) ? 'bigger' : 'smaller'} than the line's height: shade ${up(h.op) ? 'above' : 'below'}.`,
@@ -147,15 +173,15 @@ function standardForm(rng) {
   const testAbove = gap(h, test) > 0;
   const id = drawnAs(h);
   return {
-    prompt: [math(src), T.prose('How is it drawn?')],
+    prompt: [T.prose('How is'), math(src), T.prose('drawn on a graph?')],
     text: `drawn: ${src}`,
     answer: { type: 'choice', value: id, options: DRAWN },
-    visual: { kind: 'plane', ...PLANE, marks: [edge(h, { style: false })],
+    visual: { kind: 'plane', ...PLANE, marks: guide(h),
       answer: [region([h], LINE), edge(h), { kind: 'point', at: test, label: `test ${pt(test)}`, tone: 'var(--vec-2)' }] },
     explain: `${strict(op) ? '< or >: dashed.' : '≤ or ≥: solid.'} For the side, test ${pt(test)}`
       + `${C === 0 ? ', since the line goes through (0, 0)' : ''}: ${minus(lhs)} ${SIGN[op]} ${minus(C)} is ${holds}, `
       + `and ${pt(test)} is ${testAbove ? 'above' : 'below'} the line, so shade ${(holds === testAbove) ? 'above' : 'below'}.`
-      + (B < 0 ? ` (Solving for y divides by ${B}, which turns the sign: y ${SIGN[h.op]} …)` : ''),
+      + (B < 0 ? ` (Solving for y divides by ${minus(B)}, which turns the sign: y ${SIGN[h.op]} …)` : ''),
   };
 }
 
@@ -172,9 +198,9 @@ function fromGraph(rng) {
       answer: [{ kind: 'point', at: test, label: `${pt(test)} is ${inside ? 'in' : 'out'}`, tone: 'var(--vec-2)' }] },
     explain: 'x' in h
       ? `The edge is the upright line x = ${minus(h.x)}, ${strict(h.op) ? 'dashed, so < or >' : 'solid, so ≤ or ≥'}, `
-        + `and the shading is to the ${h.op[0] === '>' ? 'right' : 'left'}: ${shown(h)}.`
-      : `The edge is y = ${shown(h).slice(4)}: ${strict(h.op) ? 'dashed, so < or >' : 'solid, so ≤ or ≥'}. `
-        + `The shading is ${up(h.op) ? 'above' : 'below'} it, so y is ${up(h.op) ? 'more' : 'less'}: ${shown(h)}. `
+        + `and the shading is to the ${h.op[0] === '>' ? 'right' : 'left'}: ${said(h)}.`
+      : `The edge is y = ${said(h).slice(4)}: ${strict(h.op) ? 'dashed, so < or >' : 'solid, so ≤ or ≥'}. `
+        + `The shading is ${up(h.op) ? 'above' : 'below'} it, so y is ${up(h.op) ? 'more' : 'less'}: ${said(h)}. `
         + `Check with ${pt(test)}: it is ${inside ? 'shaded, and it makes the inequality true' : 'not shaded, and it makes the inequality false'}.`,
   };
 }
@@ -198,63 +224,77 @@ function system(rng) {
   const names = ['A', 'B', 'C', 'D'];
   const right = names[pts.indexOf(good[0])];
   return {
-    prompt: [math(ascii(h1)), math(ascii(h2)), T.prose('Which point is a solution of both?')],
+    // Joined by a word: two inequalities set side by side read as one
+    // chain, y < −(1/2)x + 2 x ≤ −2, which is a different and false claim.
+    prompt: [T.prose('Which point solves'), math(ascii(h1)), T.prose('and'), math(ascii(h2)), T.prose('at the same time?')],
     text: `both: ${ascii(h1)}; ${ascii(h2)} | ${pts.map((p, i) => `${names[i]} ${pt(p).replace(/−/g, '-')}`).join(' ')}`,
     answer: { type: 'choice', value: right, options: pts.map((p, i) => ({ id: names[i], label: `${names[i]} ${pt(p)}` })) },
     visual: { kind: 'plane', ...PLANE,
       marks: [edge(h1), edge(h2, { tone: OTHER }), ...pts.map((p, i) => ({ kind: 'point', at: p, label: names[i], tone: 'var(--vec-2)' }))],
       answer: [region([h1, h2], LINE)] },
     explain: `Test each point in both. ${pts.map((p, i) => `${names[i]} ${pt(p)} passes `
-      + `${both(p) ? 'both' : keeps(h1, p) ? `only ${shown(h1)}` : keeps(h2, p) ? `only ${shown(h2)}` : 'neither'}`).join('; ')}. `
+      + `${both(p) ? 'both' : keeps(h1, p) ? `only ${said(h1)}` : keeps(h2, p) ? `only ${said(h2)}` : 'neither'}`).join('; ')}. `
       + `Only ${right} passes both, so it is in the overlap of the two shaded halves.`,
   };
 }
 
+/**
+ * Two quantities and a limit on them. Each story names what x and y count,
+ * because choosing the variables is part of writing the inequality, and
+ * says "at most" or "at least" in words, which is the sign to find.
+ */
 const STORIES = [
   {
     most: true, x: 'adult tickets', y: 'child tickets',
-    make: (rng) => ({ a: rng.int(6, 15), b: rng.int(3, 9), total: rng.pick([40, 50, 60, 75, 80, 100, 120]) }),
-    say: ({ a, b, total }, x) => `Adult tickets cost $${a} and child tickets $${b}. You can spend at most $${total}. `
-      + `If you buy ${x} adult tickets, what is the greatest number of child tickets you can buy?`,
+    make: (rng) => { const a = rng.int(6, 15); return { a, b: rng.int(3, Math.min(9, a - 1)), total: 10 * rng.int(4, 12) }; },
+    say: ({ a, b, total }) => `Adult tickets cost $${a} and child tickets $${b}. You can spend at most $${total}.`,
+    each: ({ a, b }) => `The x adult tickets cost ${a}x dollars and the y child tickets ${b}y`,
+    limit: ({ total }) => `together at most ${total} dollars`,
   },
   {
     most: true, x: 'large boxes', y: 'small boxes',
-    make: (rng) => ({ a: rng.int(8, 20), b: rng.int(2, 7), total: rng.pick([60, 80, 100, 120, 150]) }),
-    say: ({ a, b, total }, x) => `A van can carry at most ${total} kg. Large boxes weigh ${a} kg and small boxes ${b} kg. `
-      + `With ${x} large boxes on board, what is the greatest number of small boxes it can take?`,
+    make: (rng) => ({ a: rng.int(8, 20), b: rng.int(2, 7), total: 10 * rng.int(6, 20) }),
+    say: ({ a, b, total }) => `A van can carry at most ${total} kg. Large boxes weigh ${a} kg and small boxes ${b} kg.`,
+    each: ({ a, b }) => `The x large boxes weigh ${a}x kg and the y small boxes ${b}y`,
+    limit: ({ total }) => `together at most ${total} kg`,
   },
   {
     most: false, x: 'wins', y: 'draws',
-    make: (rng) => ({ a: 3, b: 1, total: rng.int(20, 45) }),
-    say: ({ a, b, total }, x) => `A team gets ${a} points for a win and ${b} for a draw, and needs at least ${total} points. `
-      + `With ${x} wins, what is the fewest draws it needs?`,
+    make: (rng) => ({ a: rng.pick([2, 3]), b: 1, total: rng.int(20, 45) }),
+    say: ({ a, b, total }) => `A team gets ${a} points for a win and ${b} for a draw, and needs at least ${total} points.`,
+    each: ({ a }) => `The x wins earn ${a}x points and the y draws y`,
+    limit: ({ total }) => `together at least ${total} points`,
   },
   {
     most: false, x: 'hours mowing', y: 'hours washing cars',
-    make: (rng) => ({ a: rng.int(10, 15), b: rng.int(6, 9), total: rng.pick([100, 120, 150, 180, 200]) }),
-    say: ({ a, b, total }, x) => `Sam earns $${a} an hour mowing and $${b} an hour washing cars, and wants at least $${total}. `
-      + `After ${x} hours mowing, what is the fewest whole hours washing cars needed?`,
+    make: (rng) => ({ a: rng.int(10, 15), b: rng.int(6, 9), total: 10 * rng.int(8, 20) }),
+    say: ({ a, b, total }) => `Sam earns $${a} an hour mowing and $${b} an hour washing cars, and wants at least $${total}.`,
+    each: ({ a, b }) => `The x hours mowing earn ${a}x dollars and the y hours washing cars ${b}y`,
+    limit: ({ total }) => `together at least ${total} dollars`,
   },
 ];
 
+// requiem: catalogue/content/words-to-inequality-is-written
+/**
+ * The inequality a budget or a target makes, typed and judged by the half
+ * of the plane it keeps, so 9x + 4y ≤ 60 and y ≤ −(9/4)x + 15 are both right.
+ */
 function fromWords(rng) {
   const s = rng.pick(STORIES);
   const v = s.make(rng);
-  const x = rng.int(1, Math.floor(v.total / v.a) - 1);
-  const left = v.total - v.a * x;
-  const y = s.most ? Math.floor(left / v.b) : Math.ceil(left / v.b);
-  if (y < 1) return fromWords(rng);
   const op = s.most ? '<=' : '>=';
-  const exact = left % v.b === 0;
+  const left = `${v.a}x + ${v.b === 1 ? '' : v.b}y`;
+  const value = { m: ratio(-v.a, v.b), b: ratio(v.total, v.b), op };
+  const solved = `y ${SIGN[op]} ${lineText(value.m, value.b).slice(4)}`;
   return {
-    prompt: [T.prose(s.say(v, x))],
-    text: `${s.most ? 'most' : 'least'} y: ${v.a}x + ${v.b}y ${op} ${v.total} with x = ${x}`,
-    answer: { type: 'int', value: y },
+    prompt: [T.prose(`${s.say(v)} Write an inequality in x and y, where x is the number of ${s.x} `
+      + `and y the number of ${s.y}.`)],
+    text: `words: ${v.a} per x, ${v.b} per y, at ${s.most ? 'most' : 'least'} ${v.total}`,
+    answer: { type: 'halfplane', value },
     visual: null,
-    explain: `With x ${s.x} and y ${s.y}: ${v.a}x + ${v.b}y ${SIGN[op]} ${v.total}. Put x = ${x} in: `
-      + `${v.a * x} + ${v.b}y ${SIGN[op]} ${v.total}, so ${v.b}y ${SIGN[op]} ${left} and y ${SIGN[op]} `
-      + `${exact ? left / v.b : `${left}/${v.b}`}. `
-      + (exact ? `So y = ${y}.` : `y is a whole number, so ${s.most ? 'round down' : 'round up'}: ${y}.`),
+    explain: `${s.each(v)}, ${s.limit(v)}: ${left} ${SIGN[op]} ${v.total}. `
+      + `"At ${s.most ? 'most' : 'least'}" keeps the edge, so the sign is ${SIGN[op]}. `
+      + `Solved for y, the same inequality is ${solved}.`,
   };
 }
 

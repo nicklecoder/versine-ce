@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "50b592c220d41643c85568e36d532b1a1d89a79762a3db98677716479d1262b1",
+  "sources": "7065cb8a049359a5854d84b8a90c34cc02ddcc5a2cbdcae00a2f6e25c1163200",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4241,7 +4241,7 @@
       "name": "From Words",
       "count": 1000,
       "exhaustive": false,
-      "signed": false,
+      "signed": true,
       "file": "ineq-graphs-5.json"
     },
     {

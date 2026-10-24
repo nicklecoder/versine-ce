@@ -1291,15 +1291,6 @@ def point_in_both(e1: str, e2: str, points: str, ids):
     return fit[0]
 
 
-def extreme_y(kind: str, a: int, b: int, op: str, total: int, x: int) -> int:
-    fits = [y for y in range(0, 1000) if OPS[op](a * x + b * y, total)]
-    return max(fits) if kind == "most" else min(fits)
-
-
-BY_RULE += (
-    (re.compile(r"^(most|least) y: (\d+)x \+ (\d+)y (<=|>=) (\d+) with x = (\d+)$"), extreme_y),
-)
-
 CHOICE_RULES += (
     (re.compile(rf"^solution\? {PT} of (.+)$"),
      lambda x, y, ineq: "yes" if holds_xy(ineq, int(x), int(y)) else "no"),
@@ -1310,8 +1301,41 @@ OPTION_RULES += (
     (re.compile(r"^both: (.+); (.+) \| (.+)$"), point_in_both),
 )
 
+def halfplane_form(ineq: str):
+    """
+    a·x + b·y + c op 0, scaled so the first of b, a that is not zero is 1
+    (the sign turning if that meant dividing by a negative). Two inequalities
+    keep the same half of the plane exactly when these agree -- including
+    halves whose edge lies far off the grid kept() samples, where the large
+    totals of a budget put it.
+    """
+    left, op, right = re.split(r"\s*(<=|>=|<|>)\s*", ineq.strip())
+    f = lambda x, y: at(left, {"x": x, "y": y}) - at(right, {"x": x, "y": y})
+    c = f(0, 0)
+    a, b = f(1, 0) - c, f(0, 1) - c
+    if f(2, -3) != c + 2 * a - 3 * b or f(-5, 7) != c - 5 * a + 7 * b:
+        raise ValueError(f"not linear: {ineq}")
+    lead = b if b != 0 else a
+    if lead == 0:
+        raise ValueError(f"no x or y left: {ineq}")
+    if lead < 0:
+        op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
+    return a / lead, b / lead, c / lead, op
+
+
+WORDS_LIMIT = {"most": "<=", "least": ">="}
+
+
+def budget(a: str, b: str, limit: str, total: str) -> str:
+    """'9 per x, 4 per y, at most 60': each x adds 9, each y adds 4, and the
+    sum is held at most (or at least) to the total."""
+    return f"{a}*x + {b}*y {WORDS_LIMIT[limit]} {total}"
+
+
 HALFPLANE_RULES = (
     (re.compile(r"^graph: (.+)$"), kept),
+    # Compared by exact form, not by sampled points: see halfplane_form.
+    (re.compile(r"^words: (\d+) per x, (\d+) per y, at (most|least) (\d+)$"), budget),
 )
 
 
@@ -2354,7 +2378,10 @@ for path in sorted(LIB.glob("*.json")):
             rule = next((r for r in HALFPLANE_RULES if r[0].match(text)), None)
             if rule:
                 checked += 1
-                if kept(halfplane_text(answer["value"])) != rule[1](*rule[0].match(text).groups()):
+                want = rule[1](*rule[0].match(text).groups())
+                got = halfplane_text(answer["value"])
+                same = halfplane_form(got) == halfplane_form(want) if isinstance(want, str) else kept(got) == want
+                if not same:
                     problems.append(f"{where}: {text} does not keep the half {answer['value']} keeps")
             continue
 
