@@ -180,7 +180,9 @@ function negatives(rng) {
  */
 function belowZero(rng) {
   const v = rng.pick(VARS);
-  const x = -rng.int(2, 15);
+  // A quarter come out positive, from the same shapes: if every answer were
+  // negative, the sign would be given away and only the size worked out.
+  const x = rng.chance(0.25) ? rng.int(1, 15) : -rng.int(2, 15);
   const shape = rng.int(0, 2);
 
   if (shape === 0) {                             // x + 12 = 5
@@ -193,12 +195,14 @@ function belowZero(rng) {
       visual: {
         kind: 'evalmodel',
         lines: [src, `${v} = ${rhs} − ${b}`, `${v} = ${x}`],
-        rules: [`subtract ${b} from both sides`, 'which goes past zero'],
+        rules: [`subtract ${b} from both sides`, x < 0 ? 'which goes past zero' : 'which leaves'],
         hint: 'What has been added to the letter?',
       },
       explain: `Subtract ${b} from both sides: ${rhs} − ${b} = ${x}. `
-        + `Taking ${b} from ${rhs} runs out of numbers above zero and keeps going, `
-        + 'which is what a negative answer is. It is an answer, not a mistake.',
+        + (x < 0
+          ? `Taking ${b} from ${rhs} runs out of numbers above zero and keeps going, `
+            + 'which is what a negative answer is. It is an answer, not a mistake.'
+          : `${rhs} is more than ${b}, so this one stays above zero.`),
     };
   }
 
@@ -212,11 +216,13 @@ function belowZero(rng) {
       visual: {
         kind: 'evalmodel',
         lines: [src, `${v} = ${rhs} ÷ ${k}`, `${v} = ${x}`],
-        rules: [`divide both sides by ${k}`, 'a negative divided by a positive'],
+        rules: [`divide both sides by ${k}`, x < 0 ? 'a negative divided by a positive' : 'which leaves'],
         hint: 'What is the letter multiplied by?',
       },
-      explain: `Divide both sides by ${k}. A negative divided by a positive is `
-        + `negative, so ${v} = ${x}. The sign comes along with the number.`,
+      explain: x < 0
+        ? `Divide both sides by ${k}. A negative divided by a positive is `
+          + `negative, so ${v} = ${x}. The sign comes along with the number.`
+        : `Divide both sides by ${k}: ${rhs} ÷ ${k} = ${x}. Both are positive, so the answer is too.`,
     };
   }
 
@@ -230,13 +236,13 @@ function belowZero(rng) {
     visual: {
       kind: 'evalmodel',
       lines: [src, `${k}${v} = ${rhs} − ${b}`, `${k}${v} = ${k * x}`, `${v} = ${x}`],
-      rules: [`subtract ${b} from both sides`, 'which goes past zero',
+      rules: [`subtract ${b} from both sides`, x < 0 ? 'which goes past zero' : 'which leaves',
               `divide both sides by ${k}`],
       hint: 'Same two moves, in the same order as always.',
     },
     explain: `Subtract ${b} first: ${rhs} − ${b} = ${k * x}. Then divide by ${k}: `
-      + `${v} = ${x}. Both steps are the ones you already do — only the answer `
-      + 'is on the other side of zero.',
+      + `${v} = ${x}. Both steps are the ones you already do`
+      + (x < 0 ? ' — only the answer is on the other side of zero.' : ', and the sign comes out of them.'),
   };
 }
 
@@ -252,8 +258,13 @@ function belowZero(rng) {
 function whichFirst(rng) {
   const v = rng.pick(VARS);
   const k = rng.int(2, 9);
-  const b = rng.int(1, 12);
   const bracketed = rng.chance(0.5);
+  // requiem: catalogue/content/which-form-one-right-answer
+  // Without the bracket, dividing first is a legal move too, and when k goes
+  // into the added number it is just as clean: 2a + 10 = 14 becomes
+  // a + 5 = 7. So the added number is never a multiple of k there, and the
+  // explanation says what dividing first would cost.
+  const b = bracketed ? rng.int(1, 12) : rng.pick([...Array(12)].map((_, i) => i + 1).filter((n) => n % k));
   const x = rng.int(1, 10);
   const rhs = bracketed ? k * (x + b) : k * x + b;
   const src = bracketed ? `${k}(${v} + ${b}) = ${rhs}` : `${k}${v} + ${b} = ${rhs}`;
@@ -272,9 +283,12 @@ function whichFirst(rng) {
     explain: bracketed
       ? `The bracket makes the multiplication the outermost thing done to ${v}, `
         + `so it comes off first: dividing by ${k} gives ${v} + ${b} = ${rhs / k}. `
-        + `Subtracting ${b} first would be wrong — it is inside the bracket.`
+        + `Subtracting ${b} from both sides would not reach the ${b} inside the bracket: `
+        + `it would leave ${k}(${v} + ${b}) − ${b} = ${rhs - b}.`
       : `Here ${b} was added after the multiplication, so it comes off first: `
-        + `subtracting gives ${k}${v} = ${rhs - b}. Undo in the reverse of the order applied.`,
+        + `subtracting gives ${k}${v} = ${rhs - b}, then ${v} = ${x}. Dividing first is allowed, but `
+        + `${b} ÷ ${k} and ${rhs} ÷ ${k} are not whole, so it would bring in fractions. `
+        + 'Undo in the reverse of the order applied.',
   };
 }
 
@@ -298,5 +312,9 @@ export function generate(rng, level) {
     : level >= LAST_LEVEL ? rng.pick(CONTENT)(rng)
     : CONTENT[level](rng);
   p.parSeconds = PAR_SECONDS[level];
+  // The sentences and worked lines use a real minus sign; only typed text keeps the hyphen.
+  const tidy = (t) => t.replace(/ - /g, ' − ').replace(/(^|[\s(=])-(?=\d)/g, '$1−');
+  p.explain = tidy(p.explain);
+  if (p.visual?.lines) p.visual.lines = p.visual.lines.map(tidy);
   return p;
 }

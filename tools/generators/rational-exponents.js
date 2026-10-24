@@ -154,7 +154,8 @@ function toPower(rng) {
   const shape = rng.pick(['sqrt', 'root', 'root', 'outside', 'over']);
   const n = shape === 'sqrt' ? 2 : rng.int(3, 5);
   const k = rng.int(1, 7);
-  if (k === n) return toPower(rng);
+  // (∛a)¹ is just ∛a, and nobody writes the 1.
+  if (k === n || (shape === 'outside' && k === 1)) return toPower(rng);
   const inside = k === 1 ? v : `${v}^${k}`;
   let src, e, how;
   if (shape === 'outside') {
@@ -169,11 +170,11 @@ function toPower(rng) {
   }
   const reduced = Math.abs(e.n) !== k || e.d !== n;
   return {
-    prompt: [...asks(src), T.prose(`as one power of ${v}`)],
+    prompt: [...asks(src), T.prose(LOWEST(v))],
     text: `as a power: ${src}`,
     answer: { type: 'expr', value: powerOf(v, e) },
     visual: null,
-    explain: `${how}${reduced ? `, which is ${fracText({ n: Math.abs(e.n), d: e.d })}` : ''}`
+    explain: `${how}${reduced ? `, which in lowest terms is ${fracText({ n: Math.abs(e.n), d: e.d })}` : ''}`
       + `${shape === 'over' ? '. One over makes the power negative' : ''}. So ${shown(v, e)}.`,
   };
 }
@@ -183,29 +184,46 @@ for (const d of [2, 3, 4, 6]) for (let n = 1; n <= 5; n++) if (gcd(n, d) === 1) 
 const add = (a, b, s = 1) => ratio(a.n * b.d + s * b.n * a.d, a.d * b.d);
 const plain = (e) => (e.d === 1 ? String(e.n) : `${e.n}/${e.d}`);
 
+/**
+ * requiem: catalogue/content/expression-prompts-name-the-form
+ * The answer is one power with its exponent in lowest terms, and the prompt
+ * says so: n^(2/4) is n^(1/2), but the answer box compares forms, and "as one
+ * power of n" alone did not say that 2/4 was not finished.
+ */
+const LOWEST = (v) => `as one power of ${v}, the power in lowest terms`;
+/** a/b in lowest terms, with the unreduced form first where it differs: 6/2 = 3. */
+const reducing = (n, d) => {
+  const e = ratio(n, d);
+  const raw = `${n}/${d}`.replace('-', '−');
+  return e.n === n && e.d === d ? plain(e).replace('-', '−') : `${raw} = ${plain(e).replace('-', '−')}`;
+};
+
 /** The exponent rules, with fractions for powers. */
 function rules(rng) {
   const v = rng.pick(['x', 'x', 'a', 'y']);
   const shape = rng.pick(['times', 'times', 'over', 'power', 'root']);
   const a = rng.pick(EXPS), b = rng.pick(EXPS);
   let src, e, how;
+  // Over the lowest common denominator, then reduced, so every step is shown:
+  // 1/2 + 5/2 = 6/2 = 3.
   const common = (op) => {
     const l = a.d * b.d / gcd(a.d, b.d);
-    return a.d === b.d ? '' : ` = ${a.n * l / a.d}/${l} ${op} ${b.n * l / b.d}/${l}`;
+    const top = a.n * l / a.d + (op === '+' ? 1 : -1) * b.n * l / b.d;
+    return `${a.d === b.d ? '' : ` = ${a.n * l / a.d}/${l} ${op} ${b.n * l / b.d}/${l}`} = ${reducing(top, l)}`;
   };
   if (shape === 'times') {
     src = `${v}^${expText(a)}*${v}^${expText(b)}`;
     e = add(a, b);
-    how = `Multiplying: add the powers. ${plain(a)} + ${plain(b)}${common('+')} = ${plain(e)}`;
+    how = `Multiplying: add the powers. ${plain(a)} + ${plain(b)}${common('+')}`;
   } else if (shape === 'over') {
     src = `${v}^${expText(a)}/${v}^${expText(b)}`;
     e = add(a, b, -1);
-    how = `Dividing: take the powers away. ${plain(a)} − ${plain(b)}${common('−')} = ${plain(e).replace('-', '−')}`;
+    how = `Dividing: take the powers away. ${plain(a)} − ${plain(b)}${common('−')}`;
   } else if (shape === 'power') {
     const k = rng.chance(0.5) ? { n: rng.int(2, 4), d: 1 } : rng.pick(EXPS);
     src = `(${v}^${expText(a)})^${expText(k)}`;
     e = ratio(a.n * k.n, a.d * k.d);
-    how = `A power of a power: multiply. ${plain(a)} × ${plain(k)} = ${plain(e)}`;
+    how = `A power of a power: multiply. ${plain(a)} × ${plain(k)} = ${reducing(a.n * k.n, a.d * k.d)}`;
   } else {
     // A root beside a power: the root has to become a power first.
     const n = rng.pick([2, 3]);
@@ -214,12 +232,15 @@ function rules(rng) {
     src = times ? `${n === 2 ? `sqrt(${v})` : `root(3, ${v})`}*${v}^${expText(b)}`
       : `${v}^${expText(b)}/${n === 2 ? `sqrt(${v})` : `root(3, ${v})`}`;
     e = add(b, r, times ? 1 : -1);
+    const l = b.d * n / gcd(b.d, n);
+    const top = b.n * l / b.d + (times ? 1 : -1) * (l / n);
     how = `${rootOf(n, v)} is ${v} to the 1/${n}. ${times ? 'Multiplying: add' : 'Dividing: take away'} the powers. `
-      + `${plain(b)} ${times ? '+' : '−'} 1/${n} = ${plain(e).replace('-', '−')}`;
+      + `${plain(b)} ${times ? '+' : '−'} 1/${n}${l === n && b.d === n ? '' : ` = ${b.n * l / b.d}/${l} ${times ? '+' : '−'} ${l / n}/${l}`}`
+      + ` = ${reducing(top, l)}`;
   }
   if (e.n === 0 || e.d > 12) return rules(rng);
   return {
-    prompt: [...asks(src), T.prose(`as one power of ${v}`)],
+    prompt: [...asks(src), T.prose(LOWEST(v))],
     text: `as a power: ${src}`,
     answer: { type: 'expr', value: powerOf(v, e) },
     visual: null,
