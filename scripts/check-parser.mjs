@@ -59,7 +59,8 @@ for (let a = 1; a <= 12; a++) {
 }
 // requiem: play/answers/side-by-side-keeps-brackets
 // Factors set side by side keep the brackets that keep them apart.
-for (const [src, want] of [['(-2a^3)(3b)', '(−2a^3)(3b)'], ['2(3)', '2(3)'], ['x(3)', 'x(3)'], ['2x(3)^2', '2x(3^2)']]) {
+// requiem: play/answers/power-bracket-on-base
+for (const [src, want] of [['(-2a^3)(3b)', '(−2a^3)(3b)'], ['2(3)', '2(3)'], ['x(3)', 'x(3)'], ['2x(3)^2', '2x(3)^2'], ['500(1.04)^x', '500(1.04)^x']]) {
   const got = promptText(previewOf(src).terms);
   if (got !== want) fail.push(`${src} was drawn as ${got}, expected ${want}`);
 }

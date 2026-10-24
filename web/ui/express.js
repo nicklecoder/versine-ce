@@ -79,11 +79,16 @@ export function termsFor(node) {
       // by side with nothing between would read as one term.
       if (node.op === '*' && node.implicit) {
         // And so is one round a number that follows something: 2(3) is not 23.
+        // requiem: play/answers/power-bracket-on-base
+        // A power of a number keeps its bracket on the base, where it was
+        // typed: 500(1.04)ˣ, not 500(1.04ˣ).
         const kept = (side, terms) => (side.paren && terms.length && terms[0].t !== 'group' ? wrap(terms) : terms);
         const digitFirst = (terms) => terms[0]?.t === 'num'
           || (terms[0]?.t === 'pow' && digitFirst(terms[0].b)) || (terms[0]?.t === 'juxt' && digitFirst(terms[0].terms));
-        const after = kept(node.b, right);
-        return [{ t: 'juxt', terms: [...kept(node.a, left), ...(digitFirst(after) ? wrap(after) : after)] }];
+        let after = kept(node.b, right);
+        if (after[0]?.t === 'pow' && digitFirst(after[0].b)) after = [{ ...after[0], b: wrap(after[0].b) }, ...after.slice(1)];
+        else if (digitFirst(after)) after = wrap(after);
+        return [{ t: 'juxt', terms: [...kept(node.a, left), ...after] }];
       }
       const sign = node.op === '*'
         ? { t: 'op', v: '×' }
