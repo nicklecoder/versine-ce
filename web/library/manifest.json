@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "c514e4cb9bfb724f3bab0301785dc7c10a8b2c05a1ec5601736ccde46906c410",
+  "sources": "dab4292381ad78be51fdadc8bdd520a9ea5c123574b58ebc54d582acb6f8498b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2169,7 +2169,7 @@
       "level": 4,
       "slug": "radical-to-power",
       "name": "Radical to Power",
-      "count": 240,
+      "count": 228,
       "exhaustive": true,
       "signed": false,
       "file": "rational-exponents-4.json"
@@ -3509,7 +3509,7 @@
       "level": 4,
       "slug": "which-expression-fits",
       "name": "Which Expression Fits",
-      "count": 716,
+      "count": 533,
       "exhaustive": true,
       "signed": false,
       "file": "evaluate-4.json"

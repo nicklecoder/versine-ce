@@ -556,12 +556,17 @@ def story_at(story: str):
         return "n", lambda x: k * (x + n[0])
     if "rectangle" in story:
         return "w", lambda w: 2 * w + 2 * (w + n[0])
+    if "pizzas are shared equally between p people" in story:
+        return "p", lambda p: Fraction(n[0], p)
+    if "How old will Sam be in" in story:
+        return "a", lambda a: a + n[0]
     raise ValueError(f"unread story: {story}")
 
 
 def fits(story: str, options):
     letter, truth = story_at(story)
-    right = [o for o in options if all(at(o, {letter: v}) == truth(v) for v in SAMPLES)]
+    # Away from zero, where a share between p people is undefined.
+    right = [o for o in options if all(at(o, {letter: v}) == truth(v) for v in SAMPLES if v)]
     return right[0] if len(right) == 1 else f"{len(right)} options fit"
 
 
@@ -2121,6 +2126,14 @@ def first_move(k, c, r) -> str:
     return "divide" if int(r) % int(k) == 0 else "expand"
 
 
+def subtract_first(k, c) -> str:
+    # kv + c = r: subtracting c first keeps whole numbers. Dividing first is
+    # as clean when k goes into c (2a + 10 = 14 is a + 5 = 7), and then both
+    # moves are right, which a one-answer question must not ask.
+    assert int(c) % int(k), f"dividing by {k} first is as clean as subtracting {c}"
+    return "subtract"
+
+
 def gather_side(a, c) -> str:
     a, c = int(a or 1), int(c or 1)
     assert a != c, "the letters cancel"
@@ -2263,7 +2276,7 @@ def judged(text: str) -> str:
 CHOICE_RULES += (
     (re.compile(r"^quadrant of \((-?\d+), (-?\d+)\)$"), quadrant),
     (re.compile(r"^first move for (\d+)\([a-z] \+ (\d+)\) = (\d+)$"), first_move),
-    (re.compile(r"^first move for \d+[a-z] \+ \d+ = \d+$"), lambda: "subtract"),
+    (re.compile(r"^first move for (\d+)[a-z] \+ (\d+) = \d+$"), subtract_first),
     (re.compile(r"^which side for (\d*)([a-z]) \+ \d+ = (\d*)\2 \+ \d+$"), lambda a, v, c: gather_side(a, c)),
     (re.compile(r"^does (−?)\d+[a-z] [<>≤≥] −?\d+ flip$"), flips),
     (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
@@ -2432,10 +2445,12 @@ for path in sorted(LIB.glob("*.json")):
         # An expression written from words: read the words independently and
         # compare by value, since any equivalent arrangement is accepted.
         if answer["type"] == "expr" and text.startswith("words: "):
-            checked += 1
-            verdict = from_words(text[len("words: "):], answer["value"])
-            if verdict != "ok":
-                problems.append(f"{where}: {text} {verdict}, not {answer['value']}")
+            # Every accepted way of writing it, not only the stored one.
+            for form in dict.fromkeys([answer["value"], *answer.get("accept", [])]):
+                checked += 1
+                verdict = from_words(text[len("words: "):], form)
+                if verdict != "ok":
+                    problems.append(f"{where}: {text} {verdict}, not {form}")
             continue
 
         # Asked in words, or written with a blank: re-derive from the numbers.

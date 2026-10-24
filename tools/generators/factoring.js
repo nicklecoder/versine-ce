@@ -43,7 +43,9 @@ const times = (a, b) => {
 function asks(poly, v) {
   const r = previewOf(write(poly, v));
   if (!r.ok) throw new Error(`factoring: cannot draw "${write(poly, v)}" — ${r.error}`);
-  return [...r.terms, T.op('='), T.blank()];
+  // requiem: catalogue/content/expression-prompts-name-the-form
+  // Said every time: in All Together nothing else says the answer is a product.
+  return [T.prose('Factor completely:'), ...r.terms, T.op('='), T.blank()];
 }
 
 /** The factor pairs of c as signed pairs, smaller first: for "two numbers". */
@@ -136,7 +138,7 @@ function squares(rng) {
   const [plus, less] = flipped
     ? [`(${b} + ${A})`, `(${b} - ${A})`] : [`(${A} + ${b})`, `(${A} - ${b})`];
   return {
-    prompt: [...previewOf(write(poly, v)).terms, T.op('='), T.blank()],
+    prompt: asks(poly, v),
     text: `factor: ${write(poly, v)}`,
     answer: { type: 'expr', value: `${plus}${less}` },
     visual: null,
