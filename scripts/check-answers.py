@@ -2183,13 +2183,23 @@ JUDGED = {
     "The largest square tile that exactly fills a # cm by # cm rectangle.": "gcf",
     "Adding # and # — what should the denominator become?": "lcm",
     # mixed numbers: improper to compute with, mixed to read or report
-    "You need to multiply # #/# by #.": "improper",
+    # Whichever form the number is given in: multiplying by, or dividing by,
+    # a whole and a bit needs a single fraction, and reading a size needs the
+    # whole number out in front.
     "You need to work out # #/# × # #/#.": "improper",
-    "You need to divide # #/# by #.": "improper",
+    "You need to work out #/# × # #/#.": "improper",
+    "You need to work out # #/# ÷ # #/#.": "improper",
+    "You need to work out #/# ÷ # #/#.": "improper",
+    "You need to work out # ÷ # #/#.": "improper",
+    "You need to work out # ÷ #/#.": "improper",
     "You need to say whether #/# is more than #.": "mixed",
+    "You need to say whether # #/# is more than #.": "mixed",
     "You want to know roughly how big #/# is, at a glance.": "mixed",
-    "You need to write # #/# as the answer to a word problem about lengths.": "mixed",
-    "You are telling someone how much juice is left in the jug.": "mixed",
+    "You want to know roughly how big # #/# is, at a glance.": "mixed",
+    "You need to give #/# m as the answer to a word problem about lengths.": "mixed",
+    "You need to give # #/# m as the answer to a word problem about lengths.": "mixed",
+    "There are #/# litres of juice left, and you are telling someone how much.": "mixed",
+    "There are # #/# litres of juice left, and you are telling someone how much.": "mixed",
     # roots: exact work wants the simplest radical, a physical length a decimal
     "You need to add √# to another radical.": "simplify",
     "You need to check whether √# equals another radical.": "simplify",
