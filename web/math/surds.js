@@ -174,6 +174,11 @@ function simplestAsTyped(ast) {
 export function parseRoots(raw) {
   const e = entries(raw);
   if (!e.ok) return e;
+  // A decimal of three places or more is a rounded root, near it and never
+  // equal: say so rather than "not quite". Shorter ones may be exact (2.5).
+  if (e.texts.length && e.texts.some((t) => /^-?\d*\.\d{3,}$/.test(t.trim()))) {
+    return { ok: false, hint: 'Give it exactly, with sqrt( ), not as a decimal.' };
+  }
   const roots = [];
   let simplest = true;
   for (const text of e.texts) {

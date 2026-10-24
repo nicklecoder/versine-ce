@@ -38,6 +38,8 @@ function tokenize(src) {
     .replace(/[×·]/g, '*')
     .replace(/÷/g, '/')
     .replace(/\*\*/g, '^')       // Python's spelling
+    // A phone keyboard offers ² and ³, and x² is what x^2 means.
+    .replace(/[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (m) => `^${m.length > 1 ? '(' : ''}${[...m].map((c) => '-0123456789'['⁻⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)]).join('')}${m.length > 1 ? ')' : ''}`)
     ;
 
   while (i < s.length) {
