@@ -1605,6 +1605,8 @@ def method_of(equation: str) -> str:
     cs = coefficients(f"({left}) - ({right})")
     c, b, a = (cs + [Fraction(0)] * 3)[:3]
     if b == 0:
+        # x² − 16 = 0 factors as fast as it roots: no one method is right.
+        assert not (right == "0" and c < 0 and is_square(-c / a)), f"{equation} is a difference of squares"
         return "roots"
     return "factor" if is_square(b * b - 4 * a * c) else "neither"
 
