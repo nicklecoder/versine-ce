@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "50b592c220d41643c85568e36d532b1a1d89a79762a3db98677716479d1262b1",
+  "sources": "573945efe65d4ff08c160ed07988e0b992f5172b0aba828659e8bed61f5a9d40",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2709,7 +2709,7 @@
       "level": 5,
       "slug": "max-and-min-in-context",
       "name": "Max and Min in Context",
-      "count": 418,
+      "count": 830,
       "exhaustive": true,
       "signed": false,
       "file": "quadratic-graphs-5.json"
