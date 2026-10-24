@@ -22,8 +22,8 @@ export const LEVELS = [
     dependsOn: [{ skill: 'rational-expr', level: 0 }] },
   { name: 'Oblique', slug: 'oblique',
     blurb: 'Top one degree higher: divide, and the quotient is the slanted line the graph follows; the remainder fades away.',
-    // Dividing is multiplying a binomial back out, run in reverse.
-    dependsOn: [{ skill: 'polynomials', level: 4 }] },
+    // The slant line is the quotient of a long division.
+    dependsOn: [{ skill: 'poly-division', level: 0 }] },
   { name: 'End Behavior', slug: 'end-behavior',
     blurb: 'Far out, only the leading terms matter: f behaves like (a/b)x^(n − d), towards 0, a number, or off to ±∞.' },
   { name: 'All Together', slug: 'all-together',
@@ -46,7 +46,7 @@ export default {
   glyph: 'N/D',
   blurb: 'Vertical asymptotes, horizontal asymptotes by degree, holes, slant asymptotes and end behavior.',
   answerInput: 'choice',
-  // Factoring and excluded values from rational-expr; degree from polynomials.
-  dependsOn: ['rational-expr', 'domain-range', 'polynomials', 'exponential'],
+  // Factoring and excluded values from rational-expr; degree from polynomials; dividing from poly-division.
+  dependsOn: ['rational-expr', 'domain-range', 'polynomials', 'exponential', 'poly-division'],
   levels: LEVELS,
 };

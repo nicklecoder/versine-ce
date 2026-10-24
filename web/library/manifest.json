@@ -1,5 +1,5 @@
 {
-  "built": 583,
+  "built": 589,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -738,6 +738,14 @@
       "holes",
       "oblique",
       "end-behavior",
+      "all-together"
+    ],
+    "poly-division": [
+      "long-division",
+      "synthetic",
+      "remainder-theorem",
+      "factor-theorem",
+      "all-zeros-from-one",
       "all-together"
     ]
   },
@@ -1729,6 +1737,7 @@
       "dependsOn": [
         "domain-range",
         "exponential",
+        "poly-division",
         "polynomials",
         "rational-expr"
       ],
@@ -1745,12 +1754,35 @@
           "rational-expr"
         ],
         "oblique": [
+          "poly-division"
+        ]
+      }
+    },
+    "poly-division": {
+      "dependsOn": [
+        "evaluate",
+        "monomials",
+        "polynomials",
+        "quadratic-eq"
+      ],
+      "levels": {
+        "long-division": [
+          "monomials",
           "polynomials"
+        ],
+        "remainder-theorem": [
+          "evaluate"
+        ],
+        "factor-theorem": [
+          "quadratic-eq"
+        ],
+        "all-zeros-from-one": [
+          "quadratic-eq"
         ]
       }
     }
   },
-  "sources": "8729921e6afe27a7e9ce0e2c319883e58db72d06a506b8957f87e93d37395706",
+  "sources": "23b878c36b3fcb13bba48c0b401b56f0bc435dee77eb98aad3afb075418e7918",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7581,6 +7613,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "rational-functions-5.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 0,
+      "slug": "long-division",
+      "name": "Long Division",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-division-0.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 1,
+      "slug": "synthetic",
+      "name": "Synthetic",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-division-1.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 2,
+      "slug": "remainder-theorem",
+      "name": "Remainder Theorem",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-division-2.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 3,
+      "slug": "factor-theorem",
+      "name": "Factor Theorem",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-division-3.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 4,
+      "slug": "all-zeros-from-one",
+      "name": "All Zeros From One",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-division-4.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-division-5.json"
     }
   ]
 }

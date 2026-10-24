@@ -13,6 +13,18 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Polynomial Division**, a new skill under Expressions, in six levels:
+Long Division (a quotient typed when the division is exact, judged by
+value, and otherwise the quotient and remainder chosen together), Synthetic
+(the bottom row), Remainder Theorem, Factor Theorem (whether x − c is a
+factor, or the k that makes it one), All Zeros From One (divide out the
+zero given and factor what is left, with rows whose quadratic has no real
+zeros), then All Together. The wrong options are the slips the method
+invites: dividing by x + c, leaving out a missing power's 0, bringing the
+numbers down unchanged, the remainder's sign turned round.
+`check-answers.py` divides again by long division from the top term down.
+Rational Functions' Oblique level now depends on Long Division.
+
 **Rational Functions**, a new skill under Functions, in six levels:
 Vertical Asymptotes (two, one with the other factor cancelling to a hole,
 or none, for a bottom that is never 0 or whose only factor cancels),

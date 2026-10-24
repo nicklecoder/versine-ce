@@ -7106,6 +7106,113 @@ for path in sorted(LIB.glob("rational-functions-*.json")):
             if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
                 problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
 
+# --- Polynomial Division ------------------------------------------------------
+#
+# P is read from the text into exact coefficients and divided again by long
+# division, from the top term down: each step takes the leading term over x,
+# multiplies x - c back and subtracts. That is a different route from the
+# synthetic division the generator uses. A remainder, a factor and k are
+# settled from that division; every zero comes from the rational root search
+# of the Rational Equations section, with nothing irrational left over.
+
+def pd_long(P: list, c: Fraction) -> tuple:
+    """Quotient (from x^0 up) and remainder of P / (x - c), by long division."""
+    rest = list(P)
+    q = [Fraction(0)] * max(len(P) - 1, 1)
+    for p in range(len(P) - 1, 0, -1):
+        lead = rest[p]
+        q[p - 1] = lead
+        rest[p] -= lead           # lead x^(p-1) times x
+        rest[p - 1] += lead * c   # lead x^(p-1) times -c, taken away
+    return qe_trim(q), rest[0]
+
+
+def pd_divisor(d: str) -> Fraction:
+    m = re.fullmatch(r"x ([+-]) (\d+)", d)
+    assert m, f"divisor {d}"
+    return Fraction(int(m[2])) * (1 if m[1] == "-" else -1)
+
+
+def pd_parse_quotient(body: str) -> tuple:
+    m = re.fullmatch(r"(.+), remainder (-?\d+)", body)
+    return rf_poly(m[1]), Fraction(int(m[2]))
+
+
+def pd_long_choice(src: str, d: str, listing: str) -> str:
+    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    return rf_pick(listing, lambda body: pd_parse_quotient(body) == (q, r))
+
+
+def pd_synthetic(src: str, d: str, listing: str) -> str:
+    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    row = [*reversed(q), r]
+
+    def fits(body):
+        nums, rem = body.split(" r ")
+        return [Fraction(int(v)) for v in nums.split(", ")] + [Fraction(int(rem))] == row
+    return rf_pick(listing, fits)
+
+
+def pd_remainder(src: str, d: str) -> Fraction:
+    return pd_long(rf_poly(src), pd_divisor(d))[1]
+
+
+def pd_is_factor(src: str, d: str, listing: str) -> str:
+    r = pd_long(rf_poly(src), pd_divisor(d))[1]
+    return rf_pick(listing, lambda body: body == ("yes" if r == 0 else "no"))
+
+
+def pd_k(src: str, d: str) -> Fraction:
+    # The remainder is linear in k: read it at k = 0 and k = 1, and solve for 0.
+    c = pd_divisor(d)
+    r0, r1 = (pd_long(rf_poly(re.sub(r"\bk", f"({v})", src)), c)[1] for v in (0, 1))
+    assert r1 != r0, "k does not move the remainder"
+    return -r0 / (r1 - r0)
+
+
+def pd_zeros(src: str, given: str) -> OnGrid:
+    P = rf_poly(src)
+    assert qe_at(P, Fraction(int(given))) == 0, f"{given} is not a zero"
+    found = qe_zeros(P)
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+# requiem: catalogue/content/quotient-typed-when-exact
+def pd_quotient(src: str, d: str, form: str) -> str:
+    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    if r != 0:
+        return f"leaves a remainder of {r}, so it does not divide exactly"
+    return "ok" if rf_poly(form) == q else f"is not the quotient {q}"
+
+
+EXPR_RULES += (
+    (re.compile(r"^quotient: (.+); (x [+-] \d+)$"), pd_quotient),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^long division: (.+); (x [+-] \d+); options (.+)$"), pd_long_choice),
+    (re.compile(r"^synthetic: (.+); (x [+-] \d+); options (.+)$"), pd_synthetic),
+    (re.compile(r"^is factor: (.+); (x [+-] \d+); options (.+)$"), pd_is_factor),
+)
+
+BY_RULE += (
+    (re.compile(r"^remainder: (.+); (x [+-] \d+)$"), pd_remainder),
+    (re.compile(r"^factor k: (.+); (x [+-] \d+)$"), pd_k),
+)
+
+SET_RULES += (
+    (re.compile(r"^all zeros: (.+); given (-?\d+)$"), pd_zeros),
+)
+
+for path in sorted(LIB.glob("poly-division-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if p["answer"]["type"] != "solutions":
+            continue
+        where = f"poly-division L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        for part in p["answer"]["value"]["parts"]:
+            if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
+                problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

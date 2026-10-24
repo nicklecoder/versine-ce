@@ -452,9 +452,16 @@ Together. Vertical Asymptotes depends on rational expressions' Excluded
 Values and domain and range's Domain of √ and Fractions, Horizontal by
 Degree on polynomials' Degree and Standard Form and exponential
 functions' The Asymptote, Holes on rational expressions' Simplify, and
-Oblique on polynomials' Binomial Times Binomial until `poly-division` is
-built, when it moves to Long Division. End Behavior builds on this
-skill's own asymptote levels.
+Oblique on polynomial division's Long Division. End Behavior builds on
+this skill's own asymptote levels.
+
+`poly-division` is built, in the plan's five levels and All Together.
+Long Division depends on monomials' Dividing and polynomials' Binomial
+Times Binomial, Remainder Theorem on using expressions' Substitute a
+Negative, Factor Theorem on quadratic equations' Zero Product, and All
+Zeros From One on quadratic equations' By Factoring. A quotient is typed,
+and judged by value, only when the division is exact; otherwise every
+answer is a choice, a number or a set of zeros.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
