@@ -198,6 +198,18 @@ for (const skill of SKILLS) {
   if (session.submit(wrong).status === 'correct') fail.push(`accept: "${wrong}" was accepted for "${q.text}"`);
 }
 
+// A vertex form is judged as written: the same terms in another order are
+// right, and the same quadratic multiplied out is not the form asked for.
+{
+  const expr = getType('expr');
+  const want = expr.parse('-(x - 5)^2 - 4').value;
+  const judged = (raw) => { const got = expr.parse(raw); return got.ok && expr.equals(got.value, want); };
+  if (!judged('-4 - (x - 5)^2')) fail.push('vertex form: "-4 - (x - 5)^2" was not accepted for -(x - 5)^2 - 4');
+  for (const raw of ['-x^2 + 10x - 29', '-(x + 5)^2 - 4']) {
+    if (judged(raw)) fail.push(`vertex form: "${raw}" was accepted for -(x - 5)^2 - 4`);
+  }
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

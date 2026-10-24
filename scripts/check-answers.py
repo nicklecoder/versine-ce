@@ -1669,6 +1669,70 @@ CHOICE_RULES += (
 )
 
 
+# --- Graphs of Quadratics ----------------------------------------------------
+#
+# The parabola is read from its coefficients, found as for Polynomials, so
+# whatever form a question is written in, its vertex is (−b/2a, f(−b/2a)),
+# its zeros are the roots of y = 0 and it opens the way a's sign says. A
+# vertex form typed as the answer must have the same coefficients and be
+# written as a(x − h)² + k. Which Form Shows It is decided from how the
+# question is written: a bracket squared is vertex form, a product of
+# brackets factored, anything else standard.
+
+def vertex_of(src: str):
+    c, b, a = (coefficients(src) + [Fraction(0)] * 3)[:3]
+    assert a != 0, f"{src} is not a quadratic"
+    h = -b / (2 * a)
+    return h, a * h * h + b * h + c
+
+
+VERTEX_FORM = re.compile(r"^-?\d*\(x [+-] [1-9]\d*\)\^2(?: [+-] [1-9]\d*)?$")
+
+
+def in_vertex_form(src: str, answer: str) -> str:
+    if coefficients(answer) != coefficients(src):
+        return f"is not equal to {src}"
+    return "ok" if VERTEX_FORM.match(answer) else "is not written as a(x - h)^2 + k"
+
+
+def highest(src: str, want: str) -> Fraction:
+    assert coefficients(src)[2] < 0, f"{src} has no highest point"
+    h, k = vertex_of(src)
+    return k if want == "of" else h
+
+
+def form_of(src: str) -> str:
+    if re.search(r"\)\^2", src):
+        return "vertex"
+    if re.search(r"\)\(|^-?\d*x\(", src):
+        return "factored"
+    return "standard"
+
+
+WAY_TO = {
+    "vertex": {"vertex": "read", "zeros": "solve", "y-intercept": "zero-x"},
+    "factored": {"vertex": "halfway", "zeros": "read", "y-intercept": "zero-x"},
+    "standard": {"vertex": "formula", "zeros": "solve", "y-intercept": "read"},
+}
+
+CHOICE_RULES += (
+    (re.compile(r"^opens: (.+)$"), lambda src: "up" if coefficients(src)[2] > 0 else "down"),
+    (re.compile(r"^quickest (vertex|zeros|y-intercept): (.+)$"), lambda ask, src: WAY_TO[form_of(src)][ask]),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^vertex: (.+)$"), vertex_of),
+)
+
+EXPR_RULES += (
+    (re.compile(r"^vertex form: (.+)$"), in_vertex_form),
+)
+
+BY_RULE += (
+    (re.compile(r"^max (of|at): (.+)$"), lambda want, src: highest(src, want)),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1730,9 +1794,11 @@ for path in sorted(LIB.glob("*.json")):
                 problems.append(f"{where}: {answer['accept'][0]} {verdict}")
             continue
 
-        if answer["type"] == "solutions" and text.startswith("quadratic: "):
+        if answer["type"] == "solutions" and text.startswith(("quadratic: ", "zeros: ")):
             checked += 1
-            want, got = quadratic_roots(text[len("quadratic: "):]), answer_points(answer["value"])
+            # A graph's zeros are the roots of y = 0.
+            equation = text[len("quadratic: "):] if text.startswith("quadratic") else f"{text[len('zeros: '):]} = 0"
+            want, got = quadratic_roots(equation), answer_points(answer["value"])
             if got != want:
                 said = lambda xs: ", ".join(str(x) for x in sorted(xs))
                 problems.append(f"{where}: {text} has roots {said(want)}, not {'a range' if got is None else said(got)}")

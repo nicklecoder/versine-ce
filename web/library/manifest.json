@@ -1,5 +1,5 @@
 {
-  "built": 309,
+  "built": 317,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -208,6 +208,16 @@
       "solving-f-x-equals-k",
       "domain-and-range",
       "what-f-a-equals-b-means",
+      "all-together"
+    ],
+    "quadratic-graphs": [
+      "up-or-down",
+      "vertex-form",
+      "zeros-from-factored-form",
+      "vertex-from-b-2a",
+      "into-vertex-form",
+      "max-and-min-in-context",
+      "which-form-shows-it",
       "all-together"
     ],
     "decimals": [
@@ -690,6 +700,17 @@
       ],
       "levels": {}
     },
+    "quadratic-graphs": {
+      "dependsOn": [
+        "functions",
+        "quadratic-formula"
+      ],
+      "levels": {
+        "which-form-shows-it": [
+          "quadratic-formula"
+        ]
+      }
+    },
     "decimals": {
       "dependsOn": [
         "frac-equiv",
@@ -924,7 +945,7 @@
       }
     }
   },
-  "sources": "387e0cd1e976ef323b7b1fdc906d28f5e72904897f58e40361744cd72b1e26d5",
+  "sources": "385695c9013decaded018220b6812384862b52a79a617673763d9b07ab39c2a5",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2575,6 +2596,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "functions-7.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 0,
+      "slug": "up-or-down",
+      "name": "Up or Down",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadratic-graphs-0.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 1,
+      "slug": "vertex-form",
+      "name": "Vertex Form",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-graphs-1.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 2,
+      "slug": "zeros-from-factored-form",
+      "name": "Zeros From Factored Form",
+      "count": 525,
+      "exhaustive": true,
+      "signed": true,
+      "file": "quadratic-graphs-2.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 3,
+      "slug": "vertex-from-b-2a",
+      "name": "Vertex From −b/2a",
+      "count": 850,
+      "exhaustive": true,
+      "signed": true,
+      "file": "quadratic-graphs-3.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 4,
+      "slug": "into-vertex-form",
+      "name": "Into Vertex Form",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadratic-graphs-4.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 5,
+      "slug": "max-and-min-in-context",
+      "name": "Max and Min in Context",
+      "count": 418,
+      "exhaustive": true,
+      "signed": false,
+      "file": "quadratic-graphs-5.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 6,
+      "slug": "which-form-shows-it",
+      "name": "Which Form Shows It?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "quadratic-graphs-6.json"
+    },
+    {
+      "skill": "quadratic-graphs",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "quadratic-graphs-7.json"
     },
     {
       "skill": "decimals",

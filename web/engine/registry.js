@@ -23,6 +23,7 @@ import linearEq from '../skills/linear-eq.js';
 import lineForms from '../skills/line-forms.js';
 import linearModels from '../skills/linear-models.js';
 import functions from '../skills/functions.js';
+import quadraticGraphs from '../skills/quadratic-graphs.js';
 import decimals from '../skills/decimals.js';
 import rounding from '../skills/rounding.js';
 import percents from '../skills/percents.js';
@@ -47,7 +48,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

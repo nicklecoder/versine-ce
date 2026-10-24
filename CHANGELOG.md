@@ -107,6 +107,10 @@ Phase 2 has begun:
 - **The Quadratic Formula** (Equations): making a square, completing the square, the
   formula, the discriminant, exact radical answers, and a strategy level on the least-work
   method of four.
+- **Graphs of Quadratics** (Functions): which way a parabola opens, the vertex read from
+  vertex form and found from −b/2a, the zeros from factored form, completing the square
+  into vertex form, maxima in context (a thrown ball, a fenced pen, a shop's takings), and
+  a strategy level on which form shows the vertex, the zeros or the y-intercept.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

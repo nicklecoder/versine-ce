@@ -117,7 +117,10 @@ Four Terms · Sums and Differences of Cubes · All Together; and `quadratic-eq`,
 as Zero Product · By Factoring · Rearrange to Zero First · Square Roots · Which
 Method? (strategy, on factoring's Which Pattern?) · All Together; and
 `quadratic-formula`, as Make a Square · Completing the Square · The Formula ·
-The Discriminant · Exact Radical Answers · Which Method? (strategy) · All Together.
+The Discriminant · Exact Radical Answers · Which Method? (strategy) · All Together;
+and `quadratic-graphs`, as Up or Down · Vertex Form · Zeros From Factored Form ·
+Vertex From −b/2a · Into Vertex Form · Max and Min in Context · Which Form Shows
+It? (strategy, on quadratic-formula's Which Method?) · All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|
