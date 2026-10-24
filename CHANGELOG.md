@@ -153,6 +153,14 @@ area of a circle, kept as a number of π or with 3.14, and run backwards to the 
 composite figures (an L, a hole, a roof, a half circle); and a missing side from the
 area. Shapes are drawn to scale with their heights dashed, and the area is shaded on
 reveal.
+
+**Volume and Surface Area** (Area & Volume), in eight levels: prisms (boxes, cubes and
+right-triangle prisms, and a box's height from its volume); cylinders, and a height from
+the volume; cones and pyramids as a third, with the slant drawn beside the height;
+spheres and hemispheres, and a radius from the volume; the surface of boxes, cubes and
+triangular prisms; of cylinders closed, open at the top or open at both ends; and of
+cones, spheres and solid hemispheres, and a radius from the surface. Solids are drawn in
+an oblique view with hidden edges dashed.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

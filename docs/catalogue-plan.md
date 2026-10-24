@@ -164,6 +164,9 @@ Inequality · All Together.
 Circumference · Area of a Circle · Composite Figures · Missing Dimension · All
 Together, with no strategy level: whether π is kept or taken as 3.14 is said
 in each question, not chosen.
+`volume` is built, as Prisms · Cylinders · Cones and Pyramids · Spheres ·
+Surface Area: Prisms · Surface Area: Cylinders · Cones and Spheres · All
+Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

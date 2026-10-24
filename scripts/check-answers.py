@@ -2527,6 +2527,108 @@ BY_RULE += (
      lambda a, h, p: 2 * Fraction(a) / Fraction(h) - Fraction(p)),
 )
 
+# --- Volume and Surface Area -------------------------------------------------
+#
+# A prism or cylinder is its base times its height, a pyramid or cone a third
+# of that, a sphere 4/3 πr³ and a hemisphere half. Surfaces are every face
+# added: a box's three pairs, a cylinder's circles and the rectangle as long
+# as its circumference, πrl round a cone with l the slant, 4πr² round a
+# sphere and 3πr² over a solid hemisphere. A slant and a height both given
+# must make a right triangle with the radius, or the figure is impossible.
+
+def radius_of(what: str, g: str) -> Fraction:
+    return Fraction(g) / (2 if what == "diameter" else 1)
+
+
+def right_triangle(a, b, c) -> None:
+    assert Fraction(a) ** 2 + Fraction(b) ** 2 == Fraction(c) ** 2, (a, b, c)
+
+
+def cone_volume(what: str, g: str, h: str, s, form: str) -> Fraction:
+    r = radius_of(what, g)
+    if s is not None:
+        right_triangle(r, h, s)
+    return pi_as(form) * r * r * Fraction(h) / 3
+
+
+def pyramid_volume(L: str, W: str, H: str, s) -> Fraction:
+    if s is not None:                                  # up the middle of a face
+        assert L == W, (L, W)
+        right_triangle(Fraction(L) / 2, H, s)
+    return Fraction(L) * Fraction(W) * Fraction(H) / 3
+
+
+def ball_volume(solid: str, what: str, g: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    return pi_as(form) * Fraction(4 if solid == "sphere" else 2, 3) * r ** 3
+
+
+def ball_radius(solid: str, k: str) -> Fraction:
+    cube = Fraction(k) * 3 / (4 if solid == "sphere" else 2)
+    r = Fraction(round(float(cube) ** (1 / 3) * 2), 2)          # radii here are whole or halves
+    assert r ** 3 == cube, k
+    return r
+
+
+def tri_prism(a: str, b: str, c: str, length: str, what: str) -> Fraction:
+    right_triangle(a, b, c)
+    a, b, c, length = map(Fraction, (a, b, c, length))
+    return a * b / 2 * length if what == "volume" else a * b + (a + b + c) * length
+
+
+CYLINDER_ENDS = {"closed": 2, "open": 1, "no ends": 0}
+
+
+def cylinder_surface(what: str, g: str, h: str, ends: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    return pi_as(form) * (CYLINDER_ENDS[ends] * r * r + 2 * r * Fraction(h))
+
+
+def cone_surface(what: str, g: str, s: str, h: str, part: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    right_triangle(r, h, s)
+    return pi_as(form) * (r * Fraction(s) + (r * r if part == "closed" else 0))
+
+
+def ball_surface(solid: str, what: str, g: str, form: str) -> Fraction:
+    r = radius_of(what, g)
+    return pi_as(form) * (4 if solid == "sphere" else 3) * r * r
+
+
+def radius_from_sphere_surface(k: str) -> Fraction:
+    square = Fraction(k) / 4
+    r = Fraction(round(float(square) ** 0.5 * 2), 2)
+    assert r * r == square, k
+    return r
+
+
+BY_RULE += (
+    (re.compile(rf"^box volume: {LENGTH} x {LENGTH} x {LENGTH}$"),
+     lambda L, W, H: Fraction(L) * Fraction(W) * Fraction(H)),
+    (re.compile(rf"^cube volume: side {LENGTH}$"), lambda s: Fraction(s) ** 3),
+    (re.compile(rf"^box height from volume: {LENGTH}, base {LENGTH} x {LENGTH}$"),
+     lambda V, L, W: Fraction(V) / (Fraction(L) * Fraction(W))),
+    (re.compile(rf"^triangular prism (volume|surface): legs {LENGTH}, {LENGTH}, hypotenuse {LENGTH}, length {LENGTH}$"),
+     lambda what, a, b, c, L: tri_prism(a, b, c, L, what)),
+    (re.compile(rf"^cylinder volume: (radius|diameter) {LENGTH}, height {LENGTH} {PI_FORM}$"),
+     lambda what, g, h, form: pi_as(form) * radius_of(what, g) ** 2 * Fraction(h)),
+    (re.compile(rf"^cylinder height from volume: {LENGTH}, radius {LENGTH} \(pi\)$"),
+     lambda k, r: Fraction(k) / Fraction(r) ** 2),
+    (re.compile(rf"^pyramid volume: base {LENGTH} x {LENGTH}, height {LENGTH}(?:, slant {LENGTH})?$"), pyramid_volume),
+    (re.compile(rf"^cone volume: (radius|diameter) {LENGTH}, height {LENGTH}(?:, slant {LENGTH})? {PI_FORM}$"), cone_volume),
+    (re.compile(rf"^(sphere|hemisphere) volume: (radius|diameter) {LENGTH} {PI_FORM}$"), ball_volume),
+    (re.compile(rf"^(sphere|hemisphere) radius from volume: {LENGTH} \(pi\)$"), ball_radius),
+    (re.compile(rf"^box surface: {LENGTH} x {LENGTH} x {LENGTH}$"),
+     lambda L, W, H: 2 * (Fraction(L) * Fraction(W) + Fraction(L) * Fraction(H) + Fraction(W) * Fraction(H))),
+    (re.compile(rf"^cube surface: side {LENGTH}$"), lambda s: 6 * Fraction(s) ** 2),
+    (re.compile(rf"^cylinder surface: (radius|diameter) {LENGTH}, height {LENGTH}, (closed|open|no ends) {PI_FORM}$"),
+     cylinder_surface),
+    (re.compile(rf"^cone surface: (radius|diameter) {LENGTH}, slant {LENGTH}, height {LENGTH}, (closed|curved) {PI_FORM}$"),
+     cone_surface),
+    (re.compile(rf"^(sphere|hemisphere) surface: (radius|diameter) {LENGTH} {PI_FORM}$"), ball_surface),
+    (re.compile(rf"^sphere radius from surface: {LENGTH} \(pi\)$"), radius_from_sphere_surface),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

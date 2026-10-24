@@ -106,3 +106,57 @@ export function circlePath(c, r, tone = LINE, from = 0, to = 360) {
   for (let i = 0; i <= steps; i++) pts.push(toward(from + ((to - from) * i) / steps, r, c));
   return { kind: 'path', points: pts, tone };
 }
+
+// ── Lengths, areas and volumes ─────────────────────────────────────────
+
+export const UNITS = ['cm', 'm', 'in', 'ft'];
+/** A number as it is written: no float noise, nothing after a point that is not needed. */
+export const f = (x) => String(Math.round(x * 1e6) / 1e6);
+/** An exact decimal answer, as the decimal type holds it. */
+export function dec(x) {
+  const [w, frac = ''] = f(x).split('.');
+  return { type: 'decimal', value: { n: Number(w + frac), d: 10 ** frac.length } };
+}
+/** A length: whole, or now and then a half. */
+export const len = (rng, lo, hi, half = 0.25) => rng.int(lo, hi) + (rng.chance(half) ? 0.5 : 0);
+export const dashed = (from, to) => ({ kind: 'segment', from, to, tone: LINE, dashed: true });
+/** The little square at a right angle at `c`, between the directions to A and B. */
+export function rightMark(c, A, B, s = 0.38) {
+  const u = (P) => { const l = Math.hypot(P[0] - c[0], P[1] - c[1]); return [(P[0] - c[0]) / l, (P[1] - c[1]) / l]; };
+  const [a, b] = [u(A), u(B)];
+  return { kind: 'path', tone: LINE, points: [
+    [r2(c[0] + s * a[0]), r2(c[1] + s * a[1])],
+    [r2(c[0] + s * (a[0] + b[0])), r2(c[1] + s * (a[1] + b[1]))],
+    [r2(c[0] + s * b[0]), r2(c[1] + s * b[1])]] };
+}
+export const region = (points, tone) => ({ kind: 'region', points, ...(tone ? { tone } : {}) });
+
+/** Pythagorean triples, for slanted sides that come out whole. */
+export const TRIPLES = [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [9, 12, 15], [7, 24, 25], [12, 16, 20], [15, 20, 25], [10, 24, 26], [20, 21, 29]];
+/** A slant: [across, up, along] -- how far it runs, how high it climbs, how long it is. */
+export function slant(rng, maxUp = 20) {
+  for (;;) {
+    const [p, q, s] = rng.pick(TRIPLES), m = rng.pick([0.5, 1, 1, 1.5, 2]);
+    const [across, up] = rng.chance(0.5) ? [p, q] : [q, p];
+    if (up * m <= maxUp && up * m >= 2) return [across * m, up * m, s * m];
+  }
+}
+export const answerText = (at, label) => text(at, label, null);
+export const xs = (P) => P.map((p) => p[0]), ys = (P) => P.map((p) => p[1]);
+/** Just under a figure, and just over it: where an area is written, clear of every side's label. */
+export const under = (P) => [r2((Math.min(...xs(P)) + Math.max(...xs(P))) / 2), r2(Math.min(...ys(P)) - 1.3)];
+export const over = (P) => [r2((Math.min(...xs(P)) + Math.max(...xs(P))) / 2), r2(Math.max(...ys(P)) + 0.9)];
+
+/**
+ * An ellipse, or part of one, as a path: a circle seen at a slant, which is
+ * how the round end of a cylinder or a cone's base is drawn.
+ */
+export function ellipsePath(c, rx, ry, from = 0, to = 360, { tone = LINE, dashed = false } = {}) {
+  const pts = [];
+  const steps = Math.max(8, Math.ceil((to - from) / 8));
+  for (let i = 0; i <= steps; i++) {
+    const t = (from + ((to - from) * i) / steps) * RAD;
+    pts.push([r2(c[0] + rx * Math.cos(t)), r2(c[1] + ry * Math.sin(t))]);
+  }
+  return { kind: 'path', points: pts, tone, ...(dashed ? { dashed: true } : {}) };
+}

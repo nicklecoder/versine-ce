@@ -18,36 +18,16 @@
  * every size, and the labels say how big it is.
  */
 import * as T from '../terms.js';
-import { LINE, GIVEN, ASKED, FRAME, r2, toward, fit, text, outline, centroid, sideLabel, circlePath } from './figures.js';
+import { LINE, GIVEN, ASKED, FRAME, r2, toward, fit, text, outline, centroid, sideLabel, circlePath,
+  UNITS, f, dec, len, dashed, rightMark, region, slant, answerText, under, over } from './figures.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/area.js';
 
-const UNITS = ['cm', 'm', 'in', 'ft'];
-/** A number as it is written: no float noise, nothing after a point that is not needed. */
-const f = (x) => String(Math.round(x * 1e4) / 1e4);
-/** An exact decimal answer, as the decimal type holds it. */
-function dec(x) {
-  const [w, frac = ''] = f(x).split('.');
-  return { type: 'decimal', value: { n: Number(w + frac), d: 10 ** frac.length } };
-}
-/** A length: whole, or now and then a half. */
-const len = (rng, lo, hi, half = 0.25) => rng.int(lo, hi) + (rng.chance(half) ? 0.5 : 0);
 const sq = (u) => `${u}²`;
-const dashed = (from, to) => ({ kind: 'segment', from, to, tone: LINE, dashed: true });
-/** The little square at a right angle at `c`, between the directions to A and B. */
-function rightMark(c, A, B, s = 0.38) {
-  const u = (P) => { const l = Math.hypot(P[0] - c[0], P[1] - c[1]); return [(P[0] - c[0]) / l, (P[1] - c[1]) / l]; };
-  const [a, b] = [u(A), u(B)];
-  return { kind: 'path', tone: LINE, points: [
-    [r2(c[0] + s * a[0]), r2(c[1] + s * a[1])],
-    [r2(c[0] + s * (a[0] + b[0])), r2(c[1] + s * (a[1] + b[1]))],
-    [r2(c[0] + s * b[0]), r2(c[1] + s * b[1])]] };
-}
-const region = (points, tone) => ({ kind: 'region', points, ...(tone ? { tone } : {}) });
 /** The figure: marks, and what arrives with the answer, framed tightly. */
 const figure = (marks, answer) => fit({ ...FRAME, marks, answer }, 1);
 
 /**
- * Real lengths to drawing units. The longest dimension is drawn about 6.5
+ * Real lengths to drawing units. The longest dimension is drawn SPAN
  * units across, whatever it is; `mirror` turns the figure over left to
  * right, so not every slant leans the same way.
  */
@@ -57,21 +37,6 @@ function scaler(longest, width, mirror = false) {
   return (p) => [r2((mirror ? width - p[0] : p[0]) * k), r2(p[1] * k)];
 }
 
-/** Pythagorean triples, for slanted sides that come out whole. */
-const TRIPLES = [[3, 4, 5], [5, 12, 13], [6, 8, 10], [8, 15, 17], [9, 12, 15], [7, 24, 25], [12, 16, 20], [15, 20, 25], [10, 24, 26], [20, 21, 29]];
-/** A slant: [across, up, along] -- how far it runs, how high it climbs, how long it is. */
-function slant(rng, maxUp = 20) {
-  for (;;) {
-    const [p, q, s] = rng.pick(TRIPLES), m = rng.pick([0.5, 1, 1, 1.5, 2]);
-    const [across, up] = rng.chance(0.5) ? [p, q] : [q, p];
-    if (up * m <= maxUp && up * m >= 2) return [across * m, up * m, s * m];
-  }
-}
-const answerText = (at, label) => text(at, label, null);
-const xs = (P) => P.map((p) => p[0]), ys = (P) => P.map((p) => p[1]);
-/** Just under a figure, and just over it: where an area is written, clear of every side's label. */
-const under = (P) => [r2((Math.min(...xs(P)) + Math.max(...xs(P))) / 2), r2(Math.min(...ys(P)) - 1.3)];
-const over = (P) => [r2((Math.min(...xs(P)) + Math.max(...xs(P))) / 2), r2(Math.max(...ys(P)) + 0.9)];
 
 // ── Rectangles and parallelograms ───────────────────────────────────────
 

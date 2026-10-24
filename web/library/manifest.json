@@ -1,5 +1,5 @@
 {
-  "built": 373,
+  "built": 381,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -472,6 +472,16 @@
       "area-of-a-circle",
       "composite-figures",
       "missing-dimension",
+      "all-together"
+    ],
+    "volume": [
+      "prisms",
+      "cylinders",
+      "cones-and-pyramids",
+      "spheres",
+      "surface-area-prisms",
+      "surface-area-cylinders",
+      "cones-and-spheres",
       "all-together"
     ]
   },
@@ -1069,9 +1079,15 @@
         "decimals"
       ],
       "levels": {}
+    },
+    "volume": {
+      "dependsOn": [
+        "area"
+      ],
+      "levels": {}
     }
   },
-  "sources": "64602c8799f922f60ab0066c223de3fc9a25f0d4b3f8dd09c341ec0f0252198e",
+  "sources": "a37149e1217a843167706c7729f44ad9d721bf72a0a648b7d1f72caeac8fc9a2",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4802,6 +4818,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "area-7.json"
+    },
+    {
+      "skill": "volume",
+      "level": 0,
+      "slug": "prisms",
+      "name": "Prisms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-0.json"
+    },
+    {
+      "skill": "volume",
+      "level": 1,
+      "slug": "cylinders",
+      "name": "Cylinders",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-1.json"
+    },
+    {
+      "skill": "volume",
+      "level": 2,
+      "slug": "cones-and-pyramids",
+      "name": "Cones and Pyramids",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-2.json"
+    },
+    {
+      "skill": "volume",
+      "level": 3,
+      "slug": "spheres",
+      "name": "Spheres",
+      "count": 140,
+      "exhaustive": true,
+      "signed": false,
+      "file": "volume-3.json"
+    },
+    {
+      "skill": "volume",
+      "level": 4,
+      "slug": "surface-area-prisms",
+      "name": "Surface Area: Prisms",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-4.json"
+    },
+    {
+      "skill": "volume",
+      "level": 5,
+      "slug": "surface-area-cylinders",
+      "name": "Surface Area: Cylinders",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-5.json"
+    },
+    {
+      "skill": "volume",
+      "level": 6,
+      "slug": "cones-and-spheres",
+      "name": "Cones and Spheres",
+      "count": 552,
+      "exhaustive": true,
+      "signed": false,
+      "file": "volume-6.json"
+    },
+    {
+      "skill": "volume",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "volume-7.json"
     }
   ]
 }
