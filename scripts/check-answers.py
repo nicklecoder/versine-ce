@@ -933,6 +933,14 @@ def method_for(e1: str, e2: str) -> str:
     (a1, b1, _), (a2, b2, _) = coeffs(e1), coeffs(e2)
     if abs(a1) == abs(a2) or abs(b1) == abs(b2):
         return "elimination"
+    # Scaling is only the clear winner when no equation divides down to a
+    # letter with 1 in front: 3x + 3y = 0 is y = -x, and substituting that
+    # is as quick, so such a system has no single right answer.
+    for e in (e1, e2):
+        a, b, c = coeffs(e)
+        g = math.gcd(math.gcd(int(a), int(b)), int(c))
+        if g and (abs(a) == g or abs(b) == g):
+            raise ValueError(f"{e} divides down to a lone letter")
     return "scale"
 
 
