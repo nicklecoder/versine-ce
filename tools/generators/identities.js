@@ -57,7 +57,9 @@ function fnOf(expr) {
   return compiled.get(expr);
 }
 const TESTS = [0.37, 0.91, 1.23, 2.05, 2.71, 4.0, 5.3];
-const same = (e1, e2) => TESTS.every((t) => { const x = fnOf(e1)(t), y = fnOf(e2)(t); return Math.abs(x - y) <= 1e-9 * Math.max(1, Math.abs(x)); });
+// α and β beside each θ, for the expressions in two angles; the rest ignore them.
+const AB = [[0.29, 1.13], [1.41, 0.62], [2.3, -0.77], [-0.95, 2.6], [3.7, 1.9], [0.83, -2.2], [5.1, 0.44]];
+const same = (e1, e2) => TESTS.every((t, i) => { const x = fnOf(e1)(t, ...AB[i]), y = fnOf(e2)(t, ...AB[i]); return Math.abs(x - y) <= 1e-9 * Math.max(1, Math.abs(x)); });
 
 const SUP = { 2: '²', 3: '³', 4: '⁴' };
 const FNS = '(sin|cos|tan|sec|csc|cot)';
@@ -68,11 +70,13 @@ function pretty(s, angle = null) {
   out = out.replace(new RegExp(`${FNS}\\(t\\)\\^(\\d)`, 'g'), (_, f, n) => `${f}${SUP[n]}θ`);
   out = out.replace(new RegExp(`${FNS}\\((\\d+)\\*t\\)\\^(\\d)`, 'g'), (_, f, k, n) => `${f}${SUP[n]}${k}θ`);
   out = out.replace(new RegExp(`${FNS}\\(([^()]*)\\)\\^(\\d)`, 'g'), (_, f, x, n) => `${f}${SUP[n]}(${x})`);
+  out = out.replace(/\bt\^(\d)/g, (_, n) => `θ${SUP[n]}`);
   out = out.replace(new RegExp(`${FNS}\\(t\\)`, 'g'), '$1 θ');
+  out = out.replace(new RegExp(`${FNS}\\(([ab])\\)`, 'g'), '$1 $2');
   out = out.replace(new RegExp(`${FNS}\\((\\d+)\\*t\\)`, 'g'), '$1 $2θ');
   out = out.replace(/\b(\d+)\*t\b/g, '$1θ');
   out = out.replace(/\bt\b/g, 'θ').replace(/\ba\b/g, 'α').replace(/\bb\b/g, 'β');
-  out = out.replace(/sqrt\((\d+)\)/g, '√$1');
+  out = out.replace(/sqrt\((\d+)\)/g, '√$1').replace(/sqrt\(/g, '√(');
   out = out.replace(/\)\^(\d)/g, (_, n) => `)${SUP[n]}`);
   out = out.replace(/\*(?=\d)/g, '·').replace(/\*/g, ' ');
   out = out.replace(/-/g, '−');
@@ -660,6 +664,181 @@ function doubleAngle(rng) {
   };
 }
 
+// ── Identity or Not? ────────────────────────────────────────────────────
+
+// Equations that are identities, each from an earlier level, with the reason.
+const IS_IDENTITY = [
+  ['sin(t)^2 + cos(t)^2', '1', 'It is the Pythagorean theorem on the unit circle, x² + y² = 1'],
+  ['1 + tan(t)^2', 'sec(t)^2', 'It is sin²θ + cos²θ = 1 divided through by cos²θ'],
+  ['1 + cot(t)^2', 'csc(t)^2', 'It is sin²θ + cos²θ = 1 divided through by sin²θ'],
+  ['sec(t)^2 - tan(t)^2', '1', 'It is 1 + tan²θ = sec²θ with tan²θ taken to the other side'],
+  ['(1 - cos(t))*(1 + cos(t))', 'sin(t)^2', 'Multiplied out it is 1 − cos²θ, which is sin²θ'],
+  ['tan(t)', 'sin(t)/cos(t)', 'It is the quotient identity: tangent is y/x, sine over cosine'],
+  ['cot(t)', 'cos(t)/sin(t)', 'It is the quotient identity: cotangent is x/y, cosine over sine'],
+  ['sec(t)', '1/cos(t)', 'Secant is defined as the reciprocal of cosine'],
+  ['csc(t)', '1/sin(t)', 'Cosecant is defined as the reciprocal of sine'],
+  ['sin(t)*csc(t)', '1', 'csc θ = 1/sin θ, and a number times its reciprocal is 1'],
+  ['tan(t)*cot(t)', '1', 'cot θ = 1/tan θ, and a number times its reciprocal is 1'],
+  ['cos(-t)', 'cos(t)', 'Cosine is even: reflecting θ in the x-axis keeps x'],
+  ['sin(-t)', '-sin(t)', 'Sine is odd: reflecting θ in the x-axis negates y'],
+  ['tan(-t)', '-tan(t)', 'Tangent is odd: an odd sine over an even cosine'],
+  ['sin(pi/2 - t)', 'cos(t)', 'A function of θ equals its cofunction of the complement'],
+  ['tan(pi/2 - t)', 'cot(t)', 'A function of θ equals its cofunction of the complement'],
+  ['sec(pi/2 - t)', 'csc(t)', 'A function of θ equals its cofunction of the complement'],
+  ['sin(pi - t)', 'sin(t)', 'By the difference formula, sin(π − θ) = sin π cos θ − cos π sin θ = sin θ'],
+  ['cos(pi - t)', '-cos(t)', 'By the difference formula, cos(π − θ) = cos π cos θ + sin π sin θ = −cos θ'],
+  ['sin(t + pi)', '-sin(t)', 'By the sum formula, sin(θ + π) = sin θ cos π + cos θ sin π = −sin θ'],
+  ['sin(a + b)', 'sin(a)*cos(b) + cos(a)*sin(b)', 'It is the sum formula for sine'],
+  ['sin(a - b)', 'sin(a)*cos(b) - cos(a)*sin(b)', 'It is the difference formula for sine'],
+  ['cos(a + b)', 'cos(a)*cos(b) - sin(a)*sin(b)', 'It is the sum formula for cosine, the sign in the middle opposite to the one inside'],
+  ['cos(a - b)', 'cos(a)*cos(b) + sin(a)*sin(b)', 'It is the difference formula for cosine, the sign in the middle opposite to the one inside'],
+  ['sin(2*t)', '2*sin(t)*cos(t)', 'It is the sum formula with both angles θ: sin θ cos θ + cos θ sin θ'],
+  ['cos(2*t)', 'cos(t)^2 - sin(t)^2', 'It is the sum formula with both angles θ: cos θ cos θ − sin θ sin θ'],
+  ['cos(2*t)', '1 - 2*sin(t)^2', 'It is cos²θ − sin²θ with cos²θ written as 1 − sin²θ'],
+  ['cos(2*t)', '2*cos(t)^2 - 1', 'It is cos²θ − sin²θ with sin²θ written as 1 − cos²θ'],
+  ['tan(2*t)', '(2*tan(t))/(1 - tan(t)^2)', 'It is the tangent sum formula with both angles θ'],
+  ['1 - 2*sin(t)^2', '2*cos(t)^2 - 1', 'Both sides are forms of cos 2θ'],
+  ['(sin(t) + cos(t))^2', '1 + sin(2*t)', 'Squared out it is sin²θ + 2 sin θ cos θ + cos²θ, which is 1 + sin 2θ'],
+  ['cos(t)^4 - sin(t)^4', 'cos(2*t)', 'As a difference of squares it is (cos²θ − sin²θ)(cos²θ + sin²θ), which is cos 2θ × 1'],
+  ['tan(t) + cot(t)', 'sec(t)*csc(t)', 'Over a common denominator it is (sin²θ + cos²θ)/(sin θ cos θ), which is 1/(sin θ cos θ)'],
+  ['sec(t) - cos(t)', 'sin(t)*tan(t)', 'Over a common denominator it is (1 − cos²θ)/cos θ = sin²θ/cos θ, which is sin θ tan θ'],
+];
+
+// Equations that are not, each a slip a student makes, with an angle where
+// both sides are defined and differ (α and β for two angles; one in
+// radians, as k/m pi), the values there, and the fix. Most hold at some
+// special angles, so one angle tried can mislead.
+const NOT_IDENTITY = [
+  ['sin(2*t)', '2*sin(t)', [90], 'sin 180° = 0, but 2 sin 90° = 2', 'The 2 belongs to the angle: sin 2θ = 2 sin θ cos θ.'],
+  ['cos(2*t)', '2*cos(t)', [0], 'cos 0° = 1, but 2 cos 0° = 2', 'cos 2θ = 2 cos²θ − 1, not 2 cos θ.'],
+  ['tan(2*t)', '2*tan(t)', [30], 'tan 60° = √3, but 2 tan 30° = 2√3/3', 'tan 2θ = 2 tan θ/(1 − tan²θ).'],
+  ['sin(2*t)', 'sin(t)*cos(t)', [45], 'sin 90° = 1, but sin 45° cos 45° = 1/2', 'The 2 is part of the formula: sin 2θ = 2 sin θ cos θ.'],
+  ['cos(2*t)', 'cos(t)^2 + sin(t)^2', [90], 'cos 180° = −1, but cos²90° + sin²90° = 1', 'The squares are subtracted: cos 2θ = cos²θ − sin²θ.'],
+  ['cos(2*t)', '1 - 2*cos(t)^2', [0], 'cos 0° = 1, but 1 − 2 cos²0° = −1', '1 − 2 cos²θ is −cos 2θ; the forms are 1 − 2 sin²θ and 2 cos²θ − 1.'],
+  ['sin(a + b)', 'sin(a) + sin(b)', [90, 90], 'sin 180° = 0, but sin 90° + sin 90° = 2', 'Sine does not distribute over a sum: sin(α + β) = sin α cos β + cos α sin β.'],
+  ['cos(a + b)', 'cos(a) + cos(b)', [0, 0], 'cos 0° = 1, but cos 0° + cos 0° = 2', 'Cosine does not distribute over a sum: cos(α + β) = cos α cos β − sin α sin β.'],
+  ['cos(a - b)', 'cos(a) - cos(b)', [0, 0], 'cos 0° = 1, but cos 0° − cos 0° = 0', 'cos(α − β) = cos α cos β + sin α sin β.'],
+  ['cos(a + b)', 'cos(a)*cos(b) + sin(a)*sin(b)', [90, 90], 'cos 180° = −1, but cos 90° cos 90° + sin 90° sin 90° = 1', 'In the cosine formula the sign in the middle is the opposite of the sign inside.'],
+  ['sin(t)^2', 'sin(t^2)', ['1/2 pi'], 'sin²(π/2) = 1, but sin(π²/4) ≈ sin 2.47 ≈ 0.62', 'sin²θ means (sin θ)², the sine squared, not the sine of θ².'],
+  ['tan(t)', 'cos(t)/sin(t)', [30], 'tan 30° = √3/3, but cos 30°/sin 30° = √3', 'cos θ/sin θ is cot θ; tangent is sine over cosine.'],
+  ['sec(t)', '1/sin(t)', [30], 'sec 30° = 2√3/3, but 1/sin 30° = 2', 'Secant is 1 over cosine; 1 over sine is cosecant.'],
+  ['csc(t)', '1/cos(t)', [30], 'csc 30° = 2, but 1/cos 30° = 2√3/3', 'Cosecant is 1 over sine; 1 over cosine is secant.'],
+  ['cos(-t)', '-cos(t)', [0], 'cos(−0°) = 1, but −cos 0° = −1', 'Cosine is even: cos(−θ) = cos θ.'],
+  ['sin(-t)', 'sin(t)', [90], 'sin(−90°) = −1, but sin 90° = 1', 'Sine is odd: sin(−θ) = −sin θ.'],
+  ['tan(-t)', 'tan(t)', [45], 'tan(−45°) = −1, but tan 45° = 1', 'Tangent is odd: tan(−θ) = −tan θ.'],
+  ['1 + tan(t)^2', 'csc(t)^2', [30], '1 + tan²30° = 4/3, but csc²30° = 4', 'Tangent goes with secant: 1 + tan²θ = sec²θ.'],
+  ['1 + cot(t)^2', 'sec(t)^2', [60], '1 + cot²60° = 4/3, but sec²60° = 4', 'Cotangent goes with cosecant: 1 + cot²θ = csc²θ.'],
+  ['sin(t) + cos(t)', '1', [45], 'sin 45° + cos 45° = √2, not 1', 'It is the squares that add to 1: sin²θ + cos²θ = 1.'],
+  ['(sin(t) + cos(t))^2', '1', [45], '(sin 45° + cos 45°)² = (√2)² = 2, not 1', 'Squaring a sum leaves a middle term: (sin θ + cos θ)² = 1 + 2 sin θ cos θ.'],
+  ['cos(t)^2 - sin(t)^2', '1', [90], 'cos²90° − sin²90° = −1, not 1', 'Subtracted, the squares make cos 2θ; added, they make 1.'],
+  ['sec(t)^2 + tan(t)^2', '1', [45], 'sec²45° + tan²45° = 2 + 1 = 3, not 1', 'It is the difference that is 1: sec²θ − tan²θ = 1.'],
+  ['sqrt(sin(t)^2)', 'sin(t)', [270], '√(sin²270°) = √1 = 1, but sin 270° = −1', 'A square root is never negative: √(sin²θ) is the size of sin θ, |sin θ|.'],
+  ['sqrt(1 - cos(t)^2)', 'sin(t)', [270], '√(1 − cos²270°) = √1 = 1, but sin 270° = −1', 'The square root is never negative, so it is sin θ only where sin θ ≥ 0.'],
+  ['sin(pi - t)', '-sin(t)', [90], 'sin(180° − 90°) = sin 90° = 1, but −sin 90° = −1', 'sin(π − θ) = sin θ: the angle across the y-axis has the same height.'],
+  ['cos(t + pi)', 'cos(t)', [0], 'cos(0° + 180°) = −1, but cos 0° = 1', 'Half a turn negates both coordinates: cos(θ + π) = −cos θ.'],
+  ['sin(pi/2 - t)', 'sin(t)', [0], 'sin(90° − 0°) = 1, but sin 0° = 0', 'The complement swaps to the cofunction: sin(π/2 − θ) = cos θ.'],
+  ['cos(t - pi/2)', '-sin(t)', [90], 'cos(90° − 90°) = 1, but −sin 90° = −1', 'cos(θ − π/2) = cos(π/2 − θ) = sin θ, with no minus sign.'],
+];
+
+const DEG = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+const ALWAYS = [{ id: 'always', label: 'Always true (an identity)' }, { id: 'not', label: 'Not always true' }];
+const degText = (d) => `${minus(d)}°`;
+const listText = (ds) => ds.map(degText).join(', ').replace(/, (?=[^,]*$)/, ' and ');
+const coterminal = (d) => ((d % 360) + 360) % 360;
+const twoAngles = (l, r) => /\b[ab]\b/.test(`${l} ${r}`);
+/** The value of e at t, or null where it is undefined: a zero denominator, or a square root of a negative. */
+function sideAt(e, t) {
+  let v;
+  try { v = fnOf(e)(t); } catch { return null; }
+  return Number.isFinite(v) && Math.abs(v) < 1e8 ? v : null;
+}
+/** 'holds', 'fails', or 'undefined' (a side has no value there), at d degrees. */
+function atAngle(l, r, d) {
+  const t = (d * Math.PI) / 180, x = sideAt(l, t), y = sideAt(r, t);
+  if (x === null || y === null) return 'undefined';
+  return Math.abs(x - y) <= 1e-9 * Math.max(1, Math.abs(x)) ? 'holds' : 'fails';
+}
+
+// requiem: catalogue/content/identity-or-not-by-counterexample
+/**
+ * Whether an equation is an identity, true wherever both sides are defined.
+ * Half the yes-or-no rows are identities from the earlier levels, half the
+ * slips those levels warn against. About a quarter of all rows instead say
+ * the equation is not an identity and ask at which of four angles it fails;
+ * each of the other three makes it true or leaves a side undefined, and at
+ * least one makes it true, so a single angle tried would mislead. The
+ * explanation of a false one names the special angles where it does hold.
+ */
+function identityOrNot(rng) {
+  const flip = rng.chance(0.5);
+  // Either way round, except that a bare number stays on the right: 1 = sin²θ + cos²θ reads backwards.
+  const side = (l, r) => (flip && !/^-?\d+$/.test(r) ? [r, l] : [l, r]);
+  if (rng.chance(0.25)) {
+    for (;;) {
+      const [l0, r0, [cx], values] = rng.pick(NOT_IDENTITY);
+      // One angle, in degrees, and no θ² (which degrees make no sense of).
+      if (twoAngles(l0, r0) || typeof cx !== 'number') continue;
+      const [l, r] = side(l0, r0);
+      if (atAngle(l, r, cx) !== 'fails') throw new Error(`${l} = ${r} does not fail at ${cx}`);
+      // The other three fixed for each equation, angles where it holds and
+      // where a side is undefined taken in turn, so this shape stays about a
+      // quarter of a library that holds every yes-or-no row.
+      const usable = [];
+      for (const d of DEG) if (coterminal(d) !== coterminal(cx) && !usable.some((u) => coterminal(u) === coterminal(d))) usable.push(d);
+      const H = usable.filter((d) => atAngle(l, r, d) === 'holds'), U = usable.filter((d) => atAngle(l, r, d) === 'undefined');
+      const picked = [H[0], U[0], H[1], U[1], H[2], U[2], H[3]].filter((d) => d !== undefined).slice(0, 3);
+      if (picked.length < 3 || !picked.some((d) => atAngle(l, r, d) === 'holds')) continue;
+      const angles = [cx, ...picked].sort((x, y) => x - y);
+      const opts = angles.map((d, i) => ({ id: optionIds[i], d }));
+      const eq = `${pretty(l)} = ${pretty(r)}`;
+      const holds = angles.filter((d) => atAngle(l, r, d) === 'holds');
+      const undef = angles.filter((d) => atAngle(l, r, d) === 'undefined');
+      return {
+        prompt: [T.prose(`${eq} is not an identity. At which of these angles does it fail, with both sides defined but not equal?`)],
+        text: `fails where: ${l} = ${r}; options ${opts.map((o) => `${o.id}: ${o.d}`).join(' | ')}`,
+        answer: { type: 'choice', value: optionIds[angles.indexOf(cx)], options: opts.map((o) => ({ id: o.id, label: degText(o.d) })) },
+        visual: null,
+        explain: `Try each angle in both sides. At ${listText(holds)} the two sides are equal, so ${holds.length > 1 ? 'those angles show' : 'that angle shows'} nothing. `
+          + `${undef.length ? `At ${listText(undef)} a side is undefined, so the equation makes no claim there. ` : ''}`
+          + `At ${degText(cx)}, ${values}: both sides are defined and differ. `
+          + `(One such angle is enough to disprove an equation; an angle where the sides agree proves nothing.) So ${degText(cx)}.`,
+      };
+    }
+  }
+  if (rng.chance(0.5)) {
+    const [l0, r0, why] = rng.pick(IS_IDENTITY);
+    const [l, r] = side(l0, r0);
+    if (!same(l, r)) throw new Error(`${l} = ${r} is not an identity`);
+    const eq = `${pretty(l)} = ${pretty(r)}`;
+    const where = twoAngles(l, r) ? 'every α and β' : 'every θ';
+    return {
+      prompt: [T.prose(`Is ${eq} true for ${where} where both sides are defined?`)],
+      text: `identity or not: ${l} = ${r}`,
+      answer: { type: 'choice', value: 'always', options: ALWAYS },
+      visual: null,
+      explain: `${why}, so ${eq} holds for ${where} where both sides are defined: it is an identity. `
+        + `(Trying angles could only fail to find a counterexample; it is the derivation that shows it always holds.) So always true.`,
+    };
+  }
+  const [l0, r0, cx, values, fix] = rng.pick(NOT_IDENTITY);
+  const [l, r] = side(l0, r0);
+  if (same(l, r)) throw new Error(`${l} = ${r} is an identity`);
+  const eq = `${pretty(l)} = ${pretty(r)}`;
+  const two = twoAngles(l, r), radian = typeof cx[0] === 'string';
+  const at = two ? (cx[0] === cx[1] ? `α = β = ${degText(cx[0])}` : `α = ${degText(cx[0])} and β = ${degText(cx[1])}`)
+    : radian ? 'θ = π/2' : `θ = ${degText(cx[0])}`;
+  const holds = two || radian ? [] : DEG.filter((d) => atAngle(l, r, d) === 'holds');
+  const misleads = holds.length ? ` It does hold at ${listText(holds)}, so one angle tried there would mislead.` : '';
+  return {
+    prompt: [T.prose(`Is ${eq} true for ${two ? 'every α and β' : 'every θ'} where both sides are defined?`)],
+    text: `identity or not: ${l} = ${r}; fails at ${cx.join(', ')}`,
+    answer: { type: 'choice', value: 'not', options: ALWAYS },
+    visual: null,
+    explain: `Try ${at}: ${values}. One angle where both sides are defined and differ disproves it.${misleads} `
+      + `(${fix}) So not always true.`,
+  };
+}
+
 // ── Next Step in a Proof ────────────────────────────────────────────────
 
 // Each proof: the line it starts from, then each next line with the reason it follows.
@@ -755,7 +934,7 @@ function proofStep(rng) {
   }
 }
 
-const CONTENT = [pythagorean, reciprocalQuotient, evenOdd, cofunction, sumDifference, doubleAngle, proofStep];
+const CONTENT = [pythagorean, reciprocalQuotient, evenOdd, cofunction, sumDifference, doubleAngle, identityOrNot, proofStep];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {

@@ -5733,6 +5733,119 @@ CHOICE_RULES += (
     (re.compile(r"^exact choice: (sin|cos|tan) (-?\d+(?:/\d+ pi)?); options (.+)$"), id_exact_choice),
 )
 
+# --- Identity or Not? ----------------------------------------------------------
+#
+# Each equation is classified on its own: both sides evaluated at a few
+# hundred angles (and pairs of angles, for α and β), by an evaluator of its
+# own that calls a value undefined where a denominator, a tangent's cosine
+# or a cotangent's sine is within 1e-9 of zero, or a square root's argument
+# is negative. It is an identity when the sides agree wherever both are
+# defined, and not one when they differ by more than a millionth somewhere;
+# an equation whose sides only ever differ by less is reported. A stated counterexample must be an angle
+# where both sides are defined and differ, and a "fails where" question must
+# have exactly one such angle among its options.
+
+class IdnUndefined(Exception):
+    pass
+
+
+def idn_value(node, env):
+    import ast
+    if isinstance(node, ast.Expression):
+        return idn_value(node.body, env)
+    if isinstance(node, ast.Constant):
+        return float(node.value)
+    if isinstance(node, ast.Name):
+        return math.pi if node.id == "pi" else env[node.id]
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        return -idn_value(node.operand, env)
+    if isinstance(node, ast.BinOp):
+        x, y = idn_value(node.left, env), idn_value(node.right, env)
+        if isinstance(node.op, ast.Add):
+            return x + y
+        if isinstance(node.op, ast.Sub):
+            return x - y
+        if isinstance(node.op, ast.Mult):
+            return x * y
+        if isinstance(node.op, ast.Div):
+            if abs(y) < 1e-9:
+                raise IdnUndefined
+            return x / y
+        if isinstance(node.op, ast.Pow):
+            return x ** y
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and len(node.args) == 1:
+        x = idn_value(node.args[0], env)
+        s, c = math.sin(x), math.cos(x)
+        f = node.func.id
+        if f == "sqrt":
+            if x < -1e-12:
+                raise IdnUndefined
+            return math.sqrt(max(x, 0.0))
+        if f in ("tan", "sec") and abs(c) < 1e-9 or f in ("cot", "csc") and abs(s) < 1e-9:
+            raise IdnUndefined
+        return {"sin": s, "cos": c, "tan": s / c if f == "tan" else 0, "sec": 1 / c if f == "sec" else 0,
+                "csc": 1 / s if f == "csc" else 0, "cot": c / s if f == "cot" else 0}[f]
+    raise ValueError(f"cannot read {ast.dump(node)}")
+
+
+def idn_at(equation: str, t: float, a: float = 0.0, b: float = 0.0) -> str:
+    """'holds', 'fails' or 'undefined', the equation at angle t (and α = a, β = b)."""
+    import ast
+    left, right = (ast.parse(side.replace("^", "**"), mode="eval") for side in equation.split(" = "))
+    try:
+        x, y = idn_value(left, {"t": t, "a": a, "b": b}), idn_value(right, {"t": t, "a": a, "b": b})
+    except IdnUndefined:
+        return "undefined"
+    if abs(x - y) <= 1e-9 * max(1.0, abs(x), abs(y)):
+        return "holds"
+    # Near a crossing the sides differ by little; only a clear gap counts as failing.
+    return "fails" if abs(x - y) > 1e-6 else "near"
+
+
+IDN_ANGLES = [-2 * math.pi + k * math.pi / 97 + 0.0137 for k in range(388)] + [k * math.pi / 12 for k in range(-24, 25)]
+
+
+def idn_classify(equation: str) -> str:
+    seen = set()
+    for i, t in enumerate(IDN_ANGLES):
+        # α and β wander independently of θ, for the equations in two angles.
+        seen.add(idn_at(equation, t, IDN_ANGLES[(7 * i + 3) % len(IDN_ANGLES)], IDN_ANGLES[(31 * i + 11) % len(IDN_ANGLES)]))
+    assert seen - {"undefined"}, f"{equation} is never defined"
+    assert "near" not in seen or "fails" in seen, f"{equation} differs only slightly"
+    return "not" if "fails" in seen else "always"
+
+
+def idn_angle(written: str) -> float:
+    return float(Fraction(written[:-3])) * math.pi if written.endswith(" pi") else math.radians(int(written))
+
+
+# requiem: catalogue/content/identity-or-not-by-counterexample
+def idn_identity(equation: str, counter) -> str:
+    kind = idn_classify(equation)
+    if counter is not None:
+        at = [idn_angle(x) for x in counter.split(", ")]
+        if kind != "not" or idn_at(equation, at[0], *at) != "fails":
+            return f"the counterexample {counter} is not one"
+    elif kind == "not":
+        return "not, with no counterexample given"
+    return kind
+
+
+def idn_fails_where(equation: str, options: str) -> str:
+    if idn_classify(equation) != "not":
+        return "an identity, which fails nowhere"
+    fits = [oid for oid, d in tg_options(options).items() if idn_at(equation, idn_angle(d)) == "fails"]
+    # At least one of the others must make it true, so that one angle tried can mislead.
+    if not any(idn_at(equation, idn_angle(d)) == "holds" for d in tg_options(options).values()):
+        return "no option where it holds"
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+CHOICE_RULES += (
+    (re.compile(r"^identity or not: (.+? = .+?)(?:; fails at (.+))?$"), idn_identity),
+    (re.compile(r"^fails where: (.+? = .+?); options (.+)$"), idn_fails_where),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

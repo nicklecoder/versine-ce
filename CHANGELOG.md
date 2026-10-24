@@ -13,9 +13,17 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
-**Trig Identities**, a new skill under Identities, in eight levels:
+**Trig Identities**, a new skill under Identities, in nine levels:
 Pythagorean, reciprocal and quotient, even and odd, cofunction, sum and
-difference, double angle, Next Step in a Proof, then All Together. Each
+difference, double angle, Identity or Not?, Next Step in a Proof, then All
+Together. Identity or Not? asks whether an equation is true wherever both
+sides are defined: half the rows are identities, half common false
+equivalences (sin 2θ = 2 sin θ, sin(α + β) = sin α + sin β, √(sin²θ) =
+sin θ, sin θ + cos θ = 1), many of which hold at special angles, and about a
+quarter ask at which of four angles a false one fails, the other three
+making it true or leaving a side undefined. `check-answers.py` classifies
+each equation by evaluating both sides at about 440 angles, skipping the
+undefined ones, and checks the counterexample. Each
 level mixes values worked from a given ratio with expressions to simplify,
 asked as a choice where exactly one option is equal to the expression, the
 others the slips that expression invites (2 sin θ for sin 2θ, sin 4θ for

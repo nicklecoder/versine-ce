@@ -1,5 +1,5 @@
 {
-  "built": 531,
+  "built": 532,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -669,6 +669,7 @@
       "cofunction",
       "sum-and-difference",
       "double-angle",
+      "identity-or-not",
       "next-step-in-a-proof",
       "all-together"
     ]
@@ -1507,7 +1508,7 @@
       }
     }
   },
-  "sources": "b30ebcace22ab85617fa437a280ddcd0144d7ad84a7efc7a2a91d8a895324b52",
+  "sources": "0326d9dea9f96bd394c0b26fb409974465bae2028f768767ced8dc0e011849a6",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6802,22 +6803,32 @@
     {
       "skill": "identities",
       "level": 6,
-      "slug": "next-step-in-a-proof",
-      "name": "Next Step in a Proof",
-      "count": 300,
-      "exhaustive": false,
+      "slug": "identity-or-not",
+      "name": "Identity or Not?",
+      "count": 142,
+      "exhaustive": true,
       "signed": false,
       "file": "identities-6.json"
     },
     {
       "skill": "identities",
       "level": 7,
+      "slug": "next-step-in-a-proof",
+      "name": "Next Step in a Proof",
+      "count": 300,
+      "exhaustive": false,
+      "signed": false,
+      "file": "identities-7.json"
+    },
+    {
+      "skill": "identities",
+      "level": 8,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "identities-7.json"
+      "file": "identities-8.json"
     }
   ]
 }

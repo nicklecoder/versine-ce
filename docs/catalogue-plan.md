@@ -306,7 +306,7 @@ With it, Phase 3 is built.
 | `radians` (Unit Circle) | Degrees ↔ Radians · Coterminal · Reference Angles · Arc Length s = rθ · Angular Speed | F-TF.1, TEKS P.4B–D |
 | `unit-circle` (Unit Circle) | Special Angles · Signs by Quadrant · Tangent · sec/csc/cot · From One Ratio, the Rest | F-TF.2–4,8 |
 | `trig-graphs` (Unit Circle) | Amplitude · Period · Midline · Phase Shift · Equation From a Graph · Sinusoidal Models | F-TF.5, TEKS P.2O |
-| `identities` (Identities) | Pythagorean · Reciprocal & Quotient · Even/Odd · Cofunction · Sum & Difference · Double Angle · Next Step in a Proof | F-TF.8–9, TEKS P.5M |
+| `identities` (Identities) | Pythagorean · Reciprocal & Quotient · Even/Odd · Cofunction · Sum & Difference · Double Angle · Identity or Not? · Next Step in a Proof | F-TF.8–9, TEKS P.5M |
 | `trig-equations` (Identities) | arcsin/arccos/arctan · Solve on [0, 2π) · General Solutions · Quadratic-Type | F-TF.6–7, TEKS P.2H, P.5N |
 | `domain-range` (Functions) | Domain of √ and Fractions · From a Graph · Ranges of Parents · Piecewise · Step Functions | F-IF.5, F-IF.7b, TEKS A2.7I |
 | `composition` (Functions) | (f + g)(x) · f(g(2)) · f(g(x)) · Not Commutative · Decompose | F-BF.1, TEKS P.2A–C |
@@ -364,8 +364,14 @@ direction can both be offered. A drawn wave is ticked at multiples of
 π/(2b), so every peak sits on a tick, and a Ferris wheel's equation is printed
 only where a height is to be worked from it.
 `identities` is built, as Pythagorean · Reciprocal & Quotient · Even & Odd ·
-Cofunction · Sum & Difference · Double Angle · Next Step in a Proof · All
-Together, in the plan's levels. Cofunction depends on trig-ratios'
+Cofunction · Sum & Difference · Double Angle · Identity or Not? · Next Step in
+a Proof · All Together. Identity or Not? is added before the proofs, and
+makes nine levels, which the skill explains with `longerBecause`: it asks
+whether an equation holds wherever both sides are defined, half the rows
+identities and half the slips the earlier levels warn against, many of
+which hold at special angles, and about a quarter of its rows ask at which
+of four angles a false one fails, so that one counterexample disproves and
+agreeing angles prove nothing. Cofunction depends on trig-ratios'
 Complementary sin/cos, so the skill depends on trig-ratios as well as the
 unit circle. Exact values with two radicals are asked as choices, since the
 roots input holds one, and Next Step in a Proof is capped at 300 problems,
