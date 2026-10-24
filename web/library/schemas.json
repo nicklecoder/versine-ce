@@ -401,6 +401,7 @@
     "choice",
     "linear",
     "rule",
+    "halfplane",
     "solutions",
     "pair"
   ]

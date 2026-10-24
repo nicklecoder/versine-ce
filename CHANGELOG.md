@@ -41,7 +41,7 @@ Both Sides** in Inequalities. Progress on the levels after each insertion is kep
 A new `table` visual draws a table of values. On reveal it can add a working
 column, so "is this proportional?" shows y ÷ x for every row.
 
-Phase 1, functions and linear algebra, is half built:
+Phase 1, functions and linear algebra, is built:
 
 - **Functions** (Functions): one output for each input, the vertical line test, function
   notation, reading f off a graph, solving f(x) = k, domain and range, and what
@@ -66,18 +66,23 @@ Phase 1, functions and linear algebra, is half built:
 - **Absolute Value** (Inequalities): distance from zero, two cases, isolating the bars
   first, one two or no solutions, less than is between, greater than is outside, and a
   strategy level on the shape of the answer before solving.
+- **Graphing Inequalities** (Inequalities): whether a point is a solution, dashed or solid
+  and above or below, from standard form with a test point, the inequality from a graph,
+  systems of inequalities, and budgets and targets from words.
 - **Sequences** (Sequences): the common difference, any term and which term a number is,
   writing the nth-term rule, the common ratio, geometric terms, recursive rules, and a
   strategy level on telling arithmetic, geometric and neither apart.
 
-Four new answer types. **linear** takes a line typed as y = …, judged as a line: y = x/2 + 3,
+Five new answer types. **linear** takes a line typed as y = …, judged as a line: y = x/2 + 3,
 y = 0.5x + 3 and y = 3 + 1/2x are all accepted, a curve is refused as not a line, and x = c
 gives a vertical one. **pair** takes an ordered pair in two boxes, ( x , y ), each a whole
 number, fraction or decimal. **rule** takes an nth-term rule, judged by the terms it gives:
 3 + 4(n − 1) and 4n − 1 are both accepted for 3, 7, 11, … **solutions** takes a set of numbers, judged as the set:
 x < 3, 3 > x and (−∞, 3) are one answer, as are x = ±3 and 3, −3, and "no solution" and
 "all real numbers" are answers too. A new `intervals` visual draws sets on a number line,
-with filled and hollow ends and arrows for rays. The expression preview now draws an equation, so y = 2x − 3
+with filled and hollow ends and arrows for rays. **halfplane** takes an inequality in x and y, judged by the
+half of the plane it keeps: y < 2x + 1 and 2x − y > −1 are one answer. The plane can shade a
+region and draw a dashed line, and the expression preview draws an inequality as typed. The expression preview now draws an equation, so y = 2x − 3
 shows as typed.
 
 Fixed: an expression answer with a leading minus, like −2x + 3, was refused when the stored

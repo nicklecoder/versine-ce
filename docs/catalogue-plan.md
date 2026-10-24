@@ -79,13 +79,16 @@ the row-by-row step on reveal.
 
 ## Phase 1 — functions and linear algebra
 
-**In progress.** Built: `functions` (with What f(a) = b Means added), `slope`, `linear-eq`,
+**Built.** `functions` (with What f(a) = b Means added), `slope`, `linear-eq`,
 `line-forms` (as Forms of a Line, with a Parallel, Perpendicular or Neither level added),
-`linear-models` (with From Two Readings added), `systems`, `sequences` (with Writing
-the Rule added; a geometric rule waits for an answer box that takes powers of n), and
-`compound-ineq` (with Solving an Or and A Negative in the Middle added), and `abs-value`
-(with a Between or Outside? strategy level added). Still to build: `ineq-graphs`. Engine work done for it: the `linear`, `pair`, `rule` and
-`solutions` answer types, the `intervals` visual, and the `math` prompt term.
+`linear-models` (with From Two Readings added), `systems`, `sequences` (with Writing the
+Rule added; a geometric rule waits for an answer box that takes powers of n),
+`compound-ineq` (with Solving an Or and A Negative in the Middle added), `abs-value` (with
+a Between or Outside? strategy level added), and `ineq-graphs` (with Is It a Solution? and
+From Words added, and Solid or Dashed and Which Side asked as one choice). Engine work
+done for it: the `linear`, `pair`, `rule`, `solutions` and `halfplane` answer types, the
+`intervals` visual, shaded regions and dashed lines on the plane, and the `math` prompt
+term.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

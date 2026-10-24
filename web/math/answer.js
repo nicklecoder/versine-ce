@@ -392,6 +392,72 @@ defineType({
   format: (v) => lineText(v, 'n'),
 });
 
+// requiem: play/answers/halfplane-judged-as-region
+defineType({
+  id: 'halfplane',
+  input: 'free',
+  hint: 'Type the inequality, like y < 2x + 1.',
+  /**
+   * A linear inequality in x and y, judged by the half of the plane it
+   * keeps. y < 2x + 1, 2x + 1 > y and 2x − y > −1 keep the same half, so all
+   * three are right; the sign turning when y's side is divided by a negative
+   * is done here exactly, the way a student must do it on paper.
+   *
+   * Read by evaluating left − right at three points, which gives
+   * a·x + b·y + c; the boundary is then written as y = mx + k when y is in
+   * it, or x = k when it is upright, and the sign is the one y (or x) is
+   * left with. An equals sign is refused with a hint -- it names the
+   * boundary, not the shading -- and so is a curve.
+   *
+   * Value: { m, b, op } for y op mx + b, or { x, op } for x op c, each
+   * number a fraction { n, d } and op one of < <= > >=.
+   */
+  parse(raw) {
+    const text = String(raw).trim().replace(/[−–—]/g, '-').replace(/≤|=</g, '<=').replace(/≥|=>/g, '>=');
+    const bits = text.split(/(<=|>=|<|>|=)/);
+    if (bits.length !== 3) return { ok: false, hint: 'One inequality sign: <, >, ≤ or ≥.' };
+    if (bits[1] === '=') return { ok: false, hint: 'That is the boundary line. Which side is shaded: < or >?' };
+    const sides = bits.flatMap((b, i) => (i === 1 ? [] : [parseExpression(b)]));
+    const bad = sides.find((p) => !p.ok);
+    if (bad) return { ok: false, why: bad.error };
+    if (sides.some((p) => [...lettersIn(p.ast)].some((v) => v !== 'x' && v !== 'y'))) {
+      return { ok: false, hint: 'Write it in x and y.' };
+    }
+    const f = (x, y) => {
+      const env = { x: { n: x, d: 1 }, y: { n: y, d: 1 } };
+      const [l, r] = sides.map((p) => valueAt(p.ast, env));
+      return l && r ? reduceFrac(l.n * r.d - r.n * l.d, l.d * r.d) : null;
+    };
+    const [o, fx, fy, far] = [f(0, 0), f(1, 0), f(0, 1), f(3, -2)];
+    if (!o || !fx || !fy || !far) return { ok: false, hint: 'Only numbers, x and y.' };
+    const less = (p, q) => reduceFrac(p.n * q.d - q.n * p.d, p.d * q.d);
+    const a = less(fx, o), b = less(fy, o);
+    const guess = reduceFrac(o.n * a.d * b.d + 3 * a.n * o.d * b.d - 2 * b.n * o.d * a.d, o.d * a.d * b.d);
+    if (!sameFrac(guess, far)) return { ok: false, hint: 'The edge of the shading is a straight line.' };
+    const FLIP = { '<': '>', '<=': '>=', '>': '<', '>=': '<=' };
+    // a·x + b·y + c op 0, with y (or x) moved to stand alone; a negative
+    // divisor turns the sign.
+    if (b.n !== 0) {
+      const op = b.n > 0 ? bits[1] : FLIP[bits[1]];
+      const m = reduceFrac(-a.n * b.d, a.d * b.n), k = reduceFrac(-o.n * b.d, o.d * b.n);
+      return { ok: true, value: { m, b: k, op } };
+    }
+    if (a.n === 0) return { ok: false, hint: 'There is no x or y left: that is not a region.' };
+    const op = a.n > 0 ? bits[1] : FLIP[bits[1]];
+    return { ok: true, value: { x: reduceFrac(-o.n * a.d, o.d * a.n), op } };
+  },
+  equals(a, b) {
+    if (a.op !== b.op) return false;
+    if ('x' in a || 'x' in b) return 'x' in a && 'x' in b && sameFrac(a.x, b.x);
+    return sameFrac(a.m, b.m) && sameFrac(a.b, b.b);
+  },
+  /** y < 3/4x − 2, y ≥ −x, x > −3. */
+  format(v) {
+    const sign = { '<': '<', '<=': '≤', '>': '>', '>=': '≥' }[v.op];
+    return 'x' in v ? `x ${sign} ${fracText(v.x)}` : `y ${sign} ${lineText(v, 'x')}`;
+  },
+});
+
 // requiem: play/answers/set-judged-as-set
 defineType({
   id: 'solutions',

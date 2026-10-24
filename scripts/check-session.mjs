@@ -147,6 +147,21 @@ for (const skill of SKILLS) {
   if (sets.parse('[-inf, 2)').ok) fail.push('solutions: a closed bracket at −∞ was accepted');
 }
 
+// requiem: play/answers/halfplane-judged-as-region
+{
+  const half = getType('halfplane');
+  const want = half.parse('y < 2x + 1').value;
+  for (const raw of ['2x + 1 > y', '2x - y > -1', '-2y > -4x - 2']) {
+    const got = half.parse(raw);
+    if (!got.ok || !half.equals(got.value, want)) fail.push(`halfplane: "${raw}" was not accepted for y < 2x + 1`);
+  }
+  for (const raw of ['y <= 2x + 1', 'y > 2x + 1', '-y < 2x + 1']) {
+    const got = half.parse(raw);
+    if (got.ok && half.equals(got.value, want)) fail.push(`halfplane: "${raw}" was accepted for y < 2x + 1`);
+  }
+  if (half.parse('y = 2x + 1').ok) fail.push('halfplane: an equation was accepted as a region');
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

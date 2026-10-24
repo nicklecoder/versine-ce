@@ -1,5 +1,5 @@
 {
-  "built": 253,
+  "built": 260,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -310,6 +310,15 @@
       "less-than-is-between",
       "greater-than-is-outside",
       "between-or-outside",
+      "all-together"
+    ],
+    "ineq-graphs": [
+      "is-it-a-solution",
+      "dashed-or-solid",
+      "from-standard-form",
+      "inequality-from-a-graph",
+      "systems-of-inequalities",
+      "from-words",
       "all-together"
     ],
     "sequences": [
@@ -770,6 +779,13 @@
         ]
       }
     },
+    "ineq-graphs": {
+      "dependsOn": [
+        "inequalities",
+        "linear-eq"
+      ],
+      "levels": {}
+    },
     "sequences": {
       "dependsOn": [
         "exponents",
@@ -782,7 +798,7 @@
       }
     }
   },
-  "sources": "1075af2df7889674b44595dfb4023bbe9ec1bdad7c1a7bdcbd15d4cfc8a283ca",
+  "sources": "49b704b2b8ff6365368e5465be91d1d5ba7944cb6920884090c6635597dd4a65",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3233,6 +3249,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "abs-value-7.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 0,
+      "slug": "is-it-a-solution",
+      "name": "Is It a Solution?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "ineq-graphs-0.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 1,
+      "slug": "dashed-or-solid",
+      "name": "Dashed or Solid, Above or Below",
+      "count": 780,
+      "exhaustive": true,
+      "signed": false,
+      "file": "ineq-graphs-1.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 2,
+      "slug": "from-standard-form",
+      "name": "From Standard Form",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "ineq-graphs-2.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 3,
+      "slug": "inequality-from-a-graph",
+      "name": "Inequality From a Graph",
+      "count": 628,
+      "exhaustive": true,
+      "signed": true,
+      "file": "ineq-graphs-3.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 4,
+      "slug": "systems-of-inequalities",
+      "name": "Systems of Inequalities",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "ineq-graphs-4.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 5,
+      "slug": "from-words",
+      "name": "From Words",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "ineq-graphs-5.json"
+    },
+    {
+      "skill": "ineq-graphs",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "ineq-graphs-6.json"
     },
     {
       "skill": "sequences",

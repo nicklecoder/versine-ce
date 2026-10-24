@@ -239,6 +239,7 @@ export function answerTerm(type, value) {
     // A line, a rule and a pair are shown in the notation their own type
     // writes, which the expression preview can draw: y = 3/4x − 2, 4n − 1, (3, −2).
     case 'linear':
+    case 'halfplane':
     case 'rule': return exprTerms(getType(type).format(value).replace(/−/g, '-'));
     case 'pair': return { t: 'num', v: getType('pair').format(value) };
     case 'solutions': return setTerms(value);

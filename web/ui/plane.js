@@ -12,12 +12,17 @@
  * incapable of computing anything -- which is the property that stops a
  * picture quietly solving the problem.
  *
+ * A region is a filled polygon -- the part of the plane an inequality keeps,
+ * already clipped to the grid by the catalogue -- and is drawn under every
+ * line and point, so shading never hides what it is the shading of.
+ *
  * @typedef {object} Mark
- * @property {'point'|'segment'|'path'} kind
+ * @property {'point'|'segment'|'path'|'region'} kind
  * @property {[number, number]} [at]     for a point
  * @property {[number, number]} [from]   for a segment
  * @property {[number, number]} [to]
- * @property {Array<[number, number]>} [points]  for a path
+ * @property {Array<[number, number]>} [points]  for a path, or a region's corners
+ * @property {boolean} [dashed]          for a line not included: y < 2x + 1
  * @property {string} [label]            drawn beside it
  * @property {string} [tone]             CSS colour
  * @property {boolean} [open]            hollow, for a point not included
@@ -99,12 +104,17 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
   const drawMark = (m, cls) => {
     const g = make('g', { class: `pl__mark ${cls}`.trim() });
     if (m.tone) g.setAttribute('style', `--tone:${m.tone}`);
+    const dash = m.dashed ? { class: 'is-dashed' } : {};
     if (m.kind === 'segment') {
       g.append(make('line', { x1: px(m.from[0]), y1: py(m.from[1]),
-                              x2: px(m.to[0]), y2: py(m.to[1]) }));
+                              x2: px(m.to[0]), y2: py(m.to[1]), ...dash }));
     } else if (m.kind === 'path' && Array.isArray(m.points)) {
       g.append(make('polyline', {
-        points: m.points.map(([x, y]) => `${px(x)},${py(y)}`).join(' '), fill: 'none',
+        points: m.points.map(([x, y]) => `${px(x)},${py(y)}`).join(' '), fill: 'none', ...dash,
+      }));
+    } else if (m.kind === 'region' && Array.isArray(m.points)) {
+      g.append(make('polygon', {
+        points: m.points.map(([x, y]) => `${px(x)},${py(y)}`).join(' '), class: 'pl__region',
       }));
     } else if (m.kind === 'point') {
       g.append(make('circle', {
@@ -125,8 +135,12 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
     return g;
   };
 
-  for (const m of marks) svg.append(drawMark(m, ''));
-  for (const m of answer) svg.append(drawMark(m, 'is-answer'));
+  const regions = (list) => list.filter((m) => m.kind === 'region');
+  const others = (list) => list.filter((m) => m.kind !== 'region');
+  for (const m of regions(marks)) svg.append(drawMark(m, ''));
+  for (const m of regions(answer)) svg.append(drawMark(m, 'is-answer'));
+  for (const m of others(marks)) svg.append(drawMark(m, ''));
+  for (const m of others(answer)) svg.append(drawMark(m, 'is-answer'));
 
   if (verdict && answer.length) {
     const [ax, ay] = answer[0].at ?? answer[0].to ?? [x1, y1];

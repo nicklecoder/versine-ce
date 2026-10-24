@@ -97,14 +97,16 @@ function flatten(node) {
 export function previewOf(src) {
   // An equation is two expressions either side of one equals sign, drawn
   // side by side: a line is typed as y = 2x − 3, and the preview should show
-  // it as typed rather than give up at the "=".
-  const sides = String(src).split('=');
-  if (sides.length === 2) {
+  // it as typed rather than give up at the "=". An inequality is the same
+  // with a different sign between, and <= is drawn as the ≤ it means.
+  const sides = String(src).split(/(<=|>=|≤|≥|<|>|=)/);
+  if (sides.length === 3) {
     const left = previewOf(sides[0]);
-    const right = previewOf(sides[1]);
+    const right = previewOf(sides[2]);
     if (!left.ok) return left;
     if (!right.ok) return right;
-    return { ok: true, terms: [...left.terms, { t: 'op', v: '=' }, ...right.terms] };
+    const sign = { '<=': '≤', '>=': '≥' }[sides[1]] ?? sides[1];
+    return { ok: true, terms: [...left.terms, { t: 'op', v: sign }, ...right.terms] };
   }
   const parsed = parseExpression(src);
   if (!parsed.ok) return parsed;

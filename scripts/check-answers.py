@@ -1114,10 +1114,48 @@ def holds(relation: str, x: Fraction) -> bool:
     return all(OPS[op](values[i], values[i + 1]) for i, op in enumerate(bits[1::2]))
 
 
+def piecewise(src: str):
+    """src as c + a·x + b·|p·x + q|, read off by evaluating it, and checked at a
+    point the reading did not use. Parsing once instead of at every sample
+    is the difference between seconds and a minute on these levels."""
+    bars = re.findall(r"\|([^|]+)\|", src)
+    if len(bars) > 1:
+        raise ValueError(f"two absolute values: {src}")
+    every = lambda v: {c: v for c in "abcdefghijklmnopqrstuvwxyz"}
+    inner = bars[0] if bars else "0"
+    q = at(inner, every(0))
+    p = at(inner, every(1)) - q
+    if at(inner, every(2)) != q + 2 * p:
+        raise ValueError(f"not linear inside the bars: {src}")
+    outer = re.sub(r"\|[^|]+\|", "(u)", src)
+    f = lambda x, u: at(outer, {**every(x), "u": u})
+    c = f(0, 0)
+    a, b = f(1, 0) - c, f(0, 1) - c
+    if f(2, 3) != c + 2 * a + 3 * b:
+        raise ValueError(f"not linear: {src}")
+    return lambda x: c + a * x + b * abs(p * x + q)
+
+
 def solve_set(text: str) -> frozenset:
-    return frozenset(x for x in SAMPLES_ON_LINE
-                     if any(all(holds(r, x) for r in clause.split(" and "))
-                            for clause in text.split(" or ")))
+    clauses = []
+    for clause in text.split(" or "):
+        chains = []
+        for relation in clause.split(" and "):
+            bits = re.split(r"\s*(<=|>=|<|>|=)\s*", relation.strip())
+            chains.append(([piecewise(b) for b in bits[0::2]], bits[1::2]))
+        clauses.append(chains)
+    def holds_at(chains, x):
+        for sides, ops in chains:
+            values = [f(x) for f in sides]
+            if not all(OPS[op](values[i], values[i + 1]) for i, op in enumerate(ops)):
+                return False
+        return True
+    found = frozenset(x for x in SAMPLES_ON_LINE if any(holds_at(c, x) for c in clauses))
+    # The reading above is checked against the plain one at a few points.
+    for x in SAMPLES_ON_LINE[::37]:
+        if (x in found) != any(all(holds(r, x) for r in clause.split(" and ")) for clause in text.split(" or ")):
+            raise ValueError(f"piecewise reading disagrees at {x}: {text}")
+    return found
 
 
 def interval_set(text: str) -> frozenset:
@@ -1208,6 +1246,75 @@ CHOICE_RULES += (
 )
 
 
+# --- Graphing Inequalities ---------------------------------------------------
+
+def holds_xy(ineq: str, x, y) -> bool:
+    left, op, right = re.split(r"\s*(<=|>=|<|>)\s*", ineq.strip())
+    env = {"x": Fraction(x), "y": Fraction(y)}
+    return OPS[op](at(left, env), at(right, env))
+
+
+GRID = [(Fraction(i, 2), Fraction(j, 2)) for i in range(-20, 21) for j in range(-20, 21)]
+
+
+def kept(ineq: str) -> frozenset:
+    """The grid points an inequality keeps. Read once as a·x + b·y + c against
+    zero -- after checking it is linear -- rather than parsed at every point."""
+    left, op, right = re.split(r"\s*(<=|>=|<|>)\s*", ineq.strip())
+    f = lambda x, y: at(left, {"x": x, "y": y}) - at(right, {"x": x, "y": y})
+    c = f(0, 0)
+    a, b = f(1, 0) - c, f(0, 1) - c
+    if f(2, -3) != c + 2 * a - 3 * b:
+        raise ValueError(f"not linear: {ineq}")
+    return frozenset(p for p in GRID if OPS[op](a * p[0] + b * p[1] + c, 0))
+
+
+def drawn_as(ineq: str) -> str:
+    """Dashed or solid from the sign; above or below from a point far up the y-axis."""
+    style = "solid" if re.search(r"<=|>=", ineq) else "dashed"
+    return f"{style}-{'above' if holds_xy(ineq, 0, 10**6) else 'below'}"
+
+
+def halfplane_text(v) -> str:
+    """The stored answer back as an inequality the checker can test."""
+    op = v["op"]
+    if "x" in v:
+        return f"x {op} {as_fraction(v['x'])}"
+    return f"y {op} ({as_fraction(v['m'])})*x + ({as_fraction(v['b'])})"
+
+
+def point_in_both(e1: str, e2: str, points: str, ids):
+    named = dict((n, (int(x), int(y))) for n, x, y in re.findall(rf"([A-D]) {PT}", points))
+    fit = [n for n, p in named.items() if holds_xy(e1, *p) and holds_xy(e2, *p)]
+    if len(fit) != 1:
+        raise ValueError(f"{len(fit)} points in both")
+    return fit[0]
+
+
+def extreme_y(kind: str, a: int, b: int, op: str, total: int, x: int) -> int:
+    fits = [y for y in range(0, 1000) if OPS[op](a * x + b * y, total)]
+    return max(fits) if kind == "most" else min(fits)
+
+
+BY_RULE += (
+    (re.compile(r"^(most|least) y: (\d+)x \+ (\d+)y (<=|>=) (\d+) with x = (\d+)$"), extreme_y),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^solution\? {PT} of (.+)$"),
+     lambda x, y, ineq: "yes" if holds_xy(ineq, int(x), int(y)) else "no"),
+    (re.compile(r"^drawn: (.+)$"), drawn_as),
+)
+
+OPTION_RULES += (
+    (re.compile(r"^both: (.+); (.+) \| (.+)$"), point_in_both),
+)
+
+HALFPLANE_RULES = (
+    (re.compile(r"^graph: (.+)$"), kept),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1269,6 +1376,15 @@ for path in sorted(LIB.glob("*.json")):
                 want = rule[1](*rule[0].match(text).groups())
                 if answer_set(answer["value"]) != want:
                     problems.append(f"{where}: {text} is not {answer['value']}")
+            continue
+
+        # A half-plane: the points it keeps, compared with the points the answer keeps.
+        if answer["type"] == "halfplane":
+            rule = next((r for r in HALFPLANE_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                if kept(halfplane_text(answer["value"])) != rule[1](*rule[0].match(text).groups()):
+                    problems.append(f"{where}: {text} does not keep the half {answer['value']} keeps")
             continue
 
         # An ordered pair: solved again from the equations, and compared exactly.
