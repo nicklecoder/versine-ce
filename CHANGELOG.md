@@ -131,6 +131,14 @@ the IQR beside the range, the mean absolute deviation (its distances shown in a 
 reveal), whether a sample is representative and scaling a random one up to its
 population, and which measure fits data with or without an outlier. That finishes the
 Algebra 1 milestone.
+
+**Angle Relationships**, the first skill under Lines & Angles and of Phase 3, in eight
+levels: complementary and supplementary angles (in words and in figures, two or three
+parts), vertical angles, angles around a point, parallel lines cut by a transversal,
+solving for x from the relationship, and a strategy level on which equation a
+relationship gives, including none when the lines are not parallel. The plane can now
+draw a figure without axes (`axes: false`) and write text inside it (a `text` mark),
+which check-reveal.mjs checks.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

@@ -2025,6 +2025,74 @@ CHOICE_RULES += (
 )
 
 
+
+# --- Angle Relationships -----------------------------------------------------
+#
+# Each relationship applied again from what the text says: a right angle,
+# a straight line and a full turn take away what is given; where two lines
+# cross, angles an even number of places round are equal and the rest make
+# 180; on parallel lines TR and BL are one size and TL and BR the other, at
+# both crossings. An equation in x is solved again from the relationship's
+# name, and the choice of equation is read from the words alone.
+
+def angle_sum(listing) -> list:
+    return [int(v) for v in str(listing).split(", ")]
+
+
+def transversal_angle(given: int, at: str, find: str) -> int:
+    one_size = lambda spot: spot in ("TR", "BL")
+    return given if one_size(at) == one_size(find) else 180 - given
+
+
+ANGLE_RELATION = {"vertical": "equal", "corresponding": "equal", "alternate interior": "equal",
+                  "linear pair": 180, "same-side interior": 180, "complementary": 90}
+
+
+def linear_in_x(src: str):
+    m = re.fullmatch(r"(\d*)x(?: ([+-]) (\d+))?", src)
+    assert m, f"cannot read {src}"
+    a = int(m.group(1) or 1)
+    b = int(m.group(3) or 0) * (-1 if m.group(2) == "-" else 1)
+    return a, b
+
+
+def angle_equation(relation: str, e1: str, e2: str, find: str) -> Fraction:
+    (a1, b1), (a2, b2) = linear_in_x(e1), linear_in_x(e2)
+    rule = ANGLE_RELATION[relation]
+    x = Fraction(b2 - b1, a1 - a2) if rule == "equal" else Fraction(rule - b1 - b2, a1 + a2)
+    if find == "x":
+        return x
+    a, b = linear_in_x(find)
+    return a * x + b
+
+
+def equation_from_relation(words: str) -> str:
+    if "not parallel" in words or "share a vertex" in words:
+        return "none"
+    if "complementary" in words or "right angle" in words:
+        return "90"
+    if "linear pair" in words or "supplementary" in words or "same-side" in words:
+        return "180"
+    assert re.search(r"vertical|corresponding|alternate", words), words
+    return "equal"
+
+
+BY_RULE += (
+    (re.compile(r"^complement: (\d+(?:, \d+)*) \(\w+\)$"), lambda xs: 90 - sum(angle_sum(xs))),
+    (re.compile(r"^supplement: (\d+(?:, \d+)*) \(\w+\)$"), lambda xs: 180 - sum(angle_sum(xs))),
+    (re.compile(r"^around a point: (\d+(?:, \d+)*)$"), lambda xs: 360 - sum(angle_sum(xs))),
+    (re.compile(r"^crossing: (\d+) at ([0-3]), find ([0-3])$"),
+     lambda g, i, j: g if (i - j) % 2 == 0 else 180 - g),
+    (re.compile(r"^parallel: (\d+) at (?:top|bottom) (TL|TR|BL|BR), find (?:top|bottom) (TL|TR|BL|BR)$"),
+     transversal_angle),
+    (re.compile(r"^angle equation: ([a-z -]+), (\d*x(?: [+-] \d+)?), (\d*x(?: [+-] \d+)?), find (x|\d*x(?: [+-] \d+)?)$"),
+     angle_equation),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^which equation: ([a-z -]+), \d*x(?: [+-] \d+)?, \d*x(?: [+-] \d+)?$"), equation_from_relation),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A level none of whose texts any rule reads would pass by saying nothing:
 # a prefix spelled one way in the generator and another here does that.

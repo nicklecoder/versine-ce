@@ -153,6 +153,11 @@ arbitrates. That completes the milestone.
 
 ## Phase 3 — geometry, chance and data
 
+`angles` is built, as Complementary · Supplementary · Vertical Angles · Around
+a Point · Parallel Lines · Solve for x · Which Equation? (strategy, on
+equations-both's Gather Then Undo) · All Together. Its figures are drawn on
+the plane with no axes, which the plane now allows.
+
 | Skill (category) | Levels | Covers |
 |---|---|---|
 | `pythagoras` (Right Triangles) | Hypotenuse · A Leg · Is It Right · Exact Answers · Distance Between Points · 3D Diagonal · Triples | 8.G.6–8 |
