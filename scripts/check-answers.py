@@ -4328,6 +4328,69 @@ def biv_relative_linked(by: str, grid: str) -> str:
     return "no"
 
 
+def biv_fit_error(pts: list, degree: int) -> Fraction:
+    # Squared error of the least-squares polynomial (degree 1 or 2), solved
+    # exactly by Cramer's rule on the normal equations.
+    k = degree + 1
+    s = [sum(x ** p for x, _ in pts) for p in range(2 * k - 1)]
+    t = [sum(y * x ** p for x, y in pts) for p in range(k)]
+    m = [[s[i + j] for j in range(k)] for i in range(k)]
+
+    def det(a):
+        if len(a) == 1:
+            return a[0][0]
+        return sum((-1) ** c * a[0][c] * det([row[:c] + row[c + 1:] for row in a[1:]]) for c in range(len(a)))
+
+    d = det(m)
+    coef = [det([row[:c] + [t[i]] + row[c + 1:] for i, row in enumerate(m)]) / d for c in range(k)]
+    return sum((y - sum(c * x ** p for p, c in enumerate(coef))) ** 2 for x, y in pts)
+
+
+def biv_fit_at(pts: list, x0) -> Fraction:
+    # The least-squares quadratic through pts, evaluated at x0.
+    s = [sum(x ** p for x, _ in pts) for p in range(5)]
+    t = [sum(y * x ** p for x, y in pts) for p in range(3)]
+    m = [[s[i + j] for j in range(3)] for i in range(3)]
+
+    def det3(a):
+        return (a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
+                + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]))
+
+    d = det3(m)
+    coef = [det3([row[:c] + [t[i]] + row[c + 1:] for i, row in enumerate(m)]) / d for c in range(3)]
+    return coef[0] + coef[1] * x0 + coef[2] * x0 * x0
+
+
+def biv_feature(listing: str) -> str:
+    # requiem: catalogue/content/scatter-features-from-points
+    # Read from the points alone: a wide empty band in x splits two clusters;
+    # one point far from the quadratic through all the others is an outlier;
+    # a quadratic far closer than a line is a curve; else one straight line.
+    pts = biv_points(listing)
+    xs = sorted(x for x, _ in pts)
+    gaps = [(b - a, i) for i, (a, b) in enumerate(zip(xs, xs[1:]))]
+    widest, at = max(gaps)
+    share = widest / (xs[-1] - xs[0])
+    if share >= Fraction(1, 4):
+        assert at + 1 >= 4 and len(xs) - at - 1 >= 4, f"a cluster of fewer than 4 points: {listing}"
+        return "clusters"
+    assert share <= Fraction(3, 20), f"x gap of {float(share):.2f} is neither clusters nor none"
+    worst = 0.0
+    for i, (x, y) in enumerate(pts):
+        rest = pts[:i] + pts[i + 1:]
+        rms = math.sqrt(float(biv_fit_error(rest, 2)) / len(rest))
+        worst = max(worst, abs(float(y - biv_fit_at(rest, x))) / rms)
+    if worst >= 6:
+        return "outlier"
+    assert worst <= 4, f"a point {worst:.1f} misses out is neither an outlier nor not: {listing}"
+    ratio = biv_fit_error(pts, 2) / biv_fit_error(pts, 1)
+    if ratio <= Fraction(3, 10):
+        return "curved"
+    assert ratio >= Fraction(1, 2), f"a curve ratio of {float(ratio):.2f} is unclear: {listing}"
+    assert abs(biv_r(pts)) >= 0.85, f"not a clear straight line: {listing}"
+    return "linear"
+
+
 def biv_linked(counts: str) -> str:
     t = biv_table(counts)
     gap = abs(Fraction(100 * t[0][0], t[0][2]) - Fraction(100 * t[1][0], t[1][2]))
@@ -4355,6 +4418,7 @@ BY_RULE += (
 
 CHOICE_RULES += (
     (re.compile(rf"^association: ({BIV_PT}(?: {BIV_PT})+)$"), lambda listing, *_: biv_direction(listing)),
+    (re.compile(rf"^scatter feature: ({BIV_PT}(?: {BIV_PT})+)$"), lambda listing, *_: biv_feature(listing)),
     (re.compile(rf"^meaning of ({BIV_NUM}) in {BIV_LINE}; options (.+)$"), biv_meaning),
     (re.compile(rf"^fit check: {BIV_LINE} at {BIV_PT}$"),
      lambda m, b, x, y: "above" if Fraction(y) > Fraction(m) * Fraction(x) + Fraction(b) else "below"),

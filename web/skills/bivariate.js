@@ -14,7 +14,7 @@
 
 export const LEVELS = [
   { name: 'Association', slug: 'association',
-    blurb: 'Rising left to right is positive, falling is negative, and a shapeless cloud is no association.' },
+    blurb: 'Rising left to right is positive, falling is negative, and a shapeless cloud is no association. A pattern can also curve, split into two clusters, or have an outlier far from the rest.' },
   { name: 'Line-of-Fit Predictions', slug: 'line-of-fit-predictions',
     blurb: 'Put x into the line of fit to predict y, or solve it for the x that gives a y.' },
   { name: 'Slope & Intercept in Context', slug: 'slope-and-intercept-in-context',
