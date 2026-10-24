@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "3f1ca73e7072c48190a735da76d6a930b89f07dc0434646d3764c23f61818c0c",
+  "sources": "c514e4cb9bfb724f3bab0301785dc7c10a8b2c05a1ec5601736ccde46906c410",
   "levels": [
     {
       "skill": "int-addsub",
@@ -1889,8 +1889,8 @@
       "level": 5,
       "slug": "which-form",
       "name": "Which Form?",
-      "count": 144,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "exponents-5.json"
     },
@@ -1959,7 +1959,7 @@
       "level": 5,
       "slug": "which-form",
       "name": "Which Form?",
-      "count": 150,
+      "count": 300,
       "exhaustive": true,
       "signed": false,
       "file": "roots-5.json"
@@ -3139,8 +3139,8 @@
       "level": 2,
       "slug": "distributing",
       "name": "Distributing",
-      "count": 960,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "simplify-2.json"
     },

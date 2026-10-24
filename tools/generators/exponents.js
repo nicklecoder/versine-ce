@@ -28,7 +28,7 @@ function exponentsFor(base, max = MAX_VALUE) {
 }
 
 /** Superscript digits, so working lines read as they would be written. */
-const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+const SUP = { '-': '⁻', '−': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
 const sup = (n) => String(n).split('').map((c) => SUP[c] ?? c).join('');
 const power = (b, e) => `${b}${sup(e)}`;
 
@@ -118,7 +118,7 @@ function rule(rng, which) {
              power(b, answer)];
     rules = [`${power(b, a)} multiplied by itself ${c} times`,
              `${c} lots of ${a} factors: ${a} × ${c} = ${answer}`];
-    why = `Raising to the ${c}th means ${c} copies of ${power(b, a)}, and each copy `
+    why = `Raising to the power ${c} means ${c} copies of ${power(b, a)}, and each copy `
       + `brings ${a} factors. ${a} × ${c} = ${answer}, so the exponents multiply.`;
   }
 
@@ -137,7 +137,11 @@ function zeroOrNegative(rng) {
     return {
       prompt: T.asks(T.pow(b, 0, 1)),
       text: `${b}^0`,
-      answer: { type: 'int', value: 1 },
+      // requiem: principles/no-answer-before-commit
+      // The same fraction box as the negative powers beside it: a single
+      // whole-number box would announce that the answer is 1 before anything
+      // is typed. The box takes a whole number with the bottom left empty.
+      answer: { type: 'frac', value: { n: 1, d: 1 }, requireSimplest: true },
       visual: {
         kind: 'evalmodel',
         lines: [power(b, 0), `${power(b, 3)} ÷ ${power(b, 3)}`, `${b ** 3} ÷ ${b ** 3}`, '1'],
@@ -167,43 +171,104 @@ function zeroOrNegative(rng) {
 
 /**
  * The strategic layer: a power is sometimes the answer and sometimes the
- * obstacle. Multiplying and dividing want it left alone -- the rules only work
- * on powers -- while comparing, or adding to something, needs the value.
+ * obstacle. Combining powers of one base wants them left alone -- and when
+ * the exponents are large, leaving them is the only way that works at all --
+ * while adding to something, or comparing with an ordinary number, needs the
+ * value.
+ *
+ * requiem: catalogue/content/which-form-one-right-answer
+ * Every situation has one workable answer. "Multiply 3² by 3²" did not:
+ * 9 × 9 = 81 is a correct way to do it, so the keep situations use exponents
+ * too big to work out by hand. The option notes say what each form looks
+ * like, never what it is for, so no word in the question matches a button.
  */
-const SITUATIONS = [
-  { text: 'You need to multiply {p} by {q}.', want: 'keep',
-    why: 'The exponent rules only work on powers. Multiply them out first and you have thrown the rule away.' },
-  { text: 'You need to divide {p} by {q}.', want: 'keep',
-    why: 'Dividing powers of the same base is a rule about exponents. It needs them still written as powers.' },
-  { text: 'You need to simplify {p} × {q} × {p}.', want: 'keep',
-    why: 'Three powers of the same base collapse into one by adding exponents — but only while they are powers.' },
-  { text: 'You need to add 5 to {p}.', want: 'work out',
-    why: 'There is no rule for adding a power to a number. It has to become a value first.' },
-  { text: 'You need to say whether {p} is bigger than 100.', want: 'work out',
-    why: 'Comparing sizes needs a number. The exponent alone will not tell you.' },
-  { text: 'You need to write {p} as the final answer to a counting problem.', want: 'work out',
-    why: 'A count is a number. Nobody reports having {p} things.' },
-];
+const digits = (b, e) => String(BigInt(b) ** BigInt(e)).length;
+// 2²⁰ is already over a million, so every base here is past working out by hand.
+const big = (rng) => rng.int(20, 45);
+const SITUATIONS = {
+  keep: [
+    (rng, b) => {
+      const a = big(rng), c = big(rng);
+      return {
+        text: `You need to multiply ${power(b, a)} by ${power(b, c)}.`,
+        why: `${power(b, a)} alone has ${digits(b, a)} digits, far too many to work out by hand. Kept as `
+          + `powers, the exponents just add: ${power(b, a + c)}.`,
+      };
+    },
+    (rng, b) => {
+      const c = big(rng), a = c + rng.int(1, 6);
+      return {
+        text: `You need to divide ${power(b, a)} by ${power(b, c)}.`,
+        why: `${power(b, a)} has ${digits(b, a)} digits, so working both out first is hopeless. Kept as `
+          + `powers, the exponents subtract: ${power(b, a - c)}.`,
+      };
+    },
+    (rng, b) => {
+      const a = big(rng), c = big(rng);
+      return {
+        text: `You need to simplify ${power(b, a)} × ${power(b, c)} × ${power(b, a)}.`,
+        why: `Each of these has more digits than anyone could multiply by hand. As powers of one `
+          + `base they collapse by adding exponents: ${power(b, a + c + a)}.`,
+      };
+    },
+  ],
+  'work out': [
+    (rng, b) => {
+      const e = rng.int(2, 4), k = rng.int(2, 60);
+      return {
+        text: `You need to add ${k} to ${power(b, e)}.`,
+        why: `There is no exponent rule for adding a number to a power. ${power(b, e)} = ${b ** e}, `
+          + `so the sum is ${b ** e + k}.`,
+      };
+    },
+    (rng, b) => {
+      const e = rng.int(2, 4), f = rng.int(2, 4);
+      return {
+        text: `You need to add ${power(b, e)} to ${power(b, f)}.`,
+        why: `The exponent rules are for multiplying and dividing; adding powers has none. `
+          + `${b ** e} + ${b ** f} = ${b ** e + b ** f}.`,
+      };
+    },
+    (rng, b) => {
+      const e = rng.int(2, 4), v = b ** e;
+      // Near the value, and never itself a power of b, or the exponents alone would settle it.
+      const isPower = (k) => Array.from({ length: 12 }, (_, j) => b ** j).includes(k);
+      const k = rng.pick([-3, -2, -1, 1, 2, 3].map((d) => v + d).filter((k) => k > 0 && !isPower(k)));
+      return {
+        text: `You need to say whether ${power(b, e)} is bigger than ${k}.`,
+        why: `${k} is not a power of ${b}, so the exponent says nothing about it. ${power(b, e)} = ${v}, `
+          + `which is ${v > k ? 'bigger' : 'smaller'}.`,
+      };
+    },
+    (rng, b) => {
+      const e = rng.int(2, 4);
+      return {
+        text: `You need to write ${power(b, e)} as the final answer to a counting problem.`,
+        why: `A count is a number: nobody reports having ${power(b, e)} things. It is ${b ** e}.`,
+      };
+    },
+  ],
+};
 
 function whichForm(rng) {
-  const b = rng.pick([2, 3, 4, 5]);
-  const p = power(b, rng.int(2, 4));
-  const q = power(b, rng.int(2, 4));
-  const situation = rng.pick(SITUATIONS);
-  const fill = (t) => t.replace(/\{p\}/g, p).replace(/\{q\}/g, q);
+  // Weighted towards work out, whose small-number situations repeat and are
+  // dropped as duplicates, so that the built level comes out near half and half.
+  const want = rng.chance(0.3) ? 'keep' : 'work out';
+  const b = want === 'keep' ? rng.pick([2, 3, 4, 5]) : rng.int(2, 10);
+  const situation = rng.pick(SITUATIONS[want])(rng, b);
   return {
-    prompt: [T.prose(fill(situation.text))],
-    text: fill(situation.text),
+    prompt: [T.prose(situation.text)],
+    text: situation.text,
     answer: {
       type: 'choice',
-      value: situation.want,
+      value: want,
       options: rng.shuffle([
-        { id: 'keep', label: 'Leave it as a power', note: 'so the exponent rules still apply' },
-        { id: 'work out', label: 'Work out the value', note: 'so it can be counted or compared' },
+        { id: 'keep', label: 'Leave it as a power', note: 'one base and an exponent, like 3⁴' },
+        { id: 'work out', label: 'Work out the value', note: 'a plain number, like 81' },
       ]),
     },
     visual: null,
-    explain: fill(situation.why),
+    explain: situation.why,
   };
 }
 
