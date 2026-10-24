@@ -57,7 +57,18 @@ function tokenize(src) {
     if (isAlpha(c)) {
       let j = i;
       while (j < s.length && isAlpha(s[j])) j++;
-      tokens.push({ k: 'name', v: s.slice(i, j).toLowerCase(), at: i });
+      // Letters side by side are a product, as they are on paper: 6ab is
+      // 6·a·b and xy^2 is x·y², the power on the last letter alone. So a run
+      // is split into single letters, except where a name the parser knows
+      // -- sqrt, pi -- starts, which is taken whole.
+      const run = s.slice(i, j).toLowerCase();
+      const names = [...Object.keys(FUNCTIONS), ...CONSTANTS].filter((n) => n.length > 1)
+        .sort((a, b) => b.length - a.length);
+      for (let k = 0; k < run.length;) {
+        const name = names.find((n) => run.startsWith(n, k)) ?? run[k];
+        tokens.push({ k: 'name', v: name, at: i + k });
+        k += name.length;
+      }
       i = j;
       continue;
     }
