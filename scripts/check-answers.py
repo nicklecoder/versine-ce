@@ -5198,6 +5198,169 @@ CHOICE_RULES += (
     (re.compile(rf"^defined: (tan|cot) {UC_ANGLE}$"), uc_defined),
 )
 
+
+# --- Graphs of Sine & Cosine -------------------------------------------------
+#
+# The equation in each text is the one the student reads, and it is evaluated
+# here as written, with nothing taken from the generator's parameters: the
+# period is the smallest shift that maps the wave onto itself, the maximum
+# and minimum are found by searching one period, and the amplitude and
+# midline follow from those. A phase shift is tested by sliding (or lifting)
+# the parent wave and comparing, and exactly one option may fit. A model is
+# turned into its wave and measured the same way.
+
+TG_SAFE = re.compile(r"^[\d\s+\-*/().xπsincopi]+$")
+
+
+def tg_wave(rhs: str):
+    """y as a function of x, from '−3 sin(2x) + 1' written in ASCII."""
+    s = rhs.replace("pi", "π")
+    assert TG_SAFE.match(s), f"unexpected characters in {rhs!r}"
+    s = re.sub(r"(?<=[\dxπ)])\s*(?=[xπ(]|sin|cos)", "*", s).replace("π", "pi")
+    return eval(f"lambda x: {s}", {"__builtins__": {}, "sin": math.sin, "cos": math.cos, "pi": math.pi})
+
+
+TG_TESTS = (0.31, 1.07, 2.42, 3.71, 5.23, 7.9, -1.6, 11.3)
+TG_PERIODS = sorted(
+    [(n / d * math.pi, ("pi", Fraction(n, d))) for d in (1, 2, 3, 4, 6, 8, 12) for n in range(1, 8 * d + 1)]
+    + [(n / d, ("plain", Fraction(n, d))) for d in (1, 2, 4, 5, 10) for n in range(1, 30 * d + 1)]
+)
+
+
+def tg_period(f):
+    for p, kind in TG_PERIODS:
+        if all(abs(f(x + p) - f(x)) < 1e-9 for x in TG_TESTS):
+            return p, kind
+    raise AssertionError("no period found")
+
+
+def tg_extreme(f, p: float, top: bool) -> Fraction:
+    sign = 1 if top else -1
+    n = 720
+    xs = [p * i / n for i in range(n)]
+    best = max(xs, key=lambda x: sign * f(x))
+    lo, hi = best - p / n, best + p / n
+    for _ in range(80):  # golden-section search near the best sample
+        m1, m2 = lo + (hi - lo) * 0.382, lo + (hi - lo) * 0.618
+        if sign * f(m1) < sign * f(m2):
+            lo = m1
+        else:
+            hi = m2
+    v = f((lo + hi) / 2)
+    q = Fraction(round(v * 12), 12)
+    assert abs(v - q) < 1e-6, f"extreme {v} is not a twelfth"
+    return q
+
+
+def tg_feature(f, want: str) -> Fraction:
+    p, (kind, coef) = tg_period(f)
+    if want.startswith("period"):
+        assert (kind == "pi") == want.endswith("(pi)"), f"period {p} asked {want}"
+        return coef
+    top, bottom = tg_extreme(f, p, True), tg_extreme(f, p, False)
+    return {"amplitude": (top - bottom) / 2, "midline": (top + bottom) / 2, "max": top, "min": bottom}[want]
+
+
+def tg_options(written: str) -> dict:
+    return dict(part.split(": ", 1) for part in written.split(" | "))
+
+
+def tg_shift(rhs: str, base_rhs: str, options: str) -> str:
+    f, base = tg_wave(rhs), tg_wave(base_rhs)
+    fits = []
+    for oid, opt in tg_options(options).items():
+        way, amount = opt.split(" ", 1)
+        v = float(Fraction(amount.removesuffix(" pi"))) * math.pi
+        moved = {"right": lambda x: base(x - v), "left": lambda x: base(x + v),
+                 "up": lambda x: base(x) + v, "down": lambda x: base(x) - v}[way]
+        if all(abs(f(x) - moved(x)) < 1e-9 for x in TG_TESTS):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def tg_from_graph(x1: str, top: str, x2: str, bottom: str, options: str) -> str:
+    """The one sinusoid with a peak at (x1, top) and the next trough at (x2, bottom)."""
+    a, b = float(Fraction(x1)) * math.pi, float(Fraction(x2)) * math.pi
+    hi, lo = int(top), int(bottom)
+    drawn = lambda x: (hi + lo) / 2 + (hi - lo) / 2 * math.cos(math.pi * (x - a) / (b - a))
+    fits = [oid for oid, opt in tg_options(options).items()
+            if all(abs(tg_wave(opt.removeprefix("y = "))(x) - drawn(x)) < 1e-9 for x in TG_TESTS)]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
+
+
+def tg_ferris(dia, unit, center, turn, want) -> Fraction:
+    r = Fraction(dia, 2)
+    f = lambda t: center - float(r) * math.cos(2 * math.pi * t / turn)
+    return 2 / tg_feature(f, "period") if want == "b (pi)" else tg_feature(f, want)
+
+
+def tg_ferris_height(dia, unit, center, turn, t, places) -> Fraction:
+    t = float(t)
+    angle = 2 * math.pi * t / turn
+    x = center - dia / 2 * math.cos(angle)
+    if places is None:
+        q = Fraction(round(x))
+        assert abs(x - q) < 1e-9, f"height {x} is not whole"
+        return q
+    return trig_agree(x, center - dia / 2 * round(math.cos(angle), 4), int(places))
+
+
+def tg_tide(high, unit, low, half, want) -> Fraction:
+    h = float(half)
+    f = lambda t: (high + low) / 2 + (high - low) / 2 * math.cos(math.pi * t / h)
+    return tg_feature(f, want)
+
+
+def tg_cycle(lo, hi, period, want) -> Fraction:
+    p = Fraction(str(period))
+    f = lambda t: (hi + lo) / 2 + (hi - lo) / 2 * math.cos(2 * math.pi * t / float(p))
+    return 2 / tg_feature(f, "period") if want == "b (pi)" else tg_feature(f, want)
+
+
+BY_RULE += (
+    (re.compile(r"^wave(?: graph)?: y = (.+); want (amplitude|midline|max|min|period(?: \(pi\))?)$"),
+     lambda rhs, want: tg_feature(tg_wave(rhs), want)),
+    (re.compile(r"^ferris: diameter (\d+) (ft|m), center (\d+), turn (\d+) min; want (amplitude|midline|max|min|period|b \(pi\))$"), tg_ferris),
+    (re.compile(r"^ferris: diameter (\d+) (ft|m), center (\d+), turn (\d+) min; want height at ([\d.]+)(?: to (\d) dp)?$"), tg_ferris_height),
+    (re.compile(r"^tide: high (\d+) (ft|m), low (\d+), half cycle ([\d.]+) h; want (amplitude|midline|period)$"), tg_tide),
+    (re.compile(r"^temperature: low (-?\d+), high (\d+) (?:C|F); want (amplitude|midline|period|b \(pi\))$"),
+     lambda lo, hi, want: tg_cycle(int(lo), hi, 12, want)),
+    (re.compile(r"^spring: between (\d+) and (\d+) (?:cm|in), cycle ([\d.]+) s; want (amplitude|midline|period|b \(pi\))$"), tg_cycle),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^shift: y = (.+) from y = (.+); options (.+)$"), tg_shift),
+    (re.compile(r"^graph equation: peak \((-?\d+/\d+) pi, (-?\d+)\), trough \((-?\d+/\d+) pi, (-?\d+)\); options (.+)$"), tg_from_graph),
+)
+
+
+# requiem: catalogue/content/wave-graphs-drawn-from-their-equation
+# A graph is the student's only copy of the wave, so every point drawn must
+# lie on the equation the text names (the stored option, for Equation From a
+# Graph): x is drawn on exact tenths, so y may differ by the 0.05 of its own
+# rounding and no more, and every dot is a true peak or trough.
+for path in sorted(LIB.glob("trig-graphs-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if not p.get("visual"):
+            continue
+        where = f"trig-graphs L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        m = re.match(r"^wave graph: y = (.+?);", p["text"])
+        if m:
+            rhs = m[1]
+        else:
+            rhs = tg_options(p["text"].split("; options ", 1)[1])[p["answer"]["value"]].removeprefix("y = ")
+        f = tg_wave(rhs)
+        period, _ = tg_period(f)
+        hi, lo = tg_extreme(f, period, True), tg_extreme(f, period, False)
+        curves = [mk for mk in p["visual"]["marks"] if mk["kind"] == "path"]
+        assert len(curves) == 1, where
+        off = [pt for pt in curves[0]["points"] if abs(f(pt[0]) - pt[1]) > 0.0501]
+        if off:
+            problems.append(f"{where}: the drawn wave leaves y = {rhs} at {off[0]}")
+        for dot in (mk["at"] for mk in p["visual"]["marks"] if mk["kind"] == "point"):
+            if min(abs(dot[1] - float(hi)), abs(dot[1] - float(lo))) > 0.0501 or abs(f(dot[0]) - dot[1]) > 0.1:
+                problems.append(f"{where}: the dot at {dot} is not a peak or trough of y = {rhs}")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

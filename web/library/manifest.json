@@ -1,5 +1,5 @@
 {
-  "built": 516,
+  "built": 523,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -651,6 +651,15 @@
       "tangent",
       "sec-csc-cot",
       "from-one-ratio",
+      "all-together"
+    ],
+    "trig-graphs": [
+      "amplitude",
+      "period",
+      "midline",
+      "phase-shift",
+      "equation-from-a-graph",
+      "sinusoidal-models",
       "all-together"
     ]
   },
@@ -1465,9 +1474,20 @@
           "radians"
         ]
       }
+    },
+    "trig-graphs": {
+      "dependsOn": [
+        "transformations-f",
+        "unit-circle"
+      ],
+      "levels": {
+        "phase-shift": [
+          "transformations-f"
+        ]
+      }
     }
   },
-  "sources": "8a9c8bc86c198d81b1c850b0de919a5d4e1c62c4e6d247048501800911e131db",
+  "sources": "65e10fab0a3151b642b1b54598170d44cbff388b6c424e695db1a8b086df11e2",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6628,6 +6648,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "unit-circle-6.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 0,
+      "slug": "amplitude",
+      "name": "Amplitude",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-0.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 1,
+      "slug": "period",
+      "name": "Period",
+      "count": 400,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-1.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 2,
+      "slug": "midline",
+      "name": "Midline",
+      "count": 400,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-graphs-2.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 3,
+      "slug": "phase-shift",
+      "name": "Phase Shift",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-3.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 4,
+      "slug": "equation-from-a-graph",
+      "name": "Equation From a Graph",
+      "count": 300,
+      "exhaustive": false,
+      "signed": false,
+      "file": "trig-graphs-4.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 5,
+      "slug": "sinusoidal-models",
+      "name": "Sinusoidal Models",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-graphs-5.json"
+    },
+    {
+      "skill": "trig-graphs",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 600,
+      "exhaustive": false,
+      "signed": true,
+      "file": "trig-graphs-6.json"
     }
   ]
 }

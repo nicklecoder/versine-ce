@@ -13,6 +13,16 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Graphs of Sine & Cosine**, a new skill under the Unit Circle, in seven
+levels: amplitude, period, midline (with the maximum and minimum), phase
+shift with b factored out, the equation of a drawn wave, and sinusoidal
+models of Ferris wheels, tides, springs and the seasons in US and metric
+units, then All Together. Waves are drawn on exact tenths of x with dots at
+each peak and trough, and figure levels are capped at 300 to 400 problems.
+`check-answers.py` evaluates each equation as the student reads it, finds
+its period and extremes numerically, slides the parent wave to test each
+phase-shift option, and checks every drawn point against the equation.
+
 **The Unit Circle**, a new skill under the Unit Circle, in seven levels:
 special angles, signs by quadrant, any multiple of 30° or 45° by its
 reference angle (drawn on the circle), tangent, sec, csc and cot, and the

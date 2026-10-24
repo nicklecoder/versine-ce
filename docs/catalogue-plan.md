@@ -346,6 +346,11 @@ Circle · Tangent · sec, csc, cot · From One Ratio, the Rest · All Together.
 Around the Circle is added between the first-quadrant values and tangent,
 for any angle by its reference angle, and depends on radians' Reference
 Angles; Special Angles depends on trig-ratios' 30-60-90.
+`trig-graphs` is built, as Amplitude · Period · Midline · Phase Shift ·
+Equation From a Graph · Sinusoidal Models · All Together, in the plan's
+levels. Phase Shift depends on transforming functions' Left and Right, and
+asks the shift as a choice so that the unfactored amount and the wrong
+direction can both be offered.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
