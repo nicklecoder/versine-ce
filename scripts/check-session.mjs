@@ -311,6 +311,29 @@ for (const skill of SKILLS) {
   if (play(p.answer.accept[0]).status !== 'correct') fail.push(`line-forms: "${p.answer.accept[0]}" refused`);
 }
 
+// requiem: play/answers/set-letter-told
+// The right set in the wrong letter is told which letter, not marked right.
+{
+  const skill = SKILLS.find((s) => s.id === 'inequalities');
+  let found = null;
+  for (let level = 0; level < skill.levels.length && !found; level++) {
+    const p = libOf(skill, level).problems.find((q) => q.answer.type === 'solutions'
+      && /^[a-z] /.test(q.answer.accept[0]));
+    if (p) found = { p, level };
+  }
+  const { p, level } = found;
+  const other = p.answer.value.letter === 'y' ? 'x' : 'y';
+  const play = (raw) => {
+    const s = new Session({ skill, level, mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const r = play(p.answer.accept[0].replace(/^[a-z]/, other));
+  if (r.status !== 'wrong' || !r.hint?.includes(`with ${p.answer.value.letter}`)) fail.push(`inequalities: "${other}" for ${p.answer.value.letter} not told the letter`);
+  if (play(p.answer.accept[0]).status !== 'correct') fail.push(`inequalities: "${p.answer.accept[0]}" refused`);
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

@@ -513,6 +513,14 @@ defineType({
   preview: previewSet,
   equals: sameSet,
   format: formatSet,
+  // requiem: play/answers/set-letter-told
+  // The set is judged without its letter, but y > 2 typed for x > 2 is
+  // answering a different question: right numbers, said back with the letter.
+  formHint(parsed, value) {
+    const typed = parsed.typedLetter;
+    return typed && value.letter && typed !== value.letter
+      ? `The question is about ${value.letter}: write it with ${value.letter}, not ${typed}.` : null;
+  },
   // A level asking for the simplest form means the conditions combined.
   isSimplest: (v, parsed) => combined(v, parsed?.pieces),
   unfinished: 'combined into its simplest form',

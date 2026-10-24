@@ -116,6 +116,11 @@ export class Session {
     const forms = [spec.value, ...(spec.accept ?? []).map((a) => type.parse(a)).filter((r) => r.ok).map((r) => r.value)];
     if (!forms.some((v) => type.equals(parsed.value, v))) return this.#wrong();
 
+    // Right value said in a way that does not answer this question, such as
+    // the wrong letter: told why, the same as a form not finished.
+    const said = type.formHint?.(parsed, spec.value);
+    if (said) return { ...this.#wrong(), hint: said };
+
     // Right value, wrong form. Levels that ask for simplest form mean it, and
     // saying so precisely is more use than a bare "not quite".
     if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value, parsed)) {

@@ -206,7 +206,7 @@ export function parseSet(raw) {
     }
     parts = parts.concat(set);
   }
-  return { ok: true, value: { letter: letter ?? 'x', parts: normalize(parts) }, pieces: written };
+  return { ok: true, value: { letter: letter ?? 'x', parts: normalize(parts) }, pieces: written, typedLetter: letter };
 }
 
 /**
