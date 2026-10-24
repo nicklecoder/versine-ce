@@ -100,7 +100,7 @@ function verticalLine(rng) {
     const pts = [];
     for (let i = 0; i <= 72; i++) pts.push([+(h + r * Math.cos(i * Math.PI / 36)).toFixed(3), +(k + r * Math.sin(i * Math.PI / 36)).toFixed(3)]);
     marks = [{ kind: 'path', points: pts, tone: LINE }];
-    probe = h; crossings = 2; about = `circle centre (${h}, ${k}) radius ${r}`;
+    probe = h; crossings = 2; about = `circle center (${h}, ${k}) radius ${r}`;
   } else if (kind === 'sideways') {
     const w = rng.pick([2, 4, 8]);
     const pts = [];
@@ -257,7 +257,7 @@ function domainRange(rng) {
 
 const CONTEXTS = [
   { f: 'h', in: 't', out: 'height', inUnit: 'seconds', outUnit: 'm', ins: [1, 6], outs: [8, 40],
-    say: 'the height in metres of a ball t seconds after it is thrown',
+    say: 'the height in meters of a ball t seconds after it is thrown',
     rate: (a, b) => `The ball rises ${b} m ${every(a, 'seconds')}` },
   { f: 'C', in: 'n', out: 'cost', inUnit: 'tickets', outUnit: 'dollars', ins: [2, 12], outs: [15, 90],
     say: 'the cost in dollars of n tickets',

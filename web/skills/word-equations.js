@@ -11,7 +11,7 @@
  * the wrong two are the misreadings students actually make. After that the
  * situations get their own levels by shape -- a fixed amount plus a rate,
  * parts of a whole, two things becoming equal -- since each shape is a
- * template a student can learn to recognise.
+ * template a student can learn to recognize.
  *
  * At Least / At Most is here, rather than in Inequalities, because a
  * situation is where an inequality's answer has to be read: the fewest weeks

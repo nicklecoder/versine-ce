@@ -273,7 +273,7 @@ const PLANS = [
 ];
 const MODELS = [['car', 24, 'long'], ['ship', 50, 'long'], ['plane', 72, 'long'], ['train', 87, 'long'], ['house', 20, 'tall'],
   ['bridge', 200, 'long'], ['tower', 100, 'tall']];
-const WORD = { km: 'kilometres', m: 'metres' };
+const WORD = { km: 'kilometers', m: 'meters' };
 
 function scaleDrawing(rng) {
   const kind = rng.pick(['out', 'out', 'back', 'per', 'model', 'area']);
@@ -286,13 +286,13 @@ function scaleDrawing(rng) {
       if (!tidy(value * 10)) continue;
       return {
         prompt: [T.prose(`A model ${thing} is built to a scale of 1 : ${n}. The model is ${num(model)} cm ${way}. `
-          + `How ${way} is the real ${thing}, in ${inM ? 'metres' : 'centimetres'}?`)],
+          + `How ${way} is the real ${thing}, in ${inM ? 'meters' : 'centimeters'}?`)],
         text: `scale model: 1:${n}; ${f(model)} cm; in ${inM ? 'm' : 'cm'}`,
         answer: dec(value),
         visual: null,
         explain: `1 : ${n} means every length on the real ${thing} is ${n} times the model’s, in the same unit. `
           + `${num(model)} × ${n} = ${num(real)} cm. `
-          + (inM ? `There are 100 cm in a metre: ${num(real)} ÷ 100 = ${num(value)}. (The scale has no units of its own, so the answer comes out in cm first.) So ${num(value)} m.`
+          + (inM ? `There are 100 cm in a meter: ${num(real)} ÷ 100 = ${num(value)}. (The scale has no units of its own, so the answer comes out in cm first.) So ${num(value)} m.`
             : `(Not ${num(model)} ÷ ${n}: the real ${thing} is the bigger one.) So ${num(value)} cm.`),
       };
     }
@@ -327,7 +327,7 @@ function scaleDrawing(rng) {
         text: `scale drawing: 1 cm = ${f(per)} ${unit}; ${f(drawn)} cm out`,
         answer: dec(real),
         visual: null,
-        explain: `Each centimetre on the ${plan.what} is ${num(per)} ${unit}, so ${num(drawn)} cm is ${num(drawn)} × ${num(per)} = ${num(real)} ${unit}. `
+        explain: `Each centimeter on the ${plan.what} is ${num(per)} ${unit}, so ${num(drawn)} cm is ${num(drawn)} × ${num(per)} = ${num(real)} ${unit}. `
           + `(Dividing would make the real thing smaller than its picture.) So ${num(real)} ${unit}.`,
       };
     }
@@ -351,8 +351,8 @@ function scaleDrawing(rng) {
       text: `scale drawing: ${drawnLine} cm = ${f(realLine)} ${unit}; per cm`,
       answer: dec(perCm),
       visual: null,
-      explain: `Share the real length among the centimetres: ${quotient(realLine, drawnLine)} ${unit} for each cm. `
-        + `(${drawnLine} ÷ ${num(realLine)} would be centimetres per ${unit}, the other way round.) So 1 cm stands for ${num(perCm)} ${unit}.`,
+      explain: `Share the real length among the centimeters: ${quotient(realLine, drawnLine)} ${unit} for each cm. `
+        + `(${drawnLine} ÷ ${num(realLine)} would be centimeters per ${unit}, the other way round.) So 1 cm stands for ${num(perCm)} ${unit}.`,
     };
   }
 }

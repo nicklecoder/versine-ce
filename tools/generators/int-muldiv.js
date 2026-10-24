@@ -129,7 +129,7 @@ function chain(rng) {
 /**
  * Where a negative product comes from, and where a negative quotient does.
  *
- * Multiplying gives the total of a loss repeated -- eight pounds owed to each
+ * Multiplying gives the total of a loss repeated -- eight dollars owed to each
  * of five people is −40, and nobody has to be told the sign. Dividing shares
  * a known total change back out over equal steps, which is the reading of
  * −40 ÷ 5 that makes the answer obviously −8 rather than a rule about signs.
@@ -140,13 +140,13 @@ function chain(rng) {
  * keeps its symbols and this level does not pretend otherwise.
  */
 const REPEATS = [
-  // The question asks for a change, so it says so: "the total owed" is £63
-  // and the change to the balance is −£63, and asking for both at once left
+  // The question asks for a change, so it says so: "the total owed" is $63
+  // and the change to the balance is −$63, and asking for both at once left
   // a student who typed 63 marked wrong for answering the first.
-  { who: 'Someone', each: (n) => `pays out £${n}`, over: (k) => `to each of ${k} people`,
-    total: 'By how much does their balance change, in pounds?', unit: '£',
-    share: (t, k) => `A balance changed by ${t.replace(/^(−?)/, '$1£')} over ${k} equal payments. `
-      + 'What was the change to the balance each time, in pounds?' },
+  { who: 'Someone', each: (n) => `pays out $${n}`, over: (k) => `to each of ${k} people`,
+    total: 'By how much does their balance change, in dollars?', unit: '$',
+    share: (t, k) => `A balance changed by ${t.replace(/^(−?)/, '$1$$')} over ${k} equal payments. `
+      + 'What was the change to the balance each time, in dollars?' },
   { who: 'The temperature', each: (n) => `falls ${n} degrees`,
     over: (k) => `each hour for ${k} hours`,
     total: 'What is the total change in temperature?', unit: '°',
@@ -156,7 +156,7 @@ const REPEATS = [
   // depth that grows, and "the change in depth is −20" was wrong as worded.
   { who: 'A diver', each: (n) => `descends ${n} m`,
     over: (k) => `each minute for ${k} minutes`,
-    total: 'What is the total change in their height, in metres?', unit: 'm',
+    total: 'What is the total change in their height, in meters?', unit: 'm',
     share: (t, k) => `A diver's height changed by ${t} m over ${k} equal minutes. `
       + 'What was the change each minute?' },
 ];

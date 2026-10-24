@@ -49,7 +49,7 @@ function roundTo(v, places) {
 }
 
 /** The digit that decides, and the two numbers it decides between. */
-function neighbours(v, places) {
+function neighbors(v, places) {
   const scale = 10 ** places;
   const down = dec(Math.floor((v.n * scale) / v.d), places);
   return { down, up: dec(down.n + 1, places) };
@@ -60,7 +60,7 @@ function neighbours(v, places) {
  *
  * `halfway` decides whether the deciding digit is a 5 with nothing after it.
  * Those are their own level: they are the only case where the answer comes
- * from a convention rather than from which neighbour is nearer, and mixing
+ * from a convention rather than from which neighbor is nearer, and mixing
  * them in earlier would teach "look at the digit" as if it always settled it.
  *
  * Two rejections, both of which produced questions with nothing in them on
@@ -89,7 +89,7 @@ function value(rng, places, halfway) {
 function roundQuestion(rng, places, halfway) {
   const v = value(rng, places, halfway);
   const answer = roundTo(v, places);
-  const { down, up } = neighbours(v, places);
+  const { down, up } = neighbors(v, places);
 
   const [lo, hi, got] = [down, up, answer].map((x) => fixed(x, places));
   // Said only where the zero would otherwise go missing.
@@ -106,7 +106,7 @@ function roundQuestion(rng, places, halfway) {
       lines: [show(v), `between ${lo} and ${hi}`,
               halfway ? 'exactly halfway' : `nearer ${got}`, got],
       rules: ['find the two it sits between',
-              halfway ? 'dead centre, so the convention decides' : 'see which is nearer',
+              halfway ? 'dead center, so the convention decides' : 'see which is nearer',
               'which gives'],
       hint: places === 0
         ? 'Which two whole numbers is it between?'
@@ -167,10 +167,10 @@ function estimate(rng) {
 // comparison depends on how close the comparison is, which is the judgement
 // this level is for.
 const SITUATIONS = [
-  { text: 'You are checking that a bill of £{big} looks right before paying it.', want: 'estimate' },
-  { text: 'You are working out the change from £{big} and handing it over.', want: 'exact' },
-  { text: 'You are cutting a shelf to fit a gap of {a} metres.', want: 'exact' },
-  { text: 'You are splitting a £{big} bill {n} ways and paying your share.', want: 'exact' },
+  { text: 'You are checking that a bill of ${big} looks right before paying it.', want: 'estimate' },
+  { text: 'You are working out the change from ${big} and handing it over.', want: 'exact' },
+  { text: 'You are cutting a shelf to fit a gap of {a} meters.', want: 'exact' },
+  { text: 'You are splitting a ${big} bill {n} ways and paying your share.', want: 'exact' },
   { text: 'You have just divided and want to know if the answer is the right size.',
     want: 'estimate' },
   { text: 'You are recording a race time that decides who won.', want: 'exact' },
@@ -222,15 +222,15 @@ function settles(rng, kind, near) {
   }
   const ps = show(dec(p, 1)), qs = kind === 'tickets' ? String(q / 10) : show(dec(q, 1));
   const money = kind === 'tickets';
-  const amount = (hundredths) => (money ? `£${fixed(dec(hundredths, 2), 2)}` : show(dec(hundredths, 2)));
-  const price = `£${fixed(dec(p, 1), 2)}`;
+  const amount = (hundredths) => (money ? `$${fixed(dec(hundredths, 2), 2)}` : show(dec(hundredths, 2)));
+  const price = `$${fixed(dec(p, 1), 2)}`;
   // "Checking" is also the estimate side's word, so it cannot decide this.
   const text = money
-    ? `You are checking whether £${t} is enough for ${qs} tickets at ${price} each.`
+    ? `You are checking whether $${t} is enough for ${qs} tickets at ${price} each.`
     : `You want to know whether ${ps} × ${qs} is more than ${t}.`;
-  const est = money ? `${qs} tickets at about £${P} is ${qs} × £${P} = £${P * Q}` : `${ps} × ${qs} is about ${P} × ${Q} = ${P * Q}`;
+  const est = money ? `${qs} tickets at about $${P} is ${qs} × $${P} = $${P * Q}` : `${ps} × ${qs} is about ${P} × ${Q} = ${P * Q}`;
   const range = `between ${amount(Math.round(lo * 100))} and ${amount(Math.round(hi * 100))}`;
-  const line = money ? `£${t}` : String(t);
+  const line = money ? `$${t}` : String(t);
   const why = near
     ? `Rounded, ${est}, but rounding could have moved it anywhere ${range}, and `
       + `${line} is inside that range. An estimate cannot settle it, so it has to be `

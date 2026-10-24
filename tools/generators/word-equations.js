@@ -155,8 +155,8 @@ const RATES = [
   { setup: (f, r) => `A candle starts ${f} cm tall and burns down ${r} cm every hour.`,
     total: (t) => `It is now ${t} cm tall.`, ask: 'How many hours has it burned?', letter: 't', unit: 'hours',
     falling: true },
-  { setup: (f, r) => `A tank starts with ${f * 10} litres and drains ${r * 5} litres a minute.`,
-    total: (t) => `It now holds ${t} litres.`, ask: 'For how many minutes has it drained?', letter: 't',
+  { setup: (f, r) => `A tank starts with ${f * 10} liters and drains ${r * 5} liters a minute.`,
+    total: (t) => `It now holds ${t} liters.`, ask: 'For how many minutes has it drained?', letter: 't',
     unit: 'minutes', falling: true, scale: [10, 5] },
 ];
 
@@ -268,12 +268,12 @@ function twoEqual(rng) {
   const fill = rng.int(3, 12), drain = rng.int(2, 10);
   const startB = rng.int(10, 60) * 5;
   const startA = startB - (fill + drain) * when;
-  // Ten litres or more: "holds 0 litres" is an empty tank, and "1 litres" is not English.
+  // Ten liters or more: "holds 0 liters" is an empty tank, and "1 liters" is not English.
   if (startA < 10) return twoEqual(rng);
   const eq = `${startA} + ${fill}t = ${startB} - ${drain}t`;
   return {
-    prompt: [T.prose(`Tank A holds ${startA} litres and is filling at ${fill} litres a minute. Tank B holds `
-      + `${startB} litres and is draining at ${drain} litres a minute. After how many minutes do they hold the same?`)],
+    prompt: [T.prose(`Tank A holds ${startA} liters and is filling at ${fill} liters a minute. Tank B holds `
+      + `${startB} liters and is draining at ${drain} liters a minute. After how many minutes do they hold the same?`)],
     text: eq, answer: { type: 'int', value: when }, visual: null,
     explain: `After t minutes A holds ${startA} + ${fill}t and B holds ${startB} − ${drain}t. Set them equal: `
       + `${tm(eq)}. Add ${drain}t and take ${startA} from both sides: ${fill + drain}t = ${startB - startA}, `
@@ -315,12 +315,12 @@ function atLeastAtMost(rng) {
   const boxes = Math.floor((limit - already) / box);
   const ineq = `${already} + ${box}n ≤ ${limit}`;
   return {
-    prompt: [T.prose(`A lift can carry at most ${limit} kg. A ${already} kg trolley is already in it. Each box `
+    prompt: [T.prose(`An elevator can carry at most ${limit} kg. A ${already} kg cart is already in it. Each box `
       + `weighs ${box} kg. What is the greatest number of boxes it can take?`)],
     text: `${ineq}, largest`, answer: { type: 'int', value: boxes }, visual: null,
     explain: `"At most ${limit} kg" is ${ineq}. So ${box}n ≤ ${limit - already}, and n ≤ `
       + (exact
-        ? `${limit - already} ÷ ${box} = ${boxes} exactly. With ${boxes} boxes the lift carries exactly ${limit} kg, `
+        ? `${limit - already} ÷ ${box} = ${boxes} exactly. With ${boxes} boxes the elevator carries exactly ${limit} kg, `
           + `and "at most" includes exactly, so it can take ${boxes}.`
         : `${limit - already} ÷ ${box}, which is between ${boxes} and ${boxes + 1}. One more box would be over `
           + `the limit, so the most it can take is ${boxes}.`),

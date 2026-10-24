@@ -227,9 +227,9 @@ const UNITS = [
   ['h', 'min', 60], ['min', 's', 60], ['ft', 'in', 12], ['yd', 'ft', 3], ['day', 'h', 24],
   ['cm', 'mm', 10],
 ];
-const NAMES = { m: 'metre', cm: 'centimetre', km: 'kilometre', kg: 'kilogram', g: 'gram', L: 'litre',
-  mL: 'millilitre', h: 'hour', min: 'minute', s: 'second', ft: 'foot', in: 'inch', yd: 'yard',
-  day: 'day', mm: 'millimetre' };
+const NAMES = { m: 'meter', cm: 'centimeter', km: 'kilometer', kg: 'kilogram', g: 'gram', L: 'liter',
+  mL: 'milliliter', h: 'hour', min: 'minute', s: 'second', ft: 'foot', in: 'inch', yd: 'yard',
+  day: 'day', mm: 'millimeter' };
 
 function convert(rng) {
   const [big, small, k] = rng.pick(UNITS);

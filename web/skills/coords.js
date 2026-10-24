@@ -3,7 +3,7 @@
  *
  * The first skill where an answer is a *place* rather than a quantity, which
  * is the idea the whole of graphing rests on. Reading a point off a grid comes
- * before naming one, because recognising is easier than producing and both
+ * before naming one, because recognizing is easier than producing and both
  * are the same fact.
  *
  * Quadrants get their own level for one reason: the sign pattern is what makes

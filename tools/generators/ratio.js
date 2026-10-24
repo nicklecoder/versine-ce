@@ -144,7 +144,7 @@ function notInSimplestForm(rng) {
  */
 const SHARES = [
   { items: 'counters', one: 'red', two: 'blue' },
-  { items: 'sweets', one: 'mint', two: 'lemon' },
+  { items: 'candies', one: 'mint', two: 'lemon' },
   { items: 'beads', one: 'wooden', two: 'glass' },
   { items: 'tiles', one: 'plain', two: 'patterned' },
   { items: 'cards', one: 'red', two: 'black' },
@@ -197,7 +197,7 @@ function partAndWhole(rng) {
 const RATES = [
   { many: 'km', per: 'hours', ask: 'How far in one hour?', unit: 'km' },
   { many: 'pages', per: 'minutes', ask: 'How many in one minute?', unit: 'pages' },
-  { many: 'litres', per: 'tanks', ask: 'How much in one tank?', unit: 'litres' },
+  { many: 'liters', per: 'tanks', ask: 'How much in one tank?', unit: 'liters' },
   { many: 'words', per: 'lines', ask: 'How many on one line?', unit: 'words' },
   { many: 'grams', per: 'scoops', ask: 'How much in one scoop?', unit: 'grams' },
 ];
@@ -248,19 +248,19 @@ function scaling(rng) {
   const down = from % to === 0;
   const clean = up || down;
   const by = up ? to / from : from / to;
-  const scaled = up ? `£${cost} × ${by}` : `£${cost} ÷ ${by}`;
+  const scaled = up ? `$${cost} × ${by}` : `$${cost} ÷ ${by}`;
 
   return {
-    prompt: [T.prose(`${from} ${g} cost £${cost}. What do ${to} cost?`)],
+    prompt: [T.prose(`${from} ${g} cost $${cost}. What do ${to} cost?`)],
     text: `${cost} for ${from}, then ${to}`,
     answer: { type: 'int', value: one * to },
     visual: {
       kind: 'evalmodel',
       lines: clean
-        ? [`${from} for £${cost}`, up ? `${to} is ${by} × ${from}` : `${to} is ${from} ÷ ${by}`, scaled,
-           `£${one * to}`]
-        : [`${from} for £${cost}`, `£${cost} ÷ ${from} = £${one} each`, `£${one} × ${to}`,
-           `£${one * to}`],
+        ? [`${from} for $${cost}`, up ? `${to} is ${by} × ${from}` : `${to} is ${from} ÷ ${by}`, scaled,
+           `$${one * to}`]
+        : [`${from} for $${cost}`, `$${cost} ÷ ${from} = $${one} each`, `$${one} × ${to}`,
+           `$${one * to}`],
       rules: clean
         ? [up ? `${to} is a whole number of lots of ${from}` : `${from} is a whole number of lots of ${to}`,
            'so scale the price the same way', 'which comes to']
@@ -269,9 +269,9 @@ function scaling(rng) {
     },
     explain: clean
       ? (up ? `${to} is exactly ${by} lots of ${from}` : `${to} is ${from} ÷ ${by}, a ${ordinal(by)} of ${from}`)
-        + `, so the price scales the same way: ${scaled} = £${one * to}.`
+        + `, so the price scales the same way: ${scaled} = $${one * to}.`
       : `${to} and ${from} are not whole numbers of lots of each other, so go through one: `
-        + `£${cost} ÷ ${from} = £${one} each, and £${one} × ${to} = £${one * to}.`,
+        + `$${cost} ÷ ${from} = $${one} each, and $${one} × ${to} = $${one * to}.`,
   };
 }
 
@@ -300,8 +300,8 @@ function scaleOrFindOne(rng) {
   const clean = (to % from === 0 || from % to === 0) && to !== from;
 
   return {
-    prompt: [T.prose(`${from} ${g} cost £${cost}. You need ${to} of them.`)],
-    text: `${from} ${g} at £${cost}, need ${to}`,
+    prompt: [T.prose(`${from} ${g} cost $${cost}. You need ${to} of them.`)],
+    text: `${from} ${g} at $${cost}, need ${to}`,
     answer: {
       type: 'choice',
       value: clean ? 'scale' : 'unit',

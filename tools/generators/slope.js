@@ -155,8 +155,8 @@ function fromTable(rng) {
 
 /**
  * The same slope with units on the axes. Some of these fall, and the
- * negative sign is part of the answer: a tank losing 15 litres a minute is
- * changing at −15 litres per minute.
+ * negative sign is part of the answer: a tank losing 15 liters a minute is
+ * changing at −15 liters per minute.
  */
 const RATES = [
   { id: 'hiker', t: 'hours', q: 'km', s: (a, b) => `A hiker is ${a[1]} km from the start after ${after(a[0], 'hours')}, and `
@@ -164,9 +164,9 @@ const RATES = [
   up: true, per: 'km per hour', rate: [2, 6],
   // Walking from the start: about as far as the time at that speed allows.
   start: (rate, t1, rng) => rate * t1 + rng.int(0, 2) },
-  { id: 'tank', t: 'minutes', q: 'litres', s: (a, b) => `A tank holds ${a[1]} litres after ${after(a[0], 'minutes')} and `
-    + `${b[1]} litres after ${b[0]} minutes. At what rate is the amount changing, in litres per minute?`,
-  up: false, per: 'litres per minute' },
+  { id: 'tank', t: 'minutes', q: 'liters', s: (a, b) => `A tank holds ${a[1]} liters after ${after(a[0], 'minutes')} and `
+    + `${b[1]} liters after ${b[0]} minutes. At what rate is the amount changing, in liters per minute?`,
+  up: false, per: 'liters per minute' },
   { id: 'battery', t: 'hours', q: '%', s: (a, b) => `A phone is at ${a[1]}% after ${after(a[0], 'hours')} and ${b[1]}% after `
     + `${b[0]} hours. At what rate is the battery changing, in % per hour?`, up: false, per: '% per hour',
   rate: [2, 12], start: (rate, t1, rng) => rng.int(40, 100) },

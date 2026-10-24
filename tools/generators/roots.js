@@ -199,8 +199,8 @@ const SITUATIONS = {
       };
     },
     ({ r, v }) => ({
-      text: `You need to measure out ${r} metres of rope.`,
-      why: `Rope is measured off a tape, so it needs a decimal: ${r} ≈ ${dp2(v)} metres.`,
+      text: `You need to measure out ${r} meters of rope.`,
+      why: `Rope is measured off a tape, so it needs a decimal: ${r} ≈ ${dp2(v)} meters.`,
     }),
     ({ r, v }) => {
       const k = Math.floor(v);

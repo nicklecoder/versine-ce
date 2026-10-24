@@ -219,14 +219,14 @@ function context(rng) {
   const shape = rng.pick(['ball', 'ball', 'fence', 'revenue']);
   let src, ask, value, prompt, why;
   if (shape === 'ball') {
-    // In feet, h = −16t² + vt + s; in metres, −5t² (g rounded to 10). The
+    // In feet, h = −16t² + vt + s; in meters, −5t² (g rounded to 10). The
     // launch speed is any multiple that puts the top at a half second, so
     // the answer is not always a whole number of seconds.
     const metric = rng.chance(0.5);
     const g = metric ? 5 : 16, k = rng.int(1, metric ? 8 : 10);
     const s = metric ? rng.int(0, 12) : 2 * rng.int(0, 20);
     const v = g * k, t = k / 2, top = g * t * t + s;
-    const unit = metric ? 'metres' : 'feet';
+    const unit = metric ? 'meters' : 'feet';
     src = standardForm(-g, v, s).replace(/x/g, 't');
     ask = rng.chance(0.5) ? 'max' : 'when';
     value = ask === 'max' ? top : t;

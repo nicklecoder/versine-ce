@@ -37,8 +37,8 @@ export const LEVELS = [
   },
   {
     name: 'Working Backwards', slug: 'working-backwards',
-    blurb: 'It costs £60 after a 20% rise. Taking 20% off £60 is the wrong answer.',
-    // Undoing a proportion rather than applying one: £60 is 120% of the
+    blurb: 'It costs $60 after a 20% rise. Taking 20% off $60 is the wrong answer.',
+    // Undoing a proportion rather than applying one: $60 is 120% of the
     // original, and finding the original from a known multiple of it is the
     // scaling move.
     dependsOn: [{ skill: 'ratio', level: 0 }],

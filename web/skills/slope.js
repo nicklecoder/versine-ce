@@ -31,7 +31,7 @@ export const LEVELS = [
   { name: 'From a Table', slug: 'from-a-table',
     blurb: 'Each row is a point. How much does y change for each change in x?' },
   { name: 'Rate With Units', slug: 'rate-with-units',
-    blurb: 'When the axes measure things, the slope is a rate: km per hour, litres per minute.' },
+    blurb: 'When the axes measure things, the slope is a rate: km per hour, liters per minute.' },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];

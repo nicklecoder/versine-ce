@@ -43,9 +43,9 @@ const SITUATIONS = [
   { id: 'saver', about: "Rae's savings, in dollars, after x weeks", start: [0, 200, 10], rate: [5, 30, 5], x: 'weeks', y: 'savings in dollars',
     say: (s, r) => `Rae has ${money(s)} saved and adds ${money(r)} every week.`,
     b: 'the savings at the start', m: 'the amount saved each week' },
-  { id: 'tank', about: "the litres left in a tank after it has drained for x minutes", start: [200, 600, 50], rate: [-25, -5, 5], x: 'minutes', y: 'litres in the tank',
-    say: (s, r) => `A tank holds ${s} litres and drains ${-r} litres a minute.`,
-    b: 'the starting amount', m: 'the change in litres each minute' },
+  { id: 'tank', about: "the liters left in a tank after it has drained for x minutes", start: [200, 600, 50], rate: [-25, -5, 5], x: 'minutes', y: 'liters in the tank',
+    say: (s, r) => `A tank holds ${s} liters and drains ${-r} liters a minute.`,
+    b: 'the starting amount', m: 'the change in liters each minute' },
   { id: 'phone', about: "a monthly phone bill, in dollars, when x gigabytes are used", start: [0, 30, 5], rate: [1, 5, 1], x: 'gigabytes used', y: 'monthly bill in dollars',
     say: (s, r) => `A phone plan costs ${money(s)} a month plus ${money(r)} for each gigabyte used.`,
     b: 'the monthly charge', m: 'the cost for each gigabyte' },
@@ -98,8 +98,8 @@ const READINGS = [
     say: (a, b) => `A ${a[0]}-mile taxi ride costs ${money(a[1])}, and a ${b[0]}-mile ride costs ${money(b[1])}.` },
   { id: 'spring', x: 'kg hung on it', y: 'length in cm', rate: [2, 5], start: [10, 30],
     say: (a, b) => `A spring is ${a[1]} cm long with ${a[0]} kg hung on it, and ${b[1]} cm long with ${b[0]} kg.` },
-  { id: 'car', x: 'hours', y: 'litres of fuel left', rate: [-9, -4], start: [45, 60],
-    say: (a, b) => `A car has ${a[1]} litres of fuel left after ${count(a[0], 'hour')} of driving, and ${b[1]} litres after ${count(b[0], 'hour')}.` },
+  { id: 'car', x: 'hours', y: 'liters of fuel left', rate: [-9, -4], start: [45, 60],
+    say: (a, b) => `A car has ${a[1]} liters of fuel left after ${count(a[0], 'hour')} of driving, and ${b[1]} liters after ${count(b[0], 'hour')}.` },
   { id: 'hire', x: 'days', y: 'cost in dollars', rate: [15, 40], start: [10, 50],
     say: (a, b) => `Hiring a bike costs ${money(a[1])} for ${count(a[0], 'day')} and ${money(b[1])} for ${count(b[0], 'day')}.` },
 ];
@@ -253,7 +253,7 @@ function graphStory(rng, want = rng.int(0, 2)) {
   const order = rng.int(0, 2);
   // Rotate so the piece that answers is not always in the same place.
   const rot = [...slopes.slice(order), ...slopes.slice(0, order)];
-  // Neighbouring parts with the same slope would draw as one piece.
+  // Neighboring parts with the same slope would draw as one piece.
   if (rot[0] === rot[1] || rot[1] === rot[2]) return graphStory(rng, want);
   // Sometimes the ride starts away from home, at a friend's, so the first
   // part can be a stop or the way back as often as the others can.

@@ -14,7 +14,7 @@ async function enter(me) {
 }
 
 /**
- * Icon + colour picker. Returns the node plus a live `value` getter, so the
+ * Icon + color picker. Returns the node plus a live `value` getter, so the
  * caller doesn't have to track the selection itself.
  */
 function identityPicker() {
@@ -40,7 +40,7 @@ function identityPicker() {
       type: 'button',
       class: hex === accent ? 'is-active' : '',
       style: { background: hex },
-      'aria-label': `Colour ${hex}`,
+      'aria-label': `Color ${hex}`,
       onclick: (e) => {
         accent = hex;
         preview.style.setProperty('--accent', hex);
@@ -52,7 +52,7 @@ function identityPicker() {
   const node = el('div.stack--sm', {},
     el('div.center', {}, preview),
     el('div.eyebrow', {}, 'Pick an icon'), iconGrid,
-    el('div.eyebrow', {}, 'Pick a colour'), colorRow);
+    el('div.eyebrow', {}, 'Pick a color'), colorRow);
 
   return { node, get value() { return { icon, accent }; } };
 }

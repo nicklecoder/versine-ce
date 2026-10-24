@@ -388,7 +388,7 @@ class Surd:
     A sum of rational multiples of square roots of squarefree whole numbers,
     {m: coefficient}, with m = 1 the rational part. Closed under +, - and x,
     so a sum or product of roots is decided by arithmetic rather than by
-    recognising which shapes the catalogue happens to ask about.
+    recognizing which shapes the catalogue happens to ask about.
     """
 
     def __init__(self, terms):
@@ -2175,10 +2175,10 @@ BY_RULE += (
     (re.compile(r"^(\d+) = ((?:\S+ × )*\S+)$"), prime_blank),
     (re.compile(r"^(\d+/\d+) as a mixed number$"), amount),
     (re.compile(r"^(\d+ \d+/\d+) as an improper fraction$"), amount),
-    (re.compile(r"^The (?:diver|lift|temperature|account) (−?\d+) then ([+−]\d+)$"),
+    (re.compile(r"^The (?:diver|elevator|temperature|account) (−?\d+) then ([+−]\d+)$"),
      lambda a, b: signed(a) + signed(b)),
-    (re.compile(r"^The (?:diver|lift|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
-    (re.compile(r"^(\d+) (?:m|£|°) down, (\d+) times$"), lambda k, n: -k * n),
+    (re.compile(r"^The (?:diver|elevator|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
+    (re.compile(r"^(\d+) (?:m|\$|°) down, (\d+) times$"), lambda k, n: -k * n),
     (re.compile(r"^−(\d+) shared over (\d+)$"), lambda a, n: whole(Fraction(-a, n))),
     (re.compile(r"^([\d ()+−×÷]+[²³][\d ()+−×÷²³]*)$"),
      lambda src: evaluate(src.replace("²", "^2").replace("³", "^3"))),
@@ -2261,10 +2261,10 @@ JUDGED = {
     # decimals: a decimal to measure, place or compare; a fraction to stay exact
     "You need to compare # with #.": "decimal",
     # A price per gram, and a length measured out with a ruler: a ruler is
-    # read in centimetres and millimetres, which are decimals of a metre,
-    # whatever fraction of a metre was asked for.
-    "One brand costs £# a gram and another costs £# a gram. You need to say which is cheaper.": "decimal",
-    "You need to measure out #/# of a metre with a ruler.": "decimal",
+    # read in centimeters and millimeters, which are decimals of a meter,
+    # whatever fraction of a meter was asked for.
+    "One brand costs $# a gram and another costs $# a gram. You need to say which is cheaper.": "decimal",
+    "You need to measure out #/# of a meter with a ruler.": "decimal",
     # Two measurements with their points lined up; as fractions they would
     # be over 100 and 1000 and need a common bottom first.
     "You need to add # kg and # kg.": "decimal",
@@ -2274,15 +2274,15 @@ JUDGED = {
     # by power_job, which needs the sizes)
     "You need to write # as the final answer to a counting problem.": "work out",
     # factors: the GCF fits inside both, the LCM is reached by both
-    "# red counters and # blue ones, in rows of equal length, no row mixing colours. How long can a row be?": "gcf",
+    "# red counters and # blue ones, in rows of equal length, no row mixing colors. How long can a row be?": "gcf",
     "Two lights flash every # seconds and every # seconds. When do they next flash together?": "lcm",
     "Putting #/# into lowest terms — what do you divide by?": "gcf",
     "# pens and # pencils, split into identical packs with nothing left over. What is the greatest number of packs?": "gcf",
     # The fewest pens is a count both box sizes reach; the fewest rows is the
-    # longest row, which fits inside both colours.
+    # longest row, which fits inside both colors.
     "Pens come in boxes of # and pencils in boxes of #. What is the fewest pens you can buy and still have exactly as many pencils?": "lcm",
     "Ribbons come # cm and # cm long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
-    "# red counters and # blue ones, in rows of equal length, no row mixing colours. What is the fewest rows there can be?": "gcf",
+    "# red counters and # blue ones, in rows of equal length, no row mixing colors. What is the fewest rows there can be?": "gcf",
     "Two classes of # and # pupils are split into teams of the same size, no team mixing classes. What is the largest team size?": "gcf",
     "Tiles # cm by # cm, laid out to make the smallest possible square.": "lcm",
     "Two buses set off together, then run every # and every # minutes. Next time together?": "lcm",
@@ -2306,8 +2306,8 @@ JUDGED = {
     "You want to know roughly how big # #/# is, at a glance.": "mixed",
     "You need to give #/# m as the answer to a word problem about lengths.": "mixed",
     "You need to give # #/# m as the answer to a word problem about lengths.": "mixed",
-    "There are #/# litres of juice left, and you are telling someone how much.": "mixed",
-    "There are # #/# litres of juice left, and you are telling someone how much.": "mixed",
+    "There are #/# liters of juice left, and you are telling someone how much.": "mixed",
+    "There are # #/# liters of juice left, and you are telling someone how much.": "mixed",
     # roots: exact work wants the simplest radical, a physical length a decimal
     "You need to add √# to √#.": "simplify",
     "You need to add √# to #√#.": "simplify",
@@ -2315,15 +2315,15 @@ JUDGED = {
     "You need to check whether √# and #√# are the same number.": "simplify",
     "You need to cut a piece of wood √# inches long.": "estimate",
     "You need to plot √# on a number line.": "estimate",
-    "You need to measure out √# metres of rope.": "estimate",
+    "You need to measure out √# meters of rope.": "estimate",
     "You need to say whether √# is nearer # or #.": "estimate",
     "You need to say whether √# is more than #.": "estimate",
     # rounding: money handed over and things cut to fit are exact
-    "You are splitting a £# bill # ways and paying your share.": "exact",
-    "You are cutting a shelf to fit a gap of # metres.": "exact",
-    "You are checking that a bill of £# looks right before paying it.": "estimate",
+    "You are splitting a $# bill # ways and paying your share.": "exact",
+    "You are cutting a shelf to fit a gap of # meters.": "exact",
+    "You are checking that a bill of $# looks right before paying it.": "estimate",
     "You are checking that # × # on your calculator has its decimal point in the right place.": "estimate",
-    "You are working out the change from £# and handing it over.": "exact",
+    "You are working out the change from $# and handing it over.": "exact",
     "You are recording a race time that decides who won.": "exact",
     "You have just divided and want to know if the answer is the right size.": "estimate",
     # brackets: kept to divide, cancel or set to zero whole; opened when the
@@ -2383,7 +2383,7 @@ def judged(text: str) -> str:
     # cannot carry the product across the line.
     if m := re.match(r"^You want to know whether (\d+\.\d) × (\d+\.\d) is more than (\d+)\.$", text):
         return rounding_settles(Fraction(m[1]), Fraction(m[2]), True, int(m[3]))
-    if m := re.match(r"^You are checking whether £(\d+) is enough for (\d+) tickets at £(\d+\.\d\d) each\.$", text):
+    if m := re.match(r"^You are checking whether \$(\d+) is enough for (\d+) tickets at \$(\d+\.\d\d) each\.$", text):
         return rounding_settles(Fraction(m[3]), Fraction(int(m[2])), False, int(m[1]))
     # A fraction for exactness only where the decimal would not terminate.
     # An exact quotient of a decimal: fine as a decimal exactly when it ends.
@@ -2416,7 +2416,7 @@ CHOICE_RULES += (
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
     # One step when either is a whole number of lots of the other: 4 of 12
     # is the price divided by 3, as surely as 24 of 12 is it doubled.
-    (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
+    (re.compile(r"^(\d+) \w+ at \$\d+, need (\d+)$"),
      lambda have, need: "scale" if int(have) != int(need) and (int(need) % int(have) == 0
                                                                 or int(have) % int(need) == 0) else "unit"),
     (re.compile(r"^(You need to (multiply|divide|simplify|add|say whether) .*\d[⁰¹²³⁴⁵⁶⁷⁸⁹].*\.)$"),
@@ -2467,8 +2467,8 @@ def quartiles_of(listing: str):
 
 def mean_deviation(listing: str) -> Fraction:
     xs = data_of(listing)
-    centre = Fraction(sum(xs), len(xs))
-    return sum(abs(x - centre) for x in xs) / len(xs)
+    center = Fraction(sum(xs), len(xs))
+    return sum(abs(x - center) for x in xs) / len(xs)
 
 
 def has_outlier(listing: str) -> bool:

@@ -170,10 +170,10 @@ function byWhatPercent(rng) {
  * The original, recovered from the figure after the change.
  *
  * The wrong move is to take the percent back off, and it is wrong in the
- * expensive direction: £60 after a 20% rise is not £60 − 20% = £48, it is
- * £50, because the 20% was of the smaller number. Saying so in the explain
+ * expensive direction: $60 after a 20% rise is not $60 − 20% = $48, it is
+ * $50, because the 20% was of the smaller number. Saying so in the explain
  * is the whole level -- this is the point at which "a hundred of WHAT" stops
- * being a slogan and costs someone eight pounds.
+ * being a slogan and costs someone eight dollars.
  */
 function workingBackwards(rng) {
   const p = rng.pick([5, 10, 12, 15, 20, 25, 30, 40, 50, 60, 75, 80]);

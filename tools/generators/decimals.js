@@ -192,16 +192,16 @@ const SITUATIONS = [
     why: 'Lining the places up compares at a glance. As fractions you would have to find a common denominator first.' },
   { text: 'You need to multiply by {n}/{odd} and keep the answer exact.', want: 'fraction',
     why: 'Multiplying by a fraction stays exact; multiplying by a rounded decimal loses a little every time.' },
-  { text: 'You need to measure out {n}/{odd} of a metre with a ruler.', want: 'decimal',
-    why: 'A metre rule is marked in centimetres and millimetres, which are hundredths and thousandths '
-      + 'of a metre, so a length is measured as a decimal: {n}/{odd} m is about {approx} m.' },
+  { text: 'You need to measure out {n}/{odd} of a meter with a ruler.', want: 'decimal',
+    why: 'A meter rule is marked in centimeters and millimeters, which are hundredths and thousandths '
+      + 'of a meter, so a length is measured as a decimal: {n}/{odd} m is about {approx} m.' },
   { text: 'You need to add {n}/{even} to {m}/{even}.', want: 'fraction',
     why: 'They already share a bottom, so the addition is immediate. Converting first is work for nothing.' },
   { text: 'You need to plot {da} on a number line.', want: 'decimal',
     why: 'A position on a line is easiest to place from a decimal.' },
   { text: 'You need to divide {whole} into {odd} equal shares, exactly.', want: 'fraction',
     why: '{whole}/{odd} has no decimal you can write down in full. A fraction always does.' },
-  { text: 'One brand costs £{da} a gram and another costs £{db} a gram. You need to say which is cheaper.',
+  { text: 'One brand costs ${da} a gram and another costs ${db} a gram. You need to say which is cheaper.',
     want: 'decimal',
     why: 'Prices are compared by place value: line up the points and compare tenths, then hundredths. '
       + 'That is what a decimal is for.' },
@@ -271,7 +271,7 @@ function whichForm(rng) {
   const even = rng.pick([4, 8, 5, 10, 16, 20]);
   // n/odd and whole/odd must not terminate either: 3/6 is 0.5 and 6 shared
   // 3 ways is 2, and the case for keeping a fraction is gone. In lowest terms
-  // too: nobody measures out 2/6 of a metre.
+  // too: nobody measures out 2/6 of a meter.
   const n = rng.pick(range(1, odd - 1).filter((k) => !terminates(k, odd) && gcd(k, odd) === 1));
   const m = rng.int(1, even - 1);
   const whole = rng.pick(range(2, 12).filter((k) => !terminates(k, odd)));

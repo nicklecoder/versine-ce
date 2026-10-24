@@ -117,9 +117,10 @@ function threeTerm(rng) {
  * into and taken out of -- and using the wrong verb for the wrong object is
  * what makes a word problem read as a translation exercise.
  */
-// A balance below zero is written −£5, as a bank statement writes it: "£−5"
+// requiem: catalogue/content/us-notation
+// A balance below zero is written −$5, as a bank statement writes it: "$−5"
 // puts the sign inside the amount, which no one does.
-const money = (v) => (v < 0 ? `−£${-v}` : `£${v}`);
+const money = (v) => (v < 0 ? `−$${-v}` : `$${v}`);
 
 // The diver's number is a height measured from the surface, negative below
 // it. A depth counts downwards, so "rises 10 m from −1 m: what depth?" with
@@ -130,11 +131,11 @@ const SITUATIONS = [
   { noun: 'The temperature', it: 'it', at: (v) => `${minus(v)}°C`, now: 'What is it now?',
     change: (n, up) => `${up ? 'rises' : 'falls'} ${n} degrees`,
     moved: (up) => (up ? 'risen' : 'fallen') },
-  { noun: 'The lift', it: 'it', at: (v) => `floor ${minus(v)}`, now: 'Which floor is it on now?',
+  { noun: 'The elevator', it: 'it', at: (v) => `floor ${minus(v)}`, now: 'Which floor is it on now?',
     change: (n, up) => `goes ${up ? 'up' : 'down'} ${n} floors`,
     moved: (up) => (up ? 'gone up' : 'gone down') },
-  { noun: 'The account', it: 'it', at: money, now: 'What is the balance now, in pounds?',
-    change: (n, up) => (up ? `has £${n} paid in` : `has £${n} taken out`),
+  { noun: 'The account', it: 'it', at: money, now: 'What is the balance now, in dollars?',
+    change: (n, up) => (up ? `has $${n} deposited` : `has $${n} withdrawn`),
     moved: (up) => (up ? 'gone up' : 'gone down') },
   { noun: 'The diver', it: 'they', underwater: true,
     lead: 'Heights are measured from the surface, negative below it. ',

@@ -15,7 +15,7 @@
  *
  * Parallel and perpendicular are slope facts -- same slope; slopes that
  * multiply to −1 -- and are asked first as lines to write and then as a
- * judgement between two given lines, since recognising a negative
+ * judgement between two given lines, since recognizing a negative
  * reciprocal is the half students find hardest.
  *
  * Which Form is the strategy level: given what is known, which form gets to

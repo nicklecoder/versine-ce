@@ -13,7 +13,7 @@ import * as T from '../terms.js';
 import { nths } from '../../web/math/frac.js';
 import { LEVELS, LAST_LEVEL, PAR_SECONDS } from '../../web/skills/factors.js';
 
-/** Small enough to be recognised on sight, which is the point of knowing them. */
+/** Small enough to be recognized on sight, which is the point of knowing them. */
 const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23];
 
 /** Ascending prime factorisation as [prime, exponent] pairs. */
@@ -79,7 +79,7 @@ function factorPair(rng) {
  *
  * "Even, so 2" is a rule a student learns rather than one they arrive
  * knowing, so it has to be drilled. But an even number answers itself the
- * instant it is recognised, and a level made largely of them trains reading
+ * instant it is recognized, and a level made largely of them trains reading
  * the last digit instead of working up through the primes. One even number
  * every 22 puts 27 of them among 289 odds -- 8.5% of the level, which a Time
  * Trial meets about once.
@@ -347,7 +347,7 @@ function lowestCommonMultiple(rng) {
 // Each kind of object turns up on both sides -- ribbons cut down and ribbons
 // laid end to end, packs split up and boxes bought, rows as long as possible
 // and as few as possible -- because with one answer per object the level
-// was passed by recognising the object.
+// was passed by recognizing the object.
 const SITUATIONS = [
   { text: 'A {a} cm ribbon and a {b} cm ribbon, cut into equal pieces as long as possible.',
     want: 'gcf',
@@ -377,10 +377,10 @@ const SITUATIONS = [
     want: 'gcf',
     why: 'A team size has to divide both classes exactly, so it is no bigger than either. '
       + 'The largest is the greatest common factor.' },
-  { text: '{a} red counters and {b} blue ones, in rows of equal length, no row mixing colours. '
+  { text: '{a} red counters and {b} blue ones, in rows of equal length, no row mixing colors. '
       + 'What is the fewest rows there can be?',
     want: 'gcf',
-    why: 'The fewest rows means the longest rows, and a row length has to divide both colours '
+    why: 'The fewest rows means the longest rows, and a row length has to divide both colors '
       + 'exactly. The longest that does is the greatest common factor.' },
   { text: 'Tiles {a} cm by {b} cm, laid out to make the smallest possible square.',
     want: 'lcm',
@@ -394,10 +394,10 @@ const SITUATIONS = [
     want: 'lcm',
     why: 'You need a total both pack sizes can reach exactly, which is at least as many as either. '
       + 'The smallest one is the lowest common multiple.' },
-  { text: '{a} red counters and {b} blue ones, in rows of equal length, no row mixing colours. '
+  { text: '{a} red counters and {b} blue ones, in rows of equal length, no row mixing colors. '
       + 'How long can a row be?',
     want: 'gcf',
-    why: 'The row length has to divide both colours exactly, so it fits inside both. '
+    why: 'The row length has to divide both colors exactly, so it fits inside both. '
       + 'The longest one that does is the greatest common factor.' },
   { text: 'Two buses set off together, then run every {a} and every {b} minutes. Next time together?',
     want: 'lcm',

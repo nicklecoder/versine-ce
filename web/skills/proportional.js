@@ -14,8 +14,8 @@
  * and a straight line is not proportional unless it starts at the origin.
  *
  * Converting units is here rather than in Ratio because a conversion is a
- * proportional relationship with a famous constant: centimetres are always
- * a hundred times metres.
+ * proportional relationship with a famous constant: centimeters are always
+ * a hundred times meters.
  */
 
 export const LEVELS = [
