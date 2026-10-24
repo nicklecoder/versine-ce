@@ -4763,6 +4763,18 @@ def compound_table(a, b, d, e, want: str, given: str) -> Fraction:
     return Fraction(sum(n for k, n in cells.items() if inside(k, given) and wanted(k)), whole)
 
 
+def compound_exclusive_or(pa, pb) -> Fraction:
+    # Exclusive events have no overlap, so they cannot add past 1.
+    assert Fraction(pa) + Fraction(pb) <= 1, (pa, pb)
+    return Fraction(pa) + Fraction(pb)
+
+
+def compound_or(pa, pb, pab) -> Fraction:
+    pa, pb, pab = Fraction(pa), Fraction(pb), Fraction(pab)
+    assert pab <= min(pa, pb), (pa, pb, pab)
+    return pa + pb - pab
+
+
 def compound_independent(pa, pb, pab) -> str:
     return "yes" if Fraction(pa) * Fraction(pb) == Fraction(pab) else "no"
 
@@ -4777,21 +4789,47 @@ BY_RULE += (
     (re.compile(r"^venn: ([\d ]+); ask (or|and|neither|only|not)$"), compound_venn),
     (re.compile(r"^deck: (\w+) or (\w+)$"), compound_deck_or),
     (re.compile(r"^or counts: total (\d+), a (\d+), b (\d+), both (\d+)$"), lambda t, a, b, k: Fraction(a + b - k, t)),
-    (re.compile(r"^or exclusive: ([\d.]+) ([\d.]+)$"), lambda pa, pb: Fraction(pa) + Fraction(pb)),
-    (re.compile(r"^or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, pab: Fraction(pa) + Fraction(pb) - Fraction(pab)),
+    (re.compile(r"^or exclusive: ([\d.]+) ([\d.]+)$"), compound_exclusive_or),
+    (re.compile(r"^or: ([\d.]+) ([\d.]+) ([\d.]+)$"), compound_or),
     (re.compile(r"^both from or: ([\d.]+) ([\d.]+) ([\d.]+)$"), lambda pa, pb, por: Fraction(pa) + Fraction(pb) - Fraction(por)),
     (re.compile(r"^table chance: (\d+) (\d+) / (\d+) (\d+); want ([rc]\d(?: [rc]\d)?) given (r\d|c\d|all)$"), compound_table),
     (re.compile(r"^deck two: both (\w+)$"), compound_deck_two),
     (re.compile(r"^without replacement: ((?:\w+:\d+ ?)+); (.+)$"), compound_bag_two),
-    (re.compile(r"^conditional: ([\d.]+) ([\d.]+)$"), lambda pab, pb: Fraction(pab) / Fraction(pb)),
-    (re.compile(r"^and from conditional: ([\d.]+) ([\d.]+)$"), lambda pb, q: Fraction(pb) * Fraction(q)),
+    (re.compile(r"^conditional: ([\d.]+) ([\d.]+); (?:sport|cloudy|coffee|phone|letters)$"), lambda pab, pb: Fraction(pab) / Fraction(pb)),
+    (re.compile(r"^and from conditional: ([\d.]+) ([\d.]+); (?:sport|cloudy|coffee|phone|letters)$"), lambda pb, q: Fraction(pb) * Fraction(q)),
 )
 
 CHOICE_RULES += (
     (re.compile(r"^independent: ([\d.]+) ([\d.]+) ([\d.]+)$"), compound_independent),
     (re.compile(r"^independent given: ([\d.]+) ([\d.]+)$"), lambda pa, pagb: "yes" if Fraction(pa) == Fraction(pagb) else "no"),
     (re.compile(r"^independent table: (\d+) (\d+) / (\d+) (\d+)$"), compound_independent_table),
+    # Exclusive: P(A and B) is 0, which is the product only if one of them is impossible.
+    (re.compile(r"^independent exclusive: ([\d.]+) ([\d.]+)$"),
+     lambda pa, pb: compound_independent(pa, pb, "0") if Fraction(pa) + Fraction(pb) <= 1 else None),
 )
+
+# requiem: catalogue/content/probabilities-within-0-and-1
+# No probability lies outside 0 to 1: not a key, and not one given in a
+# question. The keys are every fraction in the chance skills and every
+# decimal in compound probability; the given ones are compound
+# probability's decimals, written in its texts.
+CHANCE_SKILLS = ("probability", "probability-2", "counting")
+
+
+def chance_out_of_range() -> list:
+    found = []
+    for path in sorted(LIB.glob("*.json")):
+        lib = json.loads(path.read_text()) if path.name not in ("manifest.json", "schemas.json") else None
+        if not lib or lib["skill"] not in CHANCE_SKILLS:
+            continue
+        for i, p in enumerate(lib["problems"]):
+            a = p["answer"]
+            keyed = a["type"] == "frac" or (lib["skill"] == "probability-2" and a["type"] == "decimal")
+            given = [Fraction(v) for v in re.findall(r"\d+\.\d+", p["text"])] if lib["skill"] == "probability-2" else []
+            values = ([as_fraction(a["value"])] if keyed else []) + given
+            if any(not 0 <= v <= 1 for v in values):
+                found.append(f"{lib['skill']} L{lib['level'] + 1} row {i}: {p['text']} has a probability outside 0 to 1")
+    return found
 
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
@@ -5013,6 +5051,7 @@ for path in sorted(LIB.glob("*.json")):
 
 for line in unread:
     problems.append(f"{line} -- no rule re-derives this answer")
+problems += chance_out_of_range()
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")
