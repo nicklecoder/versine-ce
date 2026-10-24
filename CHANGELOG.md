@@ -88,7 +88,7 @@ shows as typed.
 Fixed: an expression answer with a leading minus, like −2x + 3, was refused when the stored
 answer was written 3 − 2x. Signs are now lifted out of products before comparing.
 
-Phase 2 has begun:
+Phase 2:
 
 - **Monomials** (Expressions): multiplying and dividing, a power of a monomial, zero and
   negative powers finished with positive powers only, simplest form, and choosing the right
@@ -114,6 +114,11 @@ Phase 2 has begun:
 - **Exponential Functions** (Functions): growth or decay, reading a and b, a percent rate
   as a factor and back, compound interest, doubling and half-life, a strategy level on
   linear or exponential from a table or a story, and the asymptote of a·bˣ + k.
+- **Transforming Functions** (Functions): moving x², |x|, √x and x³ up, down, left and
+  right, stretching and squashing, reflecting, following a point through several moves at
+  once, naming the parent of a moved graph, and even and odd functions.
+
+That finishes Phase 2.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

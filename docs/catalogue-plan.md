@@ -105,7 +105,7 @@ term.
 
 ## Phase 2 — polynomials, factoring, quadratics, exponentials
 
-**In progress.** Built so far: `monomials`, with The Usual Mistakes (a choice
+**Built.** `monomials`, with The Usual Mistakes (a choice
 between the right answer and the rule-for-rule slips) and All Together; and
 `rational-exponents`, as The Half Power · Other Roots · Root, Then Power ·
 Negative Fractional Powers · Radical to Power · Rules With Fractions · Combine
@@ -123,7 +123,9 @@ Vertex From −b/2a · Into Vertex Form · Max and Min in Context · Which Form 
 It? (strategy, on quadratic-formula's Which Method?) · All Together; and
 `exponential`, as Growth or Decay · Reading a and b · Percent to Factor ·
 Compound Interest · Doubling and Half-Life · Linear or Exponential? (strategy,
-on sequences' Which Kind?) · The Asymptote · All Together.
+on sequences' Which Kind?) · The Asymptote · All Together; and
+`transformations-f`, as Up and Down · Left and Right · Stretch and Squash ·
+Reflect · Combined · Name the Parent · Even or Odd · All Together.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

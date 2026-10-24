@@ -1,5 +1,5 @@
 {
-  "built": 325,
+  "built": 333,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -228,6 +228,16 @@
       "doubling-and-half-life",
       "linear-or-exponential",
       "the-asymptote",
+      "all-together"
+    ],
+    "transformations-f": [
+      "up-and-down",
+      "left-and-right",
+      "stretch-and-squash",
+      "reflect",
+      "combined",
+      "name-the-parent",
+      "even-or-odd",
       "all-together"
     ],
     "decimals": [
@@ -733,6 +743,14 @@
         ]
       }
     },
+    "transformations-f": {
+      "dependsOn": [
+        "abs-value",
+        "quadratic-graphs",
+        "roots"
+      ],
+      "levels": {}
+    },
     "decimals": {
       "dependsOn": [
         "frac-equiv",
@@ -967,7 +985,7 @@
       }
     }
   },
-  "sources": "c34cc86c5cd843d7b4f6c43e2253dc1582d28e8d3c8f5f00cf65d03598e352ef",
+  "sources": "6a5e3b35935dc4ca6669562346d9e0c7f8b3fe5e808ef8358e22ca0acf640b18",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2778,6 +2796,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "exponential-7.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 0,
+      "slug": "up-and-down",
+      "name": "Up and Down",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-f-0.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 1,
+      "slug": "left-and-right",
+      "name": "Left and Right",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-f-1.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 2,
+      "slug": "stretch-and-squash",
+      "name": "Stretch and Squash",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-f-2.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 3,
+      "slug": "reflect",
+      "name": "Reflect",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-f-3.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 4,
+      "slug": "combined",
+      "name": "Combined",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-f-4.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 5,
+      "slug": "name-the-parent",
+      "name": "Name the Parent",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "transformations-f-5.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 6,
+      "slug": "even-or-odd",
+      "name": "Even or Odd",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "transformations-f-6.json"
+    },
+    {
+      "skill": "transformations-f",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "transformations-f-7.json"
     },
     {
       "skill": "decimals",

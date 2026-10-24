@@ -1804,6 +1804,114 @@ BY_RULE += (
 )
 
 
+# --- Transforming Functions --------------------------------------------------
+#
+# Each equation is worked out at points across the grid, in floating point
+# since √ is rarely exact, and a move is tested on the functions themselves:
+# up 3 when every height is 3 more, right 3 when g(x) = f(x − 3), reflected
+# in the y-axis when g(x) = f(−x). The answer must be the one move that
+# holds. A point followed through a·f(k(x − h)) + v is found by working the
+# inside out as a line in x and the outside on the height alone, so it
+# holds for every f through the point.
+
+XS = [i / 2 for i in range(-40, 41)]
+
+
+def as_function(src: str):
+    py = src.replace("sqrt", "S").replace("^", "**")
+    py = re.sub(r"\|([^|]+)\|", r"A(\1)", py)
+    py = re.sub(r"(?<=[\dx)])\s*(?=[(xSA])", "*", py)
+    assert re.fullmatch(r"[\dx+\-*/(). SA]+", py), f"cannot read {src}"
+    code = compile(py, src, "eval")
+    def f(x):
+        try:
+            return eval(code, {"__builtins__": {}, "S": math.sqrt, "A": abs, "x": x})
+        except (ValueError, ZeroDivisionError):
+            return None
+    return f
+
+
+def agree(g, h, xs=XS) -> bool:
+    """g and h agree wherever both are defined, at enough points to mean it."""
+    pairs = [(g(x), h(x)) for x in xs]
+    pairs = [(a, b) for a, b in pairs if a is not None and b is not None]
+    return len(pairs) >= 6 and all(abs(a - b) < 1e-9 for a, b in pairs)
+
+
+def only(found: dict) -> str:
+    hits = [k for k, ok in found.items() if ok]
+    assert len(hits) == 1, f"{len(hits)} moves fit: {hits}"
+    return hits[0]
+
+
+def which_move(base: str, moved_: str) -> str:
+    f, g = as_function(base), as_function(moved_)
+    found = {}
+    for n in range(1, 13):
+        found[("up", n)] = agree(g, lambda x: None if f(x) is None else f(x) + n)
+        found[("down", n)] = agree(g, lambda x: None if f(x) is None else f(x) - n)
+        found[("right", n)] = agree(g, lambda x: f(x - n))
+        found[("left", n)] = agree(g, lambda x: f(x + n))
+    return only(found)[0]
+
+
+def which_stretch(n: str, base: str, moved_: str) -> str:
+    f, g, n = as_function(base), as_function(moved_), int(n)
+    return only({
+        "v-stretch": agree(g, lambda x: None if f(x) is None else n * f(x)),
+        "v-squash": agree(g, lambda x: None if f(x) is None else f(x) / n),
+        "h-stretch": agree(g, lambda x: f(x / n)),
+        "h-squash": agree(g, lambda x: f(n * x)),
+    })
+
+
+def which_flip(base: str, moved_: str) -> str:
+    f, g = as_function(base), as_function(moved_)
+    if agree(g, f):
+        return "same"
+    return only({
+        "x-axis": agree(g, lambda x: None if f(x) is None else -f(x)),
+        "y-axis": agree(g, lambda x: f(-x)),
+    })
+
+
+def family_of(src: str) -> str:
+    return "abs" if "|" in src else "sqrt" if "sqrt" in src else "cubic" if "^3" in src else "quadratic"
+
+
+def parity(src: str) -> str:
+    f = as_function(src)
+    xs = [1, 2, 3, 0.5, 7]
+    if all(f(-x) == f(x) for x in xs):
+        return "even"
+    return "odd" if all(f(-x) == -f(x) for x in xs) else "neither"
+
+
+def landing(p, q, g: str):
+    m = re.fullmatch(r"(.*)f\((.+)\)(.*)", g)
+    front_, inner, tail_ = m.groups()
+    u = as_function(inner)
+    # The inside is a line in x: solve it equal to p.
+    c0, slope = u(0), u(1) - u(0)
+    x = (Fraction(p) - Fraction(c0).limit_denominator(100)) / Fraction(slope).limit_denominator(100)
+    # Outside, only the height is changed: put q where f(...) stood.
+    height = as_function(f"{front_}({q}){tail_}")
+    return x, Fraction(height(0)).limit_denominator(100)
+
+
+CHOICE_RULES += (
+    (re.compile(r"^moved: (.+) -> (.+)$"), which_move),
+    (re.compile(r"^stretched (\d+): (.+) -> (.+)$"), which_stretch),
+    (re.compile(r"^reflected: (.+) -> (.+)$"), which_flip),
+    (re.compile(r"^parent: (.+)$"), family_of),
+    (re.compile(r"^parity: (.+)$"), parity),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^image of (-?\d+), (-?\d+): (.+)$"), landing),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue

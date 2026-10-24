@@ -226,8 +226,9 @@ export function renderPrompt(node, terms, opts = {}) {
   // requiem: play/ui/long-pieces-set-smaller
   // A bracket or a product set side by side cannot break across a line, so
   // a long one is set smaller rather than run off the card: (x + 5)(x² − 3x
-  // + 2) is one piece. Measured from the question, so a reveal never resizes.
-  const widest = Math.max(0, ...(terms ?? []).filter((t) => t?.t === 'juxt' || t?.t === 'group')
+  // + 2) is one piece, and so is a piece of maths set by hand, y = −2f(x − 1)
+  // + 5. Measured from the question, so a reveal never resizes.
+  const widest = Math.max(0, ...(terms ?? []).filter((t) => t?.t === 'juxt' || t?.t === 'group' || t?.t === 'math')
     .map((t) => promptText([t]).length));
   node.classList.toggle('is-long', widest > 11 && widest <= 16);
   node.classList.toggle('is-longer', widest > 16);
