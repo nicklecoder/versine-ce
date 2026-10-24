@@ -145,7 +145,9 @@ class Parser {
       const inner = this.expr();
       if (!this.at(')')) throw new SyntaxError('a bracket is left open');
       this.next();
-      return inner;
+      // Remembered for drawing only: (−2a)(3b) set side by side loses its
+      // meaning without them, and canonical() never looks.
+      return inner.t === 'bin' || inner.t === 'neg' ? { ...inner, paren: true } : inner;
     }
     if (tok.k === 'name') {
       this.next();

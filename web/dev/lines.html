@@ -56,8 +56,10 @@
         if (answered) {
           // Type the stored answer the way a student would, box by box.
           const boxes = input.node.matches('input') ? [input.node] : [...input.node.querySelectorAll('input')];
-          const raw = type.format(p.answer.value).replace(/[()]/g, '').replace(/−/g, '-');
-          const parts = boxes.length === 2 ? raw.split(/,\s*|\//) : [raw];
+          // A pair's brackets belong to the widget, not the boxes; an
+          // expression's are part of what is typed.
+          const raw = type.format(p.answer.value).replace(/−/g, '-');
+          const parts = boxes.length === 2 ? raw.replace(/[()]/g, '').split(/,\s*|\//) : [raw];
           boxes.forEach((b, i) => { b.value = parts[i] ?? ''; b.dispatchEvent(new Event('input')); });
           input.setState('right');
         }

@@ -57,6 +57,12 @@ for (let a = 1; a <= 12; a++) {
     }
   }
 }
+// requiem: play/answers/side-by-side-keeps-brackets
+// Factors set side by side keep the brackets that keep them apart.
+for (const [src, want] of [['(-2a^3)(3b)', '(−2a^3)(3b)'], ['2(3)', '2(3)'], ['x(3)', 'x(3)'], ['2x(3)^2', '2x(3^2)']]) {
+  const got = promptText(previewOf(src).terms);
+  if (got !== want) fail.push(`${src} was drawn as ${got}, expected ${want}`);
+}
 for (const [src, mustNot] of [['4/8', '1/2'], ['2+3', '5'], ['sqrt(4)', '2'], ['2^3', '8']]) {
   if (canon(src) === canon(mustNot)) fail.push(`${src} was simplified to ${mustNot}`);
 }

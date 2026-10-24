@@ -67,8 +67,16 @@ export function termsFor(node) {
       // Juxtaposition is drawn as juxtaposition: 2x was typed without a times
       // sign, so it gains neither a sign nor the gap that separates the parts
       // of a sum.
+      // requiem: play/answers/side-by-side-keeps-brackets
+      // A bracket typed around a factor is kept, though: −2a³ and 3b⁶ side
+      // by side with nothing between would read as one term.
       if (node.op === '*' && node.implicit) {
-        return [{ t: 'juxt', terms: [...left, ...right] }];
+        // And so is one round a number that follows something: 2(3) is not 23.
+        const kept = (side, terms) => (side.paren && terms.length && terms[0].t !== 'group' ? wrap(terms) : terms);
+        const digitFirst = (terms) => terms[0]?.t === 'num'
+          || (terms[0]?.t === 'pow' && digitFirst(terms[0].b)) || (terms[0]?.t === 'juxt' && digitFirst(terms[0].terms));
+        const after = kept(node.b, right);
+        return [{ t: 'juxt', terms: [...kept(node.a, left), ...(digitFirst(after) ? wrap(after) : after)] }];
       }
       const sign = node.op === '*'
         ? { t: 'op', v: '×' }
