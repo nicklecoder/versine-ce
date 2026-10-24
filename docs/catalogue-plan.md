@@ -141,7 +141,9 @@ Reflect · Combined · Name the Parent · Even or Odd · All Together.
 | `transformations-f` (Functions) | Up/Down · Left/Right · Stretch · Reflect · Combined · Name the Parent · Even or Odd | F-BF.3, TEKS A.3E, A.7C |
 
 **Algebra 1 milestone:** Phases 0–2 plus `pythagoras` and `data-center`
-complete Common Core and TEKS Algebra I.
+complete Common Core and TEKS Algebra I. `pythagoras` is built, as The
+Hypotenuse · A Missing Leg · Is It Right? · Exact Answers · Distance Between
+Points · The 3D Diagonal · Spot the Triple · All Together.
 
 ## Phase 3 — geometry, chance and data
 

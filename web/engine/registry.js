@@ -37,6 +37,7 @@ import factoring from '../skills/factoring.js';
 import factoring2 from '../skills/factoring-2.js';
 import quadraticEq from '../skills/quadratic-eq.js';
 import quadraticFormula from '../skills/quadratic-formula.js';
+import pythagoras from '../skills/pythagoras.js';
 import evaluate from '../skills/evaluate.js';
 import equations from '../skills/equations.js';
 import equationsBoth from '../skills/equations-both.js';
@@ -50,7 +51,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

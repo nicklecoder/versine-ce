@@ -1,5 +1,5 @@
 {
-  "built": 333,
+  "built": 341,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -422,6 +422,16 @@
       "geometric-terms",
       "recursive-rules",
       "which-kind",
+      "all-together"
+    ],
+    "pythagoras": [
+      "the-hypotenuse",
+      "a-missing-leg",
+      "is-it-right",
+      "exact-answers",
+      "distance-between-points",
+      "the-3d-diagonal",
+      "spot-the-triple",
       "all-together"
     ]
   },
@@ -983,9 +993,16 @@
           "linear-models"
         ]
       }
+    },
+    "pythagoras": {
+      "dependsOn": [
+        "coords",
+        "roots"
+      ],
+      "levels": {}
     }
   },
-  "sources": "6a5e3b35935dc4ca6669562346d9e0c7f8b3fe5e808ef8358e22ca0acf640b18",
+  "sources": "6e63d9537d04bd3c716cb92a6b184789f33804257334454ef4ebf25bd39357a5",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4316,6 +4333,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "sequences-7.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 0,
+      "slug": "the-hypotenuse",
+      "name": "The Hypotenuse",
+      "count": 160,
+      "exhaustive": true,
+      "signed": false,
+      "file": "pythagoras-0.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 1,
+      "slug": "a-missing-leg",
+      "name": "A Missing Leg",
+      "count": 160,
+      "exhaustive": true,
+      "signed": false,
+      "file": "pythagoras-1.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 2,
+      "slug": "is-it-right",
+      "name": "Is It Right?",
+      "count": 549,
+      "exhaustive": true,
+      "signed": false,
+      "file": "pythagoras-2.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 3,
+      "slug": "exact-answers",
+      "name": "Exact Answers",
+      "count": 226,
+      "exhaustive": true,
+      "signed": false,
+      "file": "pythagoras-3.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 4,
+      "slug": "distance-between-points",
+      "name": "Distance Between Points",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "pythagoras-4.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 5,
+      "slug": "the-3d-diagonal",
+      "name": "The 3D Diagonal",
+      "count": 252,
+      "exhaustive": true,
+      "signed": false,
+      "file": "pythagoras-5.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 6,
+      "slug": "spot-the-triple",
+      "name": "Spot the Triple",
+      "count": 212,
+      "exhaustive": true,
+      "signed": false,
+      "file": "pythagoras-6.json"
+    },
+    {
+      "skill": "pythagoras",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "pythagoras-7.json"
     }
   ]
 }

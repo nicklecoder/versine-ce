@@ -119,6 +119,11 @@ Phase 2:
   once, naming the parent of a moved graph, and even and odd functions.
 
 That finishes Phase 2.
+
+**The Pythagorean Theorem**, the first skill under Right Triangles, in eight levels: the
+hypotenuse and a missing leg (as ladders, screens, walks and ramps too), whether three
+sides make a right angle, exact answers in simplest radical form, distance between points
+on a grid, the diagonal of a box, and spotting a scaled triple to skip the squaring.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

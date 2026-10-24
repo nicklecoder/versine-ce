@@ -1912,6 +1912,56 @@ PAIR_RULES += (
 )
 
 
+# --- The Pythagorean Theorem -------------------------------------------------
+#
+# The sides are squared and added again. A whole answer must square to the
+# sum exactly; an exact one, k√m, must have k²m equal to it with m left
+# square-free, so √20 kept as √20, or written 4√(5/4), is not finished.
+
+def whole_root(n) -> int:
+    r = math.isqrt(n)
+    assert r * r == n, f"√{n} is not whole"
+    return r
+
+
+def is_right(*sides) -> str:
+    x, y, z = sorted(int(s) for s in sides)
+    assert x + y > z, f"{sides} is not a triangle"
+    return "yes" if x * x + y * y == z * z else "no"
+
+
+def radical_holds(n: int, value) -> str:
+    roots = value["roots"]
+    if len(roots) != 1:
+        return f"has {len(roots)} lengths, not one"
+    a, b, r = as_fraction(roots[0]["a"]), as_fraction(roots[0]["b"]), roots[0]["r"]
+    if r == 1:
+        return "ok" if b == 0 and a >= 0 and a * a == n else f"is {a}, not √{n}"
+    if a != 0 or b <= 0 or b.denominator != 1:
+        return f"is not a positive multiple of a root"
+    if any(r % (k * k) == 0 for k in range(2, math.isqrt(r) + 1)):
+        return "is not in simplest form"
+    return "ok" if b * b * r == n else f"is {b}√{r}, not √{n}"
+
+
+RADICAL_RULES = (
+    (re.compile(r"^exact hypotenuse: (\d+), (\d+)$"), lambda p, q: int(p) ** 2 + int(q) ** 2),
+    (re.compile(r"^exact leg: (\d+), (\d+)$"), lambda c, k: int(c) ** 2 - int(k) ** 2),
+    (re.compile(r"^distance: (-?\d+), (-?\d+), (-?\d+), (-?\d+)$"),
+     lambda x1, y1, x2, y2: (int(x2) - int(x1)) ** 2 + (int(y2) - int(y1)) ** 2),
+)
+
+BY_RULE += (
+    (re.compile(r"^hypotenuse: (\d+), (\d+)(?: \(\w+\))?$"), lambda p, q: whole_root(p * p + q * q)),
+    (re.compile(r"^leg: (\d+), (\d+)(?: \(\w+\))?$"), lambda c, k: whole_root(c * c - k * k)),
+    (re.compile(r"^box diagonal: (\d+), (\d+), (\d+)$"), lambda a, b, c: whole_root(a * a + b * b + c * c)),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^is right: (\d+), (\d+), (\d+)$"), is_right),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1966,6 +2016,16 @@ for path in sorted(LIB.glob("*.json")):
             continue
 
         # A set of numbers: solved again at points along the line, and compared there.
+        # A length kept exact: squared, it must be the sum the sides give.
+        if answer["type"] == "roots":
+            rule = next((r for r in RADICAL_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                verdict = radical_holds(rule[1](*rule[0].match(text).groups()), answer["value"])
+                if verdict != "ok":
+                    problems.append(f"{where}: {answer['accept'][0]} {verdict}")
+                continue
+
         if answer["type"] == "roots" and text.startswith("roots: "):
             checked += 1
             verdict = roots_hold(text[len("roots: "):], answer["value"])
