@@ -2952,6 +2952,105 @@ CHOICE_RULES += (
      lambda steps: kind_of_map(after_steps(steps))),
 )
 
+# --- Coordinate Geometry -----------------------------------------------------
+#
+# Worked from the coordinates alone: a midpoint is the average of the ends,
+# a partition the start plus m/(m + n) of the trip, a perimeter the sum of
+# the side lengths, an area by the shoelace formula, a missing coordinate
+# from equal or negative-reciprocal slopes, a triangle classified by its
+# squared sides and the dot products at its corners, and a parallelogram's
+# fourth corner as A + C - B. A perimeter that is not whole is rounded from
+# square roots taken in integers, far past the place asked for.
+
+GRID_POINT = r"\((-?\d+), (-?\d+)\)"
+
+
+def grid_points(listing: str) -> list:
+    return [(Fraction(x), Fraction(y)) for x, y in re.findall(GRID_POINT, listing)]
+
+
+def mid_of(listing: str) -> tuple:
+    (ax, ay), (bx, by) = grid_points(listing)
+    return (ax + bx) / 2, (ay + by) / 2
+
+
+def far_end(listing: str) -> tuple:
+    (ax, ay), (mx, my) = grid_points(listing)
+    return 2 * mx - ax, 2 * my - ay
+
+
+def split_at(listing: str, m: int, n: int) -> tuple:
+    (ax, ay), (bx, by) = grid_points(listing)
+    t = Fraction(m, m + n)
+    return ax + t * (bx - ax), ay + t * (by - ay)
+
+
+def perimeter_of(listing: str, rounded) -> Fraction:
+    P = grid_points(listing)
+    squares = [int((P[i][0] - P[i - 1][0]) ** 2 + (P[i][1] - P[i - 1][1]) ** 2) for i in range(len(P))]
+    if rounded is None:
+        roots = [math.isqrt(s) for s in squares]
+        assert all(r * r == s for r, s in zip(roots, squares)), listing       # asked exactly, so every side is whole
+        return Fraction(sum(roots))
+    scale = 10 ** 15
+    total = sum(math.isqrt(s * scale * scale) for s in squares)              # each within 1 of the true root, scaled
+    tenths, rest = divmod(total * 10, scale)
+    # Far from the rounding edge, so the few units of error cannot matter.
+    assert abs(rest - scale // 2) > 100, listing
+    return Fraction(tenths + (1 if rest > scale // 2 else 0), 10)
+
+
+def polygon_area(listing: str) -> Fraction:
+    P = grid_points(listing)
+    twice = sum(P[i - 1][0] * P[i][1] - P[i][0] * P[i - 1][1] for i in range(len(P)))
+    return abs(twice) / 2
+
+
+def missing_k(relation: str, listing: str, x: int) -> Fraction:
+    (ax, ay), (bx, by), (cx, cy) = grid_points(listing)
+    slope = (by - ay) / (bx - ax)
+    want = slope if relation == "parallel" else -1 / slope
+    return cy + want * (Fraction(x) - cx)
+
+
+def triangle_kind(listing: str) -> str:
+    P = grid_points(listing)
+    sq = lambda p, q: (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2
+    sides = {sq(P[0], P[1]), sq(P[1], P[2]), sq(P[2], P[0])}
+    corner = lambda o, p, q: (p[0] - o[0]) * (q[0] - o[0]) + (p[1] - o[1]) * (q[1] - o[1])
+    right = any(corner(P[i], P[i - 1], P[i - 2]) == 0 for i in range(3))
+    isosceles = len(sides) < 3
+    return {(True, True): "right-isosceles", (False, True): "isosceles", (True, False): "right"}.get((right, isosceles), "scalene")
+
+
+def fourth_corner(listing: str) -> tuple:
+    (ax, ay), (bx, by), (cx, cy) = grid_points(listing)
+    return ax + cx - bx, ay + cy - by
+
+
+BY_RULE += (
+    (re.compile(rf"^perimeter: ({GRID_POINT}(?:, {GRID_POINT})+)( to 1 dp)?$"),
+     lambda listing, *rest: perimeter_of(listing, rest[-1])),
+    (re.compile(rf"^area of polygon: ({GRID_POINT}(?:, {GRID_POINT})+)$"), lambda listing, *_: polygon_area(listing)),
+    (re.compile(rf"^k for (parallel|perpendicular): ({GRID_POINT}, {GRID_POINT}, {GRID_POINT}), x = (-?\d+)$"),
+     lambda rel, listing, *rest: missing_k(rel, listing, rest[-1])),
+)
+
+PAIR_RULES += (
+    (re.compile(rf"^midpoint: ({GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: mid_of(listing)),
+    (re.compile(rf"^endpoint: ({GRID_POINT}), midpoint ({GRID_POINT})$"),
+     lambda a, ax, ay, m, mx, my: far_end(f"{a}, {m}")),
+    (re.compile(rf"^partition: ({GRID_POINT}) to ({GRID_POINT}), (\d+):(\d+)$"),
+     lambda a, ax, ay, b, bx, by, m, n: split_at(f"{a}, {b}", int(m), int(n))),
+    (re.compile(rf"^fraction of the way: (\d+)/(\d+) from ({GRID_POINT}) to ({GRID_POINT})$"),
+     lambda p, q, a, ax, ay, b, bx, by: split_at(f"{a}, {b}", int(p), int(q) - int(p))),
+    (re.compile(rf"^fourth vertex: ({GRID_POINT}, {GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: fourth_corner(listing)),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^classify triangle: ({GRID_POINT}, {GRID_POINT}, {GRID_POINT})$"), lambda listing, *_: triangle_kind(listing)),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

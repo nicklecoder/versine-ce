@@ -172,6 +172,12 @@ Over y = x · Rotate · Dilate · Sequences · Which Transformation? · All
 Together. Sequences of moves get a level of their own, and Congruent or
 Similar is asked inside Which Transformation?, beside naming the move, since
 both sort moves by what they keep.
+`coord-geometry` is built, as Midpoint · Perimeter on a Grid · Partition in
+a Ratio · Area on a Grid · Slopes in Shapes · Classify a Triangle · Complete
+the Parallelogram · All Together. The distance formula is practised as
+perimeters, since a lone distance is pythagoras's Distance Between Points
+level; classifying triangles and completing a parallelogram are where
+slopes and lengths prove things about a shape (G-GPE.4).
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

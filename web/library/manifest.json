@@ -1,5 +1,5 @@
 {
-  "built": 389,
+  "built": 397,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -492,6 +492,16 @@
       "dilate",
       "sequences",
       "which-transformation",
+      "all-together"
+    ],
+    "coord-geometry": [
+      "midpoint",
+      "perimeter-on-a-grid",
+      "partition-in-a-ratio",
+      "area-on-a-grid",
+      "slopes-in-shapes",
+      "classify-a-triangle",
+      "complete-the-parallelogram",
       "all-together"
     ]
   },
@@ -1101,9 +1111,16 @@
         "coords"
       ],
       "levels": {}
+    },
+    "coord-geometry": {
+      "dependsOn": [
+        "line-forms",
+        "pythagoras"
+      ],
+      "levels": {}
     }
   },
-  "sources": "c995338e27f65750fb64f02bb8b45843c26da269e8ba7ce062014dff945a6d70",
+  "sources": "1177930b11a3ebbf8b2bfe76d971060c173949a857365b8206817acfe4930bfd",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4994,6 +5011,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "transformations-g-7.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 0,
+      "slug": "midpoint",
+      "name": "Midpoint",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-0.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 1,
+      "slug": "perimeter-on-a-grid",
+      "name": "Perimeter on a Grid",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "coord-geometry-1.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 2,
+      "slug": "partition-in-a-ratio",
+      "name": "Partition in a Ratio",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-2.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 3,
+      "slug": "area-on-a-grid",
+      "name": "Area on a Grid",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "coord-geometry-3.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 4,
+      "slug": "slopes-in-shapes",
+      "name": "Slopes in Shapes",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-4.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 5,
+      "slug": "classify-a-triangle",
+      "name": "Classify a Triangle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "coord-geometry-5.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 6,
+      "slug": "complete-the-parallelogram",
+      "name": "Complete the Parallelogram",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-6.json"
+    },
+    {
+      "skill": "coord-geometry",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "coord-geometry-7.json"
     }
   ]
 }
