@@ -197,7 +197,7 @@ defineType({
 defineType({
   id: 'expr',
   input: 'free',
-  hint: 'Type an expression, like 5sqrt(2) or 2x+1.',
+  hint: 'Type an expression, like 2x + 1. Powers with ^, as in x^2; roots as sqrt(5).',
   /**
    * Judged by canonical form, not by value.
    *
@@ -464,7 +464,7 @@ defineType({
 defineType({
   id: 'solutions',
   input: 'free',
-  hint: 'Type the solutions, like −2 < x ≤ 5 or x = ±3.',
+  hint: 'Type the solutions, like −2 < x <= 5 or x = +-3. Type <= for ≤, >= for ≥, +- for ±.',
   /**
    * A set of numbers on the number line -- the answer to an inequality, a
    * compound inequality or an absolute value equation -- judged as the set.
@@ -489,7 +489,7 @@ defineType({
 defineType({
   id: 'roots',
   input: 'free',
-  hint: 'Type the solutions, like x = 3 ± √5, or x = −2 or x = 5.',
+  hint: 'Type it exactly, like 2sqrt(5), or x = 3 +- sqrt(5) for two. Type +- for ±.',
   /**
    * The real roots of a quadratic, judged as an exact set: web/math/surds.js
    * evaluates each in a + b√r, so (−3 ± √17)/4 and −3/4 ± √17/4 agree and

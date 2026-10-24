@@ -20,10 +20,14 @@ import { loadLevel } from './library.js';
  * A skill can also author its own steps by exporting `lesson(problem, level)`.
  */
 
-/** Split prose into the sentences of an argument. */
-function sentences(text) {
-  const parts = String(text ?? '').match(/[^.!?]+[.!?]+(\s|$)/g);
-  return (parts ?? [text]).map((s) => s.trim()).filter(Boolean);
+/**
+ * Split prose into the sentences of an argument: at a stop followed by a
+ * space, never at a decimal point. Matching runs of non-stops instead cut
+ * "0.002 is two thousandths." down to "002 is two thousandths.", in nearly
+ * every explanation that has a decimal in it.
+ */
+export function sentences(text) {
+  return String(text ?? '').split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
 }
 
 /**

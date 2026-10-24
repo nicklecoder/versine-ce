@@ -25,6 +25,7 @@ export class Session {
     this.problem = null;
     this.isRetry = false;
     this.attempts = 0;
+    this.wasExplained = false;
     this.startedAt = 0;
 
     this.served = 0;
@@ -85,6 +86,7 @@ export class Session {
 
     this.problem = problem;
     this.attempts = 0;
+    this.wasExplained = false;
     this.startedAt = performance.now();
     this.served++;
     this.onEvent({ type: 'problem', problem, isRetry: this.isRetry });
@@ -102,7 +104,9 @@ export class Session {
     const spec = this.problem.answer;
     const type = getType(spec.type);
     const parsed = type.parse(raw);
-    if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? type.hint };
+    // The parser's own reason ("a bracket is left open") says more than the
+    // type's general example does.
+    if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? parsed.why ?? type.hint };
 
     // requiem: play/answers/accepted-forms-judged
     // The stored value, or any other form the level lists as accepted:
@@ -121,9 +125,20 @@ export class Session {
     return this.#correct();
   }
 
+  /**
+   * The walkthrough was opened on this problem. It ends on the answer, so
+   * an answer typed after it is solved but not a first try: counting it as
+   * one let a student read every answer and score 100% "first try", and gave
+   * the teacher's view the same false accuracy.
+   */
+  // requiem: play/modes/explained-not-first-try
+  explained() {
+    this.wasExplained = true;
+  }
+
   #correct() {
     const elapsed = performance.now() - this.startedAt;
-    const clean = this.attempts === 0;
+    const clean = this.attempts === 0 && !this.wasExplained;
 
     this.answered++;
     this.solved++;

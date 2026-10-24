@@ -55,17 +55,22 @@ export function playScreen(route) {
   // Set once the level's library arrives; until then the numeric pad is the
   // safe default, since a run cannot start before the library has loaded.
   let levelSigned = false;
+  let builtSigned = null;
 
   function useAnswerWidget(kind, spec) {
     // Choice widgets carry their options, which change every problem, so they
-    // are rebuilt each time rather than only when the kind changes.
-    if (kind === answerKind && kind !== 'choice') return;
+    // are rebuilt each time rather than only when the kind changes. So is a
+    // widget built before the library said the level goes negative: the
+    // first one is, and kept, it left every signed level on a keypad with no
+    // minus on an iPhone.
+    if (kind === answerKind && kind !== 'choice' && builtSigned === levelSigned) return;
     answerKind = kind;
-    answer = makeAnswerInput(kind, spec, { signed: levelSigned });
+    builtSigned = levelSigned;
+    answer = makeAnswerInput(kind, spec ?? {}, { signed: levelSigned });
     hintEl.textContent = keyboardHint();
-      mount(answerSlot, answer.node);
+    mount(answerSlot, answer.node);
   }
-  useAnswerWidget(skill.answerInput ?? 'int', null);
+  useAnswerWidget(skill.answerInput ?? 'int', { type: skill.answerInput ?? 'int' });
 
   // Keyboard-first: a button that grabs focus is a button that breaks the
   // flow. Suppressing mousedown's default keeps focus in the answer field
@@ -200,10 +205,14 @@ export function playScreen(route) {
   function revealAnswer(verdict) {
     const p = session.problem;
     const type = getType(p.answer.type);
-    renderPrompt(problemEl, p.prompt, {
-      blankAs: answerTerm(p.answer.type, p.answer.value),
-      shown: type.format(p.answer.value),
-    });
+    // A choice is a way in, not the number in the blank: filled in, "which
+    // way in" for 10/14 = ?/28 read "10/14 = scale/28".
+    if (p.answer.type !== 'choice') {
+      renderPrompt(problemEl, p.prompt, {
+        blankAs: answerTerm(p.answer.type, p.answer.value),
+        shown: type.format(p.answer.value),
+      });
+    }
     if (hasVisual(p.visual)) {
       visualBox.classList.remove('hidden');
       paintVisual(p.visual, { showAnswer: true, animateFrom: 1, verdict });
@@ -218,6 +227,9 @@ export function playScreen(route) {
   function showExplain() {
     if (!session.problem || lessonOpen) return;
     lessonOpen = true;
+    // The walkthrough ends on the answer, so what is typed after it is not a
+    // first try.
+    session.explained();
     openWalkthrough({
       skill,
       level: route.level,
@@ -256,6 +268,9 @@ export function playScreen(route) {
     // Wrong: always another go. The cost is time, never a life.
     sound('wrong');
     answer.setState('wrong');
+    // Selected, so the next keystroke replaces the old try rather than
+    // appending to it, while it is still there to edit.
+    answer.select?.();
     setTimeout(() => answer.setState(null), 360);
     flash(result.hint ?? 'Not quite — try again', 'is-wrong');
     paintHud();
@@ -283,7 +298,7 @@ export function playScreen(route) {
       e.preventDefault();
       // During the reveal pause Enter means "go on then"; otherwise it submits.
       if (pendingNext) advanceNow();
-      else submit();
+      else if (!answer.advance?.()) submit();
       return;
     }
     // Any other keystroke means they meant to type an answer.
@@ -296,7 +311,8 @@ export function playScreen(route) {
     if (lessonOpen || session.over) return;
     if (!answer.contains(document.activeElement)) answer.focus();
   }
-  answer.node.addEventListener('focusout', () => setTimeout(refocus, 0));
+  // On the slot, not the widget: the widget is rebuilt as problems change.
+  answerSlot.addEventListener('focusout', () => setTimeout(refocus, 0));
 
   function teardown() {
     document.removeEventListener('keydown', onKeyDown);
@@ -333,6 +349,7 @@ export function playScreen(route) {
     teardown();
     if (mode.gate) sound(summary.passed ? 'pass' : 'fail');
     let outcome = null;
+    let saveError = null;
     // The review as it stood before this run, so the summary can say whether
     // the run was a review that was due, an early one, or the finish itself.
     const reviewBefore = state.progress?.skills?.[skill.id]?.review ?? null;
@@ -349,12 +366,15 @@ export function playScreen(route) {
         origin: route.origin ?? null,
       });
       state.progress = outcome.progress;
-    } catch {
-      /* Server unreachable: the run still gets shown, it just isn't saved. */
+    } catch (err) {
+      // The run still gets shown, it just isn't saved -- and the summary
+      // says why, since "server unreachable" is wrong for a refused run.
+      console.error('run not saved', err);
+      saveError = err?.status ? `error ${err.status}` : null;
     }
     if (exitTo) { go(exitTo); return; }
     go({ name: 'summary', skillId: skill.id, level: session.baseLevel,
-         modeId: mode.id, summary, outcome, reviewBefore });
+         modeId: mode.id, summary, outcome, reviewBefore, saveError });
   }
 
   /** What the keys do, phrased for whichever input this skill uses. */
@@ -371,9 +391,12 @@ export function playScreen(route) {
       // Enter moves down rather than submitting, because submitting a
       // half-typed fraction would cost an attempt. A whole number therefore
       // takes two presses, which is worth saying out loud.
-      return 'Type the top, then / for the bottom. Enter answers' + tail;
+      return 'Type the top, then / or Enter for the bottom. Enter answers' + tail;
     }
-    return 'Type and press Enter. Minus key for negatives' + tail;
+    const input = getType(answerKind).input;
+    if (input === 'choice') return 'Tap an answer, or press its number, then Enter' + tail;
+    if (input === 'free') return 'Type and press Enter' + tail;
+    return 'Type and press Enter' + (levelSigned ? '. Minus key for negatives' : '') + tail;
   }
 
   // ── Go ──────────────────────────────────────────────────────────────────
@@ -545,7 +568,8 @@ export function summaryScreen(route) {
   const reviewed = reviewBanner(skill, route);
   if (reviewed) banners.push(reviewed);
   if (!outcome) {
-    banners.push(el('div.banner.banner--violet', {}, '⚠ Not saved — server unreachable'));
+    banners.push(el('div.banner.banner--violet', {},
+      route.saveError ? `⚠ Not saved — the server refused it (${route.saveError})` : '⚠ Not saved — server unreachable'));
   }
 
   /** Out to the levels list. */

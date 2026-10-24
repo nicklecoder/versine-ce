@@ -95,7 +95,8 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   font-family: var(--display);
   font-size: .7rem; font-weight: 600;
   letter-spacing: .18em; text-transform: uppercase;
-  color: var(--dim);
+  /* --dim is 3:1 on the cards, too faint for text this small. */
+  color: var(--muted);
 }
 
 .muted { color: var(--muted); }
@@ -518,13 +519,15 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   letter-spacing: .1em; text-transform: uppercase;
 }
 .crumb {
-  background: none; border: 0; padding: 0;
+  /* The way back to the map mid-run: tall enough to hit with a thumb, the
+     padding taken back out of the margin so the line does not grow. */
+  background: none; border: 0; padding: 14px 0; margin: -14px 0;
   font: inherit; letter-spacing: inherit; text-transform: inherit;
   color: var(--muted); cursor: pointer;
   transition: color .12s;
 }
 .crumb:hover { color: var(--cool); text-decoration: underline; }
-.crumb.is-here { color: var(--dim); cursor: default; }
+.crumb.is-here { color: var(--text); cursor: default; }
 .crumb-sep { color: var(--line); }
 
 /* ── Daily completion ─────────────────────────────────────────────────── */
@@ -861,7 +864,7 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .frac-box::placeholder { color: var(--dim); opacity: .5; }
 .frac-box.is-right { border-color: var(--grow); }
 .frac-box.is-wrong { border-color: var(--hot); animation: shake .34s ease; }
-.frac-bar { width: 3.6ch; height: 3px; background: var(--cool); border-radius: 2px; }
+.frac-bar { align-self: stretch; height: 3px; background: var(--cool); border-radius: 2px; }
 
 /* ── Ordered pair input ───────────────────────────────────────────────── */
 .pair-input { display: inline-flex; align-items: center; gap: 4px; }
@@ -1076,6 +1079,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   font-family: var(--body); font-size: 1.1rem; font-weight: 600;
   line-height: 1.5; max-width: 30ch; text-align: center;
 }
+/* In the text colour, not the first term's red: a question set in the red
+   of "Not quite" reads as an error before it has been answered. */
+.problem .t1.situation { color: var(--text); }
 
 /* A level whose library will not load — deliberately not a silent fallback. */
 .load-failed { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; padding: 24px 16px; }
@@ -1311,3 +1317,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .tile.cat-identities  { border-left: 3px solid color-mix(in srgb, #d946ef 55%, transparent); }
 .tile.cat-probability { border-left: 3px solid color-mix(in srgb, #94a3b8 55%, transparent); }
 .tile.cat-statistics  { border-left: 3px solid color-mix(in srgb, #cbd5e1 55%, transparent); }
+
+/* On a touchscreen the small boxes are tapped, not tabbed between -- iOS's
+   number pad has no / or comma -- so each is a full thumb's height. */
+@media (pointer: coarse) {
+  .frac-box, .pair-box, .mixed-whole { min-height: 44px; }
+}

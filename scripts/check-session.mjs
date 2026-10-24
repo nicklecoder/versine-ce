@@ -210,6 +210,37 @@ for (const skill of SKILLS) {
   }
 }
 
+// The walkthrough steps through an explanation sentence by sentence, and
+// must lose none of it: matching runs of non-stops once dropped everything
+// before a decimal point, so "0.002 is two thousandths." showed as "002."
+const { sentences } = await import(join(ROOT, 'web/engine/lesson.js'));
+for (const skill of SKILLS) {
+  for (let level = 0; level < skill.levels.length; level++) {
+    const lib = libOf(skill, level);
+    for (const p of lib?.problems ?? []) {
+      const said = sentences(p.explain).join(' ').replace(/\s+/g, ' ');
+      if (said !== String(p.explain ?? '').replace(/\s+/g, ' ').trim()) {
+        fail.push(`${skill.id} L${level + 1}: the walkthrough drops part of "${p.explain.slice(0, 60)}"`);
+        break;
+      }
+    }
+  }
+}
+
+// Opening the walkthrough shows the answer, so the answer after it is solved
+// but is not a first try.
+{
+  const skill = SKILLS.find((s) => s.id === 'int-addsub');
+  const lib = libOf(skill, 0);
+  const s = new Session({ skill, level: 0, mode: MODES.practice, onEvent() {} });
+  const deck = dealer(lib.problems);
+  s.deal = () => deck.next();
+  s.start();
+  s.explained();
+  s.submit(getType(s.problem.answer.type).format(s.problem.answer.value));
+  if (s.cleanSolved !== 0 || s.streak !== 0) fail.push('an answer after the walkthrough counted as a first try');
+}
+
 if (fail.length) {
   console.log(`${fail.length} problem(s) in the play loop:`);
   for (const f of fail.slice(0, 20)) console.log('  ' + f);

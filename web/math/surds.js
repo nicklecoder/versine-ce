@@ -109,7 +109,7 @@ const sameSurd = (s, t) => sameQ(s.a, t.a) && sameQ(s.b, t.b) && s.r === t.r;
 const size = (s) => s.a.n / s.a.d + (s.b.n / s.b.d) * Math.sqrt(s.r);
 
 const NOTHING = /^(no (real )?(solutions?|roots?)|none)$/;
-const HINT = 'Type the solutions, like x = 3 ± √5, or x = −2 or x = 5.';
+const HINT = 'Type it exactly, like 2sqrt(5), or x = 3 +- sqrt(5) for two. Type +- for ±.';
 
 /**
  * The entries of a typed answer, ± expanded: "x = (−3 ± √17)/4" is the two

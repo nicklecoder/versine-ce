@@ -104,6 +104,15 @@ for (const file of readdirSync(join(ROOT, 'web/library')).filter((f) => /-\d+\.j
   if (p.answer.type === 'choice') continue;
   const drawn = promptText([answerTerm(p.answer.type, p.answer.value)].flat());
   if (/\[object|undefined|NaN/.test(drawn)) fail.push(`${file}: the answer ${p.answer.accept[0]} was drawn as "${drawn}"`);
+  // A mixed number is held improper and must be drawn as the mixed number:
+  // the reveal once read "117/20 = 117/20" where 5 17/20 was asked for.
+  for (const q of problems.filter((q) => q.answer.type === 'mixed')) {
+    const shown = promptText([answerTerm('mixed', q.answer.value)].flat());
+    if (shown !== q.answer.accept[0]) {
+      fail.push(`${file}: the mixed answer ${q.answer.accept[0]} was drawn as "${shown}"`);
+      break;
+    }
+  }
 }
 
 if (fail.length) {

@@ -1,4 +1,4 @@
-import { el } from './dom.js';
+import { el, fitToContent } from './dom.js';
 
 /**
  * An ordered pair, written the way it is on paper: ( x , y ).
@@ -28,6 +28,7 @@ export function pairInput(spec, opts = {}) {
 
   const x = box('pair-box--x', 'x');
   const y = box('pair-box--y', 'y');
+  const fits = [x, y].map((b) => fitToContent(b, 3.2));
 
   const onKey = (e) => {
     if (e.target === x && (e.key === ',' || e.key === ' '
@@ -54,7 +55,8 @@ export function pairInput(spec, opts = {}) {
     node,
     /** Both halves as one string for the parser; one empty half parses as nothing. */
     value: () => (x.value === '' && y.value === '' ? '' : `${x.value},${y.value}`),
-    clear() { x.value = ''; y.value = ''; },
+    select() { x.focus(); x.select(); },
+    clear() { x.value = ''; y.value = ''; fits.forEach((f) => f()); },
     focus() { x.focus(); },
     contains: (element) => element === x || element === y,
     setState(state) {

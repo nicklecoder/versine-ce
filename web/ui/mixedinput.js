@@ -1,4 +1,4 @@
-import { el } from './dom.js';
+import { el, fitToContent } from './dom.js';
 
 /**
  * Whole number beside a fraction: 1 3/4, written the way it is on paper.
@@ -22,6 +22,7 @@ export function mixedInput() {
   const num = box('frac-box frac-box--num', 'n', 3);
   const den = box('frac-box frac-box--den', 'd', 3);
   const boxes = [whole, num, den];
+  const fits = [fitToContent(whole, 1.6), fitToContent(num, 2.4), fitToContent(den, 2.4)];
 
   const onKey = (e) => {
     const i = boxes.indexOf(e.target);
@@ -58,7 +59,8 @@ export function mixedInput() {
       if (!w && !f) return '';
       return [w, f].filter(Boolean).join(' ');
     },
-    clear() { boxes.forEach((b) => { b.value = ''; }); },
+    select() { whole.focus(); whole.select(); },
+    clear() { boxes.forEach((b) => { b.value = ''; }); fits.forEach((f) => f()); },
     focus() { whole.focus(); },
     contains: (element) => boxes.includes(element),
     setState(state) {

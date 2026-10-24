@@ -1,4 +1,4 @@
-import { el } from './dom.js';
+import { el, fitToContent } from './dom.js';
 
 /**
  * Numerator over denominator, stacked the way it is written on paper.
@@ -35,6 +35,7 @@ export function fracInput(spec, opts = {}) {
 
   const num = box('frac-box--num', 'n', true);
   const den = box('frac-box--den', 'd');
+  const fits = [num, den].map((b) => fitToContent(b, 2.4));
 
   const onKey = (e) => {
     if (e.key === '/' || e.key === ' ') {
@@ -66,9 +67,23 @@ export function fracInput(spec, opts = {}) {
     value: () => {
       if (num.value === '' && den.value === '') return '';
       if (den.value === '') return num.value;
-      return `${num.value || '0'}/${den.value}`;
+      // A bottom with no top is half an answer, not zero: let it fail to
+      // parse, so it is refused with a hint instead of marked wrong.
+      return `${num.value}/${den.value}`;
     },
-    clear() { num.value = ''; den.value = ''; },
+    /**
+     * Enter with the top typed and the bottom still empty moves down instead
+     * of answering, since submitting the half-typed fraction would cost an
+     * attempt. From the bottom box, Enter answers -- so a whole number is two
+     * presses. True when it moved, and the play screen then does not submit.
+     */
+    advance() {
+      if (document.activeElement !== num || num.value === '' || den.value !== '') return false;
+      den.focus();
+      return true;
+    },
+    select() { num.focus(); num.select(); },
+    clear() { num.value = ''; den.value = ''; fits.forEach((f) => f()); },
     focus() { num.focus(); },
     contains: (element) => element === num || element === den,
     setState(state) {

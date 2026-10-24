@@ -257,9 +257,14 @@ export function answerTerm(type, value) {
     case 'solutions': return setTerms(value);
     case 'roots': return rootTerms(value);
     case 'frac': return { t: 'frac', n: value.n, d: value.d };
-    case 'mixed': return value.w !== undefined && value.w !== 0
-      ? { t: 'mixed', w: value.w, n: value.n, d: value.d }
-      : { t: 'frac', n: value?.n ?? value, d: value?.d ?? 1 };
+    // Held as one improper fraction, {n: 117, d: 20}, and written out as the
+    // mixed number the level asked for: 5 17/20, not 117/20 again.
+    case 'mixed': {
+      const n = value?.n ?? value, d = value?.d ?? 1;
+      const w = Math.trunc(n / d), rest = Math.abs(n) % d;
+      if (rest === 0) return { t: 'num', v: String(w).replace('-', '−') };
+      return w === 0 ? { t: 'frac', n, d } : { t: 'mixed', w: String(w).replace('-', '−'), n: rest, d };
+    }
     default: return { t: 'num', v: String(value) };
   }
 }

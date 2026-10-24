@@ -14,6 +14,9 @@ import { getType } from '../math/answer.js';
  *
  *   node, value(), clear(), focus(), contains(el), setState('right'|'wrong'|null)
  *
+ * and optionally select(), which puts a wrong answer up to be typed over, and
+ * advance(), which takes an Enter that would submit half an answer.
+ *
  * No widget handles Enter for submission. The play screen owns that key, so a
  * single keypress can never both answer the problem and skip its own reveal.
  */
@@ -48,6 +51,7 @@ function intInput(spec, opts = {}) {
   return {
     node: input,
     value: () => input.value,
+    select() { input.focus(); input.select(); },
     clear() { input.value = ''; },
     focus() { input.focus(); },
     contains: (element) => element === input,
