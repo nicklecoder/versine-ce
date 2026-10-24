@@ -100,7 +100,10 @@ const KINDS = [
 ];
 
 function zeroOrUndefined(rng) {
-  const kind = rng.pick(['zero', 'zero', 'undefined', 'undefined', 'positive', 'negative']);
+  // requiem: catalogue/library/choice-answers-balanced
+  // A quarter each: with zero and undefined twice as likely, a student who
+  // only ever chose between those two scored two in three.
+  const kind = rng.pick(['zero', 'undefined', 'positive', 'negative']);
   const p1 = [rng.int(-9, 9), rng.int(-9, 9)];
   let p2;
   if (kind === 'zero') p2 = [p1[0] + rng.nonZero(-8, 8), p1[1]];
@@ -158,27 +161,31 @@ function fromTable(rng) {
 const RATES = [
   { id: 'hiker', t: 'hours', q: 'km', s: (a, b) => `A hiker is ${a[1]} km from the start after ${after(a[0], 'hours')}, and `
     + `${b[1]} km from it after ${after(b[0], 'hours')}. At what rate is the hiker walking, in km per hour?`,
-  up: true, per: 'km per hour' },
+  up: true, per: 'km per hour', rate: [2, 6],
+  // Walking from the start: about as far as the time at that speed allows.
+  start: (rate, t1, rng) => rate * t1 + rng.int(0, 2) },
   { id: 'tank', t: 'minutes', q: 'litres', s: (a, b) => `A tank holds ${a[1]} litres after ${after(a[0], 'minutes')} and `
     + `${b[1]} litres after ${b[0]} minutes. At what rate is the amount changing, in litres per minute?`,
   up: false, per: 'litres per minute' },
   { id: 'battery', t: 'hours', q: '%', s: (a, b) => `A phone is at ${a[1]}% after ${after(a[0], 'hours')} and ${b[1]}% after `
-    + `${b[0]} hours. At what rate is the battery changing, in % per hour?`, up: false, per: '% per hour' },
+    + `${b[0]} hours. At what rate is the battery changing, in % per hour?`, up: false, per: '% per hour',
+  rate: [2, 12], start: (rate, t1, rng) => rng.int(40, 100) },
   { id: 'savings', t: 'weeks', q: 'dollars', s: (a, b) => `A savings account holds $${a[1]} after ${after(a[0], 'weeks')} and `
     + `$${b[1]} after ${b[0]} weeks. At what rate is it growing, in dollars per week?`, up: true,
-  per: 'dollars per week' },
+  per: 'dollars per week', rate: [5, 40] },
   { id: 'plant', t: 'days', q: 'cm', s: (a, b) => `A plant is ${a[1]} cm tall on day ${a[0]} and ${b[1]} cm tall on `
-    + `day ${b[0]}. At what rate is it growing, in cm per day?`, up: true, per: 'cm per day' },
+    + `day ${b[0]}. At what rate is it growing, in cm per day?`, up: true, per: 'cm per day', rate: [1, 5] },
 ];
 
-function rateWithUnits(rng) {
-  const s = rng.pick(RATES);
+function rateWithUnits(rng, s = rng.pick(RATES)) {
+  // The situation is kept through redraws, so the one redrawn most (a
+  // battery cannot pass 100%) is not the one asked least.
   const t1 = rng.int(1, 5), t2 = t1 + rng.int(2, 6);
-  const rate = rng.int(2, 15) * (s.up ? 1 : -1);
-  const start = s.up ? rng.int(1, 40) : rng.int(t2 * 15 + 10, t2 * 15 + 60);
+  const rate = rng.int(...(s.rate ?? [2, 15])) * (s.up ? 1 : -1);
+  const start = s.start ? s.start(rate, t1, rng) : s.up ? rng.int(1, 40) : rng.int(t2 * 15 + 10, t2 * 15 + 60);
   const v1 = start, v2 = start + rate * (t2 - t1);
-  if (s.id === 'battery' && (v1 > 100 || v2 < 0)) return rateWithUnits(rng);
-  if (v2 <= 0) return rateWithUnits(rng);
+  if (s.id === 'battery' && (v1 > 100 || v2 < 0)) return rateWithUnits(rng, s);
+  if (v2 <= 0) return rateWithUnits(rng, s);
   return {
     prompt: [T.prose(s.s([t1, v1], [t2, v2]))],
     text: `rate ${s.id} (${t1}, ${v1}) (${t2}, ${v2})`,
