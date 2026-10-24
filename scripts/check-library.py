@@ -16,6 +16,7 @@ Usage: python3 scripts/check-library.py [--floor N]
 Exits non-zero, with reasons, if anything would break a run.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -207,6 +208,24 @@ problems: list[str] = []
 BOX_LENGTH = {"int": 7, "decimal": 12}
 
 
+# requiem: catalogue/content/us-notation
+# What a student reads is written for a US classroom: dollars and cents, and
+# US spelling. A pound sign or a "metre" is a second thing to decode on top
+# of the maths, and one generator slipping back would otherwise go unseen.
+NOT_US = re.compile(
+    r"£|€|\bpence\b|\b(?:centi|milli|kilo)?metres?\b|\b(?:milli)?litres?\b|\bcolours?\b"
+    r"|\bcentres?\b|\bneighbours?\b|\bfavourites?\b|\bgrey\b|\bsweets\b|\btrolley\b"
+    r"|\bthe lift\b|\ba lift\b|\brecognis(?:e|ed|es|ing)\b|\bmaths\b",
+    re.I)
+
+
+def read_aloud(row):
+    """Every string a student sees: the prompt, picture, explanation and choices."""
+    seen = {k: row.get(k) for k in ("prompt", "visual", "explain")}
+    seen["options"] = (row.get("answer") or {}).get("options")
+    return json.dumps(seen, ensure_ascii=False)
+
+
 def fail(msg: str) -> None:
     problems.append(msg)
 
@@ -288,6 +307,8 @@ for entry in levels:
             fail(f"{where}: parSeconds is not a positive number")
         check_prompt(row.get("prompt"), where, problems)
         check_visual(row.get("visual"), where, problems)
+        if m := NOT_US.search(read_aloud(row)):
+            fail(f"{where}: {m[0]!r} is not US notation or spelling")
     checked += len(rows)
 
 if problems:

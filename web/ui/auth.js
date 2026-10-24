@@ -98,7 +98,7 @@ export function loginScreen() {
   const container = el('div.shell', { style: { maxWidth: '560px', marginTop: '5vh' } });
 
   const chooser = () => el('div.stack', {},
-    el('div.center.stack--sm', {}, wordmark(), el('p.muted', {}, 'Who’s practising?')),
+    el('div.center.stack--sm', {}, wordmark(), el('p.muted', {}, 'Who’s practicing?')),
     el('div.grid.grid--people', {}, [
       ...state.users.map((u) =>
         el('button.tile', { onclick: () => mount(container, pinPad(u)) },
