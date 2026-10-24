@@ -32,10 +32,10 @@ const num = (v) => minus(f(v)).replace(/^(−?\d+)(\d{3})(?!\d)/, '$1,$2');
 const deg = (v) => `${v}°`;
 /** True when v needs no more than one decimal place. */
 const tidy = (v) => Math.abs(v * 10 - Math.round(v * 10)) < 1e-9;
-/** a ÷ b written out: exact when it ends within three places, otherwise rounded with ≈. */
+/** a ÷ b written out: exact when it ends within four places (7 ÷ 112 = 0.0625), otherwise rounded with ≈. */
 function quotient(a, b) {
   const q = a / b;
-  return Math.abs(q * 1000 - Math.round(q * 1000)) < 1e-9 ? `${num(a)} ÷ ${num(b)} = ${num(q)}` : `${num(a)} ÷ ${num(b)} ≈ ${num(Math.round(q * 100) / 100)}`;
+  return Math.abs(q * 10000 - Math.round(q * 10000)) < 1e-9 ? `${num(a)} ÷ ${num(b)} = ${num(q)}` : `${num(a)} ÷ ${num(b)} ≈ ${num(Math.round(q * 100) / 100)}`;
 }
 const result = (at, label) => text(at, label, RESULT);
 const sideKey = (i, j) => sideName(ABC, i, j);
@@ -177,8 +177,7 @@ function similarOrNot(rng) {
         explain: `Find each third angle: △ABC has 180 − ${g1[0]} − ${g1[1]} = ${t1}°, so its angles are ${set([...g1, t1])}; `
           + `△${second} has 180 − ${g2[0]} − ${g2[1]} = ${t2}°, so ${set([...g2, t2])}. `
           + (same ? 'The angles match, so the shapes do: two equal angles are enough, since the third must follow. Similar (AA).'
-            : 'They do not all match, so the shapes differ. (One equal angle is not enough.) Not similar.')
-          + ` So ${same ? 'similar' : 'not similar'}.`,
+            : 'They do not all match, so the shapes differ. (One equal angle is not enough.) Not similar.'),
       };
     }
   }
@@ -206,10 +205,10 @@ function similarOrNot(rng) {
         text: `similar sss: ${one.map(f).join(', ')}; ${shown2.map(f).join(', ')}`,
         answer: { type: 'choice', value: yes ? 'yes' : 'no', options: YESNO },
         visual: fit({ ...FRAME, marks, answer: [result(under([...P, ...Q]), yes ? 'Similar (SSS)' : 'Not similar')] }, 1.1),
-        explain: `Match shortest with shortest, middle with middle, longest with longest, and divide: ${ratios.join(', ')}. `
+        explain: `Match shortest with shortest, middle with middle, longest with longest (pair the sides by size; the order they are `
+          + `listed in is not the matching), and divide: ${ratios.join(', ')}. `
           + (yes ? 'One ratio for all three pairs: similar (SSS).'
-            : 'The ratios are not all the same, so one triangle is not a scaled copy of the other. Not similar.')
-          + ` (Pair the sides by size; the order they are listed in is not the matching.) So ${yes ? 'similar' : 'not similar'}.`,
+            : 'The ratios are not all the same, so one triangle is not a scaled copy of the other. Not similar.'),
       };
     }
   }
@@ -245,8 +244,7 @@ function similarOrNot(rng) {
       explain: `The angles given are the ones between the two sides. Compare the sides around them: ${ra} and ${rb}. `
         + (how === 'same' ? `One ratio, and the angles between them are both ${deg(A)}: similar (SAS).`
           : how === 'angle' ? `The ratios match, but the angles between the sides, ${deg(A)} and ${deg(A2)}, do not. Not similar.`
-            : 'The two ratios differ, so the sides are not scaled by one factor. Not similar.')
-        + ` So ${yes ? 'similar' : 'not similar'}.`,
+            : 'The two ratios differ, so the sides are not scaled by one factor. Not similar.'),
     };
   }
 }
@@ -276,40 +274,50 @@ const CM = { on: 'cm', one: 'centimeter', many: 'cm', plural: 'centimeters', say
 const INCH = { on: 'in', one: 'inch', many: 'inches', plural: 'inches', say: inches };
 const PLANS = [
   { what: 'map', paper: CM, unit: 'km', per: [2, 5, 10, 20, 25, 50], thing: (n) => `Two towns are ${n} cm apart on the map`,
-    ask: 'How far apart are they', real: (n) => `Two towns are ${n} km apart` },
+    ask: 'How far apart are they', real: (n) => `Two towns are ${n} km apart`, back: 'How far apart are they on the map', size: [2, 500] },
   { what: 'floor plan', paper: CM, unit: 'm', per: [0.5, 1.5, 2, 2.5, 3, 4, 5], thing: (n) => `A wall is ${n} cm long on the plan`,
-    ask: 'How long is the real wall', real: (n) => `A wall is ${n} m long` },
+    ask: 'How long is the real wall', real: (n) => `A wall is ${n} m long`, back: 'How long is it on the plan', size: [2, 30] },
   { what: 'drawing of a garden', paper: CM, unit: 'm', per: [0.5, 2, 2.5, 4, 5], thing: (n) => `A path is ${n} cm long on the drawing`,
-    ask: 'How long is the real path', real: (n) => `A path is ${n} m long` },
+    ask: 'How long is the real path', real: (n) => `A path is ${n} m long`, back: 'How long is it on the drawing', size: [2, 60] },
   { what: 'map', paper: INCH, unit: 'mi', per: [5, 10, 20, 25, 50], thing: (n) => `Two towns are ${inches(n)} apart on the map`,
-    ask: 'How far apart are they', real: (n) => `Two towns are ${n} miles apart` },
+    ask: 'How far apart are they', real: (n) => `Two towns are ${n} miles apart`, back: 'How far apart are they on the map', size: [2, 500] },
   { what: 'floor plan', paper: INCH, unit: 'ft', per: [2, 4, 5, 8, 10], thing: (n) => `A wall is ${inches(n)} long on the plan`,
-    ask: 'How long is the real wall', real: (n) => `A wall is ${n} ft long` },
+    ask: 'How long is the real wall', real: (n) => `A wall is ${n} ft long`, back: 'How long is it on the plan', size: [2, 30] },
   { what: 'drawing of a garden', paper: INCH, unit: 'ft', per: [2, 4, 5, 10], thing: (n) => `A path is ${inches(n)} long on the drawing`,
-    ask: 'How long is the real path', real: (n) => `A path is ${n} ft long` },
+    ask: 'How long is the real path', real: (n) => `A path is ${n} ft long`, back: 'How long is it on the drawing', size: [2, 60] },
 ];
 // A room is a few meters or a few tens of feet across, so the area question
 // keeps to the scales a house plan uses: 1 cm for 10 m made a 1,400 m² room.
 const ROOMS = [{ paper: CM, unit: 'm', per: [0.5, 1, 1.5, 2] }, { paper: INCH, unit: 'ft', per: [2, 4, 5] }];
-const MODELS = [['car', 24, 'long'], ['ship', 50, 'long'], ['plane', 72, 'long'], ['train', 87, 'long'], ['house', 20, 'tall'],
-  ['bridge', 200, 'long'], ['tower', 100, 'tall']];
+// requiem: catalogue/content/believable-sizes
+// Each model's scale with the sizes the real thing comes in, in meters, so the
+// model's own length is drawn from what that makes: a 1 : 24 car is 6 to 9
+// inches, never 1 inch (a 2 ft car) or 60 cm (a 14 m one).
+const MODELS = [['car', 24, 'long', 3.5, 5.5], ['ship', 200, 'long', 40, 250], ['plane', 72, 'long', 12, 70],
+  ['train car', 87, 'long', 15, 26], ['house', 20, 'tall', 6, 12], ['bridge', 500, 'long', 100, 1200], ['tower', 250, 'tall', 30, 300]];
 const WORD = { km: 'kilometers', m: 'meters', mi: 'miles', ft: 'feet' };
 /** A model's two units: the one it is measured in, the bigger one, and how many of the first make one of the second. */
 const MODEL_UNITS = [
-  { small: 'cm', smallWord: 'centimeters', big: 'm', bigWord: 'meters', per: 100, perSay: 'There are 100 cm in a meter', range: [4, 60] },
-  { small: 'in', smallWord: 'inches', big: 'ft', bigWord: 'feet', per: 12, perSay: 'There are 12 inches in a foot', range: [2, 24] },
+  { small: 'cm', smallWord: 'centimeters', big: 'm', bigWord: 'meters', per: 100, perSay: 'There are 100 cm in a meter', perMeter: 100 },
+  { small: 'in', smallWord: 'inches', big: 'ft', bigWord: 'feet', per: 12, perSay: 'There are 12 inches in a foot', perMeter: 1 / 0.0254 },
 ];
 
 function scaleDrawing(rng) {
   const kind = rng.pick(['out', 'out', 'back', 'per', 'model', 'area']);
   if (kind === 'model') {
-    const [thing, n, way] = rng.pick(MODELS);
-    const u = rng.pick(MODEL_UNITS);
     for (;;) {
-      const model = rng.int(...u.range) / (rng.chance(0.3) ? 2 : 1);
-      const real = model * n, inBig = rng.chance(0.5);
+      const [thing, n, way, lo, hi] = rng.pick(MODELS);
+      const u = rng.pick(MODEL_UNITS), inBig = rng.chance(0.5);
+      // Every whole or half model length that makes a real one in range, with an answer to two places.
+      const fits = [];
+      for (let m2 = Math.ceil((2 * lo * u.perMeter) / n); m2 <= (2 * hi * u.perMeter) / n; m2++) {
+        if (tidy((((m2 / 2) * n) / (inBig ? u.per : 1)) * 10)) fits.push(m2 / 2);
+      }
+      const whole = fits.filter(Number.isInteger);
+      if (!fits.length) continue;
+      const model = rng.pick(whole.length && rng.chance(0.7) ? whole : fits);
+      const real = model * n;
       const value = inBig ? real / u.per : real;
-      if (!tidy(value * 10)) continue;
       const said = u.small === 'in' ? inches(num(model)) : `${num(model)} cm`;
       return {
         prompt: [T.prose(`A model ${thing} is built to a scale of 1 : ${n}. The model is ${said} ${way}. `
@@ -330,7 +338,9 @@ function scaleDrawing(rng) {
       const w = rng.int(2, 9) / (rng.chance(0.3) ? 2 : 1), h = rng.int(2, 9) / (rng.chance(0.3) ? 2 : 1);
       if (w === h) continue;
       const W = w * per, H = h * per, area = W * H;
-      if (!tidy(W) || !tidy(H) || !tidy(area * 10)) continue;
+      // A room 2 to 9 m (6 to 30 ft) each way, not 0.5 m by 3 m.
+      const [least, most] = unit === 'ft' ? [6, 30] : [2, 9];
+      if (!tidy(W) || !tidy(H) || !tidy(area * 10) || Math.min(W, H) < least || Math.max(W, H) > most) continue;
       return {
         prompt: [T.prose(`On a floor plan, 1 ${room.paper.one} stands for ${num(per)} ${unit}. A room is drawn `
           + `${num(w)} ${on} by ${num(h)} ${on}. What is its real floor area, in ${unit}²?`)],
@@ -348,7 +358,9 @@ function scaleDrawing(rng) {
     const drawn = rng.int(2, 40) / (rng.chance(0.4) ? 2 : 1) / (rng.chance(0.3) ? 5 : 1);
     if (!tidy(drawn)) continue;
     const real = drawn * per;
-    if (!tidy(real) || real > 500) continue;
+    // A real wall or path its own size (a floor-plan wall in feet up to 100 ft).
+    const [least, most] = plan.size.map((v) => (unit === 'ft' ? v * 3 : v));
+    if (!tidy(real) || real < least || real > most) continue;
     if (kind === 'out') {
       return {
         prompt: [T.prose(`On a ${plan.what}, 1 ${paper.one} stands for ${num(per)} ${unit}. ${plan.thing(num(drawn))}. ${plan.ask}, in ${unit}?`)],
@@ -362,7 +374,7 @@ function scaleDrawing(rng) {
     if (kind === 'back') {
       return {
         prompt: [T.prose(`On a ${plan.what}, 1 ${paper.one} stands for ${num(per)} ${unit}. ${plan.real(num(real))}. `
-          + `How long is it on the ${plan.what}, in ${paper.many}?`)],
+          + `${plan.back}, in ${paper.many}?`)],
         text: `scale drawing: 1 ${on} = ${f(per)} ${unit}; ${f(real)} ${unit} back`,
         answer: dec(drawn),
         visual: null,
@@ -398,6 +410,7 @@ function areaVolume(rng) {
   // requiem: catalogue/content/units-both-systems
   // Measured in centimeters or in inches, half each.
   const [cm, cms] = rng.pick([['cm', 'cm'], ['in', 'inches']]);
+  const long = (v) => (cm === 'in' ? inches(num(v)) : `${num(v)} cm`);
   if (kind === 'up' || kind === 'down') {
     for (;;) {
       const k = rng.pick([2, 3, 4, 5, 1.5, 2.5].filter((v) => !solid || v <= 4));
@@ -438,14 +451,14 @@ function areaVolume(rng) {
     const side = rng.int(2, 12) * (rng.chance(0.3) ? 0.5 : 1), other = side * k;
     if (!tidy(other)) continue;
     return {
-      prompt: [T.prose(`Two similar ${shape} have ${word}s of ${a} ${cm}${sq} and ${b} ${cm}${sq}. A side of the first is ${num(side)} ${cms}. `
+      prompt: [T.prose(`Two similar ${shape} have ${word}s of ${a} ${cm}${sq} and ${b} ${cm}${sq}. A side of the first is ${long(side)}. `
         + `How long is the matching side of the second, in ${cms}?`)],
       text: `side from ${word}s: ${a}, ${b}; side ${f(side)}`,
       answer: dec(other),
       visual: null,
       explain: `The ${word}s are in the ratio ${quotient(b, a)}: the length factor ${solid ? 'cubed' : 'squared'}. So lengths scale by `
         + `${solid ? '∛' : '√'}${num(b / a)} = ${num(k)}, and the side is ${num(side)} × ${num(k)} = ${num(other)}. `
-        + `(Multiplying by ${num(b / a)} would scale it like ${word === 'area' ? 'an area' : 'a volume'}.) So ${num(other)} ${cms}.`,
+        + `(Multiplying by ${num(b / a)} would scale it like ${word === 'area' ? 'an area' : 'a volume'}.) So ${long(other)}.`,
     };
   }
 }
@@ -530,12 +543,14 @@ function altitude(rng) {
   for (;;) {
     let p, q;       // AD and DB
     if (kind === 'CD' || kind === 'piece') {
-      const s = rng.int(1, 5), u = rng.int(1, 5), v = rng.int(1, 6);
+      // requiem: catalogue/content/altitude-pieces-not-only-whole
+      // s may be a half, so the pieces can be 2.5 and 10 (CD 5) as well as 4 and 9.
+      const s = rng.int(1, 10) / 2, u = rng.int(1, 5), v = rng.int(1, 6);
       if (u === v) continue;
       p = s * u * u; q = s * v * v;
     } else {
       // A leg squared is its piece times the whole hypotenuse: piece s·u², whole s·w².
-      const s = rng.int(1, 4), u = rng.int(1, 4), w = rng.int(u + 1, 6);
+      const s = rng.int(1, 8) / 2, u = rng.int(1, 4), w = rng.int(u + 1, 6);
       const piece = s * u * u, whole = s * w * w;
       [p, q] = nearA ? [piece, whole - piece] : [whole - piece, piece];
     }
@@ -569,7 +584,9 @@ function altitude(rng) {
     if (![...given, ask].every((n) => tidy(named[n]))) continue;
     // requiem: catalogue/content/similarity-roots-known-on-sight
     // A root taken here should be one known on sight: nothing past 20².
+    // A root the student takes comes out whole: √(2.5 × 10) = 5, never √20.25.
     if (kind === 'CD' || kind === 'piece' ? h > 20 : named[leg] > 20) continue;
+    if ((kind === 'CD' && !Number.isInteger(h)) || (kind === 'leg' && !Number.isInteger(named[leg]))) continue;
     const segs = { AD: [A, D, 0.45], DB: [D, B, 0.45], AB: [A, B, 1.15], CD: [C, D, 0.45], AC: [A, C, 0.45], BC: [C, B, 0.45] };
     const place = (n, v, tone, extra = 0) => {
       const [P, Q, gap] = segs[n];

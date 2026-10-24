@@ -1245,7 +1245,7 @@
       }
     }
   },
-  "sources": "5e2c3cf529afb678c4e947e633817e92c0b1a9ce7e713f347dfc82fc328d001d",
+  "sources": "f73ed3b00c44700737401cb968117977fed82deb5ac2a4b4aaa5060d10f6dac3",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5362,7 +5362,7 @@
       "level": 6,
       "slug": "altitude-to-hypotenuse",
       "name": "Altitude to Hypotenuse",
-      "count": 131,
+      "count": 268,
       "exhaustive": true,
       "signed": false,
       "file": "similarity-6.json"
