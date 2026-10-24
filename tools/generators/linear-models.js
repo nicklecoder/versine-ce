@@ -22,6 +22,8 @@ const terms = (src) => [T.math(previewOf(src).terms)];
 const whole = (n) => ({ n, d: 1 });
 const lineAnswer = (m, b) => ({ type: 'linear', value: { m: ratio(m, 1), b: ratio(b, 1) } });
 const money = (n) => `$${n}`;
+/** 1 day, 2 days: a count with its noun, singular for one. */
+const count = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /**
  * Situations with a start and a rate. Each says what x and y are, because
@@ -37,13 +39,13 @@ const SITUATIONS = [
     b: 'the joining fee', m: 'the cost for each month' },
   { id: 'candle', about: "the height, in cm, of a candle after it has burned for x hours", start: [20, 40, 2], rate: [-4, -1, 1], x: 'hours it has burned', y: 'height in cm',
     say: (s, r) => `A candle is ${s} cm tall and burns down ${-r} cm every hour.`,
-    b: 'the starting height', m: 'the height lost each hour (as a negative)' },
+    b: 'the starting height', m: 'the change in height each hour' },
   { id: 'saver', about: "Rae's savings, in dollars, after x weeks", start: [0, 200, 10], rate: [5, 30, 5], x: 'weeks', y: 'savings in dollars',
     say: (s, r) => `Rae has ${money(s)} saved and adds ${money(r)} every week.`,
     b: 'the savings at the start', m: 'the amount saved each week' },
   { id: 'tank', about: "the litres left in a tank after it has drained for x minutes", start: [200, 600, 50], rate: [-25, -5, 5], x: 'minutes', y: 'litres in the tank',
     say: (s, r) => `A tank holds ${s} litres and drains ${-r} litres a minute.`,
-    b: 'the starting amount', m: 'the litres lost each minute (as a negative)' },
+    b: 'the starting amount', m: 'the change in litres each minute' },
   { id: 'phone', about: "a monthly phone bill, in dollars, when x gigabytes are used", start: [0, 30, 5], rate: [1, 5, 1], x: 'gigabytes used', y: 'monthly bill in dollars',
     say: (s, r) => `A phone plan costs ${money(s)} a month plus ${money(r)} for each gigabyte used.`,
     b: 'the monthly charge', m: 'the cost for each gigabyte' },
@@ -84,7 +86,8 @@ function meaning(rng) {
     answer: { type: 'choice', value: ask === 'm' ? 'rate' : 'start', options },
     visual: null,
     explain: ask === 'm'
-      ? `${minus(m)} multiplies x, so it is how much y changes for each one of x: ${s.m}.`
+      ? `${minus(m)} multiplies x, so it is how much y changes for each one of x`
+        + `${m < 0 ? ', negative because y goes down' : ''}: ${s.m}.`
       : `${b} stands on its own, so it is y when x is 0, before anything has happened: ${s.b}.`,
   };
 }
@@ -96,9 +99,9 @@ const READINGS = [
   { id: 'spring', x: 'kg hung on it', y: 'length in cm', rate: [2, 5], start: [10, 30],
     say: (a, b) => `A spring is ${a[1]} cm long with ${a[0]} kg hung on it, and ${b[1]} cm long with ${b[0]} kg.` },
   { id: 'car', x: 'hours', y: 'litres of fuel left', rate: [-9, -4], start: [45, 60],
-    say: (a, b) => `A car has ${a[1]} litres of fuel left after ${a[0]} hours of driving, and ${b[1]} litres after ${b[0]} hours.` },
+    say: (a, b) => `A car has ${a[1]} litres of fuel left after ${count(a[0], 'hour')} of driving, and ${b[1]} litres after ${count(b[0], 'hour')}.` },
   { id: 'hire', x: 'days', y: 'cost in dollars', rate: [15, 40], start: [10, 50],
-    say: (a, b) => `Hiring a bike costs ${money(a[1])} for ${a[0]} days and ${money(b[1])} for ${b[0]} days.` },
+    say: (a, b) => `Hiring a bike costs ${money(a[1])} for ${count(a[0], 'day')} and ${money(b[1])} for ${count(b[0], 'day')}.` },
 ];
 
 function fromReadings(rng) {
@@ -125,32 +128,55 @@ const LINEAR = [
 ];
 
 /**
- * A table whose x goes up in ones. The decoys are the ones that grow
- * convincingly: doubling, and the squares, which both start slowly enough
- * to look steady for a row.
+ * A table whose x goes up in ones. Half are linear, rising or falling; the
+ * other half are the decoys that grow convincingly -- doubling and tripling,
+ * whose changes multiply, squares, whose changes step by the same amount,
+ * and a line with one change knocked off by one, which looks steady at a
+ * glance. Each pool is wide, so the build does not drown one answer in the
+ * other.
  */
 function linearOrNot(rng) {
-  const kind = rng.pick(['linear', 'linear', 'falling', 'doubling', 'tripling', 'squares']);
-  const x0 = rng.int(0, 2);
+  const yes = rng.chance(0.5);
+  const kind = yes ? rng.pick(['linear', 'falling']) : rng.pick(['doubling', 'tripling', 'squares', 'uneven']);
+  const x0 = ['doubling', 'tripling'].includes(kind) ? rng.int(0, kind === 'tripling' ? 1 : 2) : rng.int(-2, 3);
   const xs = [0, 1, 2, 3].map((i) => x0 + i);
-  const a = rng.int(1, 5), c = rng.int(-5, 10);
-  const f = {
-    linear: (x) => a * x + c, falling: (x) => -a * x + 20 + c,
-    doubling: (x) => a * 2 ** x, tripling: (x) => a * 3 ** x, squares: (x) => x * x + c,
-  }[kind];
-  const ys = xs.map(f);
+  const a = rng.int(1, kind === 'tripling' ? 3 : kind === 'doubling' ? 5 : 9), c = rng.int(-5, 10);
+  const s = rng.pick([1, 1, 2, 3, -1, -2]);
+  let ys;
+  if (kind === 'uneven') {
+    const bump = rng.int(0, 2), by = rng.pick([1, -1]) * (a === 1 ? 1 : rng.pick([1, 1, 2]));
+    const steps = [0, 1, 2].map((i) => a + (i === bump ? by : 0));
+    if (steps.some((d) => d === 0)) return linearOrNot(rng);
+    ys = [c];
+    steps.forEach((d) => ys.push(ys[ys.length - 1] + d));
+  } else {
+    const f = {
+      linear: (x) => a * x + c, falling: (x) => -a * x + 20 + c,
+      doubling: (x) => a * 2 ** x + c, tripling: (x) => a * 3 ** x + c, squares: (x) => s * x * x + c,
+    }[kind];
+    ys = xs.map(f);
+  }
   const diffs = ys.slice(1).map((y, i) => y - ys[i]);
-  const yes = kind === 'linear' || kind === 'falling';
+  if (!yes && new Set(diffs).size === 1) return linearOrNot(rng);
+  const square = `${s === 1 ? '' : s === -1 ? '−' : s}x²${c === 0 ? '' : ` ${c < 0 ? '−' : '+'} ${Math.abs(c)}`}`;
+  const why = {
+    linear: 'The same every time, so it is linear.',
+    falling: 'The same every time, so it is linear.',
+    doubling: 'The change doubles every step, so it is not linear.',
+    tripling: 'The change triples every step, so it is not linear.',
+    // The change of a square steps by the same amount, 2 each time for x²:
+    // what is true for every one of these, offset or not.
+    squares: `The change itself goes ${s > 0 ? 'up' : 'down'} by ${Math.abs(2 * s)} each time, the pattern of a square `
+      + `(y = ${square} here), so it is not linear.`,
+    uneven: 'Not every change is the same, so it is not linear.',
+  }[kind];
   return {
     prompt: [T.prose('Is this relationship linear?')],
     text: `linear table: ${xs.map((x, i) => `${x}→${ys[i]}`).join(', ')}`,
     answer: { type: 'choice', value: yes ? 'linear' : 'not', options: LINEAR },
-    visual: { kind: 'table', cols: ['x', 'y'], rows: xs.map((x, i) => [String(x), minus(ys[i])]),
+    visual: { kind: 'table', cols: ['x', 'y'], rows: xs.map((x, i) => [minus(x), minus(ys[i])]),
       workingCol: 'change', working: ['', ...diffs.map(signed)] },
-    explain: `x goes up by 1 each row. y changes by ${diffs.map(minus).join(', then ')}. `
-      + (yes ? 'The same every time, so it is linear.'
-        : kind === 'squares' ? 'The change keeps growing, so it is not linear: these are squares.'
-          : `The change is growing, so it is not linear: y is ${kind === 'doubling' ? 'doubling' : 'tripling'} each step.`),
+    explain: `x goes up by 1 each row. y changes by ${diffs.map(minus).join(', then ')}. ${why}`,
   };
 }
 
@@ -193,8 +219,8 @@ function compare(rng) {
   const rhs = lineText(whole(mB), whole(bB), { ascii: true }).slice(4);
   const bigger = ask === 'rate' ? (mA > mB ? 'A' : 'B') : (bA > bB ? 'A' : 'B');
   return {
-    prompt: [T.prose('Function A is shown in the table. Function B is'), ...terms(`y = ${rhs}`),
-      T.prose('.'), T.prose(`Which has the greater ${ask === 'rate' ? 'rate of change' : 'y-intercept'}?`)],
+    prompt: [T.prose('Function B is'), ...terms(`y = ${rhs}`),
+      T.prose(`and Function A is shown in the table. Which has the greater ${ask === 'rate' ? 'rate of change' : 'y-intercept'}?`)],
     text: `compare ${ask}: ${xs.map((x) => `${x}→${mA * x + bA}`).join(', ')} vs y = ${rhs}`,
     answer: { type: 'choice', value: bigger, options: AB },
     visual: { kind: 'table', cols: ['x', 'y'], rows: xs.map((x) => [String(x), minus(mA * x + bA)]),
@@ -202,7 +228,13 @@ function compare(rng) {
     explain: `In the table, x goes up by ${step} and y by ${minus(mA * step)}, so A's rate is ${minus(mA)}`
       + `${ask === 'start' ? `; going back to x = 0 gives A's y-intercept, ${minus(bA)}` : ''}. `
       + `B's ${ask === 'rate' ? `rate is ${minus(mB)}` : `y-intercept is ${minus(bB)}`}. `
-      + `${minus(ask === 'rate' ? Math.max(mA, mB) : Math.max(bA, bB))} is greater, so Function ${bigger}.`,
+      + `${minus(ask === 'rate' ? Math.max(mA, mB) : Math.max(bA, bB))} is greater`
+      // A greater rate is the larger number, not the steeper line: −4 is
+      // greater than −5, and a student reading "greater" as "faster" needs
+      // to be told so on exactly the rows where the two disagree.
+      + `${ask === 'rate' && Math.abs(Math.min(mA, mB)) > Math.abs(Math.max(mA, mB))
+        ? `, even though ${bigger === 'A' ? 'B' : 'A'} is steeper: a greater rate of change is the larger number, sign and all`
+        : ''}, so Function ${bigger}.`,
   };
 }
 
@@ -210,7 +242,10 @@ function compare(rng) {
  * A journey drawn as distance from home against time: three straight
  * pieces, labelled A, B and C. The question picks out one by its shape.
  */
-function graphStory(rng) {
+function graphStory(rng, want = rng.int(0, 2)) {
+  // Which part answers is chosen first and kept through every redraw, so
+  // A, B and C each answer a third of the time; left to the shapes, the
+  // middle part answered nearly half.
   const ask = rng.pick(['fastest', 'stopped', 'returning']);
   const slopes = ask === 'stopped' ? [rng.int(1, 3), 0, rng.int(1, 3)]
     : ask === 'returning' ? [rng.int(1, 3), rng.int(1, 2), -rng.int(1, 3)]
@@ -219,21 +254,27 @@ function graphStory(rng) {
   // Rotate so the piece that answers is not always in the same place.
   const rot = [...slopes.slice(order), ...slopes.slice(0, order)];
   // Neighbouring parts with the same slope would draw as one piece.
-  if (rot[0] < 0 || rot[0] === rot[1] || rot[1] === rot[2]) return graphStory(rng);
+  if (rot[0] === rot[1] || rot[1] === rot[2]) return graphStory(rng, want);
+  // Sometimes the ride starts away from home, at a friend's, so the first
+  // part can be a stop or the way back as often as the others can.
+  const away = rng.chance(0.7) ? rng.int(2, 5) : 0;
+  if (rot[0] < 0 && away === 0) return graphStory(rng, want);
   const widths = rot.map(() => rng.int(1, 3));
-  const pts = [[0, 0]];
+  const pts = [[0, away]];
   for (let i = 0; i < 3; i++) {
     const [x, y] = pts[i];
     pts.push([x + widths[i], y + rot[i] * widths[i]]);
   }
-  if (pts.some(([, y]) => y < 0 || y > 10)) return graphStory(rng);
+  if (pts.some(([, y]) => y < 0 || y > 10)) return graphStory(rng, want);
+  // A flat part at distance 0 lies along the axis line and cannot be seen.
+  if (rot.some((m, i) => m === 0 && pts[i][1] === 0)) return graphStory(rng, want);
   const top = Math.max(...rot.map(Math.abs));
   const pick = {
     fastest: rot.filter((m) => Math.abs(m) === top).length === 1 ? rot.findIndex((m) => Math.abs(m) === top) : -1,
     stopped: rot.indexOf(0),
     returning: rot.findIndex((m) => m < 0),
   }[ask];
-  if (pick < 0) return graphStory(rng);
+  if (pick !== want) return graphStory(rng, want);
   const name = 'ABC'[pick];
   const options = ['A', 'B', 'C'].map((id) => ({ id, label: `Part ${id}` }));
   const speed = (m) => `${Math.abs(m)} km per hour`;
@@ -244,11 +285,14 @@ function graphStory(rng) {
     text: `story graph ${ask}: ${pts.map(([x, y]) => `(${x}, ${y})`).join(' ')}`,
     answer: { type: 'choice', value: name, options },
     visual: {
-      kind: 'plane', xRange: [0, 10], yRange: [0, 10], grid: 1,
+      // Fitted to the journey, so a short one is not squeezed into a corner.
+      kind: 'plane', xRange: [0, pts[3][0] + 1], yRange: [0, Math.max(4, ...pts.map(([, y]) => y)) + 1], grid: 1,
       marks: [0, 1, 2].map((i) => ({ kind: 'segment', from: pts[i], to: pts[i + 1], label: 'ABC'[i],
         tone: 'var(--vec-1)' })),
       answer: [{ kind: 'segment', from: pts[pick], to: pts[pick + 1],
-        label: rot[pick] === 0 ? 'flat' : speed(rot[pick]), tone: 'var(--vec-2)' }],
+        // Led by the part's own letter, which then lands exactly on the
+        // letter already drawn there instead of colliding with it.
+        label: `${name}: ${rot[pick] === 0 ? 'flat' : speed(rot[pick])}`, tone: 'var(--vec-2)' }],
     },
     explain: `The steepness of each part is the speed. ${rot.map((m, i) => `${'ABC'[i]}: ${m === 0 ? 'flat'
       : `${m < 0 ? 'down' : 'up'} ${Math.abs(m)} km each hour`}`).join('; ')}. `
