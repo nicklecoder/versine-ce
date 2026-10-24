@@ -70,9 +70,17 @@ function between(rng) {
   // A number strictly between two consecutive squares.
   const low = rng.int(2, 20);
   const n = rng.int(low * low + 1, (low + 1) * (low + 1) - 1);
+  // √n is nearer low + 1 exactly when n is past (low + ½)², which for whole
+  // numbers is n > low² + low. Said, so that a student who estimated √440 as
+  // almost 21 sees why 20 is still the answer.
+  const nearer = n > low * low + low
+    ? ` It is nearer ${low + 1}, but still below it.`
+    : '';
   return {
-    prompt: [T.root(n, undefined, 1), T.op('lies just above'), T.blank()],
-    text: `sqrt(${n}) lies just above ?`,
+    // Asked as the whole number below the root, not "just above": √440 is
+    // 20.98, which no one would describe as just above 20.
+    prompt: [T.prose('The whole number just below'), T.root(n, undefined, 1), T.prose('is'), T.blank()],
+    text: `whole number just below sqrt(${n})`,
     answer: { type: 'int', value: low },
     visual: {
       kind: 'evalmodel',
@@ -83,8 +91,15 @@ function between(rng) {
       hint: 'Which two squares is this number between?',
     },
     explain: `${low}² = ${low * low} and ${low + 1}² = ${(low + 1) ** 2}. Since ${n} sits `
-      + `between them, √${n} sits between ${low} and ${low + 1} — just above ${low}.`,
+      + `between them, √${n} sits between ${low} and ${low + 1}, so the whole number just `
+      + `below it is ${low}.${nearer}`,
   };
+}
+
+/** The smallest k whose square divides n, if it is not the biggest: the square a student spots first. */
+function firstSpotted(n, outside) {
+  for (let k = 2; k < outside; k++) if (n % (k * k) === 0) return k;
+  return null;
 }
 
 /** A square hiding inside the root can come out of it. */
@@ -94,27 +109,48 @@ function simplify(rng, hard) {
   const outside = rng.int(2, hard ? 12 : 8);
   const inside = rng.pick(hard ? SQUARE_FREE : SQUARE_FREE.slice(0, 8));
   const n = outside * outside * inside;
-  if (n > 4000) return simplify(rng, false);
+  if (n > 4000) return simplify(rng, hard);
   // Read the factorisation back off the number rather than trusting the one it
   // was built from: the prompt, the working and the answer then cannot
   // disagree, whatever the multiplier lists later become.
   const check = pullOut(n);
-  // Ask for the coefficient, which is the whole of what simplifying does.
+  const sq = check.outside * check.outside;
+  const visual = {
+    kind: 'evalmodel',
+    lines: [`√${n}`, `√(${sq} × ${check.inside})`,
+            `√${sq} × √${check.inside}`,
+            `${check.outside}√${check.inside}`],
+    rules: [`${sq} is the biggest square that divides ${n}`,
+            'a root of a product splits', 'and the square root comes out whole'],
+    hint: 'What is the biggest square that divides this?',
+  };
+  const working = `${n} = ${sq} × ${check.inside}, and √${sq} = ${check.outside}. `
+    + `So √${n} = ${check.outside}√${check.inside}.`;
+  if (!hard) {
+    // Pulling Out Squares shows what is left under the root: the level is
+    // about the move itself, so the coefficient is the whole question.
+    return {
+      prompt: [T.root(n, undefined, 1), T.op('='), T.root(check.inside, null, 2)],
+      text: `sqrt(${n}) = ?sqrt(${check.inside})`,
+      answer: { type: 'int', value: check.outside },
+      visual,
+      explain: working,
+    };
+  }
+  // requiem: catalogue/content/simplest-radical-asks-whole-form
+  // Simplest Radical Form asks for the whole radical. Showing √10 beside the
+  // blank told the student what was left, so no one could stop at 2√250 and
+  // the level tested nothing Pulling Out Squares had not.
+  const k = firstSpotted(n, check.outside);
+  const early = k
+    ? ` Taking out only ${k * k} would leave ${k}√${n / (k * k)}, which still has a square inside.`
+    : '';
   return {
-    prompt: [T.root(n, undefined, 1), T.op('='), T.root(check.inside, null, 2)],
-    text: `sqrt(${n}) = ?sqrt(${check.inside})`,
-    answer: { type: 'int', value: check.outside },
-    visual: {
-      kind: 'evalmodel',
-      lines: [`√${n}`, `√(${check.outside * check.outside} × ${check.inside})`,
-              `√${check.outside * check.outside} × √${check.inside}`,
-              `${check.outside}√${check.inside}`],
-      rules: [`${check.outside * check.outside} is the biggest square that divides ${n}`,
-              'a root of a product splits', 'and the square root comes out whole'],
-      hint: 'What is the biggest square that divides this?',
-    },
-    explain: `${n} = ${check.outside * check.outside} × ${check.inside}, and `
-      + `√${check.outside * check.outside} = ${check.outside}. So √${n} = ${check.outside}√${check.inside}.`,
+    prompt: [T.prose('In simplest radical form,'), T.root(n, undefined, 1), T.op('='), T.blank()],
+    text: `simplest radical: sqrt(${n})`,
+    answer: { type: 'expr', value: `${check.outside}√${check.inside}` },
+    visual,
+    explain: working + early,
   };
 }
 
@@ -122,21 +158,64 @@ function simplify(rng, hard) {
  * The strategic layer: an exact radical and a decimal are answers to different
  * questions. Exactness is for carrying on with; a decimal is for judging size
  * or reporting a measurement.
+ *
+ * No situation names the property that decides it ("exact"), and neither
+ * option's note says what it is good for: the notes show what each form looks
+ * like, so matching a word in the question to a word on a button gets nothing.
  */
-const SITUATIONS = [
-  { text: 'You need to give the exact answer to {r}.', want: 'simplify',
-    why: 'A decimal for {r} is rounded, so it is not exact. The simplified radical is.' },
-  { text: 'You need to add {r} to another radical.', want: 'simplify',
-    why: 'Radicals only combine when what is under the root matches. Simplifying is what reveals whether it does.' },
-  { text: 'You need to cut a piece of wood {r} inches long.', want: 'estimate',
-    why: 'A saw does not take a radical. Anything you build with needs a decimal.' },
-  { text: 'You need to say whether {r} is more than 9.', want: 'estimate',
-    why: 'Comparing sizes needs a number you can place on a line.' },
-  { text: 'You need to check whether {r} equals another radical.', want: 'simplify',
-    why: 'Two radicals that look different can be the same. Only simplest form settles it.' },
-  { text: 'You need to plot {r} on a number line.', want: 'estimate',
-    why: 'A position on a line is a decimal. The exact form does not tell you where to put the dot.' },
-];
+const dp2 = (x) => (Math.round(x * 100) / 100).toFixed(2);
+const times = (m) => (m === 1 ? '' : String(m));
+const SITUATIONS = {
+  simplify: [
+    ({ r, o, i, rng }) => {
+      const m = rng.int(1, 3);
+      return {
+        text: `You need to add ${r} to ${times(m)}√${i}.`,
+        why: `${r} = ${o}√${i}, and only then do the two match: ${o}√${i} + ${times(m)}√${i} = `
+          + `${o + m}√${i}. Decimals would give a rounded sum, not this one.`,
+      };
+    },
+    ({ r, o, i, rng }) => {
+      const m = o + rng.pick([-1, 0, 1]);
+      return {
+        text: `You need to check whether ${r} and ${times(m)}√${i} are the same number.`,
+        why: `${r} simplifies to ${o}√${i}, so ${m === o ? 'they are the same'
+          : `they are not: ${o}√${i} is not ${times(m)}√${i}`}. `
+          + 'Two decimals that agree to a few places could still be different numbers.',
+      };
+    },
+  ],
+  estimate: [
+    ({ r, v }) => ({
+      text: `You need to cut a piece of wood ${r} inches long.`,
+      why: `A tape measure does not read radicals: ${r} ≈ ${dp2(v)} inches is what you can mark.`,
+    }),
+    ({ r, v, rng }) => {
+      const k = Math.floor(v) + rng.int(0, 1);
+      return {
+        text: `You need to say whether ${r} is more than ${k}.`,
+        why: `${r} ≈ ${dp2(v)}, so it is ${v > k ? 'more' : 'less'} than ${k}. A simplified radical `
+          + 'does not show its size at a glance.',
+      };
+    },
+    ({ r, v }) => ({
+      text: `You need to measure out ${r} metres of rope.`,
+      why: `Rope is measured off a tape, so it needs a decimal: ${r} ≈ ${dp2(v)} metres.`,
+    }),
+    ({ r, v }) => {
+      const k = Math.floor(v);
+      return {
+        text: `You need to say whether ${r} is nearer ${k} or ${k + 1}.`,
+        why: `${r} ≈ ${dp2(v)}, so it is nearer ${v - k < 0.5 ? k : k + 1}. A simplified radical `
+          + 'does not show its size at a glance.',
+      };
+    },
+    ({ r, v }) => ({
+      text: `You need to plot ${r} on a number line.`,
+      why: `${r} ≈ ${dp2(v)}, and that is where the dot goes. The radical form does not say where on the line it is.`,
+    }),
+  ],
+};
 
 /**
  * Cubes, and cube roots.
@@ -225,24 +304,24 @@ function cubes(rng) {
 }
 
 function whichForm(rng) {
-  const outside = rng.int(2, 6);
-  const inside = rng.pick([2, 3, 5, 6, 7]);
-  const label = `√${outside * outside * inside}`;
-  const situation = rng.pick(SITUATIONS);
-  const fill = (t) => t.replace(/\{r\}/g, label);
+  const o = rng.int(2, 6);
+  const i = rng.pick([2, 3, 5, 6, 7]);
+  const n = o * o * i;
+  const want = rng.chance(0.5) ? 'simplify' : 'estimate';
+  const situation = rng.pick(SITUATIONS[want])({ r: `√${n}`, o, i, v: Math.sqrt(n), rng });
   return {
-    prompt: [T.prose(fill(situation.text))],
-    text: fill(situation.text),
+    prompt: [T.prose(situation.text)],
+    text: situation.text,
     answer: {
       type: 'choice',
-      value: situation.want,
+      value: want,
       options: rng.shuffle([
-        { id: 'simplify', label: 'Simplest radical form', note: `exact: ${outside}√${inside}` },
-        { id: 'estimate', label: 'A decimal estimate', note: 'a number you can measure with' },
+        { id: 'simplify', label: 'Simplest radical form', note: 'a whole number times a root, like 3√5' },
+        { id: 'estimate', label: 'A decimal estimate', note: 'a rounded number, like 6.71' },
       ]),
     },
     visual: null,
-    explain: fill(situation.why),
+    explain: situation.why,
   };
 }
 

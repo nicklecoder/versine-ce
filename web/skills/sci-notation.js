@@ -23,7 +23,7 @@
 
 export const LEVELS = [
   { name: 'Big Numbers', slug: 'big-numbers',
-    blurb: 'Slide the point until one digit is in front. The slide is the power of ten.' },
+    blurb: 'Slide the point until one digit is in front. The slide is the power of ten, and a minus sign just comes along.' },
   {
     name: 'Small Numbers', slug: 'small-numbers',
     blurb: 'Less than one, so the point slides the other way and the power goes negative.',

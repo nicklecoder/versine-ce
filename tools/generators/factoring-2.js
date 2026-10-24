@@ -62,7 +62,9 @@ function product(front, factors, v) {
 function asks(poly, v) {
   const r = previewOf(write(poly, v));
   if (!r.ok) throw new Error(`factoring-2: cannot draw "${write(poly, v)}" — ${r.error}`);
-  return [...r.terms, T.op('='), T.blank()];
+  // requiem: catalogue/content/expression-prompts-name-the-form
+  // Said every time: in All Together nothing else says the answer is a product.
+  return [T.prose('Factor completely:'), ...r.terms, T.op('='), T.blank()];
 }
 
 const problem = (poly, v, front, factors, explain) => {

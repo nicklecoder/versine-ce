@@ -65,6 +65,12 @@ function endsOrRepeats(rng) {
     const k = rng.pick([3, 3, 7, 9, 11]);
     d = base * k;
     n = k * rng.int(1, base - 1);
+  } else if (rng.chance(0.23)) {
+    // A bottom of only 2s and 5s, so that ends and repeats come out near
+    // half and half: with any bottom from 3 to 40, "repeats" was right in
+    // two rows of three and clicking it every time nearly passed.
+    d = rng.pick([2, 4, 5, 8, 10, 16, 20, 25, 32, 40, 50, 64, 80]);
+    n = rng.int(1, d - 1);
   } else {
     d = rng.int(3, 40);
     n = rng.int(1, d - 1);
@@ -170,8 +176,12 @@ function repeatProblem(shown, text, value, lines, rules, explain) {
  * fraction; 0.101001000… looks like a pattern, and a pattern is not a cycle.
  */
 function rationalOrNot(rng) {
-  const pick = rng.pick(['square', 'nonsquare', 'nonsquare', 'fraction', 'repeating',
-    'pattern', 'pi', 'piStandIn', 'negative', 'rootFraction', 'decimal']);
+  // Rational or irrational first, half and half, then a kind of number: the
+  // kinds are mostly rational, and picking a kind first made "rational"
+  // right in seven rows of eight.
+  const pick = rng.chance(0.5)
+    ? rng.pick(['square', 'fraction', 'repeating', 'piStandIn', 'negative', 'rootFraction', 'decimal'])
+    : rng.pick(['nonsquare', 'nonsquare', 'negativeRoot', 'cubeRoot', 'pattern', 'pi']);
   let shown, text, rational, why;
   switch (pick) {
     case 'square': {
@@ -181,8 +191,8 @@ function rationalOrNot(rng) {
       break;
     }
     case 'nonsquare': {
-      let n = rng.int(2, 120);
-      while (isSquare(n)) n = rng.int(2, 120);
+      let n = rng.int(2, 300);
+      while (isSquare(n)) n = rng.int(2, 300);
       const lo = Math.floor(Math.sqrt(n));
       shown = `√${n}`; text = shown; rational = false;
       why = `${n} is not a perfect square: ${lo}² = ${lo * lo} and ${lo + 1}² = ${(lo + 1) ** 2}. `
@@ -206,6 +216,23 @@ function rationalOrNot(rng) {
       why = `${shown} repeats, and every repeating decimal is a fraction: this one is ${n}/${d}. Rational.`;
       break;
     }
+    case 'negativeRoot': {
+      let n = rng.int(2, 100);
+      while (isSquare(n)) n = rng.int(2, 100);
+      shown = `−√${n}`; text = shown; rational = false;
+      why = `${n} is not a perfect square, so √${n} is irrational, and its negative is too: if −√${n} `
+        + `were a fraction, so would √${n} be. Irrational.`;
+      break;
+    }
+    case 'cubeRoot': {
+      let n = rng.int(2, 200);
+      while (Number.isInteger(Math.round(Math.cbrt(n))) && Math.round(Math.cbrt(n)) ** 3 === n) n = rng.int(2, 200);
+      const lo = Math.floor(Math.cbrt(n) + 1e-9);
+      shown = `∛${n}`; text = shown; rational = false;
+      why = `${n} is not a perfect cube: ${lo}³ = ${lo ** 3} and ${lo + 1}³ = ${(lo + 1) ** 3}. `
+        + `The cube root of a whole number that is not a perfect cube is never a fraction. Irrational.`;
+      break;
+    }
     case 'pattern': {
       const a = rng.int(1, 9);
       // 0.1 01 001 0001 …: a pattern, but the gaps grow, so nothing cycles.
@@ -216,10 +243,12 @@ function rationalOrNot(rng) {
       break;
     }
     case 'pi': {
-      const k = rng.pick([1, 2, 3, 4]);
-      shown = k === 1 ? 'π' : `${k}π`; text = shown; rational = false;
-      why = `π is irrational, and ${k === 1 ? 'that is' : `${k} times an irrational number is still`} `
-        + `not a fraction. Irrational.`;
+      const k = rng.int(1, 9);
+      const over = k > 1 && rng.chance(0.5);
+      shown = k === 1 ? 'π' : over ? `π/${k}` : `${k}π`; text = shown; rational = false;
+      why = `π is irrational, and ${k === 1 ? 'that is'
+        : `${over ? 'an irrational number divided by' : `${k} times an irrational number is still`}`}`
+        + `${over ? ` ${k} is still` : ''} not a fraction. Irrational.`;
       break;
     }
     case 'piStandIn': {
@@ -355,11 +384,17 @@ function pinItDown(rng) {
  * √3 × √3 is 3, √2 × √8 is √16, and √5 − √5 is nothing at all.
  */
 function sumsAndProducts(rng) {
-  const nonSquare = () => { let n = rng.int(2, 30); while (isSquare(n)) n = rng.int(2, 30); return n; };
-  const pick = rng.pick(['plusWhole', 'timesWhole', 'timesZero', 'selfProduct', 'pairSquare',
-    'pairNot', 'cancel', 'double', 'piPlus', 'fractions']);
+  const nonSquare = (top = 30) => { let n = rng.int(2, top); while (isSquare(n)) n = rng.int(2, top); return n; };
+  // Every row has a root or π in it -- fraction-only filler (5/5 + 7/7) asked
+  // nothing about mixing in a root -- and the two answers come out near half
+  // and half, so the rational cases range wider to make up their number.
+  // Weighted, since the rational cases repeat sooner and repeats are dropped.
+  const pick = rng.chance(0.55)
+    ? rng.pick(['timesZero', 'selfProduct', 'pairSquare', 'cancel', 'quotientSquare'])
+    : rng.pick(['plusWhole', 'timesWhole', 'pairNot', 'double', 'piPlus']);
   let shown, rational, why;
-  const n = nonSquare();
+  const wide = ['timesZero', 'selfProduct', 'cancel'].includes(pick);
+  const n = nonSquare(wide ? 199 : 30);
   const k = rng.int(2, 9);
   switch (pick) {
     case 'plusWhole':
@@ -373,8 +408,9 @@ function sumsAndProducts(rng) {
         + `A non-zero rational times an irrational is irrational.`;
       break;
     case 'timesZero':
-      shown = `0 × √${n}`; rational = true;
-      why = `Zero times anything is 0, and 0 is 0/1. The one exception to "rational times irrational ` + 'is irrational": the rational was zero. Rational.';
+      shown = rng.chance(0.5) ? `0 × √${n}` : `√${n} × 0`; rational = true;
+      why = `Zero times anything is 0, and 0 is 0/1. The one exception to "rational times irrational `
+        + 'is irrational": the rational was zero. Rational.';
       break;
     case 'selfProduct':
       shown = `√${n} × √${n}`; rational = true;
@@ -382,11 +418,20 @@ function sumsAndProducts(rng) {
       break;
     case 'pairSquare': {
       // √a × √b with ab a perfect square, a and b both not.
-      const s = rng.pick([2, 3, 5, 6, 7]);
-      const m = rng.pick([2, 3]);
-      const a = s, b = s * m * m;
+      const s = rng.pick([2, 3, 5, 6, 7, 10, 11]);
+      const m = rng.pick([2, 3, 4]);
+      const [a, b] = rng.chance(0.5) ? [s, s * m * m] : [s * m * m, s];
       shown = `√${a} × √${b}`; rational = true;
       why = `√${a} × √${b} = √${a * b}, and ${a * b} = ${s * m}², so it is exactly ${s * m}. Rational.`;
+      break;
+    }
+    case 'quotientSquare': {
+      // √(s·m²) ÷ √s: two irrational roots whose quotient is whole.
+      const s = rng.pick([2, 3, 5, 6, 7, 10, 11]);
+      const m = rng.int(2, 6);
+      shown = `√${s * m * m} ÷ √${s}`; rational = true;
+      why = `√${s * m * m} ÷ √${s} = √(${s * m * m} ÷ ${s}) = √${m * m} = ${m}. Two irrational roots, `
+        + 'and their quotient is whole. Rational.';
       break;
     }
     case 'pairNot': {
@@ -408,12 +453,8 @@ function sumsAndProducts(rng) {
       shown = `π + ${k}`; rational = false;
       why = `If π + ${k} were a fraction, taking ${k} away would make π one, and it is not. Irrational.`;
       break;
-    default: {
-      const a = rng.int(1, 9), b = rng.int(2, 9), c = rng.int(1, 9), d = rng.int(2, 9);
-      const s = reduce({ n: a * d + c * b, d: b * d });
-      shown = `${a}/${b} + ${c}/${d}`; rational = true;
-      why = `Two fractions add to a fraction: ${shown} = ${s.n}/${s.d}. Rational.`;
-    }
+    default:
+      throw new Error(`real-numbers: no case ${pick}`);
   }
   return {
     prompt: [T.prose(`Is ${shown} rational or irrational?`)],

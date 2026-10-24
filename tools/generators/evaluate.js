@@ -24,6 +24,8 @@ function terms(src) {
 
 /** A value as it goes into an expression: negatives always in brackets. */
 const put = (v) => (v < 0 ? `(−${-v})` : String(v));
+/** "an $8 fee", "a $9 fee": the article goes by how the number is said. */
+const an = (n) => (/^(8|11|18|8\d)$/.test(String(n)) ? 'an' : 'a');
 /** Working written with a true minus. */
 const tm = (s) => s.replace(/-/g, '−');
 
@@ -103,10 +105,13 @@ const FORMULAS = [
     vals: (rng) => ({ r: rng.int(3, 70), t: rng.int(2, 9) }),
     value: ({ r, t }) => r * t,
     work: ({ r, t }) => [`${r} × ${t}`, `${r * t}`] }),
-  () => ({ name: 'Celsius into Fahrenheit', out: 'F', src: '9C/5 + 32',
-    vals: (rng) => ({ C: 5 * rng.int(-8, 20) }),
-    value: ({ C }) => (9 * C) / 5 + 32,
-    work: ({ C }) => [`9 × ${put(C)} ÷ 5 + 32`, `${minus((9 * C) / 5)} + 32`] }),
+  // Lower-case c, because the expression renderer writes every letter in
+  // lower case: a capital C in the question beside 9c in the formula read as
+  // two different letters.
+  () => ({ name: 'Celsius into Fahrenheit', out: 'F', src: '9c/5 + 32',
+    vals: (rng) => ({ c: 5 * rng.int(-8, 20) }),
+    value: ({ c }) => (9 * c) / 5 + 32,
+    work: ({ c }) => [`9 × ${put(c)} ÷ 5 + 32`, `${minus((9 * c) / 5)} + 32`] }),
   () => ({ name: 'Average speed', out: 's', src: 'd/t',
     vals: (rng) => { const t = rng.int(2, 8); return { d: t * rng.int(3, 60), t }; },
     value: ({ d, t }) => d / t,
@@ -161,9 +166,14 @@ const PHRASES = [
     why: `taking ${v} away from ${k} starts with ${k}` }),
   (k, v) => ({ words: `the product of ${k} and ${v}`, expr: `${k}${v}`,
     why: `a product is a multiplication, written ${k}${v}` }),
+  // A division can be written as a fraction or as a fraction of the letter,
+  // and a square as a product: the task is translating, not tidying, so each
+  // correct way of writing it is accepted.
   (k, v) => ({ words: `${v} divided by ${k}`, expr: `${v}/${k}`,
+    accept: [`(1/${k})${v}`, `${v}*(1/${k})`],
     why: `${v} is the one being divided, so it goes on top` }),
   (k, v) => ({ words: `the square of ${v}, plus ${k}`, expr: `${v}^2 + ${k}`,
+    accept: [`${v}*${v} + ${k}`],
     why: `square ${v} first, then add ${k}` }),
   (k, v, j) => ({ words: `${k} less than ${j} times ${v}`, expr: `${j}${v} - ${k}`,
     why: `start from ${j} times ${v}, which is ${j}${v}, then take ${k} away` }),
@@ -172,6 +182,7 @@ const PHRASES = [
   (k, v) => ({ words: `twice ${v}, decreased by ${k}`, expr: `2${v} - ${k}`,
     why: `twice ${v} is 2${v}, and decreasing it by ${k} takes ${k} away` }),
   (k, v, j) => ({ words: `${v} divided by ${j}, then ${k} taken away`, expr: `${v}/${j} - ${k}`,
+    accept: [`(1/${j})${v} - ${k}`],
     why: `${v} divided by ${j} is ${v}/${j}, and then ${k} comes off` }),
 ];
 
@@ -184,7 +195,7 @@ function wordsIntoSymbols(rng) {
   return {
     prompt: [T.prose(`Write as an expression: ${p.words}.`)],
     text: `words: ${p.words}`,
-    answer: { type: 'expr', value: p.expr },
+    answer: { type: 'expr', value: p.expr, ...(p.accept ? { accept: p.accept } : {}) },
     visual: null,
     explain: `Read the whole phrase before writing: ${p.why}. That gives ${tm(p.expr).replace('^2', '²')}.`,
   };
@@ -194,62 +205,77 @@ function wordsIntoSymbols(rng) {
  * A situation and three expressions. The wrong two are the readings
  * students actually produce: the numbers swapped, and the bracket put
  * round the wrong thing.
+ *
+ * Each story's numbers range over about a hundred cases or fewer, so no
+ * one story fills the level: a wide range on one of them once made 60% of
+ * the level the same sentence.
  */
 const SITUATIONS = [
   (rng) => {
     const each = rng.int(3, 15);
     let fee = rng.int(2, 9);
     while (fee === each) fee = rng.int(2, 9);   // equal, the swapped reading is the right one
-    return { story: `Tickets cost $${each} each, plus a $${fee} booking fee for the whole order. `
+    return { story: `Tickets cost $${each} each, plus ${an(fee)} $${fee} booking fee for the whole order. `
       + 'What do t tickets cost?', right: `${each}t + ${fee}`,
     wrong: [`${fee}t + ${each}`, `${each}(t + ${fee})`],
     why: `Each ticket adds $${each}, so t of them is ${each}t, and the fee is paid once: ${each}t + ${fee}.` };
   },
   (rng) => {
-    const start = rng.int(30, 90), spend = rng.int(3, 9);
+    const start = 5 * rng.int(6, 18), spend = rng.int(3, 9);
     return { story: `You have $${start} and spend $${spend} every week. How much is left after w weeks?`,
-      right: `${start} − ${spend}w`, wrong: [`${spend}w − ${start}`, `(${start} − ${spend})w`],
+      right: `${start} − ${spend}w`, wrong: [`${spend}w − ${start}`, `${start}w − ${spend}`],
       why: `You start with ${start} and ${spend} goes each week, so ${spend}w has gone after w weeks: ${start} − ${spend}w.` };
   },
   (rng) => {
-    const k = rng.int(2, 6), tip = rng.int(5, 20);
+    const k = rng.int(2, 6), tip = rng.int(5, 24);
     return { story: `${['Two', 'Three', 'Four', 'Five', 'Six'][k - 2]} friends split a bill of b dollars `
-      + `and a $${tip} tip equally. What does each pay?`, right: `(b + ${tip})/${k}`,
+      + `and ${an(tip)} $${tip} tip equally. What does each pay?`, right: `(b + ${tip})/${k}`,
     wrong: [`b/${k} + ${tip}`, `${k}(b + ${tip})`],
     why: `The tip is shared too, so the whole of b + ${tip} is divided by ${k}: (b + ${tip})/${k}.` };
   },
   (rng) => {
-    const boxes = rng.int(3, 9);
-    let loose = rng.int(2, 9);
-    while (loose === boxes) loose = rng.int(2, 9);
+    const boxes = rng.int(3, 12);
+    let loose = rng.int(2, 11);
+    while (loose === boxes) loose = rng.int(2, 11);
     return { story: `Each box holds n pens. There are ${boxes} full boxes and ${loose} loose pens. `
       + 'How many pens altogether?', right: `${boxes}n + ${loose}`,
     wrong: [`${loose}n + ${boxes}`, `${boxes}(n + ${loose})`],
     why: `${boxes} boxes of n is ${boxes}n, and the ${loose} loose pens are added once: ${boxes}n + ${loose}.` };
   },
   (rng) => {
-    const k = rng.int(2, 6), add = rng.int(2, 12);
+    const k = rng.int(2, 6), add = rng.int(2, 20);
     const times = ['twice', 'three times', 'four times', 'five times', 'six times'][k - 2];
     return { story: `Which expression is ${times} the sum of n and ${add}?`, right: `${k}(n + ${add})`,
     wrong: [`${k}n + ${add}`, `n + ${k * add}`],
     why: `The adding happens first and the whole sum is multiplied, so it needs a bracket: ${k}(n + ${add}).` };
   },
   (rng) => {
-    const longer = rng.int(2, 9);
+    const longer = rng.int(2, 20);
     return { story: `A rectangle is w cm wide and ${longer} cm longer than it is wide. What is its perimeter?`,
       right: `2w + 2(w + ${longer})`, wrong: [`w(w + ${longer})`, `2w + ${longer}`],
       why: `The length is w + ${longer}. A perimeter goes round all four sides, two of each: `
         + `2w + 2(w + ${longer}). w(w + ${longer}) is the area.` };
   },
+  (rng) => {
+    const k = rng.int(2, 12);
+    return { story: `${k} pizzas are shared equally between p people. How much pizza does each person get?`,
+      right: `${k}/p`, wrong: [`p/${k}`, `${k}p`],
+      why: `The ${k} pizzas are what is shared, so they go on top and the p people underneath: ${k}/p. `
+        + `p/${k} would be p pizzas shared by ${k}.` };
+  },
+  (rng) => {
+    const k = rng.int(2, 30);
+    return { story: `Sam is a years old. How old will Sam be in ${k} years?`,
+      right: `a + ${k}`, wrong: [`a − ${k}`, `${k}a`],
+      why: `Each year adds one to Sam's age, so ${k} years add ${k}: a + ${k}. a − ${k} was his age ${k} years ago.` };
+  },
 ];
 
 function whichFits(rng) {
   const s = rng.pick(SITUATIONS)(rng);
-  // Listed in a fixed order -- shortest first -- so the right one is not
-  // always in the same place and nothing about its position is a clue.
-  const options = [s.right, ...s.wrong]
-    .sort((p, q) => p.length - q.length || (p < q ? -1 : 1))
-    .map((e) => ({ id: e, label: e }));
+  // Shuffled by the draw: sorting them by length put the right one first in
+  // half the level and never third in its biggest story.
+  const options = rng.shuffle([s.right, ...s.wrong]).map((e) => ({ id: e, label: e }));
   return {
     prompt: [T.prose(s.story)],
     text: `fits: ${s.story}`,
@@ -294,7 +320,11 @@ const PAIRS = [
 function equivalent(rng) {
   const v = rng.pick(VARS);
   const a = rng.int(2, 7), b = rng.int(1, 9);
-  const p = rng.pick(PAIRS)(a, b, v);
+  // 1t is written t.
+  const one = (e) => e.replace(new RegExp(`(^|[^\\d])1${v}`, 'g'), `$1${v}`);
+  const raw = rng.pick(PAIRS)(a, b, v);
+  const p = { ...raw, left: one(raw.left), right: one(raw.right),
+    why: typeof raw.why === 'function' ? (x) => one(raw.why(x)) : one(raw.why) };
   const [l, r] = rng.chance(0.5) ? [p.left, p.right] : [p.right, p.left];
   const show = (e) => tm(e).replace(/\^2/g, '²').replace(/\*/g, ' × ');
   return {

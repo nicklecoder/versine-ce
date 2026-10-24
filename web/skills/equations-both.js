@@ -23,9 +23,9 @@ export const LEVELS = [
   { name: 'Gather Then Undo', slug: 'gather-then-undo',
     blurb: 'Numbers on both sides too. Gather each kind, then finish as before.' },
   { name: 'Brackets First', slug: 'brackets-first',
-    blurb: 'A bracket around the unknown. Divide by it, or open it — either works.' },
+    blurb: 'A bracket on one side, the unknown on both. Open it, then gather.' },
   { name: 'Answers That Are Not Whole', slug: 'answers-that-are-not-whole',
-    blurb: 'A fraction is an answer, not a mistake. Leave it exact.' },
+    blurb: 'Gather, undo, and it will not divide evenly. A fraction is an answer: leave it exact.' },
   {
     // 3(x + 2) = 3x + 6 is true for every x and 3x + 6 = 3x + 5 for none.
     // A student who has only met equations with one answer reads the

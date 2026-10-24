@@ -1055,7 +1055,7 @@
       "levels": {}
     }
   },
-  "sources": "375fa69c1d8513fdbb5f19b31c765100485719203e5d82e07dc9d7fbec2c7e38",
+  "sources": "e33a3a6eb47f937c8f7fefbfb252470f7eb90a933427a589424e90485a04d8bf",
   "levels": [
     {
       "skill": "int-addsub",
@@ -1942,8 +1942,8 @@
       "level": 5,
       "slug": "which-form",
       "name": "Which Form?",
-      "count": 144,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "exponents-5.json"
     },
@@ -2012,7 +2012,7 @@
       "level": 5,
       "slug": "which-form",
       "name": "Which Form?",
-      "count": 150,
+      "count": 300,
       "exhaustive": true,
       "signed": false,
       "file": "roots-5.json"
@@ -2112,8 +2112,8 @@
       "level": 0,
       "slug": "ends-or-repeats",
       "name": "Ends or Repeats",
-      "count": 914,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "real-numbers-0.json"
     },
@@ -2222,7 +2222,7 @@
       "level": 4,
       "slug": "radical-to-power",
       "name": "Radical to Power",
-      "count": 240,
+      "count": 228,
       "exhaustive": true,
       "signed": false,
       "file": "rational-exponents-4.json"
@@ -3192,8 +3192,8 @@
       "level": 2,
       "slug": "distributing",
       "name": "Distributing",
-      "count": 960,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "simplify-2.json"
     },
@@ -3562,7 +3562,7 @@
       "level": 4,
       "slug": "which-expression-fits",
       "name": "Which Expression Fits",
-      "count": 716,
+      "count": 533,
       "exhaustive": true,
       "signed": false,
       "file": "evaluate-4.json"

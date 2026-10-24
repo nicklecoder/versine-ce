@@ -420,6 +420,13 @@ def real_atom(text: str):
     text = text.replace("−", "-")
     if "π" in text or "gaps growing" in text:
         return None                                  # pi, or a decimal that never settles
+    if text.startswith("-√"):
+        return -real_atom(text[1:])
+    if text.startswith("∛"):
+        n = int(text[1:])
+        r = round(n ** (1 / 3))
+        cube = next((k for k in (r - 1, r, r + 1) if k ** 3 == n), None)
+        return None if cube is None else Surd({1: Fraction(cube)})  # None: irrational, as for pi
     if text.startswith("√"):
         inside = text[1:].strip("()")
         return Surd.root(amount(inside) if "/" in inside else Fraction(inside))
@@ -432,7 +439,7 @@ def rational_or_not(text: str) -> str:
     # One operator at most, by construction of the questions: "2 + √10",
     # "√10 × √10", "0 × √10". pi is the one irrational not built from roots,
     # and nothing rational is ever added to or multiplied by it to cancel it.
-    m = re.fullmatch(r"(.+?) ([+−×]) (.+)", text)
+    m = re.fullmatch(r"(.+?) ([+−×÷]) (.+)", text)
     if not m:
         a = real_atom(text)
         return "irrational" if a is None or not a.rational() else "rational"
@@ -440,7 +447,12 @@ def rational_or_not(text: str) -> str:
     if left is None or right is None:
         zero = (left or right)
         return "rational" if op == "×" and zero is not None and not zero.t else "irrational"
-    value = left * right if op == "×" else left + (-right if op == "−" else right)
+    if op == "÷":
+        # Only ever one root divided by another, so its inverse is one term too.
+        assert len(right.t) == 1, f"{m[3]} is not a single term"
+        (r, c), = right.t.items()
+        right = Surd({r: 1 / (c * r)})                  # 1/(c√r) = √r/(c·r)
+    value = left * right if op in "×÷" else left + (-right if op == "−" else right)
     return "rational" if value.rational() else "irrational"
 
 
@@ -556,12 +568,17 @@ def story_at(story: str):
         return "n", lambda x: k * (x + n[0])
     if "rectangle" in story:
         return "w", lambda w: 2 * w + 2 * (w + n[0])
+    if "pizzas are shared equally between p people" in story:
+        return "p", lambda p: Fraction(n[0], p)
+    if "How old will Sam be in" in story:
+        return "a", lambda a: a + n[0]
     raise ValueError(f"unread story: {story}")
 
 
 def fits(story: str, options):
     letter, truth = story_at(story)
-    right = [o for o in options if all(at(o, {letter: v}) == truth(v) for v in SAMPLES)]
+    # Away from zero, where a share between p people is undefined.
+    right = [o for o in options if all(at(o, {letter: v}) == truth(v) for v in SAMPLES if v)]
     return right[0] if len(right) == 1 else f"{len(right)} options fit"
 
 
@@ -2064,6 +2081,17 @@ def root_floor(n: int) -> int:
     return math.isqrt(n)
 
 
+def radical_form(n: str, answer: str) -> str:
+    # k√m, or k*sqrt(m): squared it must give n back, with m left square-free.
+    m = re.fullmatch(r"(\d*)\s*\*?\s*(?:√(\d+)|sqrt\((\d+)\))", answer.strip())
+    if not m:
+        return "is not a whole number times a root"
+    k, r = int(m[1] or 1), int(m[2] or m[3])
+    if k * k * r != int(n):
+        return f"is not √{n}"
+    return "ok" if r > 1 and squarefree(r) == (1, r) else "is not in simplest radical form"
+
+
 def outside_root(n: int, inside: int) -> int:
     assert squarefree(inside) == (1, inside), f"√{inside} is not simplest"
     return whole_root(whole(Fraction(n, inside)))
@@ -2095,7 +2123,7 @@ BY_RULE += (
     (re.compile(r"^The (?:diver|lift|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
     (re.compile(r"^(\d+) (?:m|£|°) down, (\d+) times$"), lambda k, n: -k * n),
     (re.compile(r"^−(\d+) shared over (\d+)$"), lambda a, n: whole(Fraction(-a, n))),
-    (re.compile(r"^([\d ()+−]+[²³][\d ()+−²³]*)$"),
+    (re.compile(r"^([\d ()+−×÷]+[²³][\d ()+−×÷²³]*)$"),
      lambda src: evaluate(src.replace("²", "^2").replace("³", "^3"))),
     (re.compile(r"^([\d.]+)% = \?/(\d+)$"), lambda p, d: whole(Fraction(p) / 100 * d)),
     (re.compile(r"^([\d.]+)% as a decimal$"), lambda p: Fraction(p) / 100),
@@ -2104,7 +2132,7 @@ BY_RULE += (
     (re.compile(r"^(\d+) (up|down) (\d+)%$"),
      lambda n, way, p: n * (1 + Fraction(p if way == "up" else -p, 100))),
     (re.compile(r"^sqrt\((\d+)\)$"), whole_root),
-    (re.compile(r"^sqrt\((\d+)\) lies just above \?$"), root_floor),
+    (re.compile(r"^whole number just below sqrt\((\d+)\)$"), root_floor),
     (re.compile(r"^sqrt\((\d+)\) = \?sqrt\((\d+)\)$"), outside_root),
     (re.compile(r"^cube root of (−?\d+)$"), lambda n: cube_root(signed(n))),
     (re.compile(r"^cube root of (\d+) lies just above \?$"), cube_floor),
@@ -2120,6 +2148,14 @@ def quadrant(x, y) -> str:
 def first_move(k, c, r) -> str:
     # k(v + c) = r: dividing first leaves whole numbers only when k goes into r.
     return "divide" if int(r) % int(k) == 0 else "expand"
+
+
+def subtract_first(k, c) -> str:
+    # kv + c = r: subtracting c first keeps whole numbers. Dividing first is
+    # as clean when k goes into c (2a + 10 = 14 is a + 5 = 7), and then both
+    # moves are right, which a one-answer question must not ask.
+    assert int(c) % int(k), f"dividing by {k} first is as clean as subtracting {c}"
+    return "subtract"
 
 
 def gather_side(a, c) -> str:
@@ -2164,12 +2200,8 @@ JUDGED = {
     "You need to measure a length of about # metres with a ruler.": "decimal",
     "You need to plot # on a number line.": "decimal",
     "You need to add #/# to #/#.": "fraction",
-    # exponents: keep the power while an exponent rule applies to it
-    "You need to add # to #.": "work out",
-    "You need to divide # by #.": "keep",
-    "You need to multiply # by #.": "keep",
-    "You need to say whether # is bigger than #.": "work out",
-    "You need to simplify # × # × #.": "keep",
+    # exponents: a count is reported as a number (combining powers is judged
+    # by power_job, which needs the sizes)
     "You need to write # as the final answer to a counting problem.": "work out",
     # factors: the GCF fits inside both, the LCM is reached by both
     "# red counters and # blue ones, in rows of equal length, no row mixing colours. How long can a row be?": "gcf",
@@ -2191,11 +2223,14 @@ JUDGED = {
     "You need to write # #/# as the answer to a word problem about lengths.": "mixed",
     "You are telling someone how much juice is left in the jug.": "mixed",
     # roots: exact work wants the simplest radical, a physical length a decimal
-    "You need to add √# to another radical.": "simplify",
-    "You need to check whether √# equals another radical.": "simplify",
-    "You need to give the exact answer to √#.": "simplify",
+    "You need to add √# to √#.": "simplify",
+    "You need to add √# to #√#.": "simplify",
+    "You need to check whether √# and √# are the same number.": "simplify",
+    "You need to check whether √# and #√# are the same number.": "simplify",
     "You need to cut a piece of wood √# inches long.": "estimate",
     "You need to plot √# on a number line.": "estimate",
+    "You need to measure out √# metres of rope.": "estimate",
+    "You need to say whether √# is nearer # or #.": "estimate",
     "You need to say whether √# is more than #.": "estimate",
     # rounding: money handed over and things cut to fit are exact
     "You want to know roughly how many # litre cans fill a # litre tank.": "estimate",
@@ -2206,14 +2241,41 @@ JUDGED = {
     "You are working out the change from £# and handing it over.": "exact",
     "You are recording a race time that decides who won.": "exact",
     "You have just divided and want to know if the answer is the right size.": "estimate",
-    # brackets: opened to see terms, kept to divide or cancel them whole
+    # brackets: kept to divide, cancel or set to zero whole; opened when the
+    # terms must meet other terms
     "You need to solve #(v + #) = # for v.": "keep",
-    "You need to add #(v + #) to #v.": "open",
     "You need to cancel a factor of # from #(v + #) over #.": "keep",
     "You need to divide #(v + #) by # exactly.": "keep",
+    "You need to find the value of v that makes #(v + #) equal to zero.": "keep",
+    "You need to add #(v + #) to #v.": "open",
+    "You need to take v away from #(v + #).": "open",
+    "You need to take #v away from #(v + #).": "open",
     "You need to check whether #(v + #) matches another expression written as #v + #.": "open",
-    "You need the number in front of v in #(v + #).": "open",
+    "You need to add #(v + #) to #(v + #).": "open",
 }
+
+
+POWER = r"(\d+)([⁰¹²³⁴⁵⁶⁷⁸⁹]+)"
+
+
+def power_job(job: str, text: str) -> str:
+    """Leave as a power, or work out: from the sizes of the numbers involved."""
+    powers = [(int(b), int(e.translate(SUPERSCRIPT))) for b, e in re.findall(POWER, text)]
+    if job in ("multiply", "divide", "simplify"):
+        assert len({b for b, _ in powers}) == 1, "the bases differ"
+        # Combining powers of one base: either way gives the answer while the
+        # values are small, so the level must only ask where they are not.
+        assert max(b ** e for b, e in powers) > 10 ** 6, f"{text} can be worked out either way"
+        return "keep"
+    if job == "add":
+        # No exponent rule adds; the values are needed, and must be workable.
+        assert all(b ** e <= 10 ** 4 for b, e in powers), f"{text} is too big to work out"
+        return "work out"
+    # Bigger than a number that is not a power of the base: only the value says.
+    base, e = powers[0]
+    k = int(re.search(r"than (\d+)\.$", text)[1])
+    assert all(base ** j != k for j in range(40)), f"{k} is a power of {base}"
+    return "work out"
 
 
 def judged(text: str) -> str:
@@ -2238,7 +2300,7 @@ def judged(text: str) -> str:
 CHOICE_RULES += (
     (re.compile(r"^quadrant of \((-?\d+), (-?\d+)\)$"), quadrant),
     (re.compile(r"^first move for (\d+)\([a-z] \+ (\d+)\) = (\d+)$"), first_move),
-    (re.compile(r"^first move for \d+[a-z] \+ \d+ = \d+$"), lambda: "subtract"),
+    (re.compile(r"^first move for (\d+)[a-z] \+ (\d+) = \d+$"), subtract_first),
     (re.compile(r"^which side for (\d*)([a-z]) \+ \d+ = (\d*)\2 \+ \d+$"), lambda a, v, c: gather_side(a, c)),
     (re.compile(r"^does (−?)\d+[a-z] [<>≤≥] −?\d+ flip$"), flips),
     (re.compile(r"^does [a-z] − \d+ [<>≤≥] −?\d+ flip$"), lambda: "keep"),
@@ -2246,6 +2308,8 @@ CHOICE_RULES += (
     (re.compile(r"^(\d+)/(\d+) = \?/(\d+), which way in$"), which_way_in),
     (re.compile(r"^(\d+) \w+ at £\d+, need (\d+)$"),
      lambda have, need: "scale" if int(need) % int(have) == 0 else "unit"),
+    (re.compile(r"^(You need to (multiply|divide|simplify|add|say whether) .*\d[⁰¹²³⁴⁵⁶⁷⁸⁹].*\.)$"),
+     lambda text, job: power_job(job, text)),
 )
 
 # Asked in prose: tried only once every other choice rule has passed, so a
@@ -2260,6 +2324,7 @@ def collected_or_factored(src: str, answer: str) -> str:
 
 
 EXPR_RULES += (
+    (re.compile(r"^simplest radical: sqrt\((\d+)\)$"), radical_form),
     (re.compile(r"^([\d ()+\-]*[a-z][\da-z +\-()]*)$"), collected_or_factored),
 )
 
@@ -2605,10 +2670,12 @@ for path in sorted(LIB.glob("*.json")):
         # An expression written from words: read the words independently and
         # compare by value, since any equivalent arrangement is accepted.
         if answer["type"] == "expr" and text.startswith("words: "):
-            checked += 1
-            verdict = from_words(text[len("words: "):], answer["value"])
-            if verdict != "ok":
-                problems.append(f"{where}: {text} {verdict}, not {answer['value']}")
+            # Every accepted way of writing it, not only the stored one.
+            for form in dict.fromkeys([answer["value"], *answer.get("accept", [])]):
+                checked += 1
+                verdict = from_words(text[len("words: "):], form)
+                if verdict != "ok":
+                    problems.append(f"{where}: {text} {verdict}, not {form}")
             continue
 
         # Asked in words, or written with a blank: re-derive from the numbers.

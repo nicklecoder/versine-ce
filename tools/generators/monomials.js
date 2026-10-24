@@ -52,10 +52,18 @@ const term = (m) => `(${write(m)})`;
 const powers = (rng, letters, lo, hi) => Object.fromEntries(letters.map((v) => [v, rng.int(lo, hi)]));
 const coeff = (rng, lo, hi) => rng.nonZero(lo, hi);
 
-function asks(src) {
+/**
+ * requiem: catalogue/content/expression-prompts-name-the-form
+ * Each prompt says what finished means. "Positive powers only" was in the
+ * Zero and Negative blurb and nowhere else, so in All Together −5a⁻² = ? read
+ * as already answered, and the copy was refused without a reason.
+ */
+const SIMPLIFY = 'Simplify:';
+const POSITIVE = 'Simplify, with positive powers only:';
+function asks(src, verb) {
   const r = previewOf(src);
   if (!r.ok) throw new Error(`monomials: cannot draw "${src}" — ${r.error}`);
-  return [...r.terms, T.op('='), T.blank()];
+  return [...(verb ? [T.prose(verb)] : []), ...r.terms, T.op('='), T.blank()];
 }
 
 const product = (a, b) => ({ c: a.c * b.c,
@@ -74,7 +82,7 @@ function multiplying(rng) {
   const out = product(a, b);
   const src = `${term(a)}${term(b)}`;
   return {
-    prompt: asks(src),
+    prompt: asks(src, SIMPLIFY),
     text: `simplify: ${src}`,
     answer: { type: 'expr', value: write(out) },
     visual: null,
@@ -93,7 +101,7 @@ function dividing(rng) {
   const top = product(q, d);
   const src = `(${write(top)})/(${write(d)})`;
   return {
-    prompt: asks(src),
+    prompt: asks(src, SIMPLIFY),
     text: `simplify: ${src}`,
     answer: { type: 'expr', value: write(q) },
     visual: null,
@@ -110,7 +118,7 @@ function power(rng) {
   const out = { c: base.c ** n, pow: Object.fromEntries(letters.map((v) => [v, base.pow[v] * n])) };
   const src = `(${write(base)})^${n}`;
   return {
-    prompt: asks(src),
+    prompt: asks(src, SIMPLIFY),
     text: `simplify: ${src}`,
     answer: { type: 'expr', value: write(out) },
     visual: null,
@@ -157,7 +165,7 @@ function zeroNegative(rng) {
       + 'and leave the number where it is.';
   }
   return {
-    prompt: asks(src),
+    prompt: asks(src, POSITIVE),
     text: `positive powers: ${src}`,
     answer: { type: 'expr', value: finished(out) },
     visual: null,
@@ -184,6 +192,8 @@ function simplest(rng) {
     // The divisor goes into the top exactly, number and letters, so the answer is one whole term.
     const div = { c: rng.pick([1, 2, -2, 3].filter((c) => top.c % c === 0)) || 1,
       pow: Object.fromEntries(letters.map((v) => [v, rng.int(0, top.pow[v])])) };
+    // Dividing by 1 is not a step: (−a)²/(1) asked nothing.
+    if (div.c === 1 && Object.values(div.pow).every((p) => p === 0)) return simplest(rng);
     // The top in its own bracket, so it is drawn as one fraction and not a term times one.
     src = shape === 'power-over' ? `(${write(base)})^${n}/(${write(div)})` : `(${term(base)}${term(other)})/(${write(div)})`;
     out = { c: top.c / div.c, pow: Object.fromEntries(letters.map((v) => [v, top.pow[v] - div.pow[v]])) };
@@ -192,7 +202,7 @@ function simplest(rng) {
   }
   if (Math.abs(out.c) > 500) return simplest(rng);
   return {
-    prompt: asks(src),
+    prompt: asks(src, SIMPLIFY),
     text: `simplify: ${src}`,
     answer: { type: 'expr', value: write(out) },
     visual: null,
@@ -217,7 +227,9 @@ function mistakes(rng) {
     const a = rng.int(2, 5), n = rng.int(2, 4);
     src = `(${v}^${a})^${n}`;
     right = `${v}${sup(a * n)}`;
-    wrong = [`${v}${sup(a + n)}`, `${v}${sup(a ** n)}`, `${n}${v}${sup(a)}`];
+    // Adding the powers, and the outer power written in front -- with or
+    // without also multiplying. Not a^n: x⁶²⁵ for (x⁵)⁴ is nobody's slip.
+    wrong = [`${v}${sup(a + n)}`, `${n}${v}${sup(a)}`, `${n}${v}${sup(a * n)}`];
     why = `A power of a power multiplies: ${a} × ${n} = ${a * n}.`;
   } else {
     const c = rng.int(2, 5), a = rng.int(2, 4), n = rng.int(2, 3);

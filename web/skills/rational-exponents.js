@@ -34,7 +34,7 @@ export const LEVELS = [
   {
     name: 'Combine First', slug: 'combine-first',
     kind: 'strategy',
-    blurb: 'Neither one is whole on its own. Put the bases together first.',
+    blurb: 'Often neither one is whole on its own. Put the bases together first.',
     // √2 × √18 = 6 is first met with root signs, as a product of two
     // irrationals that comes out rational.
     dependsOn: [{ skill: 'real-numbers', level: 5 }],
