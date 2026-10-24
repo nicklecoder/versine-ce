@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "f70104aafd87461fe7c4815efdd459765d66d285e4bdfcb93911877d80f81d85",
+  "sources": "b3dce3603cdacc60d4f9dfcd89fb85794fb0014c7992dc6f073275234927684f",
   "levels": [
     {
       "skill": "int-addsub",
@@ -2769,7 +2769,7 @@
       "level": 3,
       "slug": "compound-interest",
       "name": "Compound Interest",
-      "count": 295,
+      "count": 281,
       "exhaustive": true,
       "signed": false,
       "file": "exponential-3.json"
@@ -2799,7 +2799,7 @@
       "level": 6,
       "slug": "the-asymptote",
       "name": "The Asymptote",
-      "count": 910,
+      "count": 820,
       "exhaustive": true,
       "signed": true,
       "file": "exponential-6.json"
