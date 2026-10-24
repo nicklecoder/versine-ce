@@ -215,6 +215,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   min-height: 1.4em;
   font-variant-numeric: tabular-nums;
 }
+/* An unbreakable piece too wide for the card: see renderPrompt. */
+.problem.is-long { font-size: clamp(1.6rem, 6.5vw, 2.5rem); }
+.problem.is-longer { font-size: clamp(1.3rem, 5vw, 1.95rem); }
 .problem .t1 { color: var(--vec-1); }
 .problem .t2 { color: var(--vec-2); }
 .problem .t3 { color: var(--vec-3); }
@@ -1242,6 +1245,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .var-term { font-style: italic; }
 /* Brackets drawn as their own spans so they can grow with what they hold. */
 .group-term__b { color: var(--muted); }
+/* What a bracket holds is spaced like the line around it, and stays on one line. */
+.group-term { display: inline-flex; align-items: center; white-space: nowrap; }
+.group-term > span:not(.group-term__b) { display: inline-flex; align-items: center; gap: .28em; }
 /* The small index of a root that is not a square one. */
 .root-term__index { font-size: .5em; align-self: flex-start; margin-right: -.24em; }
 

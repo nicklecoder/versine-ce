@@ -7,7 +7,9 @@ import { parseExpression } from '../math/parse.js';
  * was typed. That is deliberate and is the whole value of the preview: typing
  * `2^1/2` shows `2¹⁄2` with the exponent bound tightly, which is how it was
  * read, whether or not the student expected it. Redundant brackets they typed
- * disappear, and brackets they omitted appear.
+ * disappear, and brackets they omitted appear. The one exception is factors
+ * set side by side, where a bracket is never redundant: without it (2a)(3b)
+ * would draw as one term, 2a3b.
  *
  * Nothing here evaluates. `4/8` draws as `4/8` and `2+3` as `2+3`. A preview
  * that simplified would do the student's work and hand back the answer, and it
@@ -42,6 +44,11 @@ export function termsFor(node) {
       // A negative number is one thing, −24, not an operator and a number:
       // drawn apart, a line can break between them.
       if (node.a.t === 'num') return [{ t: 'num', v: `−${node.a.v}` }];
+      // And a minus on a letter or a power is set against it, −n² and not
+      // − n², which in a bracket or at the start reads as a stray sign.
+      if (node.a.t === 'var' || (node.a.t === 'bin' && node.a.op === '^')) {
+        return [{ t: 'juxt', terms: [{ t: 'op', v: '−' }, ...child(node.a, 3)] }];
+      }
       return [{ t: 'op', v: '−' }, ...child(node.a, 3)];
 
     case 'call':
