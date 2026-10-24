@@ -253,10 +253,15 @@ const STORIES = [
   },
   {
     most: true, x: 'large boxes', y: 'small boxes',
-    make: (rng) => ({ a: rng.int(8, 20), b: rng.int(2, 7), total: 10 * rng.int(6, 20) }),
-    say: ({ a, b, total }) => `A van can carry at most ${total} kg. Large boxes weigh ${a} kg and small boxes ${b} kg.`,
-    each: ({ a, b }) => `The x large boxes weigh ${a}x kg and the y small boxes ${b}y`,
-    limit: ({ total }) => `together at most ${total} kg`,
+    // requiem: catalogue/content/units-both-systems
+    // In kilograms or in pounds, half each, with loads a hand cart takes in
+    // that unit: a van that could carry only 60 kg was no van.
+    make: (rng) => (rng.chance(0.5)
+      ? { u: 'kg', a: rng.int(8, 20), b: rng.int(2, 7), total: 10 * rng.int(6, 20) }
+      : { u: 'lb', a: rng.int(15, 40), b: rng.int(4, 12), total: 10 * rng.int(12, 40) }),
+    say: ({ u, a, b, total }) => `A cart can carry at most ${total} ${u}. Large boxes weigh ${a} ${u} and small boxes ${b} ${u}.`,
+    each: ({ u, a, b }) => `The x large boxes weigh ${a}x ${u} and the y small boxes ${b}y`,
+    limit: ({ u, total }) => `together at most ${total} ${u}`,
   },
   {
     most: false, x: 'wins', y: 'draws',

@@ -128,7 +128,13 @@ const money = (v) => (v < 0 ? `−$${-v}` : `$${v}`);
 // depth means typed the right depth and was marked wrong. Every diver row
 // now says what its number is, and the diver never leaves the water.
 const SITUATIONS = [
+  // requiem: catalogue/content/units-both-systems
+  // Weather in both scales: a US forecast reads °F, and below zero happens in
+  // either one (−10°F is an ordinary Minnesota morning).
   { noun: 'The temperature', it: 'it', at: (v) => `${minus(v)}°C`, now: 'What is it now?',
+    change: (n, up) => `${up ? 'rises' : 'falls'} ${n} degrees`,
+    moved: (up) => (up ? 'risen' : 'fallen') },
+  { noun: 'The temperature', it: 'it', at: (v) => `${minus(v)}°F`, now: 'What is it now?',
     change: (n, up) => `${up ? 'rises' : 'falls'} ${n} degrees`,
     moved: (up) => (up ? 'risen' : 'fallen') },
   { noun: 'The elevator', it: 'it', at: (v) => `floor ${minus(v)}`, now: 'Which floor is it on now?',
@@ -141,6 +147,11 @@ const SITUATIONS = [
     lead: 'Heights are measured from the surface, negative below it. ',
     at: (v) => `${minus(v)} m`, now: 'What is their height now?',
     change: (n, up) => `${up ? 'rises' : 'descends'} ${n} m`,
+    moved: (up) => (up ? 'risen' : 'descended') },
+  { noun: 'The diver', it: 'they', underwater: true,
+    lead: 'Heights are measured from the surface, negative below it. ',
+    at: (v) => `${minus(v)} ft`, now: 'What is their height now?',
+    change: (n, up) => `${up ? 'rises' : 'descends'} ${n} ft`,
     moved: (up) => (up ? 'risen' : 'descended') },
 ];
 

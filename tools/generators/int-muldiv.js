@@ -147,10 +147,18 @@ const REPEATS = [
     total: 'By how much does their balance change, in dollars?', unit: '$',
     share: (t, k) => `A balance changed by ${t.replace(/^(−?)/, '$1$$')} over ${k} equal payments. `
       + 'What was the change to the balance each time, in dollars?' },
-  { who: 'The temperature', each: (n) => `falls ${n} degrees`,
+  // requiem: catalogue/content/units-both-systems
+  // Weather is told in both scales, and kept to falls a day can hold: 5°F an
+  // hour for 9 hours is a cold front, 12° an hour is not weather at all.
+  { who: 'The temperature', each: (n) => `falls ${n}°F`, most: 5,
     over: (k) => `each hour for ${k} hours`,
-    total: 'What is the total change in temperature?', unit: '°',
-    share: (t, k) => `The temperature changed by ${t}° over ${k} equal hours. `
+    total: 'What is the total change in temperature, in °F?', unit: '°',
+    share: (t, k) => `The temperature changed by ${t}°F over ${k} equal hours. `
+      + 'What was the change each hour?' },
+  { who: 'The temperature', each: (n) => `falls ${n}°C`, most: 3,
+    over: (k) => `each hour for ${k} hours`,
+    total: 'What is the total change in temperature, in °C?', unit: '°',
+    share: (t, k) => `The temperature changed by ${t}°C over ${k} equal hours. `
       + 'What was the change each hour?' },
   // Height, not depth: depth counts downwards, so a diver going down has a
   // depth that grows, and "the change in depth is −20" was wrong as worded.
@@ -159,11 +167,16 @@ const REPEATS = [
     total: 'What is the total change in their height, in meters?', unit: 'm',
     share: (t, k) => `A diver's height changed by ${t} m over ${k} equal minutes. `
       + 'What was the change each minute?' },
+  { who: 'A diver', each: (n) => `descends ${n} ft`,
+    over: (k) => `each minute for ${k} minutes`,
+    total: 'What is the total change in their height, in feet?', unit: 'ft',
+    share: (t, k) => `A diver's height changed by ${t} ft over ${k} equal minutes. `
+      + 'What was the change each minute?' },
 ];
 
 function owingAndFalling(rng) {
   const s = rng.pick(REPEATS);
-  const each = rng.int(2, 12);
+  const each = rng.int(2, s.most ?? 12);
   const k = rng.int(2, 9);
   const total = -each * k;
   const dividing = rng.chance(0.4);

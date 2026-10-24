@@ -270,6 +270,20 @@ const CONTEXTS = [
     // Between 40 and 110 km an hour on average: d(2) = 403 was a car doing 200.
     fits: (a, b) => b >= 40 * a && b <= 110 * a,
     rate: (a, b) => `The car goes ${b} km ${every(a, 'hours')}` },
+  // requiem: catalogue/content/units-both-systems
+  // The ball, the drink and the car again in US units, with the numbers
+  // remade for them: hot coffee is poured near 185°F, and a car averages
+  // 25 to 70 mph.
+  { f: 'h', in: 't', out: 'height', inUnit: 'seconds', outUnit: 'feet', ins: [1, 6], outs: [20, 120],
+    say: 'the height in feet of a ball t seconds after it is thrown',
+    rate: (a, b) => `The ball rises ${b} feet ${every(a, 'seconds')}` },
+  { f: 'T', in: 'm', out: 'temperature', inUnit: 'minutes', outUnit: '°F', ins: [2, 15], outs: [70, 185],
+    say: 'the temperature in °F of a drink m minutes after it is poured',
+    rate: (a, b) => `The drink cools ${b}°F ${every(a, 'minutes')}` },
+  { f: 'd', in: 't', out: 'distance', inUnit: 'hours', outUnit: 'miles', ins: [2, 9], outs: [50, 500],
+    say: 'the distance in miles a car has gone after t hours',
+    fits: (a, b) => b >= 25 * a && b <= 70 * a,
+    rate: (a, b) => `The car goes ${b} miles ${every(a, 'hours')}` },
 ];
 
 /** h(3) = 20 is a sentence about a time and a height. The common misreading swaps them. */
@@ -278,7 +292,7 @@ function meaning(rng) {
   const a = rng.int(...c.ins);
   const b = rng.int(...c.outs);
   if (c.fits && !c.fits(a, b)) return meaning(rng);
-  const unit = (u, n) => (u === '°C' ? `${n}°C` : `${n} ${u}`);
+  const unit = (u, n) => (u.startsWith('°') ? `${n}${u}` : `${n} ${u === 'feet' && n === 1 ? 'foot' : u}`);
   const phrase = (x, y) => (c.inUnit === 'tickets'
     ? `${x} tickets cost ${y} dollars`
     : `After ${count(x, c.inUnit)}, the ${c.out} is ${unit(c.outUnit, y)}`);

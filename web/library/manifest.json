@@ -1158,7 +1158,7 @@
       }
     }
   },
-  "sources": "17c846fd6654cf6d8aaed84c69cb0d591d125d37d6d1dfb9684ea732af0ae6fc",
+  "sources": "ec98d7961c2a9d96a6448fc1c36d27039a11d38315f1cf8dadb13cfa8939bd5a",
   "levels": [
     {
       "skill": "int-addsub",
@@ -1285,7 +1285,7 @@
       "level": 4,
       "slug": "owing-and-falling",
       "name": "Owing and Falling",
-      "count": 352,
+      "count": 384,
       "exhaustive": true,
       "signed": true,
       "file": "int-muldiv-4.json"
@@ -2655,7 +2655,7 @@
       "level": 0,
       "slug": "start-and-rate",
       "name": "Start and Rate",
-      "count": 416,
+      "count": 475,
       "exhaustive": true,
       "signed": true,
       "file": "linear-models-0.json"
@@ -2665,7 +2665,7 @@
       "level": 1,
       "slug": "what-m-and-b-mean",
       "name": "What m and b Mean",
-      "count": 782,
+      "count": 900,
       "exhaustive": true,
       "signed": false,
       "file": "linear-models-1.json"
@@ -3665,7 +3665,7 @@
       "level": 4,
       "slug": "which-expression-fits",
       "name": "Which Expression Fits",
-      "count": 533,
+      "count": 552,
       "exhaustive": true,
       "signed": false,
       "file": "evaluate-4.json"

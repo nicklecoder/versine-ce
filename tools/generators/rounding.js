@@ -170,6 +170,8 @@ const SITUATIONS = [
   { text: 'You are checking that a bill of ${big} looks right before paying it.', want: 'estimate' },
   { text: 'You are working out the change from ${big} and handing it over.', want: 'exact' },
   { text: 'You are cutting a shelf to fit a gap of {a} meters.', want: 'exact' },
+  // requiem: catalogue/content/units-both-systems
+  { text: 'You are cutting a board to fit a gap of {a} feet.', want: 'exact' },
   { text: 'You are splitting a ${big} bill {n} ways and paying your share.', want: 'exact' },
   { text: 'You have just divided and want to know if the answer is the right size.',
     want: 'estimate' },

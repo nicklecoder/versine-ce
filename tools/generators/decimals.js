@@ -201,7 +201,9 @@ const SITUATIONS = [
     why: 'A position on a line is easiest to place from a decimal.' },
   { text: 'You need to divide {whole} into {odd} equal shares, exactly.', want: 'fraction',
     why: '{whole}/{odd} has no decimal you can write down in full. A fraction always does.' },
-  { text: 'One brand costs ${da} a gram and another costs ${db} a gram. You need to say which is cheaper.',
+  // requiem: catalogue/content/units-both-systems
+  // A US shelf tag gives the unit price per ounce.
+  { text: 'One brand costs ${da} an ounce and another costs ${db} an ounce. You need to say which is cheaper.',
     want: 'decimal',
     why: 'Prices are compared by place value: line up the points and compare tenths, then hundredths. '
       + 'That is what a decimal is for.' },

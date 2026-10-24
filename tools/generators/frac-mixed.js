@@ -124,9 +124,12 @@ const SITUATIONS = [
   { text: 'You need to work out {k} ÷ {x}.', want: 'improper',
     why: 'You cannot share {k} out over the whole and the part of the divisor separately. '
       + 'As a single fraction it can be flipped: {k} × {flip}.' },
-  { text: 'There are {x} liters of juice left, and you are telling someone how much.', want: 'mixed',
-    why: 'A mixed number is the one a person can picture: {mixed} liters. Nobody imagines '
-      + '{improper} of a liter.' },
+  // requiem: catalogue/content/units-both-systems
+  // One measurement in cups and one in meters, so neither system is the only
+  // one a mixed number is read in.
+  { text: 'There are {x} cups of flour left, and you are telling someone how much.', want: 'mixed',
+    why: 'A mixed number is the one a person can picture: {mixed} cups. Nobody imagines '
+      + '{improper} of a cup.' },
   { text: 'You want to know roughly how big {x} is, at a glance.', want: 'mixed',
     why: 'The whole number tells you the size immediately: {mixed} is a bit more than {w}. '
       + '{improper} makes you stop and work it out.' },

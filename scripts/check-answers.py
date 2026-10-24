@@ -619,7 +619,7 @@ def graph_proportional(text: str) -> str:
 # with itself.
 PER = {("m", "cm"): 100, ("km", "m"): 1000, ("kg", "g"): 1000, ("L", "mL"): 1000,
        ("h", "min"): 60, ("min", "s"): 60, ("ft", "in"): 12, ("yd", "ft"): 3,
-       ("day", "h"): 24, ("cm", "mm"): 10}
+       ("day", "h"): 24, ("cm", "mm"): 10, ("lb", "oz"): 16, ("gal", "qt"): 4}
 
 
 def convert(amount_: str, a: str, b: str) -> Fraction:
@@ -2178,7 +2178,7 @@ BY_RULE += (
     (re.compile(r"^The (?:diver|elevator|temperature|account) (−?\d+) then ([+−]\d+)$"),
      lambda a, b: signed(a) + signed(b)),
     (re.compile(r"^The (?:diver|elevator|temperature|account) (−?\d+) to (−?\d+), how far$"), far),
-    (re.compile(r"^(\d+) (?:m|\$|°) down, (\d+) times$"), lambda k, n: -k * n),
+    (re.compile(r"^(\d+) (?:m|ft|\$|°) down, (\d+) times$"), lambda k, n: -k * n),
     (re.compile(r"^−(\d+) shared over (\d+)$"), lambda a, n: whole(Fraction(-a, n))),
     (re.compile(r"^([\d ()+−×÷]+[²³][\d ()+−×÷²³]*)$"),
      lambda src: evaluate(src.replace("²", "^2").replace("³", "^3"))),
@@ -2260,10 +2260,10 @@ def terminates(x: Fraction) -> bool:
 JUDGED = {
     # decimals: a decimal to measure, place or compare; a fraction to stay exact
     "You need to compare # with #.": "decimal",
-    # A price per gram, and a length measured out with a ruler: a ruler is
+    # A price per ounce, and a length measured out with a ruler: a ruler is
     # read in centimeters and millimeters, which are decimals of a meter,
     # whatever fraction of a meter was asked for.
-    "One brand costs $# a gram and another costs $# a gram. You need to say which is cheaper.": "decimal",
+    "One brand costs $# an ounce and another costs $# an ounce. You need to say which is cheaper.": "decimal",
     "You need to measure out #/# of a meter with a ruler.": "decimal",
     # Two measurements with their points lined up; as fractions they would
     # be over 100 and 1000 and need a common bottom first.
@@ -2281,13 +2281,13 @@ JUDGED = {
     # The fewest pens is a count both box sizes reach; the fewest rows is the
     # longest row, which fits inside both colors.
     "Pens come in boxes of # and pencils in boxes of #. What is the fewest pens you can buy and still have exactly as many pencils?": "lcm",
-    "Ribbons come # cm and # cm long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
+    "Ribbons come # inches and # inches long. Laid end to end, what is the shortest length both kinds can make exactly?": "lcm",
     "# red counters and # blue ones, in rows of equal length, no row mixing colors. What is the fewest rows there can be?": "gcf",
     "Two classes of # and # pupils are split into teams of the same size, no team mixing classes. What is the largest team size?": "gcf",
     "Tiles # cm by # cm, laid out to make the smallest possible square.": "lcm",
     "Two buses set off together, then run every # and every # minutes. Next time together?": "lcm",
     "Buns come in packs of # and sausages in packs of #. Fewest packs to have equal numbers?": "lcm",
-    "A # cm ribbon and a # cm ribbon, cut into equal pieces as long as possible.": "gcf",
+    "A #-inch ribbon and a #-inch ribbon, cut into equal pieces as long as possible.": "gcf",
     "The largest square tile that exactly fills a # cm by # cm rectangle.": "gcf",
     "Adding # and # — what should the denominator become?": "lcm",
     # mixed numbers: improper to compute with, mixed to read or report
@@ -2306,8 +2306,8 @@ JUDGED = {
     "You want to know roughly how big # #/# is, at a glance.": "mixed",
     "You need to give #/# m as the answer to a word problem about lengths.": "mixed",
     "You need to give # #/# m as the answer to a word problem about lengths.": "mixed",
-    "There are #/# liters of juice left, and you are telling someone how much.": "mixed",
-    "There are # #/# liters of juice left, and you are telling someone how much.": "mixed",
+    "There are #/# cups of flour left, and you are telling someone how much.": "mixed",
+    "There are # #/# cups of flour left, and you are telling someone how much.": "mixed",
     # roots: exact work wants the simplest radical, a physical length a decimal
     "You need to add √# to √#.": "simplify",
     "You need to add √# to #√#.": "simplify",
@@ -2321,6 +2321,7 @@ JUDGED = {
     # rounding: money handed over and things cut to fit are exact
     "You are splitting a $# bill # ways and paying your share.": "exact",
     "You are cutting a shelf to fit a gap of # meters.": "exact",
+    "You are cutting a board to fit a gap of # feet.": "exact",
     "You are checking that a bill of $# looks right before paying it.": "estimate",
     "You are checking that # × # on your calculator has its decimal point in the right place.": "estimate",
     "You are working out the change from $# and handing it over.": "exact",
@@ -3332,9 +3333,13 @@ def scale_out_back(per: str, unit: str, length: str, way: str) -> Fraction:
     return length * per if way == "out" else length / per
 
 
-def scale_model(n: int, model: str, unit: str) -> Fraction:
+# How many of a model's own unit make the bigger unit it may be asked in.
+MODEL_BIG = {("cm", "m"): 100, ("in", "ft"): 12}
+
+
+def scale_model(n: int, model: str, small: str, unit: str) -> Fraction:
     real = Fraction(model) * n
-    return real / 100 if unit == "m" else real
+    return real if unit == small else real / MODEL_BIG[(small, unit)]
 
 
 def area_scale(what: str, k: str, amount: str, which: str) -> Fraction:
@@ -3409,10 +3414,13 @@ NUMBER = r"(\d+(?:\.\d+)?)"
 BY_RULE += (
     (re.compile(r"^scale factor: ABC ~ ([A-Z]{3}); (.+); from (ABC|[A-Z]{3})$"), scale_factor),
     (re.compile(r"^similar missing: ABC ~ ([A-Z]{3}); (.+); find ([A-Z]{2})$"), similar_missing),
-    (re.compile(rf"^scale drawing: 1 cm = {NUMBER} (km|m); {NUMBER} (?:cm|km|m) (out|back)$"), scale_out_back),
-    (re.compile(rf"^scale drawing: (\d+) cm = {NUMBER} (?:km|m); per cm$"), lambda n, real: Fraction(real) / n),
-    (re.compile(rf"^scale model: 1:(\d+); {NUMBER} cm; in (m|cm)$"), scale_model),
-    (re.compile(rf"^scale area: 1 cm = {NUMBER} m; {NUMBER} cm by {NUMBER} cm$"),
+    # Centimeters on the paper for meters or kilometers, inches for feet or miles.
+    (re.compile(rf"^scale drawing: 1 (?:cm|in) = {NUMBER} (km|m|mi|ft); {NUMBER} (?:cm|in|km|m|mi|ft) (out|back)$"),
+     scale_out_back),
+    (re.compile(rf"^scale drawing: (\d+) (?:cm|in) = {NUMBER} (?:km|m|mi|ft); per (?:cm|in)$"),
+     lambda n, real: Fraction(real) / n),
+    (re.compile(rf"^scale model: 1:(\d+); {NUMBER} (cm|in); in (m|cm|ft|in)$"), scale_model),
+    (re.compile(rf"^scale area: 1 (?:cm|in) = {NUMBER} (?:m|ft); {NUMBER} (?:cm|in) by {NUMBER} (?:cm|in)$"),
      lambda per, w, h: Fraction(w) * Fraction(per) * Fraction(h) * Fraction(per)),
     (re.compile(rf"^(area|volume) scale: factor {NUMBER}; (?:area|volume) {NUMBER}; (larger|smaller)$"), area_scale),
     (re.compile(rf"^length from (areas|volumes): {NUMBER}, {NUMBER}$"), length_from),

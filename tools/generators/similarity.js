@@ -25,7 +25,10 @@ import { ABC, SIDES, sideName, wholeSides, placed, pair, drawing, matching } fro
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/similarity.js';
 
 const RESULT = 'var(--result)';
-const num = (v) => minus(f(v));
+// requiem: catalogue/content/us-notation
+// What the student reads groups thousands with commas; the text field keeps
+// the bare number for the checker.
+const num = (v) => minus(f(v)).replace(/^(−?\d+)(\d{3})(?!\d)/, '$1,$2');
 const deg = (v) => `${v}°`;
 /** True when v needs no more than one decimal place. */
 const tidy = (v) => Math.abs(v * 10 - Math.round(v * 10)) < 1e-9;
@@ -263,59 +266,84 @@ function moveBeside(P, Q0, rng) {
 
 // ── Scale drawings ──────────────────────────────────────────────────────
 
+// requiem: catalogue/content/units-both-systems
+// Every plan in both systems: centimeters on the paper standing for meters
+// or kilometers, and inches standing for feet or miles, as a US road map and
+// a US house plan are drawn. `on` is the unit measured on the paper.
+/** "1 inch", "3.5 inches". */
+const inches = (n) => `${n} ${n === '1' ? 'inch' : 'inches'}`;
+const CM = { on: 'cm', one: 'centimeter', many: 'cm', plural: 'centimeters', say: (n) => `${n} cm` };
+const INCH = { on: 'in', one: 'inch', many: 'inches', plural: 'inches', say: inches };
 const PLANS = [
-  { what: 'map', unit: 'km', per: [2, 5, 10, 20, 25, 50], thing: (n) => `Two towns are ${n} cm apart on the map`,
+  { what: 'map', paper: CM, unit: 'km', per: [2, 5, 10, 20, 25, 50], thing: (n) => `Two towns are ${n} cm apart on the map`,
     ask: 'How far apart are they', real: (n) => `Two towns are ${n} km apart` },
-  { what: 'floor plan', unit: 'm', per: [0.5, 1.5, 2, 2.5, 3, 4, 5], thing: (n) => `A wall is ${n} cm long on the plan`,
+  { what: 'floor plan', paper: CM, unit: 'm', per: [0.5, 1.5, 2, 2.5, 3, 4, 5], thing: (n) => `A wall is ${n} cm long on the plan`,
     ask: 'How long is the real wall', real: (n) => `A wall is ${n} m long` },
-  { what: 'drawing of a garden', unit: 'm', per: [0.5, 2, 2.5, 4, 5], thing: (n) => `A path is ${n} cm long on the drawing`,
+  { what: 'drawing of a garden', paper: CM, unit: 'm', per: [0.5, 2, 2.5, 4, 5], thing: (n) => `A path is ${n} cm long on the drawing`,
     ask: 'How long is the real path', real: (n) => `A path is ${n} m long` },
+  { what: 'map', paper: INCH, unit: 'mi', per: [5, 10, 20, 25, 50], thing: (n) => `Two towns are ${inches(n)} apart on the map`,
+    ask: 'How far apart are they', real: (n) => `Two towns are ${n} miles apart` },
+  { what: 'floor plan', paper: INCH, unit: 'ft', per: [2, 4, 5, 8, 10], thing: (n) => `A wall is ${inches(n)} long on the plan`,
+    ask: 'How long is the real wall', real: (n) => `A wall is ${n} ft long` },
+  { what: 'drawing of a garden', paper: INCH, unit: 'ft', per: [2, 4, 5, 10], thing: (n) => `A path is ${inches(n)} long on the drawing`,
+    ask: 'How long is the real path', real: (n) => `A path is ${n} ft long` },
 ];
+// A room is a few meters or a few tens of feet across, so the area question
+// keeps to the scales a house plan uses: 1 cm for 10 m made a 1,400 m² room.
+const ROOMS = [{ paper: CM, unit: 'm', per: [0.5, 1, 1.5, 2] }, { paper: INCH, unit: 'ft', per: [2, 4, 5] }];
 const MODELS = [['car', 24, 'long'], ['ship', 50, 'long'], ['plane', 72, 'long'], ['train', 87, 'long'], ['house', 20, 'tall'],
   ['bridge', 200, 'long'], ['tower', 100, 'tall']];
-const WORD = { km: 'kilometers', m: 'meters' };
+const WORD = { km: 'kilometers', m: 'meters', mi: 'miles', ft: 'feet' };
+/** A model's two units: the one it is measured in, the bigger one, and how many of the first make one of the second. */
+const MODEL_UNITS = [
+  { small: 'cm', smallWord: 'centimeters', big: 'm', bigWord: 'meters', per: 100, perSay: 'There are 100 cm in a meter', range: [4, 60] },
+  { small: 'in', smallWord: 'inches', big: 'ft', bigWord: 'feet', per: 12, perSay: 'There are 12 inches in a foot', range: [2, 24] },
+];
 
 function scaleDrawing(rng) {
   const kind = rng.pick(['out', 'out', 'back', 'per', 'model', 'area']);
   if (kind === 'model') {
     const [thing, n, way] = rng.pick(MODELS);
+    const u = rng.pick(MODEL_UNITS);
     for (;;) {
-      const model = rng.int(4, 60) / (rng.chance(0.3) ? 2 : 1);
-      const real = model * n, inM = rng.chance(0.5);
-      const value = inM ? real / 100 : real;
+      const model = rng.int(...u.range) / (rng.chance(0.3) ? 2 : 1);
+      const real = model * n, inBig = rng.chance(0.5);
+      const value = inBig ? real / u.per : real;
       if (!tidy(value * 10)) continue;
+      const said = u.small === 'in' ? inches(num(model)) : `${num(model)} cm`;
       return {
-        prompt: [T.prose(`A model ${thing} is built to a scale of 1 : ${n}. The model is ${num(model)} cm ${way}. `
-          + `How ${way} is the real ${thing}, in ${inM ? 'meters' : 'centimeters'}?`)],
-        text: `scale model: 1:${n}; ${f(model)} cm; in ${inM ? 'm' : 'cm'}`,
+        prompt: [T.prose(`A model ${thing} is built to a scale of 1 : ${n}. The model is ${said} ${way}. `
+          + `How ${way} is the real ${thing}, in ${inBig ? u.bigWord : u.smallWord}?`)],
+        text: `scale model: 1:${n}; ${f(model)} ${u.small}; in ${inBig ? u.big : u.small}`,
         answer: dec(value),
         visual: null,
         explain: `1 : ${n} means every length on the real ${thing} is ${n} times the model’s, in the same unit. `
-          + `${num(model)} × ${n} = ${num(real)} cm. `
-          + (inM ? `There are 100 cm in a meter: ${num(real)} ÷ 100 = ${num(value)}. (The scale has no units of its own, so the answer comes out in cm first.) So ${num(value)} m.`
-            : `(Not ${num(model)} ÷ ${n}: the real ${thing} is the bigger one.) So ${num(value)} cm.`),
+          + `${num(model)} × ${n} = ${num(real)} ${u.small}. `
+          + (inBig ? `${u.perSay}: ${num(real)} ÷ ${u.per} = ${num(value)}. (The scale has no units of its own, so the answer comes out in ${u.smallWord} first.) So ${num(value)} ${u.big}.`
+            : `(Not ${num(model)} ÷ ${n}: the real ${thing} is the bigger one.) So ${num(value)} ${u.small}.`),
       };
     }
   }
-  const plan = rng.pick(PLANS), per = rng.pick(plan.per), unit = plan.unit;
   if (kind === 'area') {
+    const room = rng.pick(ROOMS), per = rng.pick(room.per), unit = room.unit, on = room.paper.on;
     for (;;) {
       const w = rng.int(2, 9) / (rng.chance(0.3) ? 2 : 1), h = rng.int(2, 9) / (rng.chance(0.3) ? 2 : 1);
       if (w === h) continue;
       const W = w * per, H = h * per, area = W * H;
       if (!tidy(W) || !tidy(H) || !tidy(area * 10)) continue;
       return {
-        prompt: [T.prose(`On a floor plan, 1 cm stands for ${num(per)} m. A room is drawn ${num(w)} cm by ${num(h)} cm. `
-          + 'What is its real floor area, in m²?')],
-        text: `scale area: 1 cm = ${f(per)} m; ${f(w)} cm by ${f(h)} cm`,
+        prompt: [T.prose(`On a floor plan, 1 ${room.paper.one} stands for ${num(per)} ${unit}. A room is drawn `
+          + `${num(w)} ${on} by ${num(h)} ${on}. What is its real floor area, in ${unit}²?`)],
+        text: `scale area: 1 ${on} = ${f(per)} ${unit}; ${f(w)} ${on} by ${f(h)} ${on}`,
         answer: dec(area),
         visual: null,
-        explain: `Scale each length first: ${num(w)} × ${num(per)} = ${num(W)} m and ${num(h)} × ${num(per)} = ${num(H)} m. `
-          + `Then the area: ${num(W)} × ${num(H)} = ${num(area)} m². (Scaling the drawn area, ${num(w * h)} × ${num(per)}, `
-          + `multiplies by the scale only once, but an area has two lengths in it.) So ${num(area)} m².`,
+        explain: `Scale each length first: ${num(w)} × ${num(per)} = ${num(W)} ${unit} and ${num(h)} × ${num(per)} = ${num(H)} ${unit}. `
+          + `Then the area: ${num(W)} × ${num(H)} = ${num(area)} ${unit}². (Scaling the drawn area, ${num(w * h)} × ${num(per)}, `
+          + `multiplies by the scale only once, but an area has two lengths in it.) So ${num(area)} ${unit}².`,
       };
     }
   }
+  const plan = rng.pick(PLANS), per = rng.pick(plan.per), unit = plan.unit, paper = plan.paper, on = paper.on;
   for (;;) {
     const drawn = rng.int(2, 40) / (rng.chance(0.4) ? 2 : 1) / (rng.chance(0.3) ? 5 : 1);
     if (!tidy(drawn)) continue;
@@ -323,23 +351,23 @@ function scaleDrawing(rng) {
     if (!tidy(real) || real > 500) continue;
     if (kind === 'out') {
       return {
-        prompt: [T.prose(`On a ${plan.what}, 1 cm stands for ${num(per)} ${unit}. ${plan.thing(num(drawn))}. ${plan.ask}, in ${unit}?`)],
-        text: `scale drawing: 1 cm = ${f(per)} ${unit}; ${f(drawn)} cm out`,
+        prompt: [T.prose(`On a ${plan.what}, 1 ${paper.one} stands for ${num(per)} ${unit}. ${plan.thing(num(drawn))}. ${plan.ask}, in ${unit}?`)],
+        text: `scale drawing: 1 ${on} = ${f(per)} ${unit}; ${f(drawn)} ${on} out`,
         answer: dec(real),
         visual: null,
-        explain: `Each centimeter on the ${plan.what} is ${num(per)} ${unit}, so ${num(drawn)} cm is ${num(drawn)} × ${num(per)} = ${num(real)} ${unit}. `
+        explain: `Each ${paper.one} on the ${plan.what} is ${num(per)} ${unit}, so ${paper.say(num(drawn))} is ${num(drawn)} × ${num(per)} = ${num(real)} ${unit}. `
           + `(Dividing would make the real thing smaller than its picture.) So ${num(real)} ${unit}.`,
       };
     }
     if (kind === 'back') {
       return {
-        prompt: [T.prose(`On a ${plan.what}, 1 cm stands for ${num(per)} ${unit}. ${plan.real(num(real))}. `
-          + `How long is it on the ${plan.what}, in cm?`)],
-        text: `scale drawing: 1 cm = ${f(per)} ${unit}; ${f(real)} ${unit} back`,
+        prompt: [T.prose(`On a ${plan.what}, 1 ${paper.one} stands for ${num(per)} ${unit}. ${plan.real(num(real))}. `
+          + `How long is it on the ${plan.what}, in ${paper.many}?`)],
+        text: `scale drawing: 1 ${on} = ${f(per)} ${unit}; ${f(real)} ${unit} back`,
         answer: dec(drawn),
         visual: null,
-        explain: `Every ${num(per)} ${unit} takes 1 cm, so count how many ${num(per)}s fit in ${num(real)}: ${quotient(real, per)}. `
-          + `(Multiplying, ${num(real)} × ${num(per)}, scales the wrong way.) So ${num(drawn)} cm.`,
+        explain: `Every ${num(per)} ${unit} takes 1 ${paper.one}, so count how many ${num(per)}s fit in ${num(real)}: ${quotient(real, per)}. `
+          + `(Multiplying, ${num(real)} × ${num(per)}, scales the wrong way.) So ${paper.say(num(drawn))}.`,
       };
     }
     // The scale from one measured line.
@@ -347,12 +375,12 @@ function scaleDrawing(rng) {
     const realLine = drawnLine * perCm;
     if (!tidy(realLine)) continue;
     return {
-      prompt: [T.prose(`On a ${plan.what}, a line ${drawnLine} cm long stands for ${num(realLine)} ${unit}. How many ${WORD[unit]} does 1 cm stand for?`)],
-      text: `scale drawing: ${drawnLine} cm = ${f(realLine)} ${unit}; per cm`,
+      prompt: [T.prose(`On a ${plan.what}, a line ${drawnLine} ${paper.many} long stands for ${num(realLine)} ${unit}. How many ${WORD[unit]} does 1 ${paper.one} stand for?`)],
+      text: `scale drawing: ${drawnLine} ${on} = ${f(realLine)} ${unit}; per ${on}`,
       answer: dec(perCm),
       visual: null,
-      explain: `Share the real length among the centimeters: ${quotient(realLine, drawnLine)} ${unit} for each cm. `
-        + `(${drawnLine} ÷ ${num(realLine)} would be centimeters per ${unit}, the other way round.) So 1 cm stands for ${num(perCm)} ${unit}.`,
+      explain: `Share the real length among the ${paper.plural}: ${quotient(realLine, drawnLine)} ${unit} for each ${paper.one}. `
+        + `(${drawnLine} ÷ ${num(realLine)} would be ${paper.plural} per ${unit}, the other way round.) So 1 ${paper.one} stands for ${num(perCm)} ${unit}.`,
     };
   }
 }
@@ -367,6 +395,9 @@ function areaVolume(rng) {
   const solid = rng.chance(0.45), power = solid ? 3 : 2, word = solid ? 'volume' : 'area';
   const sq = solid ? '³' : '²', shape = rng.pick(solid ? SOLID : FLAT);
   const kind = rng.pick(['up', 'up', 'down', 'factor', 'side']);
+  // requiem: catalogue/content/units-both-systems
+  // Measured in centimeters or in inches, half each.
+  const [cm, cms] = rng.pick([['cm', 'cm'], ['in', 'inches']]);
   if (kind === 'up' || kind === 'down') {
     for (;;) {
       const k = rng.pick([2, 3, 4, 5, 1.5, 2.5].filter((v) => !solid || v <= 4));
@@ -376,15 +407,15 @@ function areaVolume(rng) {
       const value = up ? big : small;
       return {
         prompt: [T.prose(`Two similar ${shape} have a scale factor of ${num(k)} from the smaller to the larger. `
-          + `The ${up ? 'smaller' : 'larger'} has ${word === 'area' ? 'an area' : 'a volume'} of ${num(up ? small : big)} cm${sq}. `
-          + `What is the ${word} of the ${up ? 'larger' : 'smaller'}, in cm${sq}?`)],
+          + `The ${up ? 'smaller' : 'larger'} has ${word === 'area' ? 'an area' : 'a volume'} of ${num(up ? small : big)} ${cm}${sq}. `
+          + `What is the ${word} of the ${up ? 'larger' : 'smaller'}, in ${cm}${sq}?`)],
         text: `${word} scale: factor ${f(k)}; ${word} ${f(up ? small : big)}; ${up ? 'larger' : 'smaller'}`,
         answer: dec(value),
         visual: null,
         explain: `${solid ? 'A volume has three lengths multiplied in it' : 'An area has two lengths multiplied in it'}, so it grows by the factor `
           + `${solid ? 'cubed' : 'squared'}: ${num(k)}${sq} = ${num(k ** power)}. `
           + (up ? `${num(small)} × ${num(k ** power)} = ${num(big)}.` : `${num(big)} ÷ ${num(k ** power)} = ${num(small)}.`)
-          + ` (${up ? `${num(small)} × ${num(k)}` : `${num(big)} ÷ ${num(k)}`} scales it like a length.) So ${num(value)} cm${sq}.`,
+          + ` (${up ? `${num(small)} × ${num(k)}` : `${num(big)} ÷ ${num(k)}`} scales it like a length.) So ${num(value)} ${cm}${sq}.`,
       };
     }
   }
@@ -394,7 +425,7 @@ function areaVolume(rng) {
     if (!tidy(k * 10) || a === b) continue;
     if (kind === 'factor') {
       return {
-        prompt: [T.prose(`Two similar ${shape} have ${word}s of ${a} cm${sq} and ${b} cm${sq}. `
+        prompt: [T.prose(`Two similar ${shape} have ${word}s of ${a} ${cm}${sq} and ${b} ${cm}${sq}. `
           + `What is the scale factor for lengths from the first to the second?`)],
         text: `length from ${word}s: ${a}, ${b}`,
         answer: dec(k),
@@ -407,14 +438,14 @@ function areaVolume(rng) {
     const side = rng.int(2, 12) * (rng.chance(0.3) ? 0.5 : 1), other = side * k;
     if (!tidy(other)) continue;
     return {
-      prompt: [T.prose(`Two similar ${shape} have ${word}s of ${a} cm${sq} and ${b} cm${sq}. A side of the first is ${num(side)} cm. `
-        + `How long is the matching side of the second, in cm?`)],
+      prompt: [T.prose(`Two similar ${shape} have ${word}s of ${a} ${cm}${sq} and ${b} ${cm}${sq}. A side of the first is ${num(side)} ${cms}. `
+        + `How long is the matching side of the second, in ${cms}?`)],
       text: `side from ${word}s: ${a}, ${b}; side ${f(side)}`,
       answer: dec(other),
       visual: null,
       explain: `The ${word}s are in the ratio ${quotient(b, a)}: the length factor ${solid ? 'cubed' : 'squared'}. So lengths scale by `
         + `${solid ? '∛' : '√'}${num(b / a)} = ${num(k)}, and the side is ${num(side)} × ${num(k)} = ${num(other)}. `
-        + `(Multiplying by ${num(b / a)} would scale it like ${word === 'area' ? 'an area' : 'a volume'}.) So ${num(other)} cm.`,
+        + `(Multiplying by ${num(b / a)} would scale it like ${word === 'area' ? 'an area' : 'a volume'}.) So ${num(other)} ${cms}.`,
     };
   }
 }

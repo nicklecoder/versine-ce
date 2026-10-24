@@ -226,10 +226,13 @@ const UNITS = [
   ['m', 'cm', 100], ['km', 'm', 1000], ['kg', 'g', 1000], ['L', 'mL', 1000],
   ['h', 'min', 60], ['min', 's', 60], ['ft', 'in', 12], ['yd', 'ft', 3], ['day', 'h', 24],
   ['cm', 'mm', 10],
+  // requiem: catalogue/content/units-both-systems
+  // Weight and capacity in customary units too, beside feet and yards.
+  ['lb', 'oz', 16], ['gal', 'qt', 4],
 ];
 const NAMES = { m: 'meter', cm: 'centimeter', km: 'kilometer', kg: 'kilogram', g: 'gram', L: 'liter',
   mL: 'milliliter', h: 'hour', min: 'minute', s: 'second', ft: 'foot', in: 'inch', yd: 'yard',
-  day: 'day', mm: 'millimeter' };
+  day: 'day', mm: 'millimeter', lb: 'pound', oz: 'ounce', gal: 'gallon', qt: 'quart' };
 
 function convert(rng) {
   const [big, small, k] = rng.pick(UNITS);
