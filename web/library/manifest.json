@@ -1,5 +1,5 @@
 {
-  "built": 267,
+  "built": 275,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -141,6 +141,16 @@
       "which-is-bigger",
       "pin-it-down",
       "sums-and-products",
+      "all-together"
+    ],
+    "rational-exponents": [
+      "the-half-power",
+      "other-roots",
+      "root-then-power",
+      "negative-fractional-powers",
+      "radical-to-power",
+      "rules-with-fractions",
+      "combine-first",
       "all-together"
     ],
     "coords": [
@@ -579,6 +589,18 @@
         ]
       }
     },
+    "rational-exponents": {
+      "dependsOn": [
+        "monomials",
+        "real-numbers",
+        "roots"
+      ],
+      "levels": {
+        "combine-first": [
+          "real-numbers"
+        ]
+      }
+    },
     "coords": {
       "dependsOn": [
         "int-addsub"
@@ -814,7 +836,7 @@
       }
     }
   },
-  "sources": "640a1cb5d3dfad95dd5d35275deb77abb346632bb86bee2131249efb3cd5f585",
+  "sources": "68fc167fd4a1070c20d5b1197e20a41c47b62402c6c52af62cc6d98e17225bc7",
   "levels": [
     {
       "skill": "int-addsub",
@@ -1935,6 +1957,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "real-numbers-6.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 0,
+      "slug": "the-half-power",
+      "name": "The Half Power",
+      "count": 228,
+      "exhaustive": true,
+      "signed": true,
+      "file": "rational-exponents-0.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 1,
+      "slug": "other-roots",
+      "name": "Other Roots",
+      "count": 140,
+      "exhaustive": true,
+      "signed": true,
+      "file": "rational-exponents-1.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 2,
+      "slug": "root-then-power",
+      "name": "Root, Then Power",
+      "count": 369,
+      "exhaustive": true,
+      "signed": true,
+      "file": "rational-exponents-2.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 3,
+      "slug": "negative-fractional-powers",
+      "name": "Negative Fractional Powers",
+      "count": 267,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-exponents-3.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 4,
+      "slug": "radical-to-power",
+      "name": "Radical to Power",
+      "count": 240,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-exponents-4.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 5,
+      "slug": "rules-with-fractions",
+      "name": "Rules With Fractions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-exponents-5.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 6,
+      "slug": "combine-first",
+      "name": "Combine First",
+      "count": 212,
+      "exhaustive": true,
+      "signed": false,
+      "file": "rational-exponents-6.json"
+    },
+    {
+      "skill": "rational-exponents",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-exponents-7.json"
     },
     {
       "skill": "coords",

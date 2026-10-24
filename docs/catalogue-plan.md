@@ -106,7 +106,10 @@ term.
 ## Phase 2 — polynomials, factoring, quadratics, exponentials
 
 **In progress.** Built so far: `monomials`, with The Usual Mistakes (a choice
-between the right answer and the rule-for-rule slips) and All Together.
+between the right answer and the rule-for-rule slips) and All Together; and
+`rational-exponents`, as The Half Power · Other Roots · Root, Then Power ·
+Negative Fractional Powers · Radical to Power · Rules With Fractions · Combine
+First (strategy, on real-numbers' Sums and Products).
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

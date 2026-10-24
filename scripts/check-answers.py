@@ -1364,6 +1364,92 @@ EXPR_RULES = (
 )
 
 
+# --- Rational Exponents ------------------------------------------------------
+#
+# A number to a fraction power is worked out exactly where it comes out
+# rational -- the root found by search, not by the generator's construction --
+# and as a float only where a product of irrational powers is claimed whole.
+# A power of a letter is followed as an exponent: x stands for an object whose
+# only property is its power of x, so x^(1/2)*x^(1/3) is read by the rules of
+# Python's Fraction rather than by anything this skill wrote.
+
+def exact_root(n: int, k: int):
+    if n < 0:
+        if k % 2 == 0:
+            return None
+        r = exact_root(-n, k)
+        return None if r is None else -r
+    r = round(n ** (1 / k))
+    return next((c for c in (r - 1, r, r + 1) if c >= 0 and c ** k == n), None)
+
+
+def xpow(base, e):
+    base, e = Fraction(base), Fraction(e)
+    top, bottom = exact_root(base.numerator, e.denominator), exact_root(base.denominator, e.denominator)
+    if top is None or bottom is None:
+        sign = -1 if base < 0 else 1
+        return sign * abs(float(base)) ** float(e)
+    return Fraction(top, bottom) ** e.numerator
+
+
+def power_value(src: str, answer) -> str:
+    # Each power becomes a call on its two parts, as text; what is left
+    # around them is whole numbers and * and -, which Python reads as is.
+    num = r"(\(-?[\d./]+\)|[\d.]+)"
+    code = re.sub(num + r"\^" + num, lambda m: f"xpow('{m[1].strip('()')}', '{m[2].strip('()')}')", src)
+    got = eval(code, {"xpow": xpow})
+    want = as_fraction(answer)
+    if isinstance(got, float):
+        return "ok" if abs(got - float(want)) < 1e-9 * max(1, abs(got)) else f"is {got}, not {want}"
+    return "ok" if got == want else f"is {got}, not {want}"
+
+
+class Power:
+    def __init__(self, e):
+        self.e = Fraction(e)
+
+    def __mul__(self, other):
+        return Power(self.e + other.e)
+
+    def __truediv__(self, other):
+        return Power(self.e - other.e)
+
+    def __rtruediv__(self, one):
+        assert one == 1
+        return Power(-self.e)
+
+    def __pow__(self, k):
+        return Power(self.e * Fraction(k))
+
+
+def exponent_of(src: str) -> Fraction:
+    code = re.sub(r"\d+", lambda m: f"Fraction({m[0]})", src).replace("^", "**")
+    code = re.sub(r"root\((Fraction\(\d+\)), ", r"rt(\1, ", code)
+    names = {"Fraction": Fraction, "sqrt": lambda p: p ** Fraction(1, 2),
+             "rt": lambda n, p: p ** (1 / n)}
+    names.update({v: Power(1) for v in "axyn"})
+    return eval(code, names).e
+
+
+ONE_POWER = re.compile(r"^([axyn])(?:\^(\d+|\(-?\d+\)|\(-?\d+/\d+\)))?$")
+
+
+def one_power(src: str, answer: str) -> str:
+    m = ONE_POWER.match(answer)
+    if not m or m[1] not in src:
+        return "is not one power of the letter"
+    e = Fraction(m[2].strip("()")) if m[2] else Fraction(1)
+    if m[2] and "/" in m[2] and (e.denominator == 1 or str(e) != m[2].strip("()")):
+        return "is not written in lowest terms"
+    want = exponent_of(src)
+    return "ok" if e == want else f"has power {e}, not {want}"
+
+
+EXPR_RULES += (
+    (re.compile(r"^as a power: (.+)$"), one_power),
+)
+
+
 for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
@@ -1445,6 +1531,14 @@ for path in sorted(LIB.glob("*.json")):
                 v = answer["value"]
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
+            continue
+
+        # A number to a fraction power, worked out exactly where it can be.
+        if text.startswith("value: ") and answer["type"] in ("int", "frac"):
+            checked += 1
+            verdict = power_value(text[len("value: "):], answer["value"])
+            if verdict != "ok":
+                problems.append(f"{where}: {text} {verdict}")
             continue
 
         # A simplified expression: the same value as the question, and finished.

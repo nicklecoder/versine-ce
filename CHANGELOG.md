@@ -93,10 +93,17 @@ Phase 2 has begun:
 - **Monomials** (Expressions): multiplying and dividing, a power of a monomial, zero and
   negative powers finished with positive powers only, simplest form, and choosing the right
   answer from the slips students actually make.
+- **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
+  root then power, negative fractional powers, a radical rewritten as one power, the
+  exponent rules with fractions, and a strategy level on combining bases before the root.
 
 Letters typed side by side are a product, as on paper: 6ab is 6·a·b and xy² is x·y², the
 power on the last letter alone. A quotient's sign now comes out the way a product's does,
 so −4/x², −(4/x²) and 4/(−x²) are one answer.
+
+Fixed: factors drawn side by side lost their brackets, so (−2a³b⁴)(3b⁶) showed as one
+run of symbols and 2(3) as 23. A typed bracket around a factor is now kept, and a number
+following something is always bracketed.
 
 Equations in a sentence are kept in one piece, negative numbers no longer split from their
 sign at a line break, and a full stop or question mark after an equation stays with it.
