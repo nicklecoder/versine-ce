@@ -165,7 +165,7 @@ Circumference · Area of a Circle · Composite Figures · Missing Dimension · A
 Together, with no strategy level: whether π is kept or taken as 3.14 is said
 in each question, not chosen.
 `volume` is built, as Prisms · Cylinders · Cones and Pyramids · Spheres ·
-Surface Area: Prisms · Surface Area: Cylinders · Cones and Spheres · All
+Surface Area: Prisms · Surface Area: Cylinders · Surface Area: Cones and Spheres · All
 Together.
 `transformations-g` is built, as Translate · Reflect Over an Axis · Reflect
 Over y = x · Rotate · Dilate · Sequences · Which Transformation? · All

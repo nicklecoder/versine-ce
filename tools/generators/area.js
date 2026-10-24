@@ -9,7 +9,8 @@
  *
  * Every `text` names the shape and gives the lengths the answer comes from,
  * and says whether π is kept or taken as 3.14, so scripts/check-answers.py
- * can work the answer again exactly. A length the figure shows only to be
+ * can work the answer again exactly. With 3.14 the answer is rounded to one
+ * decimal place, half up, and the text ends "to 1 dp" to say so. A length the figure shows only to be
  * passed over -- a slanted side -- is in the text too, so two problems that
  * differ only in it are not taken for the same one.
  *
@@ -19,10 +20,17 @@
  */
 import * as T from '../terms.js';
 import { LINE, GIVEN, ASKED, FRAME, r2, toward, fit, text, outline, centroid, sideLabel, circlePath,
-  UNITS, f, dec, len, dashed, rightMark, region, slant, answerText, under, over } from './figures.js';
+  f, dec, len, dashed, rightMark, region, slant, answerText, under, over,
+  decTo, shown, roundedSaid, piTimes, unitWord, clearLabel } from './figures.js';
+/** Metric and US lengths alike: a yard as often as a meter. */
+const UNITS = ['cm', 'm', 'in', 'ft', 'yd'];
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/area.js';
 
 const sq = (u) => `${u}²`;
+/** With π as 3.14 the answer is rounded, and the question says to what. */
+const PLACES = 1;
+const USE_314 = 'Use 3.14 for π and round to 1 decimal place.';
+const DP = ` to ${PLACES} dp`;
 /** The figure: marks, and what arrives with the answer, framed tightly. */
 const figure = (marks, answer) => fit({ ...FRAME, marks, answer }, 1);
 
@@ -52,13 +60,13 @@ function rectangle(rng) {
   if (!isSquare) marks.push(sideLabel(P[3], P[0], `${f(H)} ${u}`, mid));
   return {
     prompt: [T.prose(isSquare
-      ? `A square has sides of ${f(W)} ${u}. What is its area, in ${sq(u)}?`
-      : `A rectangle is ${f(W)} ${u} long and ${f(H)} ${u} wide. What is its area, in ${sq(u)}?`)],
+      ? `A square has sides of ${f(W)} ${u}. What is its area, in ${unitWord(u, 2)}?`
+      : `A rectangle is ${f(Math.max(W, H))} ${u} long and ${f(Math.min(W, H))} ${u} wide. What is its area, in ${unitWord(u, 2)}?`)],
     text: isSquare ? `square area: side ${f(W)}` : `rectangle: ${f(W)} by ${f(H)}`,
     answer: dec(A),
     visual: figure(marks, [answerText(under(P), `${f(A)} ${sq(u)}`), region(P)]),
     explain: `Area counts the squares, 1 ${u} on a side, that cover the shape: ${f(H)} rows of ${f(W)}, `
-      + `so ${isSquare ? 'side × side' : 'length × width'} = ${f(W)} × ${f(H)} = ${f(A)}. `
+      + `so ${isSquare ? `side × side = ${f(W)} × ${f(H)}` : `length × width = ${f(Math.max(W, H))} × ${f(Math.min(W, H))}`} = ${f(A)}. `
       + (2 * (W + H) === A ? '' : `(Not ${f(2 * (W + H))}: adding all four sides is the perimeter, a length in ${u} and not an area.) `)
       + `So ${f(A)} ${sq(u)}.`,
   };
@@ -82,13 +90,13 @@ function parallelogram(rng) {
     sideLabel(P[0], P[1], `${f(b)} ${u}`, mid), sideLabel(P[3], P[0], `${f(s)} ${u}`, mid),
     sideLabel(top, foot, `${f(h)} ${u}`, away)];
   return {
-    prompt: [T.prose(`What is the area of this parallelogram, in ${sq(u)}?`)],
+    prompt: [T.prose(`What is the area of this parallelogram, in ${unitWord(u, 2)}?`)],
     text: `parallelogram: base ${f(b)}, height ${f(h)}, slant ${f(s)}`,
     answer: dec(A),
     visual: figure(marks, [answerText(under(P), `${f(A)} ${sq(u)}`), region(P)]),
     explain: `Cut the triangle off one end and slide it to the other: the parallelogram becomes a rectangle ${f(b)} by ${f(h)}, `
       + `so its area is base × height = ${f(b)} × ${f(h)} = ${f(A)}. `
-      + `The height is the dashed line, straight across from base to top. The slanted side, ${f(s)}, leans and is longer than that: `
+      + `The height is the dashed line, straight up from the base at right angles to it. The slanted side, ${f(s)}, leans and is longer than that: `
       + `${f(b)} × ${f(s)} = ${f(b * s)} is too big. So ${f(A)} ${sq(u)}.`,
   };
 }
@@ -130,7 +138,7 @@ function triangleArea(rng) {
     obtuse: `The height is still from the top straight down to the line the base is on -- here it lands outside the triangle, past the end of the base. The base is still ${f(b)}, not ${f(b + e)}. `,
   }[kind];
   return {
-    prompt: [T.prose(`What is the area of this triangle, in ${sq(u)}?`)],
+    prompt: [T.prose(`What is the area of this triangle, in ${unitWord(u, 2)}?`)],
     text: `triangle area: base ${f(b)}, height ${f(h)} (${kind}${kind === 'right' ? `, hypotenuse ${f(hyp)}` : kind === 'obtuse' ? `, ${f(e)} past the base` : `, top at ${f(apex)}`})`,
     answer: dec(A),
     visual: figure(marks, [answerText(under(P), `${f(A)} ${sq(u)}`), region(P)]),
@@ -140,6 +148,17 @@ function triangleArea(rng) {
 }
 
 // ── Trapezoids ──────────────────────────────────────────────────────────
+
+// requiem: catalogue/content/height-drawn-clear-of-slants
+/**
+ * A trapezoid's height, dashed down from the middle of the top side, where
+ * it is furthest from both slanted sides, and labelled where nothing else is.
+ */
+function trapezoidHeight(k, a, c, h, p, label, others, tone = GIVEN) {
+  const top = k([p + c / 2, h]), foot = k([p + c / 2, 0]);
+  const line = dashed(top, foot), square = rightMark(foot, top, k([a, 0]));
+  return [line, square, clearLabel(top, foot, label, [...others, line, square], tone)];
+}
 
 function trapezoid(rng) {
   const u = rng.pick(UNITS);
@@ -156,27 +175,29 @@ function trapezoid(rng) {
     c = len(rng, 2, a - 1, 0.2);
     if (c >= a) return trapezoid(rng);
     h = len(rng, 2, 16);
-    p = r2((a - c) * rng.pick([0.2, 0.35, 0.5, 0.65]));
+    p = r2((a - c) * rng.pick([0.3, 0.4, 0.5, 0.6, 0.7]));
   }
   if (a / h > 4.5 || h / a > 2) return trapezoid(rng);
+  // Each slanted side leans out by a fair share of the base, so neither
+  // stands so near upright that the height could be taken for it.
+  if (!right && Math.min(p, a - p - c) < 0.15 * a) return trapezoid(rng);
   const mirror = rng.chance(0.5), k = scaler(Math.max(a, h), a, mirror);
   const P = [[0, 0], [a, 0], [p + c, h], [p, h]].map(k), mid = centroid(P);
   const marks = [...outline(P), sideLabel(P[0], P[1], `${f(a)} ${u}`, mid), sideLabel(P[2], P[3], `${f(c)} ${u}`, mid)];
   if (right) {
     marks.push(rightMark(P[0], P[1], P[3]), sideLabel(P[3], P[0], `${f(h)} ${u}`, mid), sideLabel(P[1], P[2], `${f(s)} ${u}`, mid));
   } else {
-    const top = P[3], foot = k([p, 0]);
-    marks.push(dashed(top, foot), rightMark(foot, top, P[1]), sideLabel(top, foot, `${f(h)} ${u}`, k([p - 1, h / 2])));
+    marks.push(...trapezoidHeight(k, a, c, h, p, `${f(h)} ${u}`, marks));
   }
   const A = ((a + c) * h) / 2;
   return {
-    prompt: [T.prose(`What is the area of this trapezoid, in ${sq(u)}?`)],
+    prompt: [T.prose(`What is the area of this trapezoid, in ${unitWord(u, 2)}?`)],
     text: `trapezoid: ${f(a)}, ${f(c)}, height ${f(h)}${right ? `, slant ${f(s)}` : `, top from ${f(p)}`}`,
     answer: dec(A),
     visual: figure(marks, [answerText(under(P), `${f(A)} ${sq(u)}`), region(P)]),
     explain: `Two copies of a trapezoid, one turned upside down beside the other, make a parallelogram ${f(a)} + ${f(c)} = ${f(a + c)} long and ${f(h)} high. `
       + `One trapezoid is half of it: ½ × (${f(a)} + ${f(c)}) × ${f(h)} = ½ × ${f(a + c)} × ${f(h)} = ${f(A)}. `
-      + `The two lengths added are the parallel sides${right ? `; the slanted side, ${f(s)}, is not used` : ''}, and the height is straight across between them. `
+      + `The two lengths added are the parallel sides${right ? `; the slanted side, ${f(s)}, is not used` : ''}, and the height is the distance between them, measured at right angles to both. `
       + `So ${f(A)} ${sq(u)}.`,
   };
 }
@@ -184,7 +205,7 @@ function trapezoid(rng) {
 // ── Circles ─────────────────────────────────────────────────────────────
 
 const R = 3.6;
-/** A circle, its centre, and its radius or its diameter drawn and labelled. */
+/** A circle, its center, and its radius or its diameter drawn and labelled. */
 function circleMarks(label, diameter) {
   const marks = [circlePath([0, 0], R), { kind: 'point', at: [0, 0], tone: LINE }];
   if (diameter) {
@@ -208,40 +229,41 @@ function circumference(rng) {
   if (roll >= 7) return circumferenceBack(rng, u);
   const exact = roll < 4;
   const useD = rng.chance(0.45);
-  const g = circleSize(rng, 1, 25);
+  const g = circleSize(rng, 1, 30);
   const d = useD ? g : 2 * g, r = d / 2;
   const what = useD ? 'diameter' : 'radius';
   const C = exact ? d : 3.14 * d;
-  const shown = exact ? `${f(d)}π` : f(C);
+  const answer = exact ? dec(C) : decTo(C, PLACES);
+  const said = exact ? piTimes(d) : shown(answer);
   const prompt = exact
-    ? [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its circumference, in ${u}? Keep π in the answer.`),
+    ? [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its circumference, in ${unitWord(u)}? Keep π in the answer.`),
       T.letter('C'), T.op('='), T.blank(), T.letter('π')]
-    : [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its circumference, in ${u}? Use 3.14 for π.`)];
+    : [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its circumference, in ${unitWord(u)}? ${USE_314}`)];
   const start = useD ? `C = πd = π × ${f(d)}` : `C = 2πr = 2 × π × ${f(r)} = π × ${f(d)}`;
   return {
     prompt,
-    text: `circumference: ${what} ${f(g)} (${exact ? 'pi' : '3.14'})`,
-    answer: dec(C),
+    text: `circumference: ${what} ${f(g)} (${exact ? 'pi)' : `3.14)${DP}`}`,
+    answer,
     visual: circleFigure(circleMarks(`${f(g)} ${u}`, useD),
-      [answerText([0, R + 0.7], `C = ${shown} ${u}`), circlePath([0, 0], R, null)]),
+      [answerText([0, R + 0.7], `C = ${said} ${u}`), circlePath([0, 0], R, null)]),
     explain: `The circumference is π times the diameter${useD ? '' : `, and the diameter is twice the radius, ${f(d)}`}: ${start}`
-      + `${exact ? ` = ${f(d)}π` : ` ≈ 3.14 × ${f(d)} = ${f(C)}`}. `
+      + `${exact ? ` = ${piTimes(d)}` : ` ≈ 3.14 × ${f(d)} = ${roundedSaid(C, answer)}`}. `
       + `(${useD ? `Not π × ${f(d / 2)}: that halves the diameter, which C = πd never does.` : `Not π × ${f(r)}: the 2 in 2πr doubles the radius into the diameter.`} `
-      + `And not πr², which is the area.) So ${shown} ${u}.`,
+      + `And not πr², which is the area.) So ${said} ${u}.`,
   };
 }
 
 function circumferenceBack(rng, u) {
   const exact = rng.chance(0.6);
-  const d = exact ? circleSize(rng, 2, 40) : rng.int(1, 30);
+  const d = exact ? circleSize(rng, 2, 50) : rng.int(1, 40);
   const wantR = rng.chance(0.55);
   const C = exact ? d : 3.14 * d;
   const want = wantR ? d / 2 : d;
   const name = wantR ? 'radius' : 'diameter';
   return {
     prompt: [T.prose(exact
-      ? `A circle has a circumference of ${f(d)}π ${u}. What is its ${name}, in ${u}?`
-      : `A circle has a circumference of ${f(C)} ${u}. What is its ${name}, in ${u}? Use 3.14 for π.`)],
+      ? `A circle has a circumference of ${f(d)}π ${u}. What is its ${name}, in ${unitWord(u)}?`
+      : `A circle has a circumference of ${f(C)} ${u}. What is its ${name}, in ${unitWord(u)}? Use 3.14 for π.`)],
     text: `${name} from circumference: ${f(C)} (${exact ? 'pi' : '3.14'})`,
     answer: dec(want),
     visual: circleFigure(circleMarks('?', !wantR),
@@ -261,40 +283,43 @@ function circleArea(rng) {
   if (roll >= 8) return circleAreaBack(rng, u);
   const exact = roll < 4;
   const useD = rng.chance(0.45);
-  const g = useD ? 2 * circleSize(rng, 1, 18) : circleSize(rng, 1, 25);
+  // A diameter is any whole length, its radius whole or a half; a radius is
+  // now and then a half itself.
+  const g = useD ? rng.int(2, 60) : circleSize(rng, 1, 40);
   const r = useD ? g / 2 : g;
   const A = exact ? r * r : 3.14 * r * r;
-  const shown = exact ? `${f(r * r)}π` : f(A);
+  const answer = exact ? dec(A) : decTo(A, PLACES);
+  const said = exact ? piTimes(r * r) : shown(answer);
   const what = useD ? 'diameter' : 'radius';
   const prompt = exact
-    ? [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its area, in ${sq(u)}? Keep π in the answer.`),
+    ? [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its area, in ${unitWord(u, 2)}? Keep π in the answer.`),
       T.letter('A'), T.op('='), T.blank(), T.letter('π')]
-    : [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its area, in ${sq(u)}? Use 3.14 for π.`)];
+    : [T.prose(`A circle has a ${what} of ${f(g)} ${u}. What is its area, in ${unitWord(u, 2)}? ${USE_314}`)];
   return {
     prompt,
-    text: `circle area: ${what} ${f(g)} (${exact ? 'pi' : '3.14'})`,
-    answer: dec(A),
+    text: `circle area: ${what} ${f(g)} (${exact ? 'pi)' : `3.14)${DP}`}`,
+    answer,
     visual: circleFigure(circleMarks(`${f(g)} ${u}`, useD),
-      [answerText(useD ? [-1.1, 2] : [0, -1.5], `${shown} ${sq(u)}`), disc()]),
+      [answerText(useD ? [-1.1, 2] : [0, -1.5], `${said} ${sq(u)}`), disc()]),
     explain: `${useD ? `The formula wants the radius, half the diameter: ${f(g)} ÷ 2 = ${f(r)}. ` : ''}`
-      + `A = πr² = π × ${f(r)} × ${f(r)} = ${f(r * r)}π${exact ? '' : ` ≈ 3.14 × ${f(r * r)} = ${f(A)}`}. `
+      + `A = πr² = π × ${f(r)} × ${f(r)} = ${piTimes(r * r)}${exact ? '' : ` ≈ 3.14 × ${f(r * r)} = ${roundedSaid(A, answer)}`}. `
       + (useD ? `(Squaring the diameter, ${f(g * g)}, gives four times the area.) `
         : `(Not π × 2 × ${f(r)}: r² is the radius times itself, not doubled. And 2πr is the circumference.) `)
-      + `So ${shown} ${sq(u)}.`,
+      + `So ${said} ${sq(u)}.`,
   };
 }
 
 function circleAreaBack(rng, u) {
-  const r = rng.int(1, 20);
+  const r = rng.int(1, 30);
   const wantD = rng.chance(0.35);
   const want = wantD ? 2 * r : r;
   const name = wantD ? 'diameter' : 'radius';
   return {
-    prompt: [T.prose(`A circle has an area of ${r * r}π ${sq(u)}. What is its ${name}, in ${u}?`)],
+    prompt: [T.prose(`A circle has an area of ${piTimes(r * r)} ${sq(u)}. What is its ${name}, in ${unitWord(u)}?`)],
     text: `${name} from area: ${r * r} (pi)`,
     answer: dec(want),
     visual: circleFigure(circleMarks('?', wantD), [answerText(wantD ? [0.75, -0.55] : toward(35, R / 2 + 0.2, [0.55, 0.45]), `${want} ${u}`)]),
-    explain: `A = πr², so πr² = ${r * r}π and r² = ${r * r}. The radius is the number that squares to it: √${r * r} = ${r}, since ${r} × ${r} = ${r * r}. `
+    explain: `A = πr², so πr² = ${piTimes(r * r)} and r² = ${r * r}. The radius is the number that squares to it: √${r * r} = ${r}, since ${r} × ${r} = ${r * r}. `
       + `(Not ${r * r} ÷ 2 = ${f((r * r) / 2)}: r² is r times itself, so undoing it is a square root.) `
       + (wantD ? `The diameter is twice the radius: ${2 * r}. ` : '')
       + `So ${want} ${u}.`,
@@ -315,7 +340,7 @@ function lShape(rng, u) {
   const marks = [...outline(P), sideLabel(P[0], P[1], `${W} ${u}`, inside), sideLabel(P[5], P[0], `${H} ${u}`, inside),
     sideLabel(P[4], P[5], `${W - w} ${u}`, inside), sideLabel(P[1], P[2], `${H - h} ${u}`, inside)];
   return {
-    prompt: [T.prose(`The corners of this shape are all right angles. What is its area, in ${sq(u)}?`)],
+    prompt: [T.prose(`The corners of this shape are all right angles. What is its area, in ${unitWord(u, 2)}?`)],
     text: `composite (L): rect ${W} x ${H} - rect ${w} x ${h}`,
     answer: dec(A),
     // With the answer, the corner that was filled in and taken away again.
@@ -341,19 +366,19 @@ function hole(rng, u) {
     const r = rng.int(1, Math.floor(Math.min(W, H) / 2) - 1);
     if (r < 1) return hole(rng, u);
     const c = k([W / 2, H / 2]), rr = r2(r * SPAN / Math.max(W, H));
-    const A = W * H - 3.14 * r * r;
+    const A = W * H - 3.14 * r * r, answer = decTo(A, PLACES);
     const ring = circlePath(c, rr).points;
     const B = toward(30, rr, c);
     const marks = [...outline(P), circlePath(c, rr), { kind: 'point', at: c, tone: LINE },
       { kind: 'segment', from: c, to: B, tone: GIVEN }, sideLabel(c, B, `${r} ${u}`, [c[0] + 1, c[1] - 1]),
       sideLabel(P[0], P[1], `${W} ${u}`, P[2]), sideLabel(P[3], P[0], `${H} ${u}`, P[2])];
     return {
-      prompt: [T.prose(`A circle is cut out of this rectangle. What area is left, in ${sq(u)}? Use 3.14 for π.`)],
-      text: `composite (hole): rect ${W} x ${H} - circle radius ${r} (3.14)`,
-      answer: dec(A),
-      visual: figure(marks, [answerText(below, `${f(A)} ${sq(u)}`), region([...P, P[0], ring[0], ...ring.slice().reverse(), P[0]])]),
+      prompt: [T.prose(`A circle is cut out of this rectangle. What area is left, in ${unitWord(u, 2)}? ${USE_314}`)],
+      text: `composite (hole): rect ${W} x ${H} - circle radius ${r} (3.14)${DP}`,
+      answer,
+      visual: figure(marks, [answerText(below, `${shown(answer)} ${sq(u)}`), region([...P, P[0], ring[0], ...ring.slice().reverse(), P[0]])]),
       explain: `What is left is the rectangle less the circle. Rectangle: ${W} × ${H} = ${W * H}. Circle: πr² ≈ 3.14 × ${r} × ${r} = ${f(3.14 * r * r)}. `
-        + `Left: ${W * H} − ${f(3.14 * r * r)} = ${f(A)}. (Take the circle away -- adding it counts the hole as if it were filled.) So ${f(A)} ${sq(u)}.`,
+        + `Left: ${W * H} − ${f(3.14 * r * r)} = ${roundedSaid(A, answer)}. (Take the circle away -- adding it counts the hole as if it were filled.) So ${shown(answer)} ${sq(u)}.`,
     };
   }
   const w = rng.int(1, W - 3), h = rng.int(1, H - 3);
@@ -363,7 +388,7 @@ function hole(rng, u) {
   const marks = [...outline(P), ...outline(Q), sideLabel(P[0], P[1], `${W} ${u}`, P[2]), sideLabel(P[3], P[0], `${H} ${u}`, P[2]),
     sideLabel(Q[0], Q[1], `${w} ${u}`, Q[2], GIVEN, 0.35), sideLabel(Q[1], Q[2], `${h} ${u}`, Q[0], GIVEN, 0.35)];
   return {
-    prompt: [T.prose(`A rectangle is cut out of the middle of this one. What area is left, in ${sq(u)}?`)],
+    prompt: [T.prose(`A rectangle is cut out of the middle of this one. What area is left, in ${unitWord(u, 2)}?`)],
     text: `composite (hole): rect ${W} x ${H} - rect ${w} x ${h}`,
     answer: dec(A),
     visual: figure(marks, [answerText(below, `${A} ${sq(u)}`), region([...P, P[0], Q[0], Q[3], Q[2], Q[1], Q[0], P[0]])]),
@@ -385,7 +410,7 @@ function house(rng, u) {
     dashed(apex, wallTop), rightMark(wallTop, apex, P[2]),
     sideLabel(P[0], P[1], `${W} ${u}`, P[2]), sideLabel(P[1], P[2], `${H} ${u}`, P[0]), sideLabel(apex, wallTop, `${t} ${u}`, P[4], GIVEN, 0.4)];
   return {
-    prompt: [T.prose(`This shape is a rectangle with a triangle on top. What is its area, in ${sq(u)}?`)],
+    prompt: [T.prose(`This shape is a rectangle with a triangle on top. What is its area, in ${unitWord(u, 2)}?`)],
     text: `composite (house): rect ${W} x ${H} + tri ${W} x ${t}`,
     answer: dec(A),
     visual: figure(marks, [answerText(under(P), `${f(A)} ${sq(u)}`), region(rect), region(roof, ASKED),
@@ -404,19 +429,19 @@ function semi(rng, u) {
   const P = [[0, 0], [W, 0], [W, H], [0, H]].map(k);
   const c = k([r, H]), rr = r2(r * SPAN / Math.max(W, H + r));
   const half = circlePath(c, rr, LINE, 0, 180);
-  const A = W * H + (3.14 * r * r) / 2;
+  const A = W * H + (3.14 * r * r) / 2, answer = decTo(A, PLACES);
   // Three sides of the rectangle; the fourth, where the half circle sits, is dashed.
   const marks = [...outline(P).slice(0, 2), { kind: 'segment', from: P[3], to: P[0], tone: LINE },
     half, dashed(P[3], P[2]), sideLabel(P[0], P[1], `${W} ${u}`, P[2]), sideLabel(P[1], P[2], `${H} ${u}`, P[0])];
   return {
-    prompt: [T.prose(`This shape is a rectangle with a half circle on top. What is its area, in ${sq(u)}? Use 3.14 for π.`)],
-    text: `composite (semi): rect ${W} x ${H} + semicircle radius ${r} (3.14)`,
-    answer: dec(A),
-    visual: figure(marks, [answerText(under(P), `${f(A)} ${sq(u)}`), region(P), region(half.points, ASKED),
+    prompt: [T.prose(`This shape is a rectangle with a half circle on top. What is its area, in ${unitWord(u, 2)}? ${USE_314}`)],
+    text: `composite (semi): rect ${W} x ${H} + semicircle radius ${r} (3.14)${DP}`,
+    answer,
+    visual: figure(marks, [answerText(under(P), `${shown(answer)} ${sq(u)}`), region(P), region(half.points, ASKED),
       answerText(centroid(P), `${W * H}`), answerText([c[0], c[1] + rr * 0.42], f((3.14 * r * r) / 2))]),
     explain: `Split it into the rectangle and the half circle. Rectangle: ${W} × ${H} = ${W * H}. `
       + `The half circle sits on the ${W} side, so ${W} is its diameter and its radius is ${r}: half of πr² ≈ ½ × 3.14 × ${r} × ${r} = ${f((3.14 * r * r) / 2)}. `
-      + `Together ${W * H} + ${f((3.14 * r * r) / 2)} = ${f(A)}. (Using ${W} as the radius gives four times the half circle.) So ${f(A)} ${sq(u)}.`,
+      + `Together ${W * H} + ${f((3.14 * r * r) / 2)} = ${roundedSaid(A, answer)}. (Using ${W} as the radius gives four times the half circle.) So ${shown(answer)} ${sq(u)}.`,
   };
 }
 
@@ -434,7 +459,7 @@ function missing(rng) {
     const s = rng.int(2, 25), A = s * s;
     const k = scaler(s, s), P = [[0, 0], [s, 0], [s, s], [0, s]].map(k), mid = centroid(P);
     return {
-      prompt: [T.prose(`A square has an area of ${A} ${sq(u)}. How long is each side, in ${u}?`)],
+      prompt: [T.prose(`A square has an area of ${A} ${sq(u)}. How long is each side, in ${unitWord(u)}?`)],
       text: `missing: square area ${A}`,
       answer: dec(s),
       visual: figure([...outline(P), text(over(P), `area ${A} ${sq(u)}`), sideLabel(P[0], P[1], '?', mid, ASKED)],
@@ -461,7 +486,7 @@ function missing(rng) {
     const knownName = kind === 'rectangle' ? (askH ? 'length' : 'width') : (askH ? 'base' : 'height');
     const wantName = kind === 'rectangle' ? (askH ? 'width' : 'length') : (askH ? 'height' : 'base');
     return {
-      prompt: [T.prose(`A ${kind} has an area of ${f(A)} ${sq(u)} and a ${knownName} of ${f(known)} ${u}. What is its ${wantName}, in ${u}?`)],
+      prompt: [T.prose(`A ${kind} has an area of ${f(A)} ${sq(u)} and a ${knownName} of ${f(known)} ${u}. What is its ${wantName}, in ${unitWord(u)}?`)],
       text: `missing: ${kind} area ${f(A)}, ${knownName} ${f(known)}`,
       answer: dec(want),
       visual: figure(marks, [askH ? hLabel(`${f(h)} ${u}`, null, 1.2) : base(`${f(b)} ${u}`, null, 1.1)]),
@@ -483,7 +508,7 @@ function missing(rng) {
       sideLabel(P[0], P[1], askH ? `${b} ${u}` : '?', mid, askH ? GIVEN : ASKED), sideLabel(P[2], foot, askH ? '?' : `${f(h)} ${u}`, away, askH ? ASKED : GIVEN)];
     const want = askH ? h : b, known = askH ? b : h;
     return {
-      prompt: [T.prose(`A triangle has an area of ${f(A)} ${sq(u)} and a ${askH ? 'base' : 'height'} of ${f(known)} ${u}. What is its ${askH ? 'height' : 'base'}, in ${u}?`)],
+      prompt: [T.prose(`A triangle has an area of ${f(A)} ${sq(u)} and a ${askH ? 'base' : 'height'} of ${f(known)} ${u}. What is its ${askH ? 'height' : 'base'}, in ${unitWord(u)}?`)],
       text: `missing: triangle area ${f(A)}, ${askH ? 'base' : 'height'} ${f(known)}`,
       answer: dec(want),
       visual: figure(marks, [askH ? sideLabel(P[2], foot, `${f(h)} ${u}`, away, null, 1.25) : sideLabel(P[0], P[1], `${b} ${u}`, mid, null, 1.1)]),
@@ -497,16 +522,20 @@ function missing(rng) {
   if (a / h > 4.5 || h / a > 2) return missing(rng);
   const A = ((a + c) * h) / 2;
   const askH = rng.chance(0.5);
-  const p = r2((a - c) * rng.pick([0.3, 0.5]));
+  const p = r2((a - c) * rng.pick([0.4, 0.5, 0.6]));
+  if (Math.min(p, a - p - c) < 0.15 * a) return missing(rng);
   const k = scaler(Math.max(a, h), a, rng.chance(0.5));
-  const P = [[0, 0], [a, 0], [p + c, h], [p, h]].map(k), mid = centroid(P), top = P[3], foot = k([p, 0]);
-  const away = k([p - 1, h / 2]);
-  const marks = [...outline(P), dashed(top, foot), rightMark(foot, top, P[1]), text(under(P), `area ${f(A)} ${sq(u)}`),
-    sideLabel(P[0], P[1], `${a} ${u}`, mid), sideLabel(P[2], P[3], askH ? `${c} ${u}` : '?', mid, askH ? GIVEN : ASKED),
-    sideLabel(top, foot, askH ? '?' : `${h} ${u}`, away, askH ? ASKED : GIVEN)];
+  const P = [[0, 0], [a, 0], [p + c, h], [p, h]].map(k), mid = centroid(P);
+  const top = k([p + c / 2, h]), foot = k([p + c / 2, 0]);
+  const fixed = [...outline(P), text(under(P), `area ${f(A)} ${sq(u)}`),
+    sideLabel(P[0], P[1], `${a} ${u}`, mid), sideLabel(P[2], P[3], askH ? `${c} ${u}` : '?', mid, askH ? GIVEN : ASKED)];
+  const height = trapezoidHeight(k, a, c, h, p, askH ? '?' : `${h} ${u}`, fixed, askH ? ASKED : GIVEN);
+  const marks = [...fixed, ...height];
+  // With the answer, the height's length beside the "?", the far side of the dashed line.
+  const hAt = height[2].at, away = [2 * top[0] - hAt[0], hAt[1]];
   if (askH) {
     return {
-      prompt: [T.prose(`A trapezoid has an area of ${f(A)} ${sq(u)}, and parallel sides of ${a} ${u} and ${c} ${u}. What is its height, in ${u}?`)],
+      prompt: [T.prose(`A trapezoid has an area of ${f(A)} ${sq(u)}, and parallel sides of ${a} ${u} and ${c} ${u}. What is its height, in ${unitWord(u)}?`)],
       text: `missing: trapezoid area ${f(A)}, sides ${a} and ${c}`,
       answer: dec(h),
       visual: figure(marks, [sideLabel(top, foot, `${h} ${u}`, away, null, 1.2)]),
@@ -515,7 +544,7 @@ function missing(rng) {
     };
   }
   return {
-    prompt: [T.prose(`A trapezoid has an area of ${f(A)} ${sq(u)} and a height of ${h} ${u}. One parallel side is ${a} ${u}. How long is the other, in ${u}?`)],
+    prompt: [T.prose(`A trapezoid has an area of ${f(A)} ${sq(u)} and a height of ${h} ${u}. One parallel side is ${a} ${u}. How long is the other, in ${unitWord(u)}?`)],
     text: `missing: trapezoid area ${f(A)}, height ${h}, side ${a}`,
     answer: dec(c),
     visual: figure(marks, [sideLabel(P[2], P[3], `${c} ${u}`, mid, null, 1.1)]),

@@ -17,7 +17,7 @@
  * area of four of its great circles.
  *
  * Answers in π are typed as the number of π, into a blank before a π the
- * question writes; with 3.14 they are plain decimals. Each question says
+ * question writes; with 3.14 they are plain decimals, rounded to one place. Each question says
  * which.
  */
 
@@ -34,8 +34,8 @@ export const LEVELS = [
     blurb: 'Add the area of every face: a box has three pairs.' },
   { name: 'Surface Area: Cylinders', slug: 'surface-area-cylinders',
     blurb: 'Two circles, and a rectangle as long as the circumference.' },
-  { name: 'Cones and Spheres', slug: 'cones-and-spheres',
-    blurb: 'πr² for a base, πrl round a cone, 4πr² round a sphere.' },
+  { name: 'Surface Area: Cones and Spheres', slug: 'cones-and-spheres',
+    blurb: 'πr² for a base, πrl around a cone, 4πr² around a sphere.' },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];

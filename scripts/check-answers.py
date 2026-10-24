@@ -2609,6 +2609,29 @@ def makes_triangle(listing: str) -> str:
     return "yes" if x + y > z else "no"
 
 
+def sides_with_sum(total: int) -> int:
+    """The polygon whose angles add to `total`, found by trying each, not by undoing the formula."""
+    return next(n for n in range(3, 400) if polygon_sum(n) == total)
+
+
+def regular_with_interior(each: int) -> int:
+    return next(n for n in range(3, 400) if regular_each(n) == each)
+
+
+def third_side_range(a: str, b: str) -> frozenset:
+    """Every length on the line that closes a triangle with a and b, tried one by one."""
+    def closes(c):
+        x, y, z = sorted((Fraction(a), Fraction(b), c))
+        return x > 0 and x + y > z
+    return frozenset(c for c in SAMPLES_ON_LINE if closes(c))
+
+
+def third_side(a: int, b: int, which: str) -> int:
+    """The longest or shortest whole third side, by trying every length against the inequality."""
+    fits = [c for c in range(1, a + b + 2) if makes_triangle(f"{a}, {b}, {c}") == "yes"]
+    return max(fits) if which == "longest" else min(fits)
+
+
 BY_RULE += (
     (re.compile(r"^triangle: (\d+, \d+)$"), lambda xs: 180 - sum(angle_sum(xs))),
     (re.compile(r"^triangle in x: (\d*x(?: [+-] \d+)?(?:, \d*x(?: [+-] \d+)?){2})$"), triangle_in_x),
@@ -2626,10 +2649,18 @@ BY_RULE += (
     (re.compile(r"^regular exterior: (\d+)$"), lambda n: Fraction(360, n)),
     (re.compile(r"^regular sides from exterior: (\d+)$"), sides_from_exterior),
     (re.compile(r"^missing exterior: (\d+(?:, \d+)*)$"), lambda xs: 360 - sum(angle_sum(xs))),
+    (re.compile(r"^sides from interior sum: (\d+)$"), sides_with_sum),
+    (re.compile(r"^regular interior from exterior: (\d+)$"), lambda e: regular_each(sides_from_exterior(e))),
+    (re.compile(r"^regular exterior from interior: (\d+)$"), lambda i: Fraction(360, regular_with_interior(i))),
+    (re.compile(r"^third side: (\d+), (\d+), (longest|shortest)$"), third_side),
 )
 
 CHOICE_RULES += (
     (re.compile(r"^triangle sides: (\d+, \d+, \d+)$"), makes_triangle),
+)
+
+SET_RULES += (
+    (re.compile(r"^third side range: (\d+), (\d+)$"), third_side_range),
 )
 
 # --- Area and Circles ---------------------------------------------------------
@@ -2816,6 +2847,19 @@ BY_RULE += (
     (re.compile(rf"^(sphere|hemisphere) surface: (radius|diameter) {LENGTH} {PI_FORM}$"), ball_surface),
     (re.compile(rf"^sphere radius from surface: {LENGTH} \(pi\)$"), radius_from_sphere_surface),
 )
+
+
+# requiem: catalogue/content/pi-as-3-14-rounds-to-a-place
+# With π taken as 3.14 an area or volume is rounded to the place the question
+# names, and its text ends "to 1 dp". Each 3.14 rule is read again for that
+# text: the same exact working, then rounded half up -- never the generator's
+# float rounded. ROUNDED_TO then holds the stored places to the same place.
+def rounded(solve):
+    return lambda *groups: half_up(Fraction(solve(*groups[:-1])), int(groups[-1]))
+
+
+BY_RULE += tuple((re.compile(rule.pattern[:-1] + r" to (\d) dp$"), rounded(solve))
+                 for rule, solve in BY_RULE if r"3\.14" in rule.pattern)
 
 # --- Transformations ---------------------------------------------------------
 #

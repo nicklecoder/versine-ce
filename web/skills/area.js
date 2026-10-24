@@ -4,7 +4,7 @@
  *
  * Every area here comes back to the rectangle. A parallelogram is one with a
  * triangle moved from one end to the other, so it is base times height, and
- * the height is measured straight across, never along the slanted side --
+ * the height is measured at right angles to the base, never along the slanted side --
  * the slip the level is built around, with the slanted side labelled too. A
  * triangle is half the parallelogram on the same base and height, even when
  * its height falls outside it; a trapezoid is the average of its parallel
@@ -13,7 +13,7 @@
  * Circumference is π times the diameter, and area is π times the radius
  * squared: the two slips are using the diameter in πr² and mixing the two
  * formulas up. Answers are asked exactly, as a number of π -- the box sits
- * before a π already written -- or with 3.14 for π, which the question says.
+ * before a π already written -- or with 3.14 for π and rounded to one place, which the question says.
  * Composite figures are split into rectangles, triangles and half circles,
  * or taken away from a bigger shape. Missing Dimension runs a formula
  * backwards.
@@ -23,7 +23,7 @@
 
 export const LEVELS = [
   { name: 'Rectangles and Parallelograms', slug: 'rectangles-and-parallelograms',
-    blurb: 'Base times height, the height straight across. Not the slanted side.' },
+    blurb: 'Base times height, the height at right angles to the base. Not the slanted side.' },
   { name: 'Triangles', slug: 'triangles',
     blurb: 'Half of base times height: half the parallelogram it sits in.' },
   { name: 'Trapezoids', slug: 'trapezoids',

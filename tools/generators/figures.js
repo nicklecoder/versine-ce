@@ -160,3 +160,115 @@ export function ellipsePath(c, rx, ry, from = 0, to = 360, { tone = LINE, dashed
   }
   return { kind: 'path', points: pts, tone, ...(dashed ? { dashed: true } : {}) };
 }
+
+// ── Rounding, units and labels (added for the 3.14 answers and crowded solids) ──
+
+// requiem: catalogue/content/pi-as-3-14-rounds-to-a-place
+/**
+ * n/d rounded half up to `places`, in whole-number arithmetic, as the decimal
+ * type holds a rounded answer: with `places`, so its zeros are kept and a
+ * right number typed to another place is told how it is written.
+ */
+export function roundTo(n, d, places) {
+  const N = BigInt(n) * 10n ** BigInt(places), D = BigInt(d);
+  let q = N / D;
+  if ((N % D) * 2n >= D) q += 1n;
+  return { type: 'decimal', value: { n: Number(q), d: 10 ** places, places } };
+}
+/** A terminating decimal, rounded half up to `places`: exact, from its written digits. */
+export function decTo(x, places) {
+  const [w, frac = ''] = f(x).split('.');
+  return roundTo(Number(w + frac), 10 ** frac.length, places);
+}
+/** A rounded answer as it is written: 37.7, 314.0. */
+export function shown(a) {
+  const { n, d } = a.value, w = Math.floor(n / d), rem = n - w * d;
+  return d === 1 ? String(w) : `${w}.${String(rem).padStart(String(d).length - 1, '0')}`;
+}
+/** How a 3.14 answer is said: the value worked out, then what it is to the place asked. */
+export function roundedSaid(x, a, exact = f(x)) {
+  const places = a.value.places, to = `to ${places} decimal place${places === 1 ? '' : 's'}`;
+  if (exact === shown(a)) return exact;
+  const more = exact.endsWith('…') || (exact.split('.')[1] ?? '').length > places;
+  return more ? `${exact}, which is ${shown(a)} ${to}` : `${exact}, written ${shown(a)} ${to}`;
+}
+
+/** k lots of π as it is written: π, not 1π. */
+export const piTimes = (k) => (k === 1 ? 'π' : `${f(k)}π`);
+
+/** A unit as a question asks for it: "in inches", never "in in". */
+export const unitWord = (u, power = 1) => (u === 'in'
+  ? ['inches', 'square inches', 'cubic inches'][power - 1]
+  : `${u}${['', '²', '³'][power - 1]}`);
+
+/** The marks a label must keep clear of, as straight pieces. */
+function piecesOf(marks) {
+  return marks.flatMap((m) => {
+    if (m.kind === 'segment') return [[m.from, m.to]];
+    if (m.kind === 'path') return m.points.slice(1).map((p, i) => [m.points[i], p]);
+    if (m.kind === 'point') return [[m.at, m.at]];
+    if (m.kind === 'text') {
+      const w = 0.15 * String(m.label).length;
+      return [[[m.at[0] - w, m.at[1] - 0.25], [m.at[0] + w, m.at[1] - 0.25]],
+        [[m.at[0] - w, m.at[1] + 0.25], [m.at[0] + w, m.at[1] + 0.25]]];
+    }
+    return [];
+  });
+}
+/** How far a label's box, centered at c with half extents w and h, is from the nearest piece. */
+function clearance(c, w, h, pieces) {
+  // Below zero, how much line runs through the box: less is better when
+  // nowhere is clear.
+  let best = Infinity, through = 0;
+  for (const [A, B] of pieces) {
+    const steps = Math.max(1, Math.ceil(Math.hypot(B[0] - A[0], B[1] - A[1]) / 0.08));
+    const each = Math.hypot(B[0] - A[0], B[1] - A[1]) / steps;
+    for (let i = 0; i <= steps; i++) {
+      const x = A[0] + ((B[0] - A[0]) * i) / steps, y = A[1] + ((B[1] - A[1]) * i) / steps;
+      const gap = Math.hypot(Math.max(0, Math.abs(x - c[0]) - w), Math.max(0, Math.abs(y - c[1]) - h));
+      if (gap === 0) through += each;
+      best = Math.min(best, gap);
+    }
+  }
+  return through > 0 ? -through : best;
+}
+/** Whether segments P–Q and R–S cross. */
+function crosses(P, Q, R, S) {
+  const side = (A, B, C) => Math.sign((B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]));
+  return side(P, Q, R) * side(P, Q, S) < 0 && side(R, S, P) * side(R, S, Q) < 0;
+}
+/**
+ * A length written beside the segment A–B it measures, at the first spot --
+ * nearest the middle and nearest the line, then further along and further
+ * out -- where its box is clear of every line and label in `others`. A
+ * label lying across a second line reads as that line's length: a height
+ * labelled on a slant edge is taken for the slant.
+ */
+export function clearLabel(A, B, label, others, tone = GIVEN, { gaps = [0.15, 0.3, 0.45, 0.6] } = {}) {
+  // The line measured is not in the way of its own label; every other one is.
+  const same = (P, Q) => P && Q && P[0] === Q[0] && P[1] === Q[1];
+  const own = (m) => m.kind === 'segment' && ((same(m.from, A) && same(m.to, B)) || (same(m.from, B) && same(m.to, A)));
+  const pieces = piecesOf(others.filter((m) => !own(m)));
+  const w = 0.15 * String(label).length, h = 0.27;
+  const d = [B[0] - A[0], B[1] - A[1]], L = Math.hypot(d[0], d[1]) || 1, n = [-d[1] / L, d[0] / L];
+  let best = null;
+  for (const g of gaps) {
+    for (const t of [0.5, 0.4, 0.6, 0.3, 0.7, 0.25, 0.75, 0.8, 0.85]) {
+      for (const s of [1, -1]) {
+        const off = g + Math.abs(n[0]) * w + Math.abs(n[1]) * h;
+        const c = [A[0] + d[0] * t + s * n[0] * off, A[1] + d[1] * t + s * n[1] * off];
+        // Clear of the rest, and nearer its own line than any other: the
+        // nearest line is the one a label is read as belonging to.
+        const clear = clearance(c, w, h, pieces);
+        const nearer = clear >= 0 && clear < g ? 1 : 0;
+        // Never across another line from its own: outside a slant edge, a
+        // height's length is read as the edge's.
+        const foot = [A[0] + d[0] * t, A[1] + d[1] * t];
+        const across = pieces.some(([P, Q]) => crosses(c, foot, P, Q)) ? 2 : 0;
+        const score = Math.min(clear, 0.6) - nearer - across - g * 0.05 - Math.abs(t - 0.5) * 0.04;
+        if (!best || score > best.score) best = { c, score };
+      }
+    }
+  }
+  return text([r2(best.c[0]), r2(best.c[1])], label, tone);
+}
