@@ -180,6 +180,9 @@ BY_RULE = (
     # front, which Fraction does for itself.
     (re.compile(r"^(-?\d+)/(-?\d+) in lowest terms$"),
      lambda n, d: Fraction(int(n), int(d))),
+    # The negative of a bracketed fraction: the same number, minus in front.
+    (re.compile(r"^-\((\d+)/(\d+)\) in lowest terms$"),
+     lambda n, d: -Fraction(n, d)),
     # Rounding, re-derived in exact rationals. Doing it in floats is the one
     # way to get this wrong that matters: 2.675 is not 2.675 as a double, so a
     # float check would call the correct 2.68 an error.

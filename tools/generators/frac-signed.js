@@ -27,6 +27,18 @@ function pick(rng, sign) {
 /** The magnitude, as the size row wants to print it. */
 const size = (f) => format(frac(Math.abs(f.n), f.d));
 const sign = (f) => (f.n < 0 ? '−' : '+');
+const show = (f) => format(f).replace(/-/g, '−');
+/** A negative after an operator is bracketed: "× (−5/7)", never "× −5/7". */
+const after = (f) => (f.n < 0 ? `(${format(f)})` : format(f));
+/**
+ * Where lowest terms are demanded, the question says so. Only the level blurb
+ * did, which is read once, and in the timed mixed level a correct −6/8 was
+ * refused with nothing on screen to say why.
+ */
+const lowest = (terms) => [T.prose('In lowest terms:'), ...terms];
+/** "−16/12, which simplifies to −4/3", or just the fraction when it is already there. */
+const landing = (raw, value) => (raw.d === value.d ? show(value)
+  : `${show(raw)}, which simplifies to ${show(value)}`);
 
 /**
  * Where the minus lives.
@@ -46,16 +58,16 @@ function whereTheMinus(rng) {
   const k = rng.int(2, 6);                          // so there is something to simplify
   const base = coprimeNumerator(rng, d);
   if (base * k > 60 || d * k > 60) return whereTheMinus(rng);
-  const shape = rng.int(0, 2);
-  // 0: −n/d      1: n/−d      2: −n/−d
-  const n = shape === 1 ? base * k : -base * k;
-  const den = shape === 0 ? d * k : -d * k;
-  const value = reduce(frac(n, den));
-  const shown = `${n}/${den}`.replace(/-/g, '−');
+  const shape = rng.int(0, 3);
+  // 0: −n/d      1: n/−d      2: −n/−d      3: −(n/d), the form the blurb promises
+  const n = shape === 1 || shape === 3 ? base * k : -base * k;
+  const den = shape === 0 || shape === 3 ? d * k : -d * k;
+  const value = reduce(shape === 3 ? frac(-n, den) : frac(n, den));
+  const shown = shape === 3 ? `−(${n}/${den})` : `${n}/${den}`.replace(/-/g, '−');
 
   return {
     prompt: [T.prose(`Write ${shown} as a fraction in lowest terms.`)],
-    text: `${n}/${den} in lowest terms`,
+    text: shape === 3 ? `-(${n}/${den}) in lowest terms` : `${n}/${den} in lowest terms`,
     answer: { type: 'frac', value, requireSimplest: true },
     visual: {
       kind: 'evalmodel',
@@ -65,16 +77,26 @@ function whereTheMinus(rng) {
               `${Math.abs(n)}/${Math.abs(den)}, sign in front`,
               format(value).replace(/-/g, '−')],
       rules: ['count the negatives',
-              'a minus below the line means the same as one in front',
+              ['the minus is already in front',
+               'a minus below the line means the same as one in front',
+               'and the two cancel',
+               'a minus outside the bracket is a minus in front'][shape],
               'then divide both by what they share'],
       hint: 'How many negatives are there, and where do they end up?',
     },
-    explain: (shape === 2
-      ? `Two negatives: a negative divided by a negative is positive, so ${shown} is `
-        + `${Math.abs(n)}/${Math.abs(den)}. `
-      : `One negative, and it does not matter which line it is on — ${shown} means the `
+    // requiem: catalogue/content/explain-true-for-row
+    // "−12/20 means the same as −12/20" was said of every row whose minus was
+    // already in front. Each shape now says what is true of it.
+    explain: [
+      `One negative, and it is already in front where it belongs. `,
+      `One negative, and it does not matter which line it is on — ${shown} means the `
         + `same as −${Math.abs(n)}/${Math.abs(den)}, because dividing by a negative and `
-        + 'taking the negative of a division come to the same thing. ')
+        + 'taking the negative of a division come to the same thing. ',
+      `Two negatives: a negative divided by a negative is positive, so ${shown} is `
+        + `${Math.abs(n)}/${Math.abs(den)}. `,
+      `One negative, outside the bracket: the negative of ${n}/${den} is `
+        + `−${n}/${den}, the same number with the minus written in front. `,
+    ][shape]
       + `Then ${Math.abs(n)} and ${Math.abs(den)} share a factor of ${k}, `
       + `leaving ${format(value).replace(/-/g, '−')}.`,
   };
@@ -150,7 +172,7 @@ function signedAddSub(rng, subtracting) {
   const sum = `${work.left.n} ${op} ${work.right.n < 0 ? `(${work.right.n})` : work.right.n}`;
 
   return {
-    prompt: T.asks(T.frac(a.n, a.d, 1), T.op(op), second),
+    prompt: lowest(T.asks(T.frac(a.n, a.d, 1), T.op(op), second)),
     text: `${format(a)} ${op} ${bText}`,
     answer: { type: 'frac', value, requireSimplest: true },
     visual: {
@@ -167,7 +189,7 @@ function signedAddSub(rng, subtracting) {
     },
     explain: `In ${nths(common)} this is ${sum.replace(/-/g, '−')}, which is `
       + `${String(work.result.n).replace(/-/g, '−')}, `
-      + `so ${format(value).replace(/-/g, '−')}. ${why(work, subtracting, b, common)}`,
+      + `so ${landing(work.result, value)}. ${why(work, subtracting, b, common)}`,
   };
 }
 
@@ -192,7 +214,7 @@ function signedOperation(rng, negatives, dividing) {
   const op = dividing ? '÷' : '×';
 
   return {
-    prompt: T.asks(T.frac(a.n, a.d, 1), T.op(op), T.frac(b.n, b.d, 2)),
+    prompt: lowest(T.asks(T.frac(a.n, a.d, 1), T.op(op), T.frac(b.n, b.d, 2))),
     text: `${format(a)} ${op} ${format(b)}`,
     answer: { type: 'frac', value, requireSimplest: true },
     visual: {
@@ -207,10 +229,11 @@ function signedOperation(rng, negatives, dividing) {
         ? `${size(a)} ÷ ${size(b)} is ${size(a)} × ${format(frac(b.d, Math.abs(b.n)))} = `
           + `${size(value)}`
         : `${size(a)} × ${size(b)} = ${size(value)}`)
-      + `. Put them together: ${format(value).replace(/-/g, '−')}.`
-      + (dividing
-        ? ' Flipping the second fraction leaves its sign alone — the reciprocal of a '
-          + 'negative is negative.'
+      + `. Put them together: ${show(value)}.`
+      // Only where the divisor is negative is there a sign to carry across.
+      + (dividing && b.n < 0
+        ? ` Flipping ${show(b)} gives ${show(frac(-b.d, -b.n))}: the sign comes with it, since `
+          + 'the reciprocal of a negative is negative.'
         : ''),
   };
 }
@@ -225,12 +248,17 @@ function signedOperation(rng, negatives, dividing) {
  * glance.
  */
 function whatSign(rng) {
+  // requiem: catalogue/strategy/no-surface-cue
+  // Some rows add or subtract, where counting negatives gives the wrong sign
+  // as often as the right one. With only × and ÷, "odd count means negative"
+  // passed every row, and the blurb's warning about adding was never tested.
+  if (rng.chance(0.35)) return signOfSum(rng);
   const count = rng.int(0, 3);
   const terms = [0, 1, 2].map((i) => pick(rng, i < count ? -1 : 1));
   const shuffled = rng.shuffle(terms);
   const ops = [rng.pick(['×', '÷']), rng.pick(['×', '÷'])];
-  const src = `${format(shuffled[0])} ${ops[0]} ${format(shuffled[1])} `
-    + `${ops[1]} ${format(shuffled[2])}`;
+  const src = `${format(shuffled[0])} ${ops[0]} ${after(shuffled[1])} `
+    + `${ops[1]} ${after(shuffled[2])}`;
   const negative = count % 2 === 1;
 
   return {
@@ -240,10 +268,7 @@ function whatSign(rng) {
     answer: {
       type: 'choice',
       value: negative ? 'negative' : 'positive',
-      options: rng.shuffle([
-        { id: 'positive', label: 'Positive', note: 'the negatives pair off' },
-        { id: 'negative', label: 'Negative', note: 'one is left over' },
-      ]),
+      options: signOptions(rng),
     },
     visual: null,
     explain: `There ${count === 1 ? 'is 1 negative' : `are ${count} negatives`}, and `
@@ -253,6 +278,47 @@ function whatSign(rng) {
       + 'and you have it before doing any of the arithmetic. '
       + 'Only for × and ÷, though: −3/4 + 1/2 has one negative and so does −1/4 + 1/2, '
       + 'and they come out with different signs. Adding is decided by which is bigger.',
+  };
+}
+
+/** The notes say what each answer means, not how a count would get there. */
+const signOptions = (rng) => rng.shuffle([
+  { id: 'positive', label: 'Positive', note: 'above zero' },
+  { id: 'negative', label: 'Negative', note: 'below zero' },
+]);
+
+/**
+ * a + b or a − b with a negative in it: the sign is whichever side is bigger,
+ * so a count of minus signs is no guide. Drawn so the count misleads about
+ * half the time.
+ */
+function signOfSum(rng) {
+  const subtracting = rng.chance(0.4);
+  const a = pick(rng, rng.chance(0.5) ? -1 : 1);
+  const b = pick(rng, a.n > 0 || rng.chance(0.5) ? -1 : 1);
+  const work = combine(a, b, subtracting ? '-' : '+');
+  if (work.result.n === 0) return signOfSum(rng);
+  const negatives = [a, b].filter((f) => f.n < 0).length;
+  const negative = work.result.n < 0;
+  // Keep a row the count gets wrong more often than one it gets right.
+  if ((negatives % 2 === 1) === negative && rng.chance(0.4)) return signOfSum(rng);
+  const op = subtracting ? '−' : '+';
+  const src = `${format(a)} ${op} ${after(b)}`;
+  const right = subtracting ? -work.right.n : work.right.n;
+  return {
+    prompt: [T.prose(`Without working it out: will ${src.replace(/-/g, '−')} `
+      + 'be positive or negative?')],
+    text: `sign of ${src}`,
+    answer: { type: 'choice', value: negative ? 'negative' : 'positive', options: signOptions(rng) },
+    visual: null,
+    explain: `This one ${subtracting ? 'subtracts' : 'adds'}, so counting negatives does not `
+      + `decide it. In ${nths(work.common)} it is ${String(work.left.n).replace('-', '−')} `
+      + `${right < 0 ? '−' : '+'} ${Math.abs(right)}`
+      + (subtracting && b.n < 0 ? ' (taking away a negative adds)' : '')
+      + `, and ${(work.left.n < 0) === (right < 0)
+        ? 'both push the same way'
+        : `${Math.abs(work.left.n) > Math.abs(right) ? Math.abs(work.left.n) : Math.abs(right)} is the bigger`}`
+      + `, so the answer is ${negative ? 'negative' : 'positive'}.`,
   };
 }
 
