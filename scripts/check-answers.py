@@ -3384,6 +3384,166 @@ CHOICE_RULES += (
     (re.compile(rf"^similar sas: {NUMBER}, {NUMBER}, angle (\d+); {NUMBER}, {NUMBER}, angle (\d+)$"), similar_by_sas),
 )
 
+# --- Units and Conversions ---------------------------------------------------
+#
+# Every unit is held here by its exact size under the international
+# definitions (1 in = 2.54 cm, 1 lb = 0.45359237 kg, 1 gal = 231 in³), so a
+# conversion within a system divides two sizes, and comparing across the
+# systems compares true sizes. Where a question gives a rounded factor
+# between the systems (1 mi ≈ 1.61 km), that factor is used, as the student
+# is told to. Estimates are judged against a table of typical sizes kept
+# here, apart from the generator's.
+
+_IN = Fraction(254, 10000)                           # meters
+_LB = Fraction(45359237, 10 ** 8)                    # kilograms
+_IN3_L = _IN ** 3 * 1000                             # liters in a cubic inch
+_GAL = 231 * _IN3_L
+UNIT_SIZE = {
+    # length, in meters
+    "in": ("length", "us", _IN), "ft": ("length", "us", 12 * _IN), "yd": ("length", "us", 36 * _IN),
+    "mi": ("length", "us", 63360 * _IN),
+    "mm": ("length", "metric", Fraction(1, 1000)), "cm": ("length", "metric", Fraction(1, 100)),
+    "m": ("length", "metric", Fraction(1)), "km": ("length", "metric", Fraction(1000)),
+    # weight, in kilograms
+    "oz": ("weight", "us", _LB / 16), "lb": ("weight", "us", _LB), "ton": ("weight", "us", 2000 * _LB),
+    "mg": ("weight", "metric", Fraction(1, 10 ** 6)), "g": ("weight", "metric", Fraction(1, 1000)),
+    "kg": ("weight", "metric", Fraction(1)),
+    # capacity and volume, in liters
+    "floz": ("capacity", "us", _GAL / 128), "cup": ("capacity", "us", _GAL / 16), "pt": ("capacity", "us", _GAL / 8),
+    "qt": ("capacity", "us", _GAL / 4), "gal": ("capacity", "us", _GAL),
+    "mL": ("capacity", "metric", Fraction(1, 1000)), "L": ("capacity", "metric", Fraction(1)),
+    "cm3": ("capacity", "metric", Fraction(1, 1000)), "m3": ("capacity", "metric", Fraction(1000)),
+    "in3": ("capacity", "us", _IN3_L), "ft3": ("capacity", "us", 1728 * _IN3_L), "yd3": ("capacity", "us", 46656 * _IN3_L),
+    # area, in square meters
+    "in2": ("area", "us", _IN ** 2), "ft2": ("area", "us", (12 * _IN) ** 2), "yd2": ("area", "us", (36 * _IN) ** 2),
+    "mm2": ("area", "metric", Fraction(1, 10 ** 6)), "cm2": ("area", "metric", Fraction(1, 10 ** 4)),
+    "m2": ("area", "metric", Fraction(1)),
+    # time, in seconds; money, in cents
+    "s": ("time", "both", Fraction(1)), "min": ("time", "both", Fraction(60)), "h": ("time", "both", Fraction(3600)),
+    "day": ("time", "both", Fraction(86400)), "week": ("time", "both", Fraction(604800)),
+    "cent": ("money", "both", Fraction(1)), "usd": ("money", "both", Fraction(100)),
+}
+
+
+def size_of(unit: str) -> Fraction:
+    return UNIT_SIZE[unit][2]
+
+
+def within(v, a: str, b: str) -> Fraction:
+    """v of unit a in unit b, both of one system (or a unit both systems share)."""
+    assert UNIT_SIZE[a][0] == UNIT_SIZE[b][0], (a, b)
+    assert "both" in (UNIT_SIZE[a][1], UNIT_SIZE[b][1]) or UNIT_SIZE[a][1] == UNIT_SIZE[b][1], (a, b)
+    return Fraction(v) * size_of(a) / size_of(b)
+
+
+def across(v, a: str, b: str, p: str, k, q: str) -> Fraction:
+    """v of a in b, crossing the systems with the factor the question gives: 1 p = k q."""
+    k = Fraction(k)
+    if UNIT_SIZE[a][1] == UNIT_SIZE[p][1]:
+        return within(within(v, a, p) * k, q, b)
+    return within(within(v, a, q) / k, p, b)
+
+
+def units_given(v, a, b, p, k, q, rounded) -> Fraction:
+    exact_value = across(v, a, b, p, k, q)
+    return half_up(exact_value, 1) if rounded else exact_value
+
+
+def to_degrees(v, a: str, b: str, rounded) -> Fraction:
+    v = Fraction(v)
+    out = v * Fraction(9, 5) + 32 if (a, b) == ("C", "F") else (v - 32) * Fraction(5, 9)
+    return half_up(out, 1) if rounded else out
+
+
+def rate_of(v, top: str, bottom: str, top2: str, bottom2: str, given) -> Fraction:
+    if given:
+        # 1 mi = 1.61 km, as the question gives it; the hours are unchanged.
+        assert bottom == bottom2 == "h"
+        return half_up(across(v, top, top2, "mi", Fraction("1.61"), "km"), 0)
+    return within(v, top, top2) / within(1, bottom, bottom2)
+
+
+def rectangle_area(w, u, h, u2, sq: str) -> Fraction:
+    assert u == u2
+    return within(w, u, sq[:-1]) * within(h, u, sq[:-1])
+
+
+def which_is_more(a, ua: str, b, ub: str) -> str:
+    assert UNIT_SIZE[ua][0] == UNIT_SIZE[ub][0], (ua, ub)
+    qa, qb = Fraction(a) * size_of(ua), Fraction(b) * size_of(ub)
+    return "same" if qa == qb else "first" if qa > qb else "second"
+
+
+def which_is_warmer(a, ua: str, b, ub: str) -> str:
+    c = lambda v, u: Fraction(v) if u == "C" else (Fraction(v) - 32) * Fraction(5, 9)
+    ca, cb = c(a, ua), c(b, ub)
+    assert ca != cb
+    return "first" if ca > cb else "second"
+
+
+# Typical sizes, in meters, kilograms and liters, for judging an estimate.
+TYPICAL = {
+    "the height of a door": 2.03, "the length of a new pencil": 0.19, "the length of a car": 4.6,
+    "the width of a fingernail": 0.011, "the length of a football field": 91.44, "the height of a basketball hoop": 3.05,
+    "the distance run in a marathon": 42195, "the length of a paper clip": 0.032,
+    "the weight of an apple": 0.18, "the weight of a car": 1400, "the weight of a paper clip": 0.001,
+    "the weight of a newborn baby": 3.3, "the weight of a dictionary": 1.4, "the weight of a grain of rice": 0.000025,
+    "the water in a full bathtub": 280, "the juice in a glass": 0.24, "the gas a car’s tank holds": 55,
+    "the medicine in a teaspoon": 0.0049, "the milk in a large jug": 3.79,
+}
+TYPICAL_C = {
+    "a cold winter night": -10, "a room": 21, "a hot summer day": 34, "freezing water": 0, "boiling water": 100,
+    "a healthy person": 37, "a cup of hot cocoa": 68, "a fridge": 4, "an oven baking bread": 200,
+}
+
+
+# requiem: catalogue/content/units-familiarity-rows
+def nearest_estimate(what: str, listing: str) -> str:
+    true = TYPICAL[what]
+    off = {}
+    for item in listing.split(", "):
+        n, unit = item.split(" ")
+        size = float(n) * float(size_of(unit))
+        off[unit] = abs(math.log10(size / true))
+    ranked = sorted(off, key=off.get)
+    # Only a fair question: the right choice is close, and every other one far.
+    assert off[ranked[0]] < math.log10(1.7) and off[ranked[1]] > math.log10(2.5), (what, listing, off)
+    return ranked[0]
+
+
+def nearest_temperature(what: str, listing: str) -> str:
+    true = TYPICAL_C[what]
+    off = {}
+    for item in listing.split(", "):
+        v, unit = item.split(" ")
+        c = float(v) if unit == "C" else (float(v) - 32) * 5 / 9
+        off[v] = abs(c - true)
+    ranked = sorted(off, key=off.get)
+    assert off[ranked[0]] <= 3 and off[ranked[1]] >= 12, (what, listing, off)
+    return ranked[0]
+
+
+UNIT_NAME = r"([A-Za-z]+[23]?)"
+AMOUNT = r"(-?\d+(?:\.\d+)?)"
+
+BY_RULE += (
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"), within),
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} \+ {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"),
+     lambda v, a, w, b, c: within(v, a, c) + within(w, b, c)),
+    (re.compile(rf"^units: {AMOUNT} {UNIT_NAME} to {UNIT_NAME} given 1 {UNIT_NAME} = {AMOUNT} {UNIT_NAME}( to 1 dp)?$"), units_given),
+    (re.compile(rf"^temperature: {AMOUNT} ([CF]) to ([CF])( to 1 dp)?$"), to_degrees),
+    (re.compile(rf"^rate: {AMOUNT} {UNIT_NAME}/{UNIT_NAME} to {UNIT_NAME}/{UNIT_NAME}"
+                rf"( given 1 mi = 1\.61 km to the nearest whole)?$"), rate_of),
+    (re.compile(rf"^area: {AMOUNT} {UNIT_NAME} by {AMOUNT} {UNIT_NAME} to {UNIT_NAME}$"), rectangle_area),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^which is more: {AMOUNT} {UNIT_NAME} or {AMOUNT} {UNIT_NAME}$"), which_is_more),
+    (re.compile(rf"^which is warmer: {AMOUNT} ([CF]) or {AMOUNT} ([CF])$"), which_is_warmer),
+    (re.compile(r"^benchmark: ([^;]+); (.+)$"), nearest_estimate),
+    (re.compile(r"^benchmark temperature: ([^;]+); (.+)$"), nearest_temperature),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

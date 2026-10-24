@@ -1,5 +1,5 @@
 {
-  "built": 413,
+  "built": 421,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -522,6 +522,16 @@
       "area-and-volume-scale",
       "side-splitter",
       "altitude-to-hypotenuse",
+      "all-together"
+    ],
+    "units": [
+      "customary-length",
+      "customary-weight-and-capacity",
+      "metric-units",
+      "between-the-systems",
+      "temperature",
+      "unit-fractions",
+      "square-and-cubic-units",
       "all-together"
     ]
   },
@@ -1156,9 +1166,30 @@
           "roots"
         ]
       }
+    },
+    "units": {
+      "dependsOn": [
+        "area",
+        "decimals",
+        "frac-signed",
+        "ratio",
+        "volume"
+      ],
+      "levels": {
+        "temperature": [
+          "frac-signed"
+        ],
+        "unit-fractions": [
+          "ratio"
+        ],
+        "square-and-cubic-units": [
+          "area",
+          "volume"
+        ]
+      }
     }
   },
-  "sources": "fcadc56680afbeda2b2383008af643b605331be1e32579af86bec20753adcdd8",
+  "sources": "7a89664b3d0b062676668661b22a173a7e574a9e28729f00530242a77207dda0",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5289,6 +5320,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "similarity-7.json"
+    },
+    {
+      "skill": "units",
+      "level": 0,
+      "slug": "customary-length",
+      "name": "Customary Length",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-0.json"
+    },
+    {
+      "skill": "units",
+      "level": 1,
+      "slug": "customary-weight-and-capacity",
+      "name": "Customary Weight & Capacity",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-1.json"
+    },
+    {
+      "skill": "units",
+      "level": 2,
+      "slug": "metric-units",
+      "name": "Metric Units",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-2.json"
+    },
+    {
+      "skill": "units",
+      "level": 3,
+      "slug": "between-the-systems",
+      "name": "Between the Systems",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-3.json"
+    },
+    {
+      "skill": "units",
+      "level": 4,
+      "slug": "temperature",
+      "name": "Temperature",
+      "count": 782,
+      "exhaustive": false,
+      "signed": true,
+      "file": "units-4.json"
+    },
+    {
+      "skill": "units",
+      "level": 5,
+      "slug": "unit-fractions",
+      "name": "Unit Fractions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-5.json"
+    },
+    {
+      "skill": "units",
+      "level": 6,
+      "slug": "square-and-cubic-units",
+      "name": "Square & Cubic Units",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "units-6.json"
+    },
+    {
+      "skill": "units",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "units-7.json"
     }
   ]
 }

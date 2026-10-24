@@ -188,9 +188,11 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Fifty-five skills are built so far. They cover pre-algebra -- integer arithmetic
+Fifty-six skills are built so far. They cover pre-algebra -- integer arithmetic
 and absolute value, fractions, decimals, ratio and proportional relationships,
-powers, roots, scientific notation and the real numbers, expressions, and
+powers, roots, scientific notation and the real numbers, expressions,
+measurement in both US customary and metric units and converting
+between them, and
 equations and inequalities, including writing them from a situation, and
 compound inequalities and absolute value -- and all of the
 linear algebra after it: functions, slope, linear equations and their forms,

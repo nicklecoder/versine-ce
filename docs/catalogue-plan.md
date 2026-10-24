@@ -93,6 +93,16 @@ pre-algebra.
 Customary: in, ft, yd, mi; oz, lb, ton; fl oz, cup, pint, quart, gallon.
 Metric: mm, cm, m, km; mg, g, kg; mL, L. Cross-system factors are given in
 the question (1 in = 2.54 cm, 1 mi ≈ 1.61 km, 1 kg ≈ 2.2 lb, 1 gal ≈ 3.79 L).
+
+`units` is built, as Customary Length · Customary Weight & Capacity · Metric
+Units · Between the Systems · Temperature · Unit Fractions · Square & Cubic
+Units · All Together. It does not depend on `proportional`: a conversion
+here is read as a fact and a factor, and needs nothing of a constant of
+proportionality. Its edges are decimals, signed fractions (for Temperature),
+unit rate (for the rates) and the first levels of area and volume (for
+square and cubic units). Each level keeps a minority of choice rows that
+build a feel for size: which unit fits a familiar thing, and which of two
+amounts is more.
 Temperature is °F ↔ °C both ways, with the benchmarks 32/212 and 0/100.
 
 Every student-facing string uses US notation, dollars and cents, and US

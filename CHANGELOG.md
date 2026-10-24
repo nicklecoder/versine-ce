@@ -13,6 +13,15 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Units & Conversions**, a new skill under Area & Volume, in eight levels: customary
+length; customary weight and capacity; metric units; converting between the systems
+with the factor given; temperature in °F and °C; chains of unit fractions and rates
+(miles per hour into feet per second, dollars per pound into cents per ounce); and
+square and cubic units, where the length factor is squared or cubed. A few rows on
+each level ask which unit fits a familiar thing, or which of two amounts is more.
+`check-answers.py` re-derives every answer from its own exact unit table, built on
+the international definitions (1 in = 2.54 cm, 1 lb = 0.45359237 kg, 1 gal = 231 in³).
+
 **Scientific Notation**, a new skill under Powers & Roots, in eight levels: writing big
 and small numbers, reading them back, tidying an untidy front number, comparing,
 multiplying and dividing, and adding and taking away. `check-answers.py` re-derives
