@@ -3214,6 +3214,176 @@ CHOICE_RULES += (
     (re.compile(r"^missing for (SSS|SAS|ASA|AAS|HL): ABC = [A-Z]{3}; (.+)$"), missing_fact),
 )
 
+# --- Similar Figures ---------------------------------------------------------
+#
+# Worked from the statement and the numbers: the scale factor is one
+# triangle's side over the side it matches, read through the letters; a
+# missing side is its match times that factor; similarity is tested by
+# third angles, by sorted side ratios, or by two side ratios and the angle
+# between; a scale multiplies out and divides back; areas go by k² and
+# volumes by k³; a parallel line splits two sides in one ratio t = AD/AB;
+# and the altitude to the hypotenuse gives CD² = AD·DB and AC² = AD·AB.
+
+NAMED_LENGTH = re.compile(r"^(angle [A-Z]|[A-Z]{2}) (\d+(?:\.\d+)?)$")
+
+
+def named_lengths(listing: str) -> list:
+    out = []
+    for item in listing.split(", "):
+        m = NAMED_LENGTH.match(item)
+        assert m, item
+        out.append((m[1], Fraction(m[2])))
+    return out
+
+
+def in_first(name: str) -> bool:
+    return set(name) <= set("ABC")
+
+
+def factor_from(statement: str, parts: list) -> Fraction:
+    """Second triangle over first, from the one given pair that matches."""
+    pairs = [(v1, v2) for n1, v1 in parts if in_first(n1)
+             for n2, v2 in parts if not in_first(n2) and same_part(partner_of(statement, n1), n2)]
+    assert len(pairs) == 1, (statement, parts)
+    v1, v2 = pairs[0]
+    return v2 / v1
+
+
+def scale_factor(statement: str, listing: str, start: str) -> Fraction:
+    k = factor_from(statement, named_lengths(listing))
+    return k if start == "ABC" else 1 / k
+
+
+def similar_missing(statement: str, listing: str, asked: str) -> Fraction:
+    parts = named_lengths(listing)
+    k = factor_from(statement, parts)
+    if in_first(asked):
+        match = partner_of(statement, asked)
+        return next(v for n, v in parts if same_part(n, match)) / k
+    back = {c: "ABC"[i] for i, c in enumerate(statement)}
+    match = "".join(back[c] for c in asked)
+    return next(v for n, v in parts if same_part(n, match)) * k
+
+
+def similar_by_angles(listing: str) -> str:
+    (a, b), (c, d) = ([int(v) for v in half.split(", ")] for half in listing.split("; "))
+    return "yes" if sorted([a, b, 180 - a - b]) == sorted([c, d, 180 - c - d]) else "no"
+
+
+def similar_by_sides(listing: str) -> str:
+    one, two = (sorted(Fraction(v) for v in half.split(", ")) for half in listing.split("; "))
+    return "yes" if len({q / p for p, q in zip(one, two)}) == 1 else "no"
+
+
+def similar_by_sas(c1, b1, a1, c2, b2, a2) -> str:
+    c1, b1, c2, b2 = (Fraction(v) for v in (c1, b1, c2, b2))
+    if a1 != a2:
+        return "no"
+    # The angle sits between the two sides either way round, so either pairing will do.
+    return "yes" if c2 / c1 == b2 / b1 or c2 / b1 == b2 / c1 else "no"
+
+
+def scale_out_back(per: str, unit: str, length: str, way: str) -> Fraction:
+    per, length = Fraction(per), Fraction(length)
+    return length * per if way == "out" else length / per
+
+
+def scale_model(n: int, model: str, unit: str) -> Fraction:
+    real = Fraction(model) * n
+    return real / 100 if unit == "m" else real
+
+
+def area_scale(what: str, k: str, amount: str, which: str) -> Fraction:
+    power = 2 if what == "area" else 3
+    grow = Fraction(k) ** power
+    return Fraction(amount) * grow if which == "larger" else Fraction(amount) / grow
+
+
+def fraction_root(x: Fraction, n: int) -> Fraction:
+    def r(v):
+        g = round(v ** (1 / n))
+        for c in (g - 1, g, g + 1):
+            if c ** n == v:
+                return c
+        raise AssertionError((x, n))
+    return Fraction(r(x.numerator), r(x.denominator))
+
+
+def length_from(what: str, a: str, b: str, side: str = None) -> Fraction:
+    k = fraction_root(Fraction(b) / Fraction(a), 2 if what == "areas" else 3)
+    return k if side is None else Fraction(side) * k
+
+
+def side_splitter(listing: str, asked: str) -> Fraction:
+    v = dict(named_lengths(listing))
+    if "AD" in v and "DB" in v:
+        t = v["AD"] / (v["AD"] + v["DB"])          # AD/AB, the same for AE/AC and DE/BC
+    else:
+        t = v["DE"] / v["BC"]
+    if asked == "EC":
+        return v["AE"] / t - v["AE"]
+    if asked == "AE":
+        return v["EC"] / (1 - t) * t
+    if asked == "DE":
+        return v["BC"] * t
+    return v["AD"] / t - v["AD"]                  # DB
+
+
+def altitude_part(listing: str, asked: str) -> Fraction:
+    v = dict(named_lengths(listing))
+    sq = lambda x: fraction_root(x, 2)
+    rules = [
+        ("AB", ("AD", "DB"), lambda d: d["AD"] + d["DB"]),
+        ("DB", ("AB", "AD"), lambda d: d["AB"] - d["AD"]),
+        ("AD", ("AB", "DB"), lambda d: d["AB"] - d["DB"]),
+        ("CD", ("AD", "DB"), lambda d: sq(d["AD"] * d["DB"])),
+        ("DB", ("CD", "AD"), lambda d: d["CD"] ** 2 / d["AD"]),
+        ("AD", ("CD", "DB"), lambda d: d["CD"] ** 2 / d["DB"]),
+        ("AC", ("AD", "AB"), lambda d: sq(d["AD"] * d["AB"])),
+        ("AD", ("AC", "AB"), lambda d: d["AC"] ** 2 / d["AB"]),
+        ("BC", ("DB", "AB"), lambda d: sq(d["DB"] * d["AB"])),
+        ("DB", ("BC", "AB"), lambda d: d["BC"] ** 2 / d["AB"]),
+    ]
+    # A length on the way that is not a whole root (CD when only AC is asked)
+    # is left out rather than guessed at; the answer must not need it.
+    tried = set()
+    while asked not in v:
+        found = next(((k, out, fn) for k, (out, ins, fn) in enumerate(rules)
+                      if k not in tried and out not in v and all(i in v for i in ins)), None)
+        assert found, (listing, asked)
+        k, out, fn = found
+        tried.add(k)
+        try:
+            v[out] = fn(v)
+        except AssertionError:
+            continue
+    return v[asked]
+
+
+NUMBER = r"(\d+(?:\.\d+)?)"
+
+BY_RULE += (
+    (re.compile(r"^scale factor: ABC ~ ([A-Z]{3}); (.+); from (ABC|[A-Z]{3})$"), scale_factor),
+    (re.compile(r"^similar missing: ABC ~ ([A-Z]{3}); (.+); find ([A-Z]{2})$"), similar_missing),
+    (re.compile(rf"^scale drawing: 1 cm = {NUMBER} (km|m); {NUMBER} (?:cm|km|m) (out|back)$"), scale_out_back),
+    (re.compile(rf"^scale drawing: (\d+) cm = {NUMBER} (?:km|m); per cm$"), lambda n, real: Fraction(real) / n),
+    (re.compile(rf"^scale model: 1:(\d+); {NUMBER} cm; in (m|cm)$"), scale_model),
+    (re.compile(rf"^scale area: 1 cm = {NUMBER} m; {NUMBER} cm by {NUMBER} cm$"),
+     lambda per, w, h: Fraction(w) * Fraction(per) * Fraction(h) * Fraction(per)),
+    (re.compile(rf"^(area|volume) scale: factor {NUMBER}; (?:area|volume) {NUMBER}; (larger|smaller)$"), area_scale),
+    (re.compile(rf"^length from (areas|volumes): {NUMBER}, {NUMBER}$"), length_from),
+    (re.compile(rf"^side from (areas|volumes): {NUMBER}, {NUMBER}; side {NUMBER}$"), length_from),
+    (re.compile(r"^side splitter: (.+); find (EC|AE|DE|DB)$"), side_splitter),
+    (re.compile(r"^altitude: (.+); find (AD|DB|CD|AC|BC)$"), altitude_part),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^similar aa: (\d+, \d+; \d+, \d+)$"), similar_by_angles),
+    (re.compile(rf"^similar sss: ({NUMBER}, {NUMBER}, {NUMBER}; {NUMBER}, {NUMBER}, {NUMBER})$"),
+     lambda listing, *_: similar_by_sides(listing)),
+    (re.compile(rf"^similar sas: {NUMBER}, {NUMBER}, angle (\d+); {NUMBER}, {NUMBER}, angle (\d+)$"), similar_by_sas),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

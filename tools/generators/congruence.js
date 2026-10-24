@@ -25,19 +25,19 @@ import {
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/congruence.js';
 
 const RESULT = 'var(--result)';
-const ABC = 'ABC';
-const SECOND = ['DEF', 'PQR', 'XYZ', 'JKL', 'RST', 'LMN'];
-const SIDES = [[0, 1], [1, 2], [2, 0]];
-const PERMS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+export const ABC = 'ABC';
+export const SECOND = ['DEF', 'PQR', 'XYZ', 'JKL', 'RST', 'LMN'];
+export const SIDES = [[0, 1], [1, 2], [2, 0]];
+export const PERMS = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
 const num = (v) => minus(String(v));
 const deg = (v) => `${v}°`;
 const third = (i, j) => 3 - i - j;
 /** The side between corners i and j, written in the order they come round: AB, BC, CA. */
-const sideName = (names, i, j) => ((j - i + 3) % 3 === 1 ? names[i] + names[j] : names[j] + names[i]);
+export const sideName = (names, i, j) => ((j - i + 3) % 3 === 1 ? names[i] + names[j] : names[j] + names[i]);
 const sideKey = (i, j) => sideName(ABC, i, j);
 
 /** Three different angles, none tiny and none right, far enough apart to tell by eye. */
-function scalene(rng, top = 105) {
+export function scalene(rng, top = 105) {
   for (;;) {
     const a = rng.int(32, top), b = rng.int(32, top), c = 180 - a - b;
     const all = [a, b, c];
@@ -47,7 +47,7 @@ function scalene(rng, top = 105) {
   }
 }
 /** Whole sides of a scalene triangle, no angle under about 25°. */
-function wholeSides(rng) {
+export function wholeSides(rng) {
   for (;;) {
     const s = [rng.int(4, 16), rng.int(4, 16), rng.int(4, 16)];
     if (new Set(s).size < 3) continue;
@@ -65,19 +65,19 @@ function wholeSides(rng) {
  * placed at random; the second its copy turned and maybe flipped, beside
  * it, corner i lettered by the matching `perm`.
  */
-function pair(rng, P, { second = rng.pick(SECOND), perm = rng.pick(PERMS.slice(1)) } = {}) {
+export function pair(rng, P, { second = rng.pick(SECOND), perm = rng.pick(PERMS.slice(1)), scale = 1 } = {}) {
   const turn = rng.pick([45, 60, 90, 120, 150, 180, 210, 240, 270, 300]) + rng.int(-10, 10), flip = rng.chance(0.5);
-  const Q = beside(P, P, { turn, flip });
+  const Q = beside(P, P, { turn, flip, scale });
   const names2 = perm.map((k) => second[k]);
   return { P, Q, second, perm, names2, flip, statement: names2.join('') };
 }
 /** The corners of ABC laid out from three positions, so A is not always bottom left. */
-function placed(rng, points, angles) {
+export function placed(rng, points, angles) {
   const order = rng.shuffle([0, 1, 2]);
   return { P: order.map((k) => points[k]), angles: angles && order.map((k) => angles[k]) };
 }
 /** A scalene triangle with whole sides, its corners placed at random: P, and L its sides AB, BC, CA. */
-function sided(rng) {
+export function sided(rng) {
   const lens = wholeSides(rng), pts = fromSides(...lens);
   const { P } = placed(rng, pts);
   const L = SIDES.map(([i, j]) => {
@@ -87,7 +87,7 @@ function sided(rng) {
   return { P, L };
 }
 /** A scalene triangle from its angles, its corners placed at random: P, and the angle at each corner. */
-function angled(rng, angles = scalene(rng)) {
+export function angled(rng, angles = scalene(rng)) {
   return placed(rng, fromAngles(angles[0], angles[1]), angles);
 }
 
@@ -101,17 +101,17 @@ function partMarks(T, part, n, tone) {
 const partKey = (part) => (part.side ? sideKey(...part.side) : `${part.right !== undefined ? 'right angle' : 'angle'} ${ABC[part.angle ?? part.right]}`);
 const partWords = (names, part) => (part.side ? sideName(names, ...part.side) : `∠${names[part.angle ?? part.right]}`);
 
-function drawing(f, marks, reveal) {
+export function drawing(f, marks, reveal, k = 1.15) {
   const { P, Q, names2 } = f;
   return fit({ ...FRAME, marks: [...outline(P), ...outline(Q), ...cornerNames(P, ABC), ...cornerNames(Q, names2), ...marks],
-    answer: reveal }, 1.15);
+    answer: reveal }, k);
 }
 /** The same part marked on both triangles: corner i of the first is corner i of the second. */
 const both = (f, part, n, tone = LINE) => [...partMarks(f.P, part, n, tone), ...partMarks(f.Q, part, n, tone)];
-const matching = (f) => [0, 1, 2].map((i) => `${ABC[i]}↔${f.names2[i]}`).join(', ');
+export const matching = (f) => [0, 1, 2].map((i) => `${ABC[i]}↔${f.names2[i]}`).join(', ');
 
 /** Solving a1·x + b1 = a2·x + b2, written out. */
-function solve(e1, e2) {
+export function solve(e1, e2) {
   const a1 = e1[0], a2 = e2[0];
   const [hi, lo] = a1 > a2 ? [e1, e2] : [e2, e1];
   const a = hi[0] - lo[0], rhs = lo[1] - hi[1], x = rhs / a;

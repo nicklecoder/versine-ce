@@ -1,5 +1,5 @@
 {
-  "built": 405,
+  "built": 413,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -512,6 +512,16 @@
       "the-missing-fact",
       "isosceles-and-equilateral",
       "use-the-congruence",
+      "all-together"
+    ],
+    "similarity": [
+      "scale-factor",
+      "missing-side",
+      "similar-or-not",
+      "scale-drawings",
+      "area-and-volume-scale",
+      "side-splitter",
+      "altitude-to-hypotenuse",
       "all-together"
     ]
   },
@@ -1134,9 +1144,21 @@
         "triangle-angles"
       ],
       "levels": {}
+    },
+    "similarity": {
+      "dependsOn": [
+        "congruence",
+        "ratio",
+        "roots"
+      ],
+      "levels": {
+        "altitude-to-hypotenuse": [
+          "roots"
+        ]
+      }
     }
   },
-  "sources": "4aa5eb1c119b60ddbacecde55095b042b66a88f76cc70a74805946b13894324d",
+  "sources": "013493d7abe8468035f16a74892147be061338d650dedf4c2d3cbe8ad3986319",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5187,6 +5209,86 @@
       "exhaustive": false,
       "signed": false,
       "file": "congruence-7.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 0,
+      "slug": "scale-factor",
+      "name": "Scale Factor",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-0.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 1,
+      "slug": "missing-side",
+      "name": "Missing Side",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-1.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 2,
+      "slug": "similar-or-not",
+      "name": "Similar or Not?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-2.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 3,
+      "slug": "scale-drawings",
+      "name": "Scale Drawings",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-3.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 4,
+      "slug": "area-and-volume-scale",
+      "name": "Area & Volume Scale",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-4.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 5,
+      "slug": "side-splitter",
+      "name": "Side Splitter",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-5.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 6,
+      "slug": "altitude-to-hypotenuse",
+      "name": "Altitude to Hypotenuse",
+      "count": 131,
+      "exhaustive": true,
+      "signed": false,
+      "file": "similarity-6.json"
+    },
+    {
+      "skill": "similarity",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "similarity-7.json"
     }
   ]
 }

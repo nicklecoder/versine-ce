@@ -184,6 +184,11 @@ the Congruence · All Together. Not Enough (SSA) became Enough or Not, which
 mixes SSA and AAA with the criteria that do work, so the choice is a real
 one; its SSA triangles are always the ambiguous case. Naming the congruence
 and the missing fact are added for TEKS G.6B's applying the criteria.
+`similarity` is built, as Scale Factor · Missing Side · Similar or Not? ·
+Scale Drawings · Area & Volume Scale · Side Splitter · Altitude to
+Hypotenuse · All Together. AA or Not became Similar or Not?, which asks SSS
+and SAS similarity beside AA (G-SRT.5). Only the altitude level
+takes a square root, and it depends on roots' Perfect Squares.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

@@ -170,6 +170,13 @@ with the other order worked out when it differs; and naming a move from its pict
 calling a rule or a sequence congruent, similar or neither. Each corner is asked about on a
 drawn triangle, and the image arrives with the answer.
 
+**Similar Figures** (Shapes), in eight levels: the scale factor between similar triangles,
+either way round, from the one pair of sides that matches; a missing side; similar or not,
+by two angles, three side ratios, or two ratios and the angle between; scale drawings,
+maps and models, there and back, and a real area from a plan; areas by k² and volumes by
+k³, and the length factor back from them; the side splitter, by pieces and by the whole
+side; and the altitude to the hypotenuse as a geometric mean.
+
 **Congruent Triangles**, the first skill under Shapes, in eight levels: corresponding
 sides and angles read from a congruence statement, the second triangle turned and often
 flipped; naming the congruence from tick and arc marks; choosing SSS, SAS, ASA, AAS or HL;
