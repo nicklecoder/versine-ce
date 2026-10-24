@@ -33,7 +33,7 @@ export const LEVELS = [
     dependsOn: [{ skill: 'pythagoras', level: 3 }] },
   { name: '30-60-90', slug: '30-60-90', libraryCap: 400,
     blurb: 'Short leg s, hypotenuse 2s, long leg s√3: the long leg faces the 60°.' },
-  { name: 'Complementary sin/cos', slug: 'complementary-sin-cos',
+  { name: 'Complementary sin/cos', slug: 'complementary-sin-cos', libraryCap: 500,
     blurb: 'The acute angles add to 90°, and sin A = cos B: one angle\'s opposite is the other\'s adjacent.' },
   { name: 'Elevation & Bearings', slug: 'elevation-and-bearings', libraryCap: 500,
     blurb: 'Heights, distances and courses: draw the right triangle, then it is a missing side or angle.' },

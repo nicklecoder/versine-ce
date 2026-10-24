@@ -24,7 +24,7 @@ export const LEVELS = [
   { name: 'Coterminal Angles', slug: 'coterminal-angles',
     blurb: 'Add or take away whole turns, 360° or 2π, until the angle lands in one turn.' },
   { name: 'Reference Angles', slug: 'reference-angles', libraryCap: 400,
-    blurb: 'The acute angle to the x-axis: 180° − θ in quadrant II, θ − 180° in III, 360° − θ in IV.' },
+    blurb: 'The acute angle to the x-axis: 180° − θ in quadrant II, θ − 180° in III, 360° − θ in IV, once whole turns are off.' },
   { name: 'Arc Length s = rθ', slug: 'arc-length',
     blurb: 'With θ in radians, the arc is the radius times the angle. Convert degrees first.',
     // Arc length as a fraction of the circumference is circles' Arc Length.
@@ -54,8 +54,8 @@ export default {
   glyph: 'π/6',
   blurb: 'Degrees and radians, coterminal and reference angles, arc length and sector area in radians, and angular speed.',
   answerInput: 'frac',
-  // Arcs and sectors as a share of the circle are circles' work, and the
-  // reference angle is the acute angle of a right triangle (trig-ratios).
-  dependsOn: ['circles', 'trig-ratios'],
+  // Arcs and sectors as a share of the circle are circles' work. Nothing
+  // here takes a sine or a cosine, so trig-ratios is not needed first.
+  dependsOn: ['circles'],
   levels: LEVELS,
 };

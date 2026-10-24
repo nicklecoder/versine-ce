@@ -63,7 +63,8 @@ const SUP = { 2: '²', 3: '³', 4: '⁴' };
 const FNS = '(sin|cos|tan|sec|csc|cot)';
 /** The expression as the student reads it: sin²θ + cos²θ, 2 sin θ cos θ, sin(π/2 − θ). */
 function pretty(s, angle = null) {
-  let out = s.replace(/pi/g, 'π');
+  // A single token goes bare, sin π; a compound one keeps its brackets, sin(π/2 − θ).
+  let out = s.replace(new RegExp(`${FNS}\\(pi\\)`, 'g'), '$1 π').replace(/pi/g, 'π');
   out = out.replace(new RegExp(`${FNS}\\(t\\)\\^(\\d)`, 'g'), (_, f, n) => `${f}${SUP[n]}θ`);
   out = out.replace(new RegExp(`${FNS}\\((\\d+)\\*t\\)\\^(\\d)`, 'g'), (_, f, k, n) => `${f}${SUP[n]}${k}θ`);
   out = out.replace(new RegExp(`${FNS}\\(([^()]*)\\)\\^(\\d)`, 'g'), (_, f, x, n) => `${f}${SUP[n]}(${x})`);
@@ -79,37 +80,41 @@ function pretty(s, angle = null) {
   return out;
 }
 
-/** Fill a template's K: K*sin(t) is sin(t) at 1 and 3*sin(t) at 3. */
-const fill = (template, k) => template.replace(/K\*/g, k === 1 ? '' : `${k}*`).replace(/K/g, String(k));
+/** Fill a template's K (and D, twice K): K*sin(t) is sin(t) at 1 and 3*sin(t) at 3. */
+const fill = (template, k) => template.replace(/D\*/g, `${2 * k}*`).replace(/D/g, String(2 * k))
+  .replace(/K\*/g, k === 1 ? '' : `${k}*`).replace(/K/g, String(k));
 /** −e, written: −K*sin(t) for K*sin(t), and back. */
 const negate = (e) => (e.startsWith('-') ? e.slice(1) : e === '0' ? '0' : `-${e}`);
 
 // requiem: catalogue/content/identity-choices-have-one-equal-option
+// requiem: catalogue/content/identity-decoys-are-misconceptions
 /**
- * A choice of four: the answer, its negative where that differs, and the
- * rest from the pool, none equal to the expression or to each other.
+ * A choice of four: the answer and three options not equal to it, taken
+ * first from the misconceptions this expression invites (2 sin θ for
+ * sin 2θ), then its negative, then the general pool. None equals the
+ * expression or another option.
  */
-function choices(rng, expr, answer, pool) {
+function choices(rng, expr, answer, pool, targeted = []) {
   const wrong = [];
   const fits = (e) => !same(e, expr) && !wrong.some((w) => same(w, e)) && !/NaN/.test(String(fnOf(e)(1)));
-  const neg = negate(answer);
-  if (fits(neg)) wrong.push(neg);
-  for (const e of rng.shuffle(pool)) if (wrong.length < 3 && fits(e)) wrong.push(e);
+  for (const e of [...rng.shuffle(targeted), negate(answer), ...rng.shuffle(pool)]) if (wrong.length < 3 && fits(e)) wrong.push(e);
   if (wrong.length < 3) return null;
   const all = rng.shuffle([answer, ...wrong]);
   return { opts: all.map((e, i) => ({ id: optionIds[i], e })), right: optionIds[all.indexOf(answer)] };
 }
 
-function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = 'Simplify' } = {}) {
+function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = 'Simplify', ask = null } = {}) {
   for (;;) {
     const [template, answerT, why, trap] = rng.pick(bank);
     const k = rng.pick(ks);
     const expr = fill(template, k), answer = fill(answerT, k);
     if (!same(expr, answer)) throw new Error(`${expr} is not ${answer}`);
-    const c = choices(rng, expr, answer, pool.map((p) => fill(p, k)));
+    const targeted = (DECOYS[template] ?? []).map((p) => fill(p, k));
+    if (!DECOYS[template]) throw new Error(`no targeted decoys for ${template}`);
+    const c = choices(rng, expr, answer, pool.map((p) => fill(p, k)), targeted);
     if (!c) continue;
     return {
-      prompt: [T.prose(`${lead}: ${pretty(expr)}`)],
+      prompt: [T.prose(ask ? ask(pretty(expr)) : `${lead}: ${pretty(expr)}`)],
       text: `trig simplify: ${expr}; options ${c.opts.map((o) => `${o.id}: ${o.e}`).join(' | ')}`,
       answer: { type: 'choice', value: c.right, options: c.opts.map((o) => ({ id: o.id, label: pretty(o.e) })) },
       visual: null,
@@ -117,6 +122,102 @@ function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = '
     };
   }
 }
+
+/**
+ * The slips each expression invites, by its template: a dropped square, the
+ * cofunction or reciprocal swapped in, a sign flipped, a 2 put in the wrong
+ * place. They come before the general pool, so most options are a mistake
+ * a student actually makes, not filler.
+ */
+const DECOYS = {
+  // Pythagorean
+  'K - K*sin(t)^2': ['K*cos(t)', '-K*cos(t)^2', 'K*sin(t)^2', 'K*tan(t)^2'],
+  'K - K*cos(t)^2': ['-K*sin(t)^2', 'K*sin(t)', 'K*cos(t)^2', 'K*cot(t)^2'],
+  'K*sec(t)^2 - K': ['K*cot(t)^2', 'K*tan(t)', '-K*tan(t)^2', 'K*cos(t)^2'],
+  'K*csc(t)^2 - K': ['K*tan(t)^2', 'K*cot(t)', '-K*cot(t)^2', 'K*sin(t)^2'],
+  'K + K*tan(t)^2': ['K', 'K*csc(t)^2', 'K*sec(t)', 'K*cos(t)^2'],
+  'K + K*cot(t)^2': ['K*sec(t)^2', 'K', 'K*csc(t)', 'K*sin(t)^2'],
+  'K*sin(t)^2 + K*cos(t)^2': ['D', '0', '-K'],
+  'K*sec(t)^2 - K*tan(t)^2': ['0', '-K', 'K*cos(t)^2'],
+  'K*csc(t)^2 - K*cot(t)^2': ['-K', '0', 'K*sin(t)^2'],
+  'K*(1 - cos(t))*(1 + cos(t))': ['K*cos(t)^2', '-K*sin(t)^2', 'K*sin(t)'],
+  'K*(1 - sin(t))*(1 + sin(t))': ['K*sin(t)^2', '-K*cos(t)^2', 'K*cos(t)'],
+  'K*cos(t)^2 - K': ['K*sin(t)^2', '-K*cos(t)^2', '-K*sin(t)'],
+  'K*sin(t)^2 - K': ['K*cos(t)^2', '-K*sin(t)^2', '-K*cos(t)'],
+  'K*tan(t)^2 - K*sec(t)^2': ['K', '0', '-K*tan(t)^2'],
+  'K*(sec(t) - 1)*(sec(t) + 1)': ['K*sec(t)^2', 'K*cot(t)^2', '-K*tan(t)^2'],
+  'K*cos(t)^2*(1 + tan(t)^2)': ['K*sin(t)^2', 'K*sec(t)^2', '0'],
+  // Reciprocal & Quotient
+  'K*sin(t)*csc(t)': ['K*sin(t)^2', '-K', 'K*csc(t)^2'],
+  'K*cos(t)*sec(t)': ['K*cos(t)^2', '-K', 'K*tan(t)'],
+  'K*tan(t)*cot(t)': ['K*tan(t)^2', '-K', '0'],
+  'K*sin(t)/cos(t)': ['K*cot(t)', '-K*tan(t)', 'K*sec(t)'],
+  'K*cos(t)/sin(t)': ['K*tan(t)', '-K*cot(t)', 'K*csc(t)'],
+  'K*cos(t)*tan(t)': ['K*cos(t)', '-K*sin(t)', 'K*sec(t)'],
+  'K*sin(t)*cot(t)': ['K*sin(t)', '-K*cos(t)', 'K*csc(t)'],
+  'K*sin(t)*sec(t)': ['K*cot(t)', 'K', '-K*tan(t)'],
+  'K*cos(t)*csc(t)': ['K*tan(t)', 'K', '-K*cot(t)'],
+  'K*sec(t)/csc(t)': ['K*cot(t)', 'K', '-K*tan(t)'],
+  'K*csc(t)/sec(t)': ['K*tan(t)', 'K', '-K*cot(t)'],
+  'K*tan(t)/sin(t)': ['K*cos(t)', 'K*csc(t)', '-K*sec(t)'],
+  'K*cot(t)/cos(t)': ['K*sin(t)', 'K*sec(t)', '-K*csc(t)'],
+  'K/sec(t)': ['K*sec(t)', 'K*sin(t)', '-K*cos(t)'],
+  'K/cot(t)': ['K*cot(t)', '-K*tan(t)', 'K*cos(t)'],
+  'K*sin(t)/tan(t)': ['K*sec(t)', '-K*cos(t)', 'K*cot(t)'],
+  'K*tan(t)*csc(t)': ['K*csc(t)', 'K*cos(t)', '-K*sec(t)'],
+  'K*cot(t)*sec(t)': ['K*sec(t)', 'K*sin(t)', '-K*csc(t)'],
+  // Even & Odd
+  'K*sin(-t)': ['K*sin(t)', '-K*cos(t)', 'K*cos(t)'],
+  'K*cos(-t)': ['-K*cos(t)', 'K*sin(t)', '-K*sin(t)'],
+  'K*tan(-t)': ['K*tan(t)', '-K*cot(t)', 'K*cot(t)'],
+  'K*sin(-t)*cos(-t)': ['K*sin(t)*cos(t)', '0', 'K*sin(t)^2'],
+  'K*sin(-t)/cos(-t)': ['K*tan(t)', '-K*cot(t)', 'K*cot(t)'],
+  'K*cos(-t)*sec(t)': ['-K', '0', 'K*cos(t)^2'],
+  'K*tan(-t)*cot(t)': ['K', '0', '-K*tan(t)^2'],
+  'K*sin(-t)^2': ['-K*sin(t)^2', 'K*cos(t)^2', '-K*cos(t)^2'],
+  'K*sin(-t) + K*sin(t)': ['D*sin(t)', '-D*sin(t)', 'K'],
+  'K*cos(-t) - K*cos(t)': ['-D*cos(t)', 'D*cos(t)', '-K'],
+  'K*csc(-t)*sin(t)': ['K', '0', '-K*sin(t)'],
+  'K*sec(-t)': ['-K*sec(t)', 'K*csc(t)', '-K*csc(t)'],
+  'K*cot(-t)': ['K*cot(t)', '-K*tan(t)', 'K*tan(t)'],
+  'K*cos(-t)^2 + K*sin(-t)^2': ['-K', '0', 'D'],
+  '-K*sin(-t)': ['-K*sin(t)', 'K*cos(t)', '-K*cos(t)'],
+  // Cofunction
+  'K*sin(pi/2 - t)': ['-K*cos(t)', 'K*sin(t)', '-K*sin(t)'],
+  'K*cos(pi/2 - t)': ['-K*sin(t)', 'K*cos(t)', '-K*cos(t)'],
+  'K*tan(pi/2 - t)': ['K*tan(t)', '-K*cot(t)', '-K*tan(t)'],
+  'K*cot(pi/2 - t)': ['K*cot(t)', '-K*tan(t)', '-K*cot(t)'],
+  'K*sec(pi/2 - t)': ['K*sec(t)', '-K*csc(t)', 'K*sin(t)'],
+  'K*csc(pi/2 - t)': ['K*csc(t)', '-K*sec(t)', 'K*cos(t)'],
+  'K*sin(pi/2 - t)*sec(t)': ['K*tan(t)', '-K', 'K*cos(t)^2'],
+  'K*cos(pi/2 - t)/sin(t)': ['K*cot(t)', '-K', '0'],
+  'K*sin(pi/2 - t)/sin(t)': ['K', 'K*tan(t)', '-K*cot(t)'],
+  'K*cos(pi/2 - t)/cos(t)': ['K', 'K*cot(t)', '-K*tan(t)'],
+  'K*tan(pi/2 - t)*tan(t)': ['K*tan(t)^2', '-K', 'K*cot(t)^2'],
+  'K*sec(pi/2 - t)*sin(t)': ['K*tan(t)', '-K', 'K*sin(t)^2'],
+  'K*csc(pi/2 - t)*cos(t)': ['K*cot(t)', '-K', 'K*cos(t)^2'],
+  'K*cot(pi/2 - t)*cos(t)': ['K*cos(t)', '-K*sin(t)', 'K*csc(t)'],
+  // Double Angle
+  '2*sin(t)*cos(t)': ['2*sin(t)', 'cos(2*t)', '-sin(2*t)', '2*sin(2*t)'],
+  'cos(t)^2 - sin(t)^2': ['1', '-cos(2*t)', 'sin(2*t)', '2*cos(t)'],
+  '1 - 2*sin(t)^2': ['-cos(2*t)', 'sin(2*t)', 'cos(t)^2', '2*cos(2*t)'],
+  '2*cos(t)^2 - 1': ['-cos(2*t)', 'sin(2*t)', 'cos(t)^2', '2*cos(2*t)'],
+  '(2*tan(t))/(1 - tan(t)^2)': ['2*tan(t)', 'sin(2*t)', '-tan(2*t)'],
+  '4*sin(t)*cos(t)': ['sin(4*t)', '4*sin(2*t)', 'sin(2*t)', '2*sin(t)'],
+  'sin(2*t)/(2*cos(t))': ['tan(t)', 'cos(t)', '-sin(t)', 'sin(t)^2'],
+  'sin(2*t)/sin(t)': ['2', 'cos(t)', '2*sin(t)', '2*cos(2*t)'],
+  '6*sin(t)*cos(t)': ['sin(6*t)', '6*sin(2*t)', '3*sin(t)', '3*cos(2*t)'],
+  '2*sin(3*t)*cos(3*t)': ['2*sin(3*t)', 'sin(3*t)', 'cos(6*t)', '2*sin(6*t)'],
+  'cos(2*t)/(cos(t) - sin(t))': ['cos(t) - sin(t)', '1', '-cos(t) - sin(t)', 'sin(t) - cos(t)'],
+  '(cos(t) + sin(t))^2 - 1': ['0', '2*sin(2*t)', 'cos(2*t)', '-sin(2*t)'],
+  '2 - 4*sin(t)^2': ['cos(4*t)', 'cos(2*t)', '-2*cos(2*t)', '2*sin(2*t)'],
+  'cos(2*t) + 2*sin(t)^2': ['1 + 4*sin(t)^2', 'cos(2*t)', '0', '-1'],
+  // Double Angle, read the other way: which form equals the double angle
+  'cos(2*t)': ['1 + 2*sin(t)^2', '2*sin(t)^2 - 1', '1 - 2*cos(t)^2', '2*cos(t)^2 + 1', 'sin(t)^2 - cos(t)^2', '2*cos(t)'],
+  'sin(2*t)': ['2*sin(t)', 'sin(t)*cos(t)', '-2*sin(t)*cos(t)', '2*sin(t)^2', 'cos(t)^2 - sin(t)^2'],
+  'sin(4*t)': ['4*sin(t)*cos(t)', '2*sin(2*t)', '4*sin(2*t)*cos(2*t)', '2*sin(t)*cos(t)'],
+  'tan(2*t)': ['2*tan(t)', '(2*tan(t))/(1 + tan(t)^2)', 'tan(t)/(1 - tan(t)^2)', '(2*tan(t))/(1 - tan(t))'],
+};
 
 // ── Fractions, and the sides of a reference triangle ────────────────────
 
@@ -181,7 +282,9 @@ function pythagorean(rng) {
     return {
       prompt: [T.prose(`Without a calculator, find ${pretty(e, `${deg}°`)}.`)],
       text: `identity value: ${e} at ${deg}`,
-      answer: { type: 'int', value: v },
+      // requiem: catalogue/content/one-input-per-level
+      // The roots box, as for every number on this level, so the box says nothing about the answer.
+      answer: rootAnswer('x', v, 1, 1),
       visual: null,
       explain: `Group the squares: ${words.replace(/θ/g, `${deg}°`)} = ${v}. (The angle does not matter; working out sin ${deg}° on a calculator and squaring only adds rounding.) So ${v}.`,
     };
@@ -202,9 +305,9 @@ function pythagorean(rng) {
   const vText = s === 1 ? ft(F(sWant * k, den)) : `${sWant < 0 ? '−' : ''}${rootText(k, den, s)}`;
   const rule = given === 'tan' ? `1 + tan²θ = sec²θ: sec²θ = 1 + ${sqParen(g)}² = ${ft(sq)}` : `sin²θ + cos²θ = 1: ${want}²θ = 1 − ${sqParen(g)}² = ${ft(sq)}`;
   return {
-    prompt: [T.prose(`${given} θ = ${ft(g)} and θ is in quadrant ${ROMAN[q]}. Use an identity to find the exact value of ${s === 1 ? '' : 'x = '}${want} θ.`)],
+    prompt: [T.prose(`${given} θ = ${ft(g)} and θ is in quadrant ${ROMAN[q]}. Use an identity to find the exact value of ${want} θ.`)],
     text: `from ratio: ${given} ${g.n}/${g.d}, quadrant ${ROMAN[q]}, want ${want}`,
-    answer: s === 1 ? signedFrac(F(sWant * k, den)) : rootAnswer('x', v.n, v.d, v.r),
+    answer: rootAnswer('x', v.n, v.d, v.r),
     visual: null,
     explain: `${rule}, so ${want} θ = ±${s === 1 ? ft(F(k, den)) : rootText(k, den, s)}. In quadrant ${ROMAN[q]}, ${want} is ${sWant > 0 ? 'positive' : 'negative'}. `
       + `(The identity gives the size and leaves the sign open: the quadrant decides it.) So ${want} θ = ${vText}.`,
@@ -293,12 +396,12 @@ function evenOdd(rng) {
     const vText = v.n === 0 ? '0' : `${v.n < 0 ? '−' : ''}${rootText(Math.abs(v.n), v.d, v.r)}`;
     const pText = pos.n === 0 ? '0' : `${pos.n < 0 ? '−' : ''}${rootText(Math.abs(pos.n), pos.d, pos.r)}`;
     return {
-      prompt: [T.prose(`Find the exact value of x = ${fnText(fn, deg, radians)}.`)],
+      prompt: [T.prose(`Find the exact value of ${fnText(fn, deg, radians)}.`)],
       text: `exact: ${fn} ${radians ? `${F(deg, 180).n}/${F(deg, 180).d} pi` : deg}`,
       answer: rootAnswer('x', v.n, v.d, v.r),
       visual: null,
       explain: `${fn === 'cos' ? 'Cosine is even' : `${fn === 'sin' ? 'Sine' : 'Tangent'} is odd`}: ${fnText(fn, deg, radians)} = ${fn === 'cos' ? '' : '−'}${fnText(fn, -deg, radians)}, and ${fnText(fn, -deg, radians)} = ${pText}. `
-        + `(${fn === 'cos' ? 'The minus sign inside cosine simply disappears.' : 'The minus sign comes out in front.'}) So x = ${vText}.`,
+        + `(${fn === 'cos' ? 'The minus sign inside cosine simply disappears.' : 'The minus sign comes out in front.'}) So ${fnText(fn, deg, radians)} = ${vText}.`,
     };
   }
   const A = tripleAngle(rng);
@@ -330,15 +433,22 @@ const CF_BANK = [
   ['K*cos(pi/2 - t)/sin(t)', 'K', 'cos(π/2 − θ) = sin θ, and sin θ/sin θ = 1', 'Swap to the cofunction first, then cancel.'],
   ['K*sin(pi/2 - t)/sin(t)', 'K*cot(t)', 'sin(π/2 − θ) = cos θ, and cos θ/sin θ = cot θ', 'Swap to the cofunction first, then use the quotient.'],
   ['K*cos(pi/2 - t)/cos(t)', 'K*tan(t)', 'cos(π/2 − θ) = sin θ, and sin θ/cos θ = tan θ', 'Swap to the cofunction first, then use the quotient.'],
+  ['K*tan(pi/2 - t)*tan(t)', 'K', 'tan(π/2 − θ) = cot θ, and cot θ tan θ = 1', 'The complement turns tangent into cotangent, its reciprocal.'],
+  ['K*sec(pi/2 - t)*sin(t)', 'K', 'sec(π/2 − θ) = csc θ, and csc θ sin θ = 1', 'Secant of the complement is cosecant, not secant again.'],
+  ['K*csc(pi/2 - t)*cos(t)', 'K', 'csc(π/2 − θ) = sec θ, and sec θ cos θ = 1', 'Cosecant of the complement is secant.'],
+  ['K*cot(pi/2 - t)*cos(t)', 'K*sin(t)', 'cot(π/2 − θ) = tan θ, and tan θ cos θ = sin θ', 'Swap to the cofunction first, then cancel the cosine.'],
 ];
 const CF_POOL = ['K*sin(t)', 'K*cos(t)', 'K*tan(t)', 'K*cot(t)', 'K*sec(t)', 'K*csc(t)', 'K', '-K'];
 
 function cofunction(rng) {
-  const kind = rng.pick(['simplify', 'pair', 'pair', 'value']);
+  // Leaning on π/2 − θ and on tan/cot and sec/csc: sin and cos of
+  // complements in degrees are trig-ratios' Complementary level already.
+  const kind = rng.pick(['simplify', 'simplify', 'pair', 'value']);
   if (kind === 'simplify') return simplifyProblem(rng, CF_BANK, CF_POOL);
   if (kind === 'pair') {
-    const f = rng.pick(['sin', 'cos', 'tan', 'cot', 'sec', 'csc']);
-    if (rng.chance(0.55)) {
+    const degrees = rng.chance(0.3);
+    const f = degrees ? rng.pick(['tan', 'cot', 'sec', 'csc']) : rng.pick(['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'tan', 'cot', 'sec', 'csc']);
+    if (degrees) {
       const a = rng.int(1, 89);
       return {
         prompt: [T.prose(`${f} ${a}° = ${CO[f]} x°, with x between 0 and 90. Find x.`)],
@@ -352,7 +462,7 @@ function cofunction(rng) {
     do a = F(rng.int(1, 8), rng.pick([5, 8, 9, 10, 12, 18])); while (a.n / a.d >= 0.5);
     const c = sub(F(1, 2), a);
     return {
-      prompt: [T.prose(`${f}(${piText(a.n, a.d)}) = ${CO[f]}(θ), with θ between 0 and π/2. Find θ as a multiple of π.`), T.letter('θ'), T.op('='), T.blank(), T.letter('π')],
+      prompt: [T.prose(`${f}(${piText(a.n, a.d)}) = ${CO[f]} θ, with θ between 0 and π/2. Find θ as a multiple of π.`), T.letter('θ'), T.op('='), T.blank(), T.letter('π')],
       text: `cofunction rad: ${f} ${a.n}/${a.d} pi = ${CO[f]} ?`,
       answer: fracAnswer(c.n, c.d),
       visual: null,
@@ -383,7 +493,8 @@ function fifteen(fn, deg) {
   const [p, q] = FIFTEEN[ref][fn];
   return [s * p, s * q];
 }
-const surdSum = ([p, q]) => `(${p < 0 ? '-' : ''}sqrt(6) ${q > 0 ? '+' : '-'} sqrt(2))/4`;
+/** (p√6 + q√2)/4 with the positive root first: (√2 − √6)/4, not (−√6 + √2)/4. */
+const surdSum = ([p, q]) => (p < 0 && q > 0 ? '(sqrt(2) - sqrt(6))/4' : `(${p < 0 ? '-' : ''}sqrt(6) ${q > 0 ? '+' : '-'} sqrt(2))/4`);
 
 function sumDifference(rng) {
   const kind = rng.pick(['exact', 'exact', 'value', 'value', 'expand']);
@@ -402,12 +513,12 @@ function sumDifference(rng) {
       // tan 75° = 2 + √3, tan 15° = 2 − √3.
       const a = sign * 2, b = sign * (big ? 1 : -1);
       return {
-        prompt: [T.prose(`Use a sum or difference formula to find the exact value of x = ${show}.`)],
+        prompt: [T.prose(`Use a sum or difference formula to find the exact value of ${show}.`)],
         text: `exact: tan ${key}`,
         answer: { type: 'roots', value: { letter: 'x', roots: [{ a: { n: a, d: 1 }, b: { n: b, d: 1 }, r: 3 }] } },
         visual: null,
         explain: `Write ${angleText(deg, radians)} as ${split}, and tan(α ± β) = (tan α ± tan β)/(1 ∓ tan α tan β). With 1 and √3/3 that simplifies, after multiplying top and bottom by the conjugate, to ${minus(a)} ${b > 0 ? '+' : '−'} √3. `
-          + `(tan(α + β) is not tan α + tan β.) So x = ${minus(a)} ${b > 0 ? '+' : '−'} √3.`,
+          + `(tan(α + β) is not tan α + tan β.) So ${show} = ${minus(a)} ${b > 0 ? '+' : '−'} √3.`,
       };
     }
     const right = surdSum(fifteen(fn, deg));
@@ -490,13 +601,27 @@ const DA_BANK = [
 ];
 const DA_POOL = ['sin(2*t)', 'cos(2*t)', 'tan(2*t)', '2*sin(t)', '2*cos(t)', 'sin(t)', 'cos(t)', '2*sin(2*t)', '2*cos(2*t)', 'sin(t)^2', 'sin(4*t)', 'sin(6*t)', 'cos(6*t)', '1', 'cos(t) - sin(t)', '3*sin(2*t)', '3*cos(2*t)', '2*tan(t)'];
 
+// The formulas the other way round: which expansion is the double angle.
+const DA_FORMS = [
+  ['cos(2*t)', '1 - 2*sin(t)^2', 'cos 2θ = cos²θ − sin²θ, and cos²θ = 1 − sin²θ makes it 1 − 2 sin²θ', 'The sine form subtracts 2 sin²θ from 1; 1 + 2 sin²θ is more than 1.'],
+  ['cos(2*t)', '2*cos(t)^2 - 1', 'cos 2θ = cos²θ − sin²θ, and sin²θ = 1 − cos²θ makes it 2 cos²θ − 1', 'The cosine form is 2 cos²θ − 1, not 1 − 2 cos²θ, which is its negative.'],
+  ['cos(2*t)', 'cos(t)^2 - sin(t)^2', 'cos 2θ = cos(θ + θ) = cos θ cos θ − sin θ sin θ', 'Cosine squared first: sin²θ − cos²θ is the negative.'],
+  ['sin(2*t)', '2*sin(t)*cos(t)', 'sin 2θ = sin(θ + θ) = sin θ cos θ + cos θ sin θ = 2 sin θ cos θ', 'Doubling the angle does not double the sine: sin 2θ is not 2 sin θ.'],
+  ['sin(4*t)', '2*sin(2*t)*cos(2*t)', 'sin 2x = 2 sin x cos x with x = 2θ', '4θ is twice 2θ, so the formula uses 2θ; 4 sin θ cos θ is 2 sin 2θ, a different thing.'],
+  ['tan(2*t)', '(2*tan(t))/(1 - tan(t)^2)', 'tan 2θ = tan(θ + θ) = (tan θ + tan θ)/(1 − tan θ tan θ)', 'The bottom is 1 − tan²θ; with 1 + tan²θ it is sin 2θ instead.'],
+];
+
 const DA_VALUES = [
   ['2*sin(t)*cos(t)', 'sin'], ['cos(t)^2 - sin(t)^2', 'cos'], ['1 - 2*sin(t)^2', 'cos'], ['2*cos(t)^2 - 1', 'cos'], ['(2*tan(t))/(1 - tan(t)^2)', 'tan'],
 ];
 
 function doubleAngle(rng) {
   const kind = rng.pick(['simplify', 'value', 'value', 'exact']);
-  if (kind === 'simplify') return simplifyProblem(rng, DA_BANK, DA_POOL, { ks: [1], lead: 'Write more simply' });
+  if (kind === 'simplify') {
+    return rng.chance(0.35)
+      ? simplifyProblem(rng, DA_FORMS, DA_POOL, { ks: [1], ask: (e) => `Which of these is equal to ${e}?` })
+      : simplifyProblem(rng, DA_BANK, DA_POOL, { ks: [1], lead: 'Write more simply' });
+  }
   if (kind === 'exact') {
     const [e, fn] = rng.pick(DA_VALUES);
     const radians = rng.chance(0.5);
@@ -507,12 +632,12 @@ function doubleAngle(rng) {
     const v = exactTrig(fn, 2 * deg);
     const vText = v.n === 0 ? '0' : `${v.n < 0 ? '−' : ''}${rootText(Math.abs(v.n), v.d, v.r)}`;
     return {
-      prompt: [T.prose(`Find the exact value of x = ${pretty(e, shown)}.`)],
+      prompt: [T.prose(`Find the exact value of ${pretty(e, shown)}.`)],
       text: `identity value: ${e} at ${radians ? `${q.n}/${q.d} pi` : deg}`,
       answer: rootAnswer('x', v.n, v.d, v.r),
       visual: null,
       explain: `This is the double-angle formula for ${fn} 2θ with θ = ${radians ? piText(q.n, q.d) : `${deg}°`}, so it equals ${fnText(fn, 2 * deg, radians)} = ${vText}. `
-        + `(Recognize the pattern instead of working out ${fn === 'tan' ? 'tan' : 'sin and cos'} of ${radians ? piText(q.n, q.d) : `${deg}°`}, which are not special values.) So x = ${vText}.`,
+        + `(Recognize the pattern instead of working out ${fn === 'tan' ? 'tan' : 'sin and cos'} of ${radians ? piText(q.n, q.d) : `${deg}°`}, which are not special values.) So ${pretty(e, shown)} = ${vText}.`,
     };
   }
   const given = rng.pick(['sin', 'cos', 'tan']);
@@ -558,6 +683,24 @@ const PROOFS = [
   ['cos(2*t)', '2*cos(t)^2 - 1', [['cos(t)^2 - sin(t)^2', 'cos 2θ = cos²θ − sin²θ'], ['cos(t)^2 - (1 - cos(t)^2)', 'sin²θ = 1 − cos²θ'], ['2*cos(t)^2 - 1', 'collect the cos²θ']]],
   ['sin(t)^2*sec(t)^2 + 1', 'sec(t)^2', [['sin(t)^2/cos(t)^2 + 1', 'sec θ = 1/cos θ'], ['tan(t)^2 + 1', 'sin θ/cos θ = tan θ'], ['sec(t)^2', '1 + tan²θ = sec²θ']]],
   ['(1 - cos(2*t))/sin(2*t)', 'tan(t)', [['(1 - (1 - 2*sin(t)^2))/sin(2*t)', 'cos 2θ = 1 − 2 sin²θ'], ['(2*sin(t)^2)/sin(2*t)', 'the 1s cancel'], ['(2*sin(t)^2)/(2*sin(t)*cos(t))', 'sin 2θ = 2 sin θ cos θ'], ['sin(t)/cos(t)', 'cancel 2 sin θ'], ['tan(t)', 'sin θ/cos θ = tan θ']]],
+  ['sin(t)*cot(t)', 'cos(t)', [['sin(t)*(cos(t)/sin(t))', 'cot θ = cos θ/sin θ'], ['cos(t)', 'the sin θ cancels']]],
+  ['(1 + cot(t)^2)*sin(t)^2', '1', [['csc(t)^2*sin(t)^2', '1 + cot²θ = csc²θ'], ['(1/sin(t)^2)*sin(t)^2', 'csc θ = 1/sin θ'], ['1', 'the sin²θ cancels']]],
+  ['sec(t)*sin(t)*cot(t)', '1', [['(1/cos(t))*sin(t)*(cos(t)/sin(t))', 'sec θ = 1/cos θ and cot θ = cos θ/sin θ'], ['1', 'the sin θ and the cos θ cancel']]],
+  ['cos(t)^2 - sin(t)^2', '1 - 2*sin(t)^2', [['(1 - sin(t)^2) - sin(t)^2', 'cos²θ = 1 − sin²θ'], ['1 - 2*sin(t)^2', 'collect the sin²θ']]],
+  ['tan(t)/sec(t)', 'sin(t)', [['(sin(t)/cos(t))/sec(t)', 'tan θ = sin θ/cos θ'], ['(sin(t)/cos(t))*cos(t)', 'dividing by sec θ multiplies by cos θ'], ['sin(t)', 'the cos θ cancels']]],
+  ['(1 + sin(t))*(1 - sin(t))', 'cos(t)^2', [['1 - sin(t)^2', 'a difference of squares'], ['cos(t)^2', '1 − sin²θ = cos²θ']]],
+  ['sin(t)^4 - cos(t)^4', 'sin(t)^2 - cos(t)^2', [['(sin(t)^2 - cos(t)^2)*(sin(t)^2 + cos(t)^2)', 'a difference of squares'], ['(sin(t)^2 - cos(t)^2)*1', 'sin²θ + cos²θ = 1'], ['sin(t)^2 - cos(t)^2', 'times 1 changes nothing']]],
+  ['cos(t) + sin(t)*tan(t)', 'sec(t)', [['cos(t) + sin(t)*(sin(t)/cos(t))', 'tan θ = sin θ/cos θ'], ['cos(t) + sin(t)^2/cos(t)', 'multiply the sines'], ['(cos(t)^2 + sin(t)^2)/cos(t)', 'a common denominator, cos θ'], ['1/cos(t)', 'sin²θ + cos²θ = 1'], ['sec(t)', '1/cos θ = sec θ']]],
+  ['csc(t)^2 - cot(t)^2', '1', [['1/sin(t)^2 - cos(t)^2/sin(t)^2', 'csc θ = 1/sin θ and cot θ = cos θ/sin θ'], ['(1 - cos(t)^2)/sin(t)^2', 'the same denominator'], ['sin(t)^2/sin(t)^2', '1 − cos²θ = sin²θ'], ['1', 'anything nonzero over itself is 1']]],
+  ['cos(t + pi/2)', '-sin(t)', [['cos(t)*cos(pi/2) - sin(t)*sin(pi/2)', 'cos(α + β) = cos α cos β − sin α sin β'], ['cos(t)*0 - sin(t)*1', 'cos(π/2) = 0 and sin(π/2) = 1'], ['-sin(t)', 'the first term is 0']]],
+  ['sin(pi - t)', 'sin(t)', [['sin(pi)*cos(t) - cos(pi)*sin(t)', 'sin(α − β) = sin α cos β − cos α sin β'], ['0*cos(t) + sin(t)', 'sin π = 0 and −cos π = 1'], ['sin(t)', 'the first term is 0']]],
+  ['sin(t + pi)', '-sin(t)', [['sin(t)*cos(pi) + cos(t)*sin(pi)', 'sin(α + β) = sin α cos β + cos α sin β'], ['-sin(t) + cos(t)*0', 'cos π = −1 and sin π = 0'], ['-sin(t)', 'the second term is 0']]],
+  ['sin(2*t)*sec(t)', '2*sin(t)', [['2*sin(t)*cos(t)*sec(t)', 'sin 2θ = 2 sin θ cos θ'], ['2*sin(t)*1', 'cos θ sec θ = 1'], ['2*sin(t)', 'times 1 changes nothing']]],
+  ['cos(2*t) + sin(t)^2', 'cos(t)^2', [['cos(t)^2 - sin(t)^2 + sin(t)^2', 'cos 2θ = cos²θ − sin²θ'], ['cos(t)^2', 'the sin²θ cancels']]],
+  ['(1 - cos(2*t))/2', 'sin(t)^2', [['(1 - (1 - 2*sin(t)^2))/2', 'cos 2θ = 1 − 2 sin²θ'], ['(2*sin(t)^2)/2', 'the 1s cancel'], ['sin(t)^2', 'the 2s cancel']]],
+  ['(1 + cos(2*t))/2', 'cos(t)^2', [['(1 + (2*cos(t)^2 - 1))/2', 'cos 2θ = 2 cos²θ − 1'], ['(2*cos(t)^2)/2', 'the 1s cancel'], ['cos(t)^2', 'the 2s cancel']]],
+  ['tan(t)*csc(t)', 'sec(t)', [['(sin(t)/cos(t))*(1/sin(t))', 'tan θ = sin θ/cos θ and csc θ = 1/sin θ'], ['1/cos(t)', 'the sin θ cancels'], ['sec(t)', '1/cos θ = sec θ']]],
+  ['sec(t)^2*cot(t)^2', 'csc(t)^2', [['(1/cos(t)^2)*(cos(t)^2/sin(t)^2)', 'sec θ = 1/cos θ and cot θ = cos θ/sin θ'], ['1/sin(t)^2', 'the cos²θ cancels'], ['csc(t)^2', '1/sin²θ = csc²θ']]],
 ];
 
 /** Single changes a careless step makes: a sign, a square, a swapped function. */
@@ -568,20 +711,30 @@ function slips(e) {
   swap(e, 'sin', 'cos'); swap(e, 'cos', 'sin'); swap(e, 'tan', 'cot'); swap(e, 'cot', 'tan'); swap(e, 'sec', 'csc'); swap(e, 'csc', 'sec');
   swap(e, ')^2', ')'); swap(e, '2*', ''); swap(e, '1 - ', '1 + ');
   out.add(negate(e));
-  out.add(/^-?\d+$/.test(e) ? String(2 * Number(e)) : `2*${e}`);
+  out.add(/^-?\d+$/.test(e) ? String(2 * Number(e)) : e.startsWith('-') ? `-2*${e.slice(1)}` : `2*${e}`);
   out.add('0');
   return [...out];
 }
 
 const ALL_STEPS = PROOFS.flatMap(([start, goal, steps]) => steps.map((_, i) => ({ start, goal, steps, i })));
 
+// requiem: catalogue/content/proof-step-is-new-and-equal
+/**
+ * The next line of a fixed proof. Three options are not: two are slips,
+ * not equal to the line before, and in about half the problems the third is
+ * a line already written, equal but a step back rather than on toward the
+ * other side. The question says so, so exactly one option is both equal and
+ * new.
+ */
 function proofStep(rng) {
   for (;;) {
     const { start, goal, steps, i } = rng.pick(ALL_STEPS);
     const lines = [start, ...steps.slice(0, i).map((s) => s[0])];
     const [next, reason] = steps[i];
     if (!same(start, goal) || !same(next, lines[lines.length - 1])) throw new Error(`proof of ${goal} breaks at ${next}`);
-    const wrong = [];
+    if (lines.includes(next)) throw new Error(`proof of ${goal} repeats ${next}`);
+    const back = rng.chance(0.5) ? rng.pick(lines) : null;
+    const wrong = back ? [back] : [];
     for (const e of rng.shuffle(slips(next))) {
       let v;
       try { v = fnOf(e)(1.1); } catch { continue; }
@@ -592,12 +745,12 @@ function proofStep(rng) {
     const opts = all.map((e, j) => ({ id: optionIds[j], e }));
     const shown = lines.map((l) => pretty(l)).join(' = ');
     return {
-      prompt: [T.prose(`Prove ${pretty(start)} = ${pretty(goal)}. So far: ${shown}. Which line comes next?`)],
+      prompt: [T.prose(`Prove ${pretty(start)} = ${pretty(goal)}. So far: ${shown}. Which line comes next? It must equal the last line and be a new line, a step on toward ${pretty(goal)}, not back to one already written.`)],
       text: `proof: goal ${start} = ${goal}; so far ${lines.join(' = ')}; options ${opts.map((o) => `${o.id}: ${o.e}`).join(' | ')}`,
       answer: { type: 'choice', value: optionIds[all.indexOf(next)], options: opts.map((o) => ({ id: o.id, label: `= ${pretty(o.e)}` })) },
       visual: null,
       explain: `${reason.includes('=') ? `By ${reason}` : reason[0].toUpperCase() + reason.slice(1)}: ${pretty(lines[lines.length - 1])} = ${pretty(next)}. `
-        + `(Each line must equal the one before it; the other choices change a sign, a square or a function, so they are not equal.) So = ${pretty(next)}.`,
+        + `(${back ? `= ${pretty(back)} is equal too, but it is a line already written: it goes back, not on toward ${pretty(goal)}. The other two` : 'The other choices'} change a sign, a square or a function, so they are not equal.) So = ${pretty(next)}.`,
     };
   }
 }

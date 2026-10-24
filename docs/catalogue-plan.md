@@ -330,33 +330,48 @@ With it, Phase 3 is built.
 makes nine; the skill says why with `longerBecause`. Calculator answers round
 only at the end, and a problem is kept only where 4-place working agrees with
 the exact value. 45-45-90 depends on the Pythagorean theorem's Exact Answers.
+30-60-90 asks for x and lets the figure's 30° or 60° mark say which leg it
+is, and Complementary sin/cos keeps solve-for-x equations to about four rows
+in ten.
 `laws-sines-cosines` is built, as Sines: Side · Sines: Angle · Cosines: Side
 · Cosines: Angle · Which Law? (strategy) · How Many Triangles? · ½ab sin C ·
 All Together. Which Law? depends on trig-ratios' Missing Side, where a tool is
 first chosen by the sides in play. How Many Triangles? is added for the
-ambiguous case, and every Sines: Angle question names its triangle.
+ambiguous case, with an obtuse angle and no triangle among its rows. About
+30% of Sines: Angle rows are the two-triangle case, and those name the one
+meant; the rest say nothing about the count.
 `radians` is built, as Degrees to Radians · Radians to Degrees · Coterminal
 Angles · Reference Angles · Arc Length s = rθ · Sector Area ½r²θ · Angular
 Speed · All Together. The plan's Degrees ↔ Radians is two levels, one each
 way, and Sector Area is added beside Arc Length; the two depend on the
 circles skill's Arc Length and Sector Area, where both are taken in degrees. Exact answers are the
-coefficient of π, as a fraction.
+coefficient of π, as a fraction. Reference Angles takes negative angles and
+angles past a full turn in about a quarter of its rows. Nothing in the skill
+takes a sine, so it does not depend on trig-ratios.
 `unit-circle` is built, as Special Angles · Signs by Quadrant · Around the
 Circle · Tangent · sec, csc, cot · From One Ratio, the Rest · All Together.
 Around the Circle is added between the first-quadrant values and tangent,
 for any angle by its reference angle, and depends on radians' Reference
-Angles; Special Angles depends on trig-ratios' 30-60-90.
+Angles; Special Angles depends on trig-ratios' 30-60-90. Signs by Quadrant
+and Tangent ask only about sin, cos and tan, leaving the reciprocals to their
+own level, and every number on a level is typed in the roots box, so the box
+never gives the form of the answer away.
 `trig-graphs` is built, as Amplitude · Period · Midline · Phase Shift ·
 Equation From a Graph · Sinusoidal Models · All Together, in the plan's
 levels. Phase Shift depends on transforming functions' Left and Right, and
 asks the shift as a choice so that the unfactored amount and the wrong
-direction can both be offered.
+direction can both be offered. A drawn wave is ticked at multiples of
+π/(2b), so every peak sits on a tick, and a Ferris wheel's equation is printed
+only where a height is to be worked from it.
 `identities` is built, as Pythagorean · Reciprocal & Quotient · Even & Odd ·
 Cofunction · Sum & Difference · Double Angle · Next Step in a Proof · All
 Together, in the plan's levels. Cofunction depends on trig-ratios'
 Complementary sin/cos, so the skill depends on trig-ratios as well as the
 unit circle. Exact values with two radicals are asked as choices, since the
-roots input holds one, and Next Step in a Proof is capped at 300 problems.
+roots input holds one, and Next Step in a Proof is capped at 300 problems,
+drawn from 37 proofs. Its wrong options are slips, and in about half the
+rows a line already written, equal but a step back; the question says the
+next line must be new.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

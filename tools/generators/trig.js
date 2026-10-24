@@ -169,8 +169,14 @@ export function piText(n, d = 1) {
 /** An angle in degrees as asked: 210° or, in radians, 7π/6. */
 export const angleText = (deg, radians) => (radians ? piText(deg, 180) : `${String(deg).replace('-', '−')}°`);
 
-/** f θ as written: sin 210°, cos(7π/6), tan(−π/4), sin(−45°). */
-export const fnText = (fn, deg, radians) => (radians || deg < 0 ? `${fn}(${angleText(deg, radians)})` : `${fn} ${angleText(deg, false)}`);
+/**
+ * f θ as written: sin 210°, cos π, cos(7π/6), tan(−π/4), sin(−45°). A single
+ * token goes bare, a fraction or a minus sign in brackets.
+ */
+export const fnText = (fn, deg, radians) => {
+  const a = angleText(deg, radians);
+  return /^[\d.]*[π°]?$/.test(a) && a !== '' ? `${fn} ${a}` : `${fn}(${a})`;
+};
 
 /** The acute angle (or 0 or 90) between θ's terminal side and the x-axis. */
 export function refAngle(deg) {

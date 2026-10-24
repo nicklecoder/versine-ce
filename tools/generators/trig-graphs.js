@@ -8,7 +8,7 @@
  * Run via: node scripts/build-library.mjs
  *
  * Every `text` carries the equation exactly as the student reads it, in
- * ASCII (`y = -3 sin(2x) + 1`), and scripts/check-answers.py evaluates that
+ * ASCII (`y = -3 sin 2x + 1`), and scripts/check-answers.py evaluates that
  * equation itself: the period is found by testing shifts, the maximum and
  * minimum by searching the wave, and a phase shift by sliding the parent
  * wave and comparing. A drawn graph is checked against its equation point
@@ -67,11 +67,16 @@ function inner(s, expanded = false, x = 'x') {
   return b.n === 1 ? `${x} ${sign} ${hs}` : `${b.n}(${x} ${sign} ${hs})`;
 }
 
-/** y = −3 sin(2x) + 1, as the student reads it. */
+/**
+ * y = −3 sin 2x + 1, as the student reads it: a single term goes bare (sin x,
+ * cos 2x), anything with a fraction, a π or a shift in brackets.
+ */
 function eq(s, { expanded = false, x = 'x', y = 'y' } = {}) {
   const lead = s.a === 1 ? '' : s.a === -1 ? '−' : `${minus(s.a)} `;
   const tail = s.k === 0 ? '' : s.k > 0 ? ` + ${s.k}` : ` − ${-s.k}`;
-  return `${y} = ${lead}${s.fn}(${inner(s, expanded, x)})${tail}`;
+  const arg = inner(s, expanded, x);
+  const bare = new RegExp(`^\\d*${x}$`).test(arg);
+  return `${y} = ${lead}${s.fn}${bare ? ` ${arg}` : `(${arg})`}${tail}`;
 }
 
 const B = (n, d = 1, pi = false) => ({ ...Q(n, d), pi });
@@ -82,6 +87,8 @@ function peakQ(s) {
   return s.fn === 'cos' ? (s.a > 0 ? Q(0) : Q(b.d, b.n)) : (s.a > 0 ? Q(b.d, 2 * b.n) : Q(3 * b.d, 2 * b.n));
 }
 const at0 = (q) => (q.n === 0 ? '0' : piText(q.n, q.d));
+/** cos π bare, cos(3π/4) in brackets. */
+const bareCos = (a) => (/^\d*π$/.test(a) ? `cos ${a}` : `cos(${a})`);
 const GRAPH_B = [B(1), B(2), B(1, 2), B(3), B(1), B(2)];
 const EQUATION_B = [B(1), B(2), B(3), B(4), B(1, 2), B(1, 3), B(2, 3), B(3, 2), B(1, 4)];
 
@@ -112,10 +119,15 @@ function graph(s, reveal) {
   }
   marks.push({ kind: 'segment', from: [-0.3, 0], to: [one(x1 + 0.4), 0], tone: 'var(--muted)' });
   marks.push({ kind: 'segment', from: [0, one(yLo - 0.5)], to: [0, one(yHi + 0.5)], tone: 'var(--muted)' });
-  for (let q = 1; q * Math.PI / 4 <= x1 + 1e-9; q++) {
-    const x = one((q * Math.PI) / 4);
+  // requiem: catalogue/content/wave-ticks-fit-b
+  // Ticks at multiples of π/(2b), so every peak, trough and midline
+  // crossing sits on one: π/4 for b = 1, 2 or 1/2, π/6 for b = 3, every
+  // other one labeled.
+  const per = s.b.n % 3 === 0 ? 6 : 4;
+  for (let q = 1; q * Math.PI / per <= x1 + 1e-9; q++) {
+    const x = one((q * Math.PI) / per);
     marks.push({ kind: 'segment', from: [x, -0.12], to: [x, 0.12], tone: 'var(--muted)' });
-    if (q % 2 === 0) marks.push(text([x, -0.42], piText(q, 4), 'var(--muted)'));
+    if (q % 2 === 0) marks.push(text([x, -0.42], piText(q, per), 'var(--muted)'));
   }
   marks.push({ kind: 'path', tone: LINE, points: curve });
   // A peak or trough falls where b(x − h) is a multiple of π/2 that sin or cos tops out at.
@@ -177,7 +189,7 @@ function amplitude(rng) {
     text: `wave: ${ascii(eq(s))}; want amplitude`,
     answer: fracAnswer(A, 1),
     visual: null,
-    explain: `In y = a ${s.fn}(bx) + k the amplitude is |a|, and here a = ${minus(s.a)}, so it is ${A}. `
+    explain: `In y = a ${s.fn} bx + k the amplitude is |a|, and here a = ${minus(s.a)}, so it is ${A}. `
       + `(${s.a < 0 ? 'The minus sign flips the wave upside down; it does not make the amplitude negative.' : s.k !== 0 ? `The ${minus(s.k)} moves the wave ${s.k > 0 ? 'up' : 'down'}; it does not change its height.` : 'The number inside with x changes the period, not the height.'}) So the amplitude is ${A}.`,
   };
 }
@@ -210,8 +222,8 @@ function period(rng) {
     text: `wave: ${ascii(eq(s))}; want period${s.b.pi ? '' : ' (pi)'}`,
     answer,
     visual: null,
-    explain: `One cycle of ${s.fn} takes 2π, and b = ${bShown} squeezes it: the period is 2π ÷ b = ${work}. `
-      + `(${s.b.n / s.b.d > 1 || s.b.pi ? 'A bigger b makes the cycle shorter: divide 2π by b, do not multiply.' : 'A b less than 1 stretches the cycle longer than 2π.'}) So the period is ${s.b.pi ? qText(p) : periodText(s)}.`,
+    explain: `One cycle of ${s.fn} takes 2π, and b = ${bShown} ${s.b.pi || qv(s.b) > 1 ? 'squeezes it' : qv(s.b) === 1 ? 'leaves it as it is' : 'stretches it'}: the period is 2π ÷ b = ${work}. `
+      + `(${s.b.n / s.b.d > 1 || s.b.pi ? 'A bigger b makes the cycle shorter: divide 2π by b, do not multiply.' : s.b.n === s.b.d ? 'With b = 1 the wave is not squeezed at all: the period is the parent wave\'s.' : 'A b less than 1 stretches the cycle longer than 2π.'}) So the period is ${s.b.pi ? qText(p) : periodText(s)}.`,
   };
 }
 
@@ -271,7 +283,11 @@ function phaseShift(rng) {
     const size = Q(Math.abs(H.n), H.d);
     const K = Q(b.n * size.n, size.d);
     const trap = b.n === 1 ? size : K;
-    const options = [[dir, size], [other, size], ...(b.n === 1 ? [['up', size], ['down', size]] : [[dir, trap], [other, trap]])];
+    // With b = 1 the slips are the direction and the size: the other way, or
+    // the shift doubled or halved, never a lift up or down.
+    const options = b.n === 1
+      ? [[dir, size], [other, size], ...rng.shuffle([[dir, Q(2 * size.n, size.d)], [dir, Q(size.n, 2 * size.d)], [other, Q(2 * size.n, size.d)]]).slice(0, 2)]
+      : [[dir, size], [other, size], [dir, trap], [other, trap]];
     const valid = options.filter(([d, q]) => shiftWorks(s, base, d, q));
     if (valid.length !== 1) continue;
     const ids = ['a', 'b', 'c', 'd'];
@@ -287,7 +303,7 @@ function phaseShift(rng) {
       visual: null,
       explain: `${expanded ? `Factor b out of the inside first: ${fn}(${inner(s, true)}) = ${factored}. ` : ''}`
         + `In ${fn}(${b.n === 1 ? '' : 'b('}x − h${b.n === 1 ? '' : ')'}) the wave moves h to the right, and here h = ${piText(H.n, H.d)}, so it moves ${piText(size.n, size.d)} to the ${dir}. `
-        + `(${expanded ? `The ${piText(K.n, K.d)} is b × h, not the shift: divide it by ${b.n}.` : `A minus inside moves the wave right, the opposite of how it reads; a number added inside moves it sideways, not ${H.n > 0 ? 'down' : 'up'}.`}) So ${shiftLabel(dir, size)}.`,
+        + `(${expanded ? `The ${piText(K.n, K.d)} is b × h, not the shift: divide it by ${b.n}.` : `A minus inside moves the wave right, the opposite of how it reads, and by exactly ${piText(size.n, size.d)}, not twice or half that.`}) So ${shiftLabel(dir, size)}.`,
     };
   }
 }
@@ -349,7 +365,11 @@ function models(rng) {
     const c = r + (metric ? rng.int(1, 5) : rng.int(3, 15));
     const T0 = rng.pick([2, 3, 4, 5, 6, 8, 10, 12, 15, 20]);
     const want = rng.pick(['amplitude', 'midline', 'max', 'min', 'period', 'height', 'height', 'b']);
-    const story = `A Ferris wheel ${dia} ${unit} across has its center ${c} ${unit} above the ground and turns once every ${T0} minutes. A rider boards at the bottom at t = 0, so the rider's height is h = ${c} − ${r} cos(2πt/${T0}).`;
+    // requiem: catalogue/content/model-equation-only-to-evaluate
+    // The model's equation is given only to work a height from: written out,
+    // it would hand over the midline, amplitude, period and b it is built of.
+    const story = `A Ferris wheel ${dia} ${unit} across has its center ${c} ${unit} above the ground and turns once every ${T0} minutes. A rider boards at the bottom at t = 0.`;
+    const model = ` The rider's height is h = ${c} − ${r} cos(2πt/${T0}).`;
     const base = `ferris: diameter ${dia} ${unit}, center ${c}, turn ${T0} min`;
     if (want === 'height') {
       for (;;) {
@@ -363,18 +383,18 @@ function models(rng) {
         const q = exact ? Math.round(x) * 10 : safeRound(x, 1, alt);
         if (q === null) continue;
         return {
-          prompt: [T.prose(`${story} How high is the rider at t = ${t} minutes${exact ? '' : `, ${placeWords(1)}`}, in ${metric ? 'meters' : 'feet'}?`)],
+          prompt: [T.prose(`${story}${model} How high is the rider at t = ${t} ${t === 1 ? 'minute' : 'minutes'}${exact ? '' : `, ${placeWords(1)}`}, in ${metric ? 'meters' : 'feet'}?`)],
           text: `${base}; want height at ${t}${exact ? '' : placeText(1)}`,
           answer: exact ? fracAnswer(Math.round(x), 1) : roundedAnswer(q, 1),
           visual: null,
           explain: `At t = ${t} the wheel has turned ${frac[0]}/${frac[1]} of the way round, an angle of 2π × ${t}/${T0} = ${piText(2 * frac[0], frac[1])}. `
-            + `h = ${c} − ${r} cos(${piText(2 * frac[0], frac[1])}) = ${c} − ${r} × ${(Math.round(Math.cos(angle) * 1e4) / 1e4).toString().replace('-', '−')} ${exact ? `= ${Math.round(x)}` : `≈ ${(Math.round(x * 1e4) / 1e4)}`}. `
+            + `h = ${c} − ${r} ${bareCos(piText(2 * frac[0], frac[1]))} = ${c} − ${r} × ${(Math.round(Math.cos(angle) * 1e4) / 1e4).toString().replace('-', '−')} ${exact ? `= ${Math.round(x)}` : `≈ ${(Math.round(x * 1e4) / 1e4)}`}. `
             + `(Put the calculator in radians, or use the turn: ${frac[0]}/${frac[1]} of a turn from the bottom.) So ${exact ? Math.round(x) : roundedText(q, 1)} ${unit}.`,
         };
       }
     }
     const value = { amplitude: Q(r), midline: Q(c), max: Q(c + r), min: Q(c - r), period: Q(T0), b: Q(2, T0) }[want];
-    const ask = { amplitude: 'What is the amplitude of the model, in', midline: 'What is the height of the midline, in', max: 'What is the rider\'s greatest height, in', min: 'What is the rider\'s lowest height, in', period: 'What is the period of the model, in minutes', b: 'In h = c − r cos(bt), b is 2π/period. What is b, as a multiple of π' }[want];
+    const ask = { amplitude: 'Modeling the rider\'s height as a sinusoid, what is its amplitude, in', midline: 'What is the height of the midline, in', max: 'What is the rider\'s greatest height, in', min: 'What is the rider\'s lowest height, in', period: 'Modeling the rider\'s height as a sinusoid, what is its period, in minutes', b: 'Modeling the rider\'s height as h = c − r cos bt, what is b, as a multiple of π' }[want];
     return {
       prompt: want === 'b' ? [T.prose(`${story} ${ask}?`), ...piBlank('b')] : [T.prose(`${story} ${ask}${want === 'period' ? '' : ` ${metric ? 'meters' : 'feet'}`}?`)],
       text: `${base}; want ${want}${want === 'b' ? ' (pi)' : ''}`,
@@ -442,14 +462,14 @@ function models(rng) {
   const Tq = Q(Math.round(T0 * 2), 2);
   const value = { amplitude: Q(amp), midline: Q(lo + amp), period: Tq, b: Q(2 * Tq.d, Tq.n) }[want];
   return {
-    prompt: [T.prose(`A weight on a spring bobs between ${lo} ${unit} and ${hi} ${unit} above a table, taking ${T0} seconds for each full bounce. ${want === 'b' ? 'In y = a cos(bt) + k, what is b, as a multiple of π?' : `What is the ${want === 'period' ? 'period, in seconds' : want === 'midline' ? `midline height, in ${unit}` : `amplitude, in ${unit}`}?`}`), ...(want === 'b' ? piBlank('b') : [])],
+    prompt: [T.prose(`A weight on a spring bobs between ${lo} ${unit} and ${hi} ${unit} above a table, taking ${T0} ${T0 === 1 ? 'second' : 'seconds'} for each full bounce. ${want === 'b' ? 'In y = a cos bt + k, what is b, as a multiple of π?' : `What is the ${want === 'period' ? 'period, in seconds' : want === 'midline' ? `midline height, in ${metric ? 'centimeters' : 'inches'}` : `amplitude, in ${metric ? 'centimeters' : 'inches'}`}?`}`), ...(want === 'b' ? piBlank('b') : [])],
     text: `spring: between ${lo} and ${hi} ${unit}, cycle ${T0} s; want ${want}${want === 'b' ? ' (pi)' : ''}`,
     answer: want === 'period' && Tq.d !== 1 ? { type: 'decimal', value: { n: Tq.n * 5, d: 10 } } : fracAnswer(value.n, value.d),
     visual: null,
     explain: {
       amplitude: `Half the distance between the lowest and highest points: (${hi} − ${lo}) ÷ 2 = ${amp} ${unit}. (The full ${hi - lo} ${unit} is twice the amplitude.) So ${amp}.`,
       midline: `Halfway between: (${hi} + ${lo}) ÷ 2 = ${lo + amp} ${unit}. (The middle of the bounce, not its size.) So ${lo + amp}.`,
-      period: `One full bounce, down and back up, is one cycle: ${T0} seconds. (Top to bottom alone is half a cycle.) So ${T0}.`,
+      period: `One full bounce, down and back up, is one cycle: ${T0} ${T0 === 1 ? 'second' : 'seconds'}. (Top to bottom alone is half a cycle.) So ${T0}.`,
       b: `b = 2π ÷ period = 2π ÷ ${T0} = ${piText(value.n, value.d)}. (b is 2π over the period, not the period itself.) So b = ${piText(value.n, value.d)}, and the box takes ${qText(value)}.`,
     }[want],
   };

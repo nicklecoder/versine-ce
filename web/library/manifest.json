@@ -1459,8 +1459,7 @@
     },
     "radians": {
       "dependsOn": [
-        "circles",
-        "trig-ratios"
+        "circles"
       ],
       "levels": {
         "arc-length": [
@@ -1508,7 +1507,7 @@
       }
     }
   },
-  "sources": "2609f40cb461ec9382f4805a27c3aa0db61755f9c6defdd78fe48c879a897433",
+  "sources": "8ab3a13c8f5d887403ed1e72db44500cb5db250a8b24490f488f5674bd49560a",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6405,7 +6404,7 @@
       "level": 5,
       "slug": "30-60-90",
       "name": "30-60-90",
-      "count": 88,
+      "count": 176,
       "exhaustive": true,
       "signed": false,
       "file": "trig-ratios-5.json"
@@ -6415,7 +6414,7 @@
       "level": 6,
       "slug": "complementary-sin-cos",
       "name": "Complementary sin/cos",
-      "count": 1000,
+      "count": 500,
       "exhaustive": false,
       "signed": false,
       "file": "trig-ratios-6.json"
@@ -6555,8 +6554,8 @@
       "level": 3,
       "slug": "reference-angles",
       "name": "Reference Angles",
-      "count": 282,
-      "exhaustive": true,
+      "count": 400,
+      "exhaustive": false,
       "signed": false,
       "file": "radians-3.json"
     },
@@ -6615,8 +6614,8 @@
       "level": 1,
       "slug": "signs-by-quadrant",
       "name": "Signs by Quadrant",
-      "count": 1000,
-      "exhaustive": false,
+      "count": 831,
+      "exhaustive": true,
       "signed": false,
       "file": "unit-circle-1.json"
     },
@@ -6635,7 +6634,7 @@
       "level": 3,
       "slug": "tangent",
       "name": "Tangent",
-      "count": 112,
+      "count": 100,
       "exhaustive": true,
       "signed": true,
       "file": "unit-circle-3.json"

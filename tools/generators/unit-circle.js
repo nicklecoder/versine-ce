@@ -15,7 +15,7 @@
  */
 import * as T from '../terms.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/unit-circle.js';
-import { fracAnswer, fracText, reduce } from './chance.js';
+import { fracText, reduce } from './chance.js';
 import { toward, text, LINE, GIVEN } from './figures.js';
 import { rootAnswer, rootText, piText, angleText, fnText, refAngle, quadrantOf, exactTrig, tenths } from './trig.js';
 
@@ -23,12 +23,15 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV'];
 const minus = (s) => String(s).replace('-', '−');
 /** (n/d)√r written, sign and all: −√3/2, 1/2, 0. */
 const valueText = (v) => (v.n === 0 ? '0' : `${v.n < 0 ? '−' : ''}${rootText(Math.abs(v.n), v.d, v.r)}`);
-/** n/d with the sign on top, as an answer and as written. */
-const signedFrac = (n, d) => (d < 0 ? fracAnswer(-n, -d) : fracAnswer(n, d));
+// requiem: catalogue/content/one-input-per-level
+/** n/d as a roots answer, so a rational value goes in the same box as √3/2. */
+const signedFrac = (n, d) => (d < 0 ? rootAnswer('x', -n, -d, 1) : rootAnswer('x', n, d, 1));
 const exact = (v, letter = 'x') => rootAnswer(letter, v.n, v.d, v.r);
 /** The angle as the text gives it: 210, or 7/6 pi. */
 const angleKey = (deg, radians) => { if (!radians) return String(deg); const q = reduce(deg, 180); return `${q.n}/${q.d} pi`; };
-const ask = (what) => [T.prose(`Find the exact value of x = ${what}.`)];
+// requiem: catalogue/content/unit-circle-asks-the-value-bare
+// On the unit circle x is cos θ, so a value is asked for bare, never as x = sin θ.
+const ask = (what) => [T.prose(`Find the exact value of ${what}.`)];
 
 const NAMES = { sin: 'sine', cos: 'cosine', tan: 'tangent', sec: 'secant', csc: 'cosecant', cot: 'cotangent' };
 const WHERE = { sin: 'the y-coordinate', cos: 'the x-coordinate', tan: 'y/x', sec: '1/x', csc: '1/y', cot: 'x/y' };
@@ -89,7 +92,7 @@ function special(rng) {
     text: `exact: ${fn} ${angleKey(deg, radians)}`,
     answer: exact(v),
     visual: null,
-    explain: `${why} ${fn === 'sin' ? 'Sine is the y-coordinate' : 'Cosine is the x-coordinate'}, so ${fnText(fn, deg, radians)} = ${valueText(v)}. ${trap} So x = ${valueText(v)}.`,
+    explain: `${why} ${fn === 'sin' ? 'Sine is the y-coordinate' : 'Cosine is the x-coordinate'}, so ${fnText(fn, deg, radians)} = ${valueText(v)}. ${trap} So ${fnText(fn, deg, radians)} = ${valueText(v)}.`,
   };
 }
 
@@ -101,7 +104,9 @@ const QUAD_WORDS = { 1: 'right and up: x and y both positive', 2: 'left and up: 
 
 function signs(rng) {
   const kind = rng.pick(['angle', 'angle', 'quadrant', 'from signs']);
-  const fn = rng.pick(['sin', 'cos', 'tan', 'sin', 'cos', 'tan', 'sec', 'csc', 'cot']);
+  // requiem: catalogue/content/reciprocals-after-their-level
+  // sec, csc and cot wait for their own level; here the signs of x, y and y/x.
+  const fn = rng.pick(['sin', 'cos', 'tan']);
   if (kind === 'angle') {
     const radians = rng.chance(0.4);
     let deg;
@@ -118,7 +123,7 @@ function signs(rng) {
       visual: null,
       explain: `${t === deg ? angleText(deg, radians) : `${angleText(deg, radians)} is coterminal with ${angleText(t, radians)}, which`} ${t === deg ? 'is' : 'is'} in quadrant ${ROMAN[q]}, ${QUAD_WORDS[q]}. `
         + `${fn} is ${WHERE[fn]} there, so it is ${pos ? 'positive' : 'negative'}. `
-        + `(${deg < 0 ? 'A negative angle turns clockwise, below the x-axis first.' : fn === 'tan' || fn === 'cot' ? 'Two negatives divide to a positive, which is why tangent is positive in quadrant III.' : 'The sign comes from the quadrant, not from the size of the angle.'}) So ${pos ? 'positive' : 'negative'}.`,
+        + `(${deg < 0 ? 'A negative angle turns clockwise, below the x-axis first.' : fn === 'tan' ? 'Two negatives divide to a positive, which is why tangent is positive in quadrant III.' : 'The sign comes from the quadrant, not from the size of the angle.'}) So ${pos ? 'positive' : 'negative'}.`,
     };
   }
   if (kind === 'quadrant') {
@@ -130,11 +135,11 @@ function signs(rng) {
       answer: { type: 'choice', value: pos ? 'positive' : 'negative', options: SIGN_OPTIONS },
       visual: null,
       explain: `In quadrant ${ROMAN[q]} a point is ${QUAD_WORDS[q]}. ${fn} θ is ${WHERE[fn]}, so it is ${pos ? 'positive' : 'negative'}. `
-        + `(All Students Take Calculus: all are positive in I, sine in II, tangent in III, cosine in IV, and each reciprocal shares its partner's sign.) So ${pos ? 'positive' : 'negative'}.`,
+        + `(All Students Take Calculus: all are positive in I, sine in II, tangent in III, cosine in IV.) So ${pos ? 'positive' : 'negative'}.`,
     };
   }
   // Two signs pick one quadrant: never a function and its own reciprocal.
-  const PAIRS = [['sin', 'cos'], ['sin', 'tan'], ['cos', 'tan'], ['csc', 'cos'], ['sec', 'sin'], ['sin', 'cot'], ['cos', 'cot']];
+  const PAIRS = [['sin', 'cos'], ['sin', 'tan'], ['cos', 'tan'], ['cos', 'sin'], ['tan', 'sin'], ['tan', 'cos']];
   const [f, g] = rng.pick(PAIRS);
   const q = rng.int(1, 4);
   const sf = POSITIVE[f].includes(q), sg = POSITIVE[g].includes(q);
@@ -203,7 +208,7 @@ function around(rng) {
     answer: exact(v),
     visual: circleFigure(deg, radians),
     explain: `${referenceWords(deg, radians)}. ${fnText(fn, ref, radians)} = ${valueText(base)}, and ${fn === 'sin' ? 'sine, the y-coordinate,' : 'cosine, the x-coordinate,'} is ${pos ? 'positive' : 'negative'} in quadrant ${ROMAN[q]}. `
-      + `(The reference angle gives the size; the quadrant gives the sign.) So x = ${valueText(v)}.`,
+      + `(The reference angle gives the size; the quadrant gives the sign.) So ${fnText(fn, deg, radians)} = ${valueText(v)}.`,
   };
 }
 
@@ -226,7 +231,8 @@ function tangent(rng) {
   if (kind === 'axis') {
     const deg = rng.pick([0, 90, 180, 270, 360, -90]);
     const radians = rng.chance(0.5);
-    const fn = rng.pick(['tan', 'tan', 'cot']);
+    // Cotangent waits for the reciprocals' level.
+    const fn = 'tan';
     const v = exactTrig(fn, deg);
     const id = v === null ? 'undefined' : String(v.n);
     const c = valueText(exactTrig('cos', deg)), s = valueText(exactTrig('sin', deg));
@@ -235,8 +241,8 @@ function tangent(rng) {
       text: `defined: ${fn} ${angleKey(deg, radians)}`,
       answer: { type: 'choice', value: id, options: DEFINED_OPTIONS },
       visual: null,
-      explain: `At ${angleText(deg, radians)} the point is (${c}, ${s}), so ${fn} = ${fn === 'tan' ? `y/x = ${s}/${c}` : `x/y = ${c}/${s}`}. `
-        + `${v === null ? 'Dividing by zero has no answer' : `That is ${id}`}. (${fn === 'tan' ? 'Tangent is undefined where x = 0, at 90° and 270°, and 0 where y = 0.' : 'Cotangent is undefined where y = 0, at 0° and 180°, and 0 where x = 0.'}) So ${v === null ? 'undefined' : id}.`,
+      explain: `At ${angleText(deg, radians)} the point is (${c}, ${s}), so tan = y/x = ${s}/${c}. `
+        + `${v === null ? 'Dividing by zero has no answer' : `That is ${id}`}. (Tangent is undefined where x = 0, at 90° and 270°, and 0 where y = 0.) So ${v === null ? 'undefined' : id}.`,
     };
   }
   if (kind === 'point') {
@@ -259,7 +265,7 @@ function tangent(rng) {
     answer: exact(v),
     visual: null,
     explain: `At ${angleText(deg, radians)} the point is (${valueText(c)}, ${valueText(s)}), so tan = y/x = (${valueText(s)}) ÷ (${valueText(c)}) = ${valueText(v)}. `
-      + `(${refAngle(deg) === 30 ? '1/√3 and √3/3 are the same number; the second has the root on top.' : refAngle(deg) === 60 ? 'The halves cancel: (√3/2) ÷ (1/2) = √3.' : 'At 45° x and y are the same size, so tangent is 1 or −1.'}${quadrantOf(deg) > 1 ? ` In quadrant ${ROMAN[quadrantOf(deg)]} it is ${POSITIVE.tan.includes(quadrantOf(deg)) ? 'positive' : 'negative'}.` : ''}) So x = ${valueText(v)}.`,
+      + `(${refAngle(deg) === 30 ? '1/√3 and √3/3 are the same number; the second has the root on top.' : refAngle(deg) === 60 ? 'The halves cancel: (√3/2) ÷ (1/2) = √3.' : 'At 45° x and y are the same size, so tangent is 1 or −1.'}${quadrantOf(deg) > 1 ? ` In quadrant ${ROMAN[quadrantOf(deg)]} it is ${POSITIVE.tan.includes(quadrantOf(deg)) ? 'positive' : 'negative'}.` : ''}) So ${fnText('tan', deg, radians)} = ${valueText(v)}.`,
   };
 }
 
@@ -293,7 +299,7 @@ function reciprocals(rng) {
     visual: null,
     explain: `${fnText(fn, deg, radians)} = 1/${fnText(PARTNER[fn], deg, radians)}, and ${fnText(PARTNER[fn], deg, radians)} = ${valueText(p)}. `
       + `Flip it: ${valueText(v)}${rationalized ? `, with the root moved to the top` : ''}. `
-      + `(${fn === 'sec' ? 'Secant is 1 over cosine, not over sine.' : fn === 'csc' ? 'Cosecant is 1 over sine, not over cosine.' : 'Cotangent is x/y, tangent turned over.'} A reciprocal keeps the sign.) So x = ${valueText(v)}.`,
+      + `(${fn === 'sec' ? 'Secant is 1 over cosine, not over sine.' : fn === 'csc' ? 'Cosecant is 1 over sine, not over cosine.' : 'Cotangent is x/y, tangent turned over.'} A reciprocal keeps the sign.) So ${fnText(fn, deg, radians)} = ${valueText(v)}.`,
   };
 }
 
@@ -347,11 +353,10 @@ function fromOne(rng) {
   const condition = rng.chance(0.4) && q !== 1
     ? (() => { const other = given === 'sin' || given === 'csc' ? 'cos' : 'sin'; const pos = POSITIVE[other].includes(q); return `${other} θ ${pos ? '> 0' : '< 0'}`; })()
     : `θ is in quadrant ${ROMAN[q]}`;
-  const rational = v.r === 1;
   return {
-    prompt: [T.prose(`${given} θ = ${valueText(gv)} and ${condition}. Find the exact value of ${rational ? '' : 'x = '}${want} θ.`)],
+    prompt: [T.prose(`${given} θ = ${valueText(gv)} and ${condition}. Find the exact value of ${want} θ.`)],
     text: `from ratio: ${given} ${gv.n}/${gv.d}${gv.r === 1 ? '' : ` root ${gv.r}`}, quadrant ${ROMAN[q]}, want ${want}`,
-    answer: rational ? signedFrac(v.n, v.d) : exact(v),
+    answer: exact(v),
     visual: null,
     explain: `${condition.startsWith('θ') ? '' : `${given} θ is ${gv.n > 0 ? 'positive' : 'negative'} and ${condition}, which puts θ in quadrant ${ROMAN[q]}. `}`
       + `The reference triangle has ${given === 'tan' ? `opposite ${p} and adjacent ${h}` : given === 'sin' ? `opposite ${p} and hypotenuse ${h}` : `adjacent ${p} and hypotenuse ${h}`}, `

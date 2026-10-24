@@ -21,6 +21,7 @@ import {
 } from './trig.js';
 
 const UNITS = ['cm', 'm', 'in', 'ft'];
+const SQUARE = { cm: 'square centimeters', m: 'square meters', in: 'square inches', ft: 'square feet', yd: 'square yards' };
 const OPP = { a: 'A', b: 'B', c: 'C', A: 'a', B: 'b', C: 'c' };
 const ANGLES = ['A', 'B', 'C'];
 const sidesFrom = (A, B, C, k) => ({ a: k * sinD(A), b: k * sinD(B), c: k * sinD(C) });
@@ -64,19 +65,29 @@ function sinesSide(rng) {
 
 // ── Sines: Angle ────────────────────────────────────────────────────────
 
+// requiem: catalogue/content/ssa-says-which-triangle
+/**
+ * About 30% of rows are the ambiguous case, two triangles, split between
+ * asking for the acute B and the obtuse one; those name the triangle meant.
+ * The rest have one triangle and say nothing about it: with one triangle
+ * "find B" has one answer, and a sentence saying so would do the a ≥ b
+ * check for the student.
+ */
 function sinesAngle(rng) {
+  const ask = rng.chance(0.3) ? rng.pick(['acute', 'obtuse']) : 'one';
   for (;;) {
     // Known: angle A, side a across from it, and side b; wanted: B.
-    const A = rng.int(25, 120);
+    const A = ask === 'one' ? rng.int(25, 120) : rng.int(22, 65);
     const a = rng.int(6, 40), b = rng.int(4, 40);
     const s = (b * sinD(A)) / a;
     if (s >= 0.98) continue;
     const acute = asinD(s);
     // a ≥ b, or A not acute, leaves one triangle: B is the acute value.
-    // Otherwise there are two, and the question says which.
+    // Otherwise there are two.
     if (A >= 90 && a <= b) continue;
     const one = a >= b || A >= 90;
-    const which = one ? 'acute' : rng.pick(['acute', 'obtuse']);
+    if (one !== (ask === 'one')) continue;
+    const which = one ? 'acute' : ask;
     const B = which === 'acute' ? acute : 180 - acute;
     if (A + B >= 175 || (!one && 180 - acute <= 90 + 2)) continue;
     const alt = which === 'acute' ? asinD(four((b * four(sinD(A))) / a)) : 180 - asinD(four((b * four(sinD(A))) / a));
@@ -86,39 +97,44 @@ function sinesAngle(rng) {
     if (B < 20 || C < 20) continue;
     const unit = rng.pick(UNITS);
     const k = a / sinD(A);
-    const note = one ? (a >= b ? `Since a ≥ b, there is only one such triangle.` : `Since A is obtuse, there is only one such triangle.`)
-      : `Two triangles fit these measurements; find ${which === 'acute' ? 'the one where B is acute' : 'the one where B is obtuse'}.`;
+    const ask2 = one ? `Find B, ${placeWords(0, true)}.`
+      : `Two triangles fit these measurements. Find B in the one where B is ${which}, ${placeWords(0, true)}.`;
     return {
-      prompt: [T.prose(`In triangle ABC, A = ${A}°, a = ${a} ${unit} and b = ${b} ${unit}. ${note} Find B, ${placeWords(0, true)}.`)],
-      text: `sines angle: A ${A}, a ${a}, b ${b}; want ${which} B${placeText(0)}`,
+      prompt: [T.prose(`In triangle ABC, A = ${A}°, a = ${a} ${unit} and b = ${b} ${unit}. ${ask2}`)],
+      text: `sines angle: A ${A}, a ${a}, b ${b}; want ${one ? '' : `${which} `}B${placeText(0)}`,
       answer: roundedAnswer(q, 0),
       visual: triangleFigure(k * sinD(A), k * sinD(B), k * sinD(C), { angles: { A: `${A}°`, B: '?' }, sides: { a: `${a} ${unit}`, b: `${b} ${unit}` }, asked: 'B', reveal: `${q}°` }),
       explain: `a is across from A and b from B, so sin B/${b} = sin ${A}°/${a}, and sin B = ${b} × sin ${A}° ÷ ${a} ≈ ${at4(s)}. `
         + `sin⁻¹(${at4(s)}) ≈ ${at4(acute)}°${which === 'obtuse' ? `, and the obtuse angle with the same sine is 180° − ${at4(acute)}° ≈ ${at4(B)}°` : ''}, which is ${q}° ${placeWords(0, true)}. `
-        + `(${which === 'obtuse' ? 'The calculator gives only the acute angle; its supplement has the same sine.' : one ? 'The supplement 180° − B also has this sine, but it would leave no room for A.' : 'The obtuse supplement is the other triangle, not this one.'}) So B ≈ ${q}°.`,
+        + `(${which === 'obtuse' ? 'The calculator gives only the acute angle; its supplement has the same sine.' : one ? `The supplement 180° − B also has this sine, but ${A >= 90 ? `with A = ${A}° already obtuse` : `with a ≥ b, B is no bigger than A, so`} it would leave no room for the triangle.` : 'The obtuse supplement is the other triangle, not this one.'}) So B ≈ ${q}°.`,
     };
   }
 }
 
 // ── Cosines: Side ───────────────────────────────────────────────────────
 
-const LAKE = [
-  (p, q, t, u) => `A surveyor stands where she can see both ends of a lake. One end is ${p} ${u} away and the other ${q} ${u}, and the angle between her lines of sight is ${t}°. How long is the lake, in ${u}, ${placeWords(1)}?`,
-  (p, q, t, u) => `Two boats leave a dock together. One travels ${p} ${u} and the other ${q} ${u}, on courses ${t}° apart. How far apart are they, in ${u}, ${placeWords(1)}?`,
+// requiem: catalogue/content/believable-sizes
+// Each scene has its own units and sizes: a lake is hundreds of feet or
+// meters across, boats go miles or kilometers, a drawn triangle any unit.
+const SCENES = [
+  { units: [['ft', 'feet', 10], ['m', 'meters', 5], ['yd', 'yards', 5]],
+    say: (p, q, t, u) => `A surveyor stands where she can see both ends of a lake. One end is ${p} ${u} away and the other ${q} ${u}, and the angle between her lines of sight is ${t}°. How long is the lake, in ${u}, ${placeWords(1)}?` },
+  { units: [['mi', 'miles', 1], ['km', 'kilometers', 1]],
+    say: (p, q, t, u) => `Two boats leave a dock together. One travels ${p} ${u} and the other ${q} ${u}, on courses ${t}° apart. How far apart are they, in ${u}, ${placeWords(1)}?` },
 ];
 
 function cosinesSide(rng) {
+  const scene = rng.chance(0.3) ? rng.pick(SCENES) : null;
+  const [unit, word, scale] = scene ? rng.pick(scene.units) : [rng.pick(UNITS), null, 1];
   for (;;) {
     const C = rng.int(20, 150);
-    const a = rng.int(4, 40), b = rng.int(4, 40);
+    const a = rng.int(4, 40) * scale, b = rng.int(4, 40) * scale;
     if (Math.max(a, b) > 3 * Math.min(a, b)) continue;
     const c2 = a * a + b * b - 2 * a * b * cosD(C);
     const c = Math.sqrt(c2), alt = Math.sqrt(a * a + b * b - 2 * a * b * four(cosD(C)));
     const q = safeRound(c, 1, alt);
     if (q === null) continue;
-    const story = rng.chance(0.3);
-    const unit = story ? rng.pick(['ft', 'm', 'mi', 'km']) : rng.pick(UNITS);
-    const prompt = story ? rng.pick(LAKE)(a, b, C, unit)
+    const prompt = scene ? scene.say(a, b, C, word)
       : `In triangle ABC, a = ${a} ${unit}, b = ${b} ${unit} and C = ${C}°. Find c, ${placeWords(1)}.`;
     return {
       prompt: [T.prose(prompt)],
@@ -211,9 +227,11 @@ function whichLaw(rng) {
 const COUNT_OPTIONS = [{ id: '0', label: 'No triangle' }, { id: '1', label: 'Exactly one' }, { id: '2', label: 'Two' }];
 
 function howMany(rng) {
-  const want = rng.pick(['0', '1', '1', '2', '2']);
+  // An obtuse A in about a quarter of rows, with no triangle as often as
+  // one; an acute A split among none, one and two.
+  const [want, obtuse] = rng.pick([['0', false], ['1', false], ['2', false], ['2', false], ['0', false], ['1', false], ['0', true], ['1', true]]);
   for (;;) {
-    const A = want === '1' && rng.chance(0.3) ? rng.int(95, 130) : rng.int(20, 70);
+    const A = obtuse ? rng.int(95, 130) : rng.int(20, 70);
     const b = rng.int(6, 30);
     const h = b * sinD(A);
     let a;
@@ -263,7 +281,7 @@ function area(rng) {
     const unit = story ? rng.pick(['ft', 'm', 'yd']) : rng.pick(UNITS);
     const c = Math.sqrt(a * a + b * b - 2 * a * b * cosD(C));
     return {
-      prompt: [T.prose(story ? FIELD[0](a, b, C, unit) : `In triangle ABC, a = ${a} ${unit}, b = ${b} ${unit} and C = ${C}°. Find its area, in ${unit}², ${placeWords(1)}.`)],
+      prompt: [T.prose(story ? FIELD[0](a, b, C, unit) : `In triangle ABC, a = ${a} ${unit}, b = ${b} ${unit} and C = ${C}°. Find its area, in ${SQUARE[unit]}, ${placeWords(1)}.`)],
       text: `triangle area: a ${a}, b ${b}, C ${C}${placeText(1)}`,
       answer: roundedAnswer(q, 1),
       visual: triangleFigure(a, b, c, { angles: { C: `${C}°` }, sides: { a: `${a} ${unit}`, b: `${b} ${unit}` }, asked: 'area', reveal: `${roundedText(q, 1)} ${unit}²` }),

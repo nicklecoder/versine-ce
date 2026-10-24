@@ -4951,18 +4951,19 @@ def trig_cofunction(f, t, g) -> int:
 
 
 def trig_cofunction_value(f, p, q, g) -> Fraction:
-    p, q = int(p), int(q)
-    # The sides of the triangle from A: opposite, adjacent, hypotenuse.
-    if f == "sin":
-        o, h = p, q; a = math.isqrt(h * h - o * o)
-    elif f == "cos":
-        a, h = p, q; o = math.isqrt(h * h - a * a)
-    else:
-        o, a = p, q; h = math.isqrt(o * o + a * a)
-    assert o * o + a * a == h * h
-    # From B the legs swap: B's opposite is A's adjacent.
-    ob, ab = a, o
-    return {"sin": Fraction(ob, h), "cos": Fraction(ab, h), "tan": Fraction(ob, ab)}[g]
+    # A from its ratio, B = 90° − A, and g of B on the calculator.
+    r = int(p) / int(q)
+    A = {"sin": math.asin, "cos": math.acos, "tan": math.atan}[f](r)
+    v = {"sin": math.sin, "cos": math.cos, "tan": math.tan}[g](math.pi / 2 - A)
+    return Fraction(v).limit_denominator(1000)
+
+
+# requiem: catalogue/content/special-triangle-leg-from-the-mark
+def trig_special_marked(theta, given_role, given, want_role) -> float:
+    # The leg is named by its place from the marked angle, as the figure shows
+    # it, and worked from a hypotenuse-1 triangle with that angle.
+    unit = trig_unit(int(theta))
+    return trig_surd_value(given) / unit[given_role] * unit[want_role]
 
 
 def trig_cofunction_solve(f, a, b, g, c, d) -> int:
@@ -4993,7 +4994,7 @@ BY_RULE += (
 
 EXACT_RULES += (
     (re.compile(r"^special (45): (leg|hypotenuse) (\d*√?\d+), want (leg|hypotenuse)$"), trig_special),
-    (re.compile(r"^special (30): (short|long|hypotenuse) (\d*√?\d+), want (short|long|hypotenuse)$"), trig_special),
+    (re.compile(rf"^special 30: angle (30|60), {TRIG_ROLE} (\d*√?\d+), want {TRIG_ROLE}$"), trig_special_marked),
 )
 
 CHOICE_RULES += (
@@ -5050,8 +5051,12 @@ def laws_sines_angle(A, a, b, which, places) -> Fraction:
     disc = a * a - C[1] ** 2
     xs = [x for x in {C[0] + math.sqrt(disc), C[0] - math.sqrt(disc)} if x > 1e-9] if disc > 0 else []
     angles = [laws_angle_at(((0.0, 0.0), (x, 0.0), C), "B") for x in xs]
-    picked = [t for t in angles if (t < 90) == (which == "acute")]
+    # A question that names no triangle must have only one; one that names
+    # the acute or the obtuse B must have two to choose between.
+    assert (len(angles) == 1) == (which is None), (A, a, b, which, angles)
+    picked = angles if which is None else [t for t in angles if (t < 90) == (which == "acute")]
     assert len(picked) == 1, (A, a, b, angles)
+    which = which or ("acute" if picked[0] < 90 else "obtuse")
     s4 = round(b * round(math.sin(math.radians(A)), 4) / a, 4)
     four = math.degrees(math.asin(s4))
     return trig_agree(picked[0], four if which == "acute" else 180 - four, places)
@@ -5107,7 +5112,7 @@ def laws_which(listing: str, want: str) -> str:
 
 BY_RULE += (
     (re.compile(r"^sines side: ([ABC]) (\d+), ([ABC]) (\d+), ([abc]) (\d+); want ([abc]) to (\d) dp$"), laws_sines_side),
-    (re.compile(r"^sines angle: A (\d+), a (\d+), b (\d+); want (acute|obtuse) B to the nearest whole$"),
+    (re.compile(r"^sines angle: A (\d+), a (\d+), b (\d+); want (?:(acute|obtuse) )?B to the nearest whole$"),
      lambda A, a, b, which: laws_sines_angle(A, a, b, which, 0)),
     (re.compile(r"^cosines side: a (\d+), b (\d+), C (\d+); want c to (\d) dp$"), laws_cosines_side),
     (re.compile(r"^cosines angle: a (\d+), b (\d+), c (\d+); want ([ABC]) to the nearest whole$"),
@@ -5149,8 +5154,11 @@ def rad_coterminal_rad(written: str) -> Fraction:
     return hits[0]
 
 
+# requiem: catalogue/content/reference-angles-any-angle
 def rad_reference_deg(deg) -> int:
-    # The angle between the terminal side and the nearer half of the x-axis.
+    # Round to one turn by stepping (rad_coterminal_deg), then the angle
+    # between the terminal side and the nearer half of the x-axis.
+    deg = rad_coterminal_deg(int(deg))
     return min(abs(deg - 0), abs(deg - 180), abs(deg - 360))
 
 
@@ -5184,8 +5192,8 @@ BY_RULE += (
      lambda r, places: trig_agree(float(r) * 180 / math.pi, float(r) * 180 / 3.1416, places)),
     (re.compile(r"^coterminal deg: (-?\d+)$"), lambda deg: rad_coterminal_deg(int(deg))),
     (re.compile(r"^coterminal rad: (-?\d+/\d+)$"), rad_coterminal_rad),
-    (re.compile(r"^reference deg: (\d+)$"), rad_reference_deg),
-    (re.compile(r"^reference rad: (\d+/\d+)$"), lambda k: Fraction(rad_reference_deg(rad_coef(k) * 180), 180)),
+    (re.compile(r"^reference deg: (-?\d+)$"), lambda deg: rad_reference_deg(int(deg))),
+    (re.compile(r"^reference rad: (-?\d+/\d+)$"), lambda k: Fraction(rad_reference_deg(rad_coef(k) * 180), 180)),
     (re.compile(r"^(arc length|sector area): r (\d+), (theta|degrees) ([\d./]+(?: pi)?)$"), rad_arc),
     (re.compile(r"^arc angle: s (\d+), r (\d+)$"), lambda s, r: Fraction(s, r)),
     (re.compile(r"^angular: rpm (\d+), want rad per (min|s)$"), lambda rpm, per: Fraction(2 * rpm, 60 if per == "s" else 1)),
@@ -5294,6 +5302,8 @@ EXACT_RULES += (
     (re.compile(rf"^exact: (sin|cos|tan|sec|csc|cot) {UC_ANGLE}$"), lambda f, a: UC[f](uc_angle(a))),
     (re.compile(rf"^point coordinate: (x|y), {UC_ANGLE}$"), lambda c, a: (math.cos if c == "x" else math.sin)(uc_angle(a))),
     (re.compile(r"^from ratio: (sin|cos|tan) (-?\d+/\d+), quadrant (I|II|III|IV), want (\w+)$"), uc_from_ratio),
+    # A rational value goes in the roots box too, so the box tells nothing.
+    (re.compile(r"^ratio from point: (tan|sec|csc|cot), (-?\d+/\d+), (-?\d+/\d+)$"), lambda f, x, y: float(uc_from_point(f, x, y))),
 )
 
 BY_RULE += (
@@ -5310,6 +5320,17 @@ CHOICE_RULES += (
     (re.compile(r"^quadrant from signs: (\w+) ([+-]), (\w+) ([+-])$"), uc_quadrant_from_signs),
     (re.compile(rf"^defined: (tan|cot) {UC_ANGLE}$"), uc_defined),
 )
+
+
+# requiem: catalogue/content/reciprocals-after-their-level
+# sec, csc and cot are taught on sec, csc, cot (L5): Signs by Quadrant (L2)
+# and Tangent (L4) ask only about sin, cos and tan.
+for level in (1, 3):
+    path = LIB / f"unit-circle-{level}.json"
+    if path.exists():
+        for i, p in enumerate(json.loads(path.read_text())["problems"]):
+            if re.search(r"\b(sec|csc|cot)\b", p["text"]):
+                problems.append(f"unit-circle L{level + 1} row {i}: {p['text']} asks about a reciprocal before L5")
 
 
 # --- Graphs of Sine & Cosine -------------------------------------------------
@@ -5329,6 +5350,8 @@ def tg_wave(rhs: str):
     """y as a function of x, from '−3 sin(2x) + 1' written in ASCII."""
     s = rhs.replace("pi", "π")
     assert TG_SAFE.match(s), f"unexpected characters in {rhs!r}"
+    # A bare argument, sin 2x, is read as sin(2x), as on paper.
+    s = re.sub(r"\b(sin|cos) (\d*x)\b", r"\1(\2)", s)
     s = re.sub(r"(?<=[\dxπ)])\s*(?=[xπ(]|sin|cos)", "*", s).replace("π", "pi")
     return eval(f"lambda x: {s}", {"__builtins__": {}, "sin": math.sin, "cos": math.cos, "pi": math.pi})
 
@@ -5473,6 +5496,47 @@ for path in sorted(LIB.glob("trig-graphs-*.json")):
         for dot in (mk["at"] for mk in p["visual"]["marks"] if mk["kind"] == "point"):
             if min(abs(dot[1] - float(hi)), abs(dot[1] - float(lo))) > 0.0501 or abs(f(dot[0]) - dot[1]) > 0.1:
                 problems.append(f"{where}: the dot at {dot} is not a peak or trough of y = {rhs}")
+        # requiem: catalogue/content/wave-ticks-fit-b
+        # Every peak and trough is read off the x-axis, so each sits on a tick
+        # (or on the y-axis): a dot between two ticks cannot be read.
+        ticks = [mk["from"][0] for mk in p["visual"]["marks"]
+                 if mk["kind"] == "segment" and mk["from"][0] == mk["to"][0] and abs(mk["from"][1] + 0.12) < 1e-9]
+        for dot in (mk["at"] for mk in p["visual"]["marks"] if mk["kind"] == "point"):
+            if abs(dot[0]) > 0.051 and all(abs(dot[0] - x) > 0.051 for x in ticks):
+                problems.append(f"{where}: the dot at {dot} of y = {rhs} falls between the ticks")
+
+
+# requiem: catalogue/content/special-triangle-leg-from-the-mark
+# A 30-60-90 question names no leg, so the figure must: its marked angle is
+# the one in the text, and the given length and the x sit on the sides the
+# text places them, read off the drawing (the side not touching the marked
+# corner is opposite; of the two touching it, the one meeting the right
+# angle is adjacent).
+for path in sorted(LIB.glob("trig-ratios-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        m = re.match(r"^special 30: angle (30|60), (\w+) (\S+), want (\w+)$", p["text"])
+        if not m:
+            continue
+        where = f"trig-ratios L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        marks = p["visual"]["marks"]
+        sides = [(tuple(mk["from"]), tuple(mk["to"])) for mk in marks if mk["kind"] == "segment"][:3]
+        corners = {c for seg in sides for c in seg}
+        labels = {mk["label"]: mk["at"] for mk in marks if mk["kind"] == "text"}
+        d = lambda u, v: math.hypot(u[0] - v[0], u[1] - v[1])
+        if f"{m[1]}°" not in labels or "x" not in labels or m[3] not in labels:
+            problems.append(f"{where}: the figure does not mark {m[1]}°, {m[3]} and x")
+            continue
+        A = min(corners, key=lambda c: d(c, labels[f"{m[1]}°"]))
+        def right_angle(c):
+            u, v = [q for seg in sides if c in seg for q in seg if q != c]
+            return abs((u[0] - c[0]) * (v[0] - c[0]) + (u[1] - c[1]) * (v[1] - c[1])) < 1e-6
+        R = next(c for c in corners if right_angle(c))
+        role = {}
+        for seg in sides:
+            role[seg] = "opposite" if A not in seg else "adjacent" if R in seg else "hypotenuse"
+        near = lambda at: role[min(sides, key=lambda seg: d(at, ((seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2)))]
+        if A == R or near(labels[m[3]]) != m[2] or near(labels["x"]) != m[4]:
+            problems.append(f"{where}: the figure does not put {m[3]} on the {m[2]} and x on the {m[4]}")
 
 
 # --- Trig Identities ---------------------------------------------------------
@@ -5511,6 +5575,7 @@ def id_pick(expr: str, options: str) -> str:
     return fits[0] if len(fits) == 1 else f"fits {fits}"
 
 
+# requiem: catalogue/content/proof-step-is-new-and-equal
 def id_proof(goal: str, so_far: str, options: str) -> str:
     left, right = goal.split(" = ")
     lines = so_far.split(" = ")
@@ -5518,7 +5583,10 @@ def id_proof(goal: str, so_far: str, options: str) -> str:
         return "the goal is not an identity"
     if lines[0] != left or any(not id_same(x, y) for x, y in zip(lines, lines[1:])):
         return "a line so far is not equal to the one before"
-    return id_pick(lines[-1], options)
+    # The next line is equal to the last and new: an equal option that is a
+    # line already written is a step back, which the question rules out.
+    fits = [oid for oid, opt in tg_options(options).items() if id_same(lines[-1], opt) and opt not in lines]
+    return fits[0] if len(fits) == 1 else f"fits {fits}"
 
 
 def id_place(fn: str, value: str, q: str) -> float:

@@ -17,11 +17,14 @@ anyone who wants a known version, and these notes say what changed either way.
 Pythagorean, reciprocal and quotient, even and odd, cofunction, sum and
 difference, double angle, Next Step in a Proof, then All Together. Each
 level mixes values worked from a given ratio with expressions to simplify,
-asked as a choice where exactly one option is equal to the expression;
-exact values with two radicals, such as cos 15°, are choices too. Next Step
-in a Proof gives a goal and the lines so far and offers the next line among
-slips a student makes: a sign or function swapped, a square dropped, a
-factor doubled. `check-answers.py` evaluates every option at several angles
+asked as a choice where exactly one option is equal to the expression, the
+others the slips that expression invites (2 sin θ for sin 2θ, sin 4θ for
+4 sin θ cos θ, 1 + 2 sin²θ for cos 2θ); exact values with two radicals, such
+as cos 15°, are choices too. Next Step in a Proof draws from 37 proofs: it
+gives a goal and the lines so far and offers the next line among slips a
+student makes, a sign or function swapped, a square dropped, a factor
+doubled, and in about half the rows a line already written, equal but a step
+back, which the question rules out. `check-answers.py` evaluates every option at several angles
 to find the one equal option, and works every value again from the
 calculator.
 
@@ -30,7 +33,9 @@ levels: amplitude, period, midline (with the maximum and minimum), phase
 shift with b factored out, the equation of a drawn wave, and sinusoidal
 models of Ferris wheels, tides, springs and the seasons in US and metric
 units, then All Together. Waves are drawn on exact tenths of x with dots at
-each peak and trough, and figure levels are capped at 300 to 400 problems.
+each peak and trough, ticked at multiples of π/(2b) so each dot sits on a
+tick, and figure levels are capped at 300 to 400 problems. A Ferris wheel's
+equation is given only where a height is worked from it.
 `check-answers.py` evaluates each equation as the student reads it, finds
 its period and extremes numerically, slides the parent wave to test each
 phase-shift option, and checks every drawn point against the equation.
@@ -38,16 +43,19 @@ phase-shift option, and checks every drawn point against the equation.
 **The Unit Circle**, a new skill under the Unit Circle, in seven levels:
 special angles, signs by quadrant, any multiple of 30° or 45° by its
 reference angle (drawn on the circle), tangent, sec, csc and cot, and the
-rest of the ratios from one, then All Together. Exact values use the roots
-type, so √3/3 and 1/√3 are both right; an undefined tangent or cotangent is
-asked as a choice. A question that gives one ratio always fixes the
+rest of the ratios from one, then All Together. Every number answer uses the
+roots type, fractions included, so √3/3 and 1/√3 are both right and the box
+never shows whether the answer is rational; an undefined tangent is asked as
+a choice. Values are asked bare (sin 30°, not x = sin 30°, since x is the
+cosine), and sec, csc and cot wait for their own level. A question that gives one ratio always fixes the
 quadrant. `check-answers.py` works every value out again with the
 calculator and places θ in its quadrant with the inverse function.
 
 **Radians**, a new skill under the Unit Circle, in eight levels: degrees to
 radians and back, coterminal angles, reference angles on a drawn angle, arc
 length s = rθ, sector area ½r²θ, and angular and linear speed in rpm, radians
-per second, ft/s, m/s, mi/h and km/h. An exact answer is the coefficient of π
+per second, ft/s, m/s, mi/h and km/h. Reference angles include negative
+angles and angles past a full turn. An exact answer is the coefficient of π
 typed as a fraction after a printed π, since radian measures are thirds and
 ninths of π; a rounded one is kept only where 3.1416 for π rounds the same.
 `check-answers.py` converts in exact fractions and finds coterminal and
@@ -56,8 +64,9 @@ reference angles by stepping round the circle.
 **Laws of Sines & Cosines**, a new skill under Right Triangles, in eight levels:
 the law of sines for a side and for an angle, the law of cosines for a side and
 for an angle, a strategy level, Which Law?, and How Many Triangles? for two
-sides and an angle not between them, then ½ab sin C and All Together. Every
-law-of-sines angle question says how many triangles fit, or which one it means.
+sides and an angle not between them, then ½ab sin C and All Together. About
+30% of law-of-sines angle questions have two triangles and name the one they
+mean; the rest have one and say nothing about it.
 `check-answers.py` rebuilds each triangle on coordinates and measures it, rather
 than reusing either law. Triangle coordinates are kept to one decimal place, and
 figure levels are capped at 400 problems.
@@ -66,7 +75,9 @@ figure levels are capped at 400 problems.
 naming the opposite, adjacent and hypotenuse; sine, cosine and tangent as
 fractions; a missing side and a missing angle by calculator; exact sides of the
 45-45-90 and 30-60-90 triangles; cofunctions; and angles of elevation and
-depression, ladders, shadows and bearings in US and metric units. Calculator
+depression, ladders, shadows and bearings in US and metric units, each scene
+with its own units and sizes. The 30-60-90 level asks for x and lets the
+figure's angle mark say which leg it is. Calculator
 answers are kept only where working with 4-place trig values rounds the same as
 the exact value, and `check-answers.py` works both and asserts they agree. Exact
 answers use the roots type, and a new `EXACT_RULES` table in `check-answers.py`
