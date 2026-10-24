@@ -1002,7 +1002,7 @@
       "levels": {}
     }
   },
-  "sources": "7c08a5121a6891a1e51ae253521b6af7284accd7c29e699accda82b7eab745ff",
+  "sources": "dada5184d41eaff5c830b1a939bb823adbb21e6fa1cabee3f43ab4f36053f394",
   "levels": [
     {
       "skill": "int-addsub",
@@ -1269,7 +1269,7 @@
       "level": 4,
       "slug": "without-the-picture",
       "name": "Without the Picture",
-      "count": 312,
+      "count": 184,
       "exhaustive": true,
       "signed": false,
       "file": "frac-addsub-4.json"
@@ -1299,8 +1299,8 @@
       "level": 7,
       "slug": "simplify-the-answer",
       "name": "Simplify the Answer",
-      "count": 312,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "frac-addsub-7.json"
     },
