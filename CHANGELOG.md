@@ -161,6 +161,14 @@ spheres and hemispheres, and a radius from the volume; the surface of boxes, cub
 triangular prisms; of cylinders closed, open at the top or open at both ends; and of
 cones, spheres and solid hemispheres, and a radius from the surface. Solids are drawn in
 an oblique view with hidden edges dashed.
+
+**Transformations** (Coordinates), in eight levels: translations, by words, by a rule, or
+shown by one corner; reflections over the axes and over lines like x = 2; over y = x and
+y = −x; rotations of 90°, 180° and 270° about the origin or another point; dilations by
+whole and fractional factors about the origin or another point; sequences of two moves,
+with the other order worked out when it differs; and naming a move from its picture, or
+calling a rule or a sequence congruent, similar or neither. Each corner is asked about on a
+drawn triangle, and the image arrives with the answer.
 - **Rational Exponents** (Powers & Roots): the half power as a square root, other roots,
   root then power, negative fractional powers, a radical rewritten as one power, the
   exponent rules with fractions, and a strategy level on combining bases before the root.

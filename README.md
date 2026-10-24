@@ -188,14 +188,14 @@ No build step and no frontend toolchain — the browser loads the ES modules in
 
 ## How it fits together
 
-Fifty-one skills are built so far. They cover pre-algebra -- integer arithmetic
+Fifty-two skills are built so far. They cover pre-algebra -- integer arithmetic
 and absolute value, fractions, decimals, ratio and proportional relationships,
 powers, roots, scientific notation and the real numbers, expressions, and
 equations and inequalities, including writing them from a situation, and
 compound inequalities and absolute value -- and all of the
 linear algebra after it: functions, slope, linear equations and their forms,
 linear models, systems of two equations, graphing inequalities, and sequences. Phase 2, polynomials to
-exponentials, is built too: monomials, rational exponents, polynomials, both factoring skills, quadratic equations, the quadratic formula, graphs of quadratics, exponential functions and transforming functions. The Pythagorean theorem and center and spread (mean, median, quartiles, MAD and samples) finish the Algebra 1 milestone, and geometry has begun with angle relationships, the angles of triangles and polygons, area and the circle, and the volume and surface area of solids. What comes next, and which standards it answers to, is in
+exponentials, is built too: monomials, rational exponents, polynomials, both factoring skills, quadratic equations, the quadratic formula, graphs of quadratics, exponential functions and transforming functions. The Pythagorean theorem and center and spread (mean, median, quartiles, MAD and samples) finish the Algebra 1 milestone, and geometry has begun with angle relationships, the angles of triangles and polygons, area and the circle, the volume and surface area of solids, and transformations of the plane. What comes next, and which standards it answers to, is in
 `docs/catalogue-plan.md`.
 
 ```

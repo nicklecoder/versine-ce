@@ -167,6 +167,11 @@ in each question, not chosen.
 `volume` is built, as Prisms · Cylinders · Cones and Pyramids · Spheres ·
 Surface Area: Prisms · Surface Area: Cylinders · Cones and Spheres · All
 Together.
+`transformations-g` is built, as Translate · Reflect Over an Axis · Reflect
+Over y = x · Rotate · Dilate · Sequences · Which Transformation? · All
+Together. Sequences of moves get a level of their own, and Congruent or
+Similar is asked inside Which Transformation?, beside naming the move, since
+both sort moves by what they keep.
 
 | Skill (category) | Levels | Covers |
 |---|---|---|

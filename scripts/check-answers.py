@@ -2629,6 +2629,141 @@ BY_RULE += (
     (re.compile(rf"^sphere radius from surface: {LENGTH} \(pi\)$"), radius_from_sphere_surface),
 )
 
+# --- Transformations ---------------------------------------------------------
+#
+# Each move is applied again from its own rule: a translation adds, a
+# reflection over an axis changes one sign and over x = k keeps the distance
+# to the line, y = x swaps, a rotation about a centre turns the offset from
+# it, and a dilation scales that offset. A figure is named from coordinates
+# alone -- sides scaled, then turned over, then pointing the same way -- and
+# a rule or sequence is congruent when it keeps every length, similar when it
+# scales them all alike, and neither otherwise.
+
+POINT = r"\((-?\d+), (-?\d+)\)"
+
+
+def as_point(x, y) -> tuple:
+    return Fraction(x), Fraction(y)
+
+
+def reflect_over(line: str):
+    if line == "x-axis":
+        return lambda x, y: (x, -y)
+    if line == "y-axis":
+        return lambda x, y: (-x, y)
+    if line == "y = x":
+        return lambda x, y: (y, x)
+    if line == "y = -x":
+        return lambda x, y: (-y, -x)
+    axis, k = re.fullmatch(r"([xy]) = (-?\d+)", line).groups()
+    k = Fraction(k)
+    return (lambda x, y: (2 * k - x, y)) if axis == "x" else (lambda x, y: (x, 2 * k - y))
+
+
+QUARTER_TURNS = {"90 ccw": 1, "180": 2, "90 cw": 3, "270 ccw": 3}
+
+
+def turned(x, y, quarters: int) -> tuple:
+    for _ in range(quarters):                          # a quarter turn counterclockwise each time
+        x, y = -y, x
+    return x, y
+
+
+def rotate_about(x, y, turn: str, h, k) -> tuple:
+    a, b = turned(Fraction(x) - Fraction(h), Fraction(y) - Fraction(k), QUARTER_TURNS[turn])
+    return a + Fraction(h), b + Fraction(k)
+
+
+def dilate_about(x, y, factor: str, h, k) -> tuple:
+    f, h, k = Fraction(factor), Fraction(h), Fraction(k)
+    return h + f * (Fraction(x) - h), k + f * (Fraction(y) - k)
+
+
+def move_step(step: str):
+    """One step of a sequence, in the text's words, as a function of a point."""
+    if step.startswith("reflect "):
+        return reflect_over(step[len("reflect "):])
+    if step.startswith("rotate "):
+        q = QUARTER_TURNS[step[len("rotate "):]]
+        return lambda x, y: turned(x, y, q)
+    if step.startswith("dilate "):
+        f = Fraction(step[len("dilate "):])
+        return lambda x, y: (f * x, f * y)
+    a, b = re.fullmatch(rf"translate {POINT}", step).groups()
+    return lambda x, y: (x + Fraction(a), y + Fraction(b))
+
+
+def after_steps(steps: str):
+    moves = [move_step(s) for s in steps.split("; ")]
+
+    def go(x, y):
+        for m in moves:
+            x, y = m(x, y)
+        return x, y
+    return go
+
+
+def points_of(listing: str) -> list:
+    return [as_point(x, y) for x, y in re.findall(POINT, listing)]
+
+
+def name_the_move(before: str, after: str) -> str:
+    P, Q = points_of(before), points_of(after)
+    side = lambda A, B: (B[0] - A[0], B[1] - A[1])
+    length2 = lambda v: v[0] ** 2 + v[1] ** 2
+    ratios = {length2(side(Q[i], Q[j])) / length2(side(P[i], P[j])) for i, j in ((0, 1), (1, 2), (2, 0))}
+    assert len(ratios) == 1, (before, after)           # every side scaled alike, or it is no single move
+    if ratios != {1}:
+        return "dilation"
+    area = lambda T: (T[1][0] - T[0][0]) * (T[2][1] - T[0][1]) - (T[1][1] - T[0][1]) * (T[2][0] - T[0][0])
+    if (area(P) > 0) != (area(Q) > 0):
+        return "reflection"
+    return "translation" if side(P[0], P[1]) == side(Q[0], Q[1]) and side(P[1], P[2]) == side(Q[1], Q[2]) else "rotation"
+
+
+def kind_of_map(go) -> str:
+    """Congruent, similar or neither, from where the map sends three points."""
+    o, e1, e2 = go(Fraction(0), Fraction(0)), go(Fraction(1), Fraction(0)), go(Fraction(0), Fraction(1))
+    a, c = e1[0] - o[0], e1[1] - o[1]
+    b, d = e2[0] - o[0], e2[1] - o[1]
+    far = go(Fraction(2), Fraction(3))
+    assert far == (o[0] + 2 * a + 3 * b, o[1] + 2 * c + 3 * d)     # a straight-line map, as all of these are
+    if a * b + c * d != 0 or a * a + c * c != b * b + d * d:
+        return "neither"
+    return "congruent" if a * a + c * c == 1 else "similar"
+
+
+def kind_of_rule(rule: str) -> str:
+    inner = rule.strip()[1:-1]
+    depth, cut = 0, None
+    for i, ch in enumerate(inner):
+        depth += ch == "("
+        depth -= ch == ")"
+        if ch == "," and depth == 0:
+            cut = i
+    fx, fy = inner[:cut], inner[cut + 1:]
+    return kind_of_map(lambda x, y: (at_xy(fx, x, y), at_xy(fy, x, y)))
+
+
+PAIR_RULES += (
+    (re.compile(rf"^translate {POINT} by {POINT}$"),
+     lambda x, y, a, b: (Fraction(x) + Fraction(a), Fraction(y) + Fraction(b))),
+    (re.compile(rf"^translate {POINT} like {POINT} -> {POINT}$"),
+     lambda x, y, x0, y0, x1, y1: (Fraction(x) + Fraction(x1) - Fraction(x0), Fraction(y) + Fraction(y1) - Fraction(y0))),
+    (re.compile(rf"^reflect {POINT} over (x-axis|y-axis|y = x|y = -x|[xy] = -?\d+)$"),
+     lambda x, y, line: reflect_over(line)(*as_point(x, y))),
+    (re.compile(rf"^rotate {POINT} by (90 ccw|180|90 cw|270 ccw) about {POINT}$"), rotate_about),
+    (re.compile(rf"^dilate {POINT} by (\d+(?:/\d+)?) about {POINT}$"), dilate_about),
+    (re.compile(rf"^sequence {POINT}: (.+)$"), lambda x, y, steps: after_steps(steps)(*as_point(x, y))),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^which move: (.+) -> (.+)$"), name_the_move),
+    (re.compile(r"^congruent or similar: \(x, y\) -> (\(.+\))$"), kind_of_rule),
+    (re.compile(r"^congruent or similar: ([a-z].+)$"),
+     lambda steps: kind_of_map(after_steps(steps))),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
