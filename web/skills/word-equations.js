@@ -7,8 +7,8 @@
  * claim the situation makes about it. Solving is the part already owned.
  *
  * Which Equation sits second, straight after the first puzzles, because it
- * isolates the writing from the solving: three equations, one situation, and
- * the wrong two are the misreadings students actually make. After that the
+ * isolates the writing from the solving: four equations, one situation, and
+ * the wrong three are two misreadings students actually make, crossed. After that the
  * situations get their own levels by shape -- a fixed amount plus a rate,
  * parts of a whole, two things becoming equal -- since each shape is a
  * template a student can learn to recognize.
@@ -26,7 +26,7 @@ export const LEVELS = [
   { name: 'Number Puzzles', slug: 'number-puzzles',
     blurb: 'Call the number n. Write down what was done to it, then undo it.' },
   { name: 'Which Equation?', slug: 'which-equation',
-    blurb: 'Three equations, one situation. Only one says what the words say.' },
+    blurb: 'Four equations, one situation. Only one says what the words say.' },
   { name: 'Fixed Plus Per-Unit', slug: 'fixed-plus-per-unit',
     blurb: 'A charge once, and a charge for each one. The each goes with the letter.' },
   { name: 'Parts of a Whole', slug: 'parts-of-a-whole',
