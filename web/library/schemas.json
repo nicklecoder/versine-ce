@@ -379,6 +379,7 @@
     "blank",
     "pow",
     "root",
+    "sigma",
     "var",
     "juxt",
     "group",

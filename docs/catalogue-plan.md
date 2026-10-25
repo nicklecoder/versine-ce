@@ -532,6 +532,20 @@ with a `longerBecause`: e as what compounding ever more often tends to,
 then P(1 + r/n)^(nt), P·e^(rt), and a·e^(kt) read for its rate, its factor
 each step and its value.
 
+`series` is built, as Arithmetic Sums · Finite Geometric · Sigma Notation ·
+Infinite Geometric · Series in Context · Working Backward · All Together.
+Series in Context and Working Backward are added: stories of seats, stacks,
+savings, pay, a pendulum and a bouncing ball, and the formulas read the
+other way, how many terms make a total, a difference or a first term from
+the sum, and aₙ = Sₙ − Sₙ₋₁. Arithmetic Sums depends on sequences' Any
+Term, Finite Geometric on its Geometric Terms, and Working Backward on
+quadratic equations' By Factoring, since the count of terms is a root of a
+quadratic in n. Every answer is a fraction box answer, whole or not, so the
+box says nothing of the form. Sigma notation is drawn by a new `sigma`
+prompt term with stacked limits, and is only ever read, never typed, so no
+Σ key is needed. An infinite series with no sum is asked as a choice of
+four series, half the rows asking which has a sum and half which has none.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

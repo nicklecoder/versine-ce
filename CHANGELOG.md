@@ -13,6 +13,24 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Series**, a new skill under Sequences, in seven levels: Arithmetic Sums,
+Finite Geometric, Sigma Notation, Infinite Geometric, Series in Context,
+Working Backward and All Together. Arithmetic sums pair the first term with
+the last, in halves and negatives as well as whole steps; geometric sums
+take ratios like −2 and 2/3. Sigma notation is drawn with its limits
+stacked, a new `sigma` prompt term, and is evaluated, counted (both ends
+included) and matched to the series it writes out, the wrong options
+crossing a sum started a term early with one stopped a term early. Infinite
+geometric series find a sum where the ratio is between −1 and 1, pick out
+which of four series has one (or has none), write a repeating decimal as a
+fraction, and find the first term or ratio from the sum. Stories are seats,
+stacks, savings, pay rises, a pendulum and a bouncing ball; working
+backward counts the terms that make a total, finds a difference or first
+term, and a term from Sₙ − Sₙ₋₁. Every answer goes in the fraction box,
+which takes whole numbers too. `scripts/check-answers.py` adds each series
+up term by term, takes an infinite one as the limit of its partial sums, and
+reads a repeating decimal by shifting it.
+
 **Polynomial division, polynomial and rational functions, and rational
 equations, reworked.** Choice options no longer give the right one away by
 their look: each set is two slips crossed (neither, one, the other, both),

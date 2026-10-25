@@ -1210,6 +1210,14 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   padding: .04em .12em 0 .06em; margin-top: .08em;
 }
 .root-term .is-blank { color: var(--gold); }
+/* A sum: the sign with its limits stacked, then what is added. */
+.sigma-term { display: inline-flex; align-items: center; }
+.sigma-term__op {
+  display: inline-flex; flex-direction: column; align-items: center;
+  line-height: 1; margin-right: .12em;
+}
+.sigma-term__sign { font-size: 1.5em; line-height: .95; }
+.sigma-term__hi, .sigma-term__lo { font-size: .55em; white-space: nowrap; }
 
 /* ── The x/y plane ────────────────────────────────────────────────────── */
 .pl { display: block; max-width: 100%; height: auto; margin-inline: auto; overflow: visible; }

@@ -8050,6 +8050,206 @@ SET_RULES += (
     (re.compile(r"^log eq: (.+) = (.+)$"), lg_equation),
 )
 
+# --- Series ----------------------------------------------------------------------
+#
+# A finite series is added up term by term, walked from its first term by its
+# own difference or ratio -- read from the terms the question shows -- and
+# never by the n(a + l)/2 or a(1 - r^n)/(1 - r) the generator uses. A story's
+# series is built again from the story's numbers. An infinite series is the
+# limit its partial sums settle on: a few hundred terms out, the nearest
+# fraction with a small bottom, which a ratio inside -1 to 1 pins exactly. A
+# repeating decimal is read as x, shifted by its repeat and taken from
+# itself. A count of terms is found by adding terms until the total is hit.
+
+def sr_nums(listing: str) -> list:
+    return [Fraction(v) for v in listing.split(", ")]
+
+
+def sr_step(ts: list, geometric: bool) -> Fraction:
+    """The common difference or ratio, which every shown term must share."""
+    if geometric:
+        r = ts[1] / ts[0]
+        assert all(b == a * r for a, b in zip(ts, ts[1:])), f"{ts} is not geometric"
+        return r
+    d = ts[1] - ts[0]
+    assert all(b - a == d for a, b in zip(ts, ts[1:])), f"{ts} is not arithmetic"
+    return d
+
+
+def sr_walk(first: Fraction, step: Fraction, geometric: bool, count: int) -> list:
+    out, t = [], first
+    for _ in range(count):
+        out.append(t)
+        t = t * step if geometric else t + step
+    return out
+
+
+def sr_to(first: Fraction, step: Fraction, geometric: bool, last: Fraction) -> list:
+    out, t = [], first
+    for _ in range(2000):
+        out.append(t)
+        if t == last:
+            return out
+        t = t * step if geometric else t + step
+    raise AssertionError(f"{last} is never reached")
+
+
+def sr_first_n(n, listing, geometric):
+    ts = sr_nums(listing)
+    return sum(sr_walk(ts[0], sr_step(ts, geometric), geometric, int(n)))
+
+
+def sr_up_to(listing, last, geometric):
+    ts = sr_nums(listing)
+    return sum(sr_to(ts[0], sr_step(ts, geometric), geometric, Fraction(last)))
+
+
+def sr_ends(n, first, last):
+    n, a, l = int(n), Fraction(first), Fraction(last)
+    return sum(sr_to(a, (l - a) / (n - 1), False, l))
+
+
+def sr_limit(partial: Fraction) -> Fraction:
+    """The fraction a partial sum far out is settling on."""
+    return partial.limit_denominator(10 ** 7)
+
+
+def sr_infinite(listing):
+    ts = sr_nums(listing)
+    r = sr_step(ts, True)
+    assert abs(r) < 1, "no sum"
+    return sr_limit(sum(sr_walk(ts[0], r, True, 400)))
+
+
+def sr_infinite_rule(lo, src):
+    return sr_limit(sum(evaluate(src, "k", k) for k in range(int(lo), int(lo) + 400)))
+
+
+def sr_repeating(digits: str) -> Fraction:
+    # x = 0.lead(block): shifting by the repeat's length lines the repeats up.
+    # Read as one string, so a block such as 05 keeps its zero.
+    lead, block = re.fullmatch(r"(\d*)\((\d+)\)", digits).groups()
+    m, n = len(lead), len(block)
+    whole = int(lead + block) - int(lead or "0")
+    return Fraction(whole, 10 ** (m + n) - 10 ** m)
+
+
+def sr_first_of(total, ratio):
+    # The sum is a times the sum of r^k, which the partial sums give.
+    unit = sr_limit(sum(sr_walk(Fraction(1), Fraction(ratio), True, 400)))
+    return Fraction(total) / unit
+
+
+def sr_ratio_of(first, total):
+    a, S = Fraction(first), Fraction(total)
+    hits = {Fraction(p, q) for q in range(1, 13) for p in range(-q + 1, q)
+            if sr_limit(sum(sr_walk(a, Fraction(p, q), True, 400))) == S}
+    assert len(hits) == 1, f"{len(hits)} ratios give {S}"
+    return hits.pop()
+
+
+def sr_count(listing, target):
+    ts = sr_nums(listing)
+    geometric = ts[1] - ts[0] != ts[2] - ts[1]
+    step, t, total = sr_step(ts, geometric), ts[0], Fraction(0)
+    for n in range(1, 500):
+        total += t
+        if total == Fraction(target):
+            return n
+        t = t * step if geometric else t + step
+    raise AssertionError(f"no count of terms makes {target}")
+
+
+def sr_difference(n, first, total):
+    hits = [d for d in range(-60, 61) if sum(sr_walk(Fraction(first), Fraction(d), False, int(n))) == Fraction(total)]
+    assert len(hits) == 1, f"{len(hits)} differences fit"
+    return hits[0]
+
+
+def sr_first_term(n, diff, total):
+    # Raising the first term by one raises every term, so the sum, by n.
+    base = sum(sr_walk(Fraction(0), Fraction(diff), False, int(n)))
+    return (Fraction(total) - base) / int(n)
+
+
+def sr_stack(bottom, top):
+    return sum(range(int(top), int(bottom) + 1))
+
+
+def sr_salary(pay, pct, years):
+    return sum(sr_walk(Fraction(pay), Fraction(100 + int(pct), 100), True, int(years)))
+
+
+def sr_ball(drop, rebound, landings):
+    h, r = Fraction(drop), Fraction(rebound)
+    far, height = h, h
+    for _ in range(int(landings) - 1 if landings else 400):
+        height *= r
+        far += 2 * height
+    return far if landings else sr_limit(far)
+
+
+def sr_term_from_sums(src, n):
+    n = int(n)
+    return evaluate(src, "n", n) - evaluate(src, "n", n - 1)
+
+
+def sr_which_sigma(lo, hi, src, listing):
+    lo, hi = int(lo), int(hi)
+    want = [evaluate(src, "k", k) for k in (lo, lo + 1, lo + 2)], evaluate(src, "k", hi)
+
+    def fits(body):
+        head, last = body.split(" ... ")
+        return (sr_nums(head), Fraction(last)) == want
+    return rf_pick(listing, fits)
+
+
+def sr_which_sum(has: str, listing: str) -> str:
+    def converges(body):
+        return abs(sr_step(sr_nums(body), True)) < 1
+    return rf_pick(listing, lambda body: converges(body) == (has == "has sum"))
+
+
+BY_RULE += (
+    (re.compile(r"^arith sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, False)),
+    (re.compile(r"^arith sum: (\d+) terms, first (\S+), last (\S+)$"), sr_ends),
+    (re.compile(r"^arith sum: (\d+) terms, first (\S+), difference (\S+)$"),
+     lambda n, a, d: sum(sr_walk(Fraction(a), Fraction(d), False, int(n)))),
+    (re.compile(r"^arith sum: (.+) to (\S+?)(?:; (?:whole|even|odd|multiples))?$"), lambda ts, l: sr_up_to(ts, l, False)),
+    (re.compile(r"^geo sum: first (\d+), a1 (\S+), r (\S+)$"),
+     lambda n, a, r: sum(sr_walk(Fraction(a), Fraction(r), True, int(n)))),
+    (re.compile(r"^geo sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, True)),
+    (re.compile(r"^geo sum: (.+) to (\S+)$"), lambda ts, l: sr_up_to(ts, l, True)),
+    (re.compile(r"^sigma: k=(\d+)\.\.(\d+) of (.+)$"),
+     lambda lo, hi, src: sum(evaluate(src, "k", k) for k in range(int(lo), int(hi) + 1))),
+    (re.compile(r"^sigma terms: k=(\d+)\.\.(\d+) of (.+)$"), lambda lo, hi, src: len(range(int(lo), int(hi) + 1))),
+    (re.compile(r"^infinite sum: (.+)$"), sr_infinite),
+    (re.compile(r"^infinite sigma: k=(\d+) of (.+)$"), sr_infinite_rule),
+    (re.compile(r"^repeating: 0\.(\d*\(\d+\))$"), sr_repeating),
+    (re.compile(r"^infinite first: sum (\S+), r (\S+)$"), sr_first_of),
+    (re.compile(r"^infinite ratio: first (\S+), sum (\S+)$"), sr_ratio_of),
+    (re.compile(r"^seats: (\d+) rows, (\d+) first, (\d+) more each$"),
+     lambda rows, first, more: sum(sr_walk(Fraction(first), Fraction(more), False, rows))),
+    (re.compile(r"^stack: (\d+) bottom, 1 fewer, (\d+) top; \w+$"), sr_stack),
+    (re.compile(r"^savings: (\d+) first, (\d+) more, (\d+) weeks$"),
+     lambda first, more, weeks: sum(sr_walk(Fraction(first), Fraction(more), False, weeks))),
+    (re.compile(r"^growing: (\d+) first, times (\d+), (\d+) days$"),
+     lambda first, times, days: sum(sr_walk(Fraction(first), Fraction(times), True, days))),
+    (re.compile(r"^salary: (\d+) first, (\d+) percent, (\d+) years$"), sr_salary),
+    (re.compile(r"^ball: (\S+) drop, (\S+) rebound(?:, (\d+) landings)?; (?:feet|meters)$"), sr_ball),
+    (re.compile(r"^pendulum: (\d+) first, (\S+) each, (\d+) swings$"),
+     lambda first, r, swings: sum(sr_walk(Fraction(first), Fraction(r), True, swings))),
+    (re.compile(r"^terms to sum: (.+) make (\d+)$"), sr_count),
+    (re.compile(r"^find difference: (\d+) terms, first (-?\d+), sum (-?\d+)$"), sr_difference),
+    (re.compile(r"^find first: (\d+) terms, difference (-?\d+), sum (-?\d+)$"), sr_first_term),
+    (re.compile(r"^term from sums: (.+), a(\d+)$"), sr_term_from_sums),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^sigma which: k=(\d+)\.\.(\d+) of (.+?); options (.+)$"), sr_which_sigma),
+    (re.compile(r"^infinite which: (has sum|no sum); options (.+)$"), sr_which_sum),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

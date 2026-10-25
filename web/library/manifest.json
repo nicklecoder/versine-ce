@@ -1,5 +1,5 @@
 {
-  "built": 617,
+  "built": 624,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -780,6 +780,15 @@
       "ln-and-change-of-base",
       "exponential-equations",
       "log-equations",
+      "all-together"
+    ],
+    "series": [
+      "arithmetic-sums",
+      "finite-geometric",
+      "sigma-notation",
+      "infinite-geometric",
+      "series-in-context",
+      "working-backward",
       "all-together"
     ]
   },
@@ -1916,9 +1925,26 @@
           "radical-eq"
         ]
       }
+    },
+    "series": {
+      "dependsOn": [
+        "quadratic-eq",
+        "sequences"
+      ],
+      "levels": {
+        "arithmetic-sums": [
+          "sequences"
+        ],
+        "finite-geometric": [
+          "sequences"
+        ],
+        "working-backward": [
+          "quadratic-eq"
+        ]
+      }
     }
   },
-  "sources": "f9f1ab77db190d74dd60a365d14e6a9a5f3092cc4e6e24ce90e4c0aefb5ba01a",
+  "sources": "d704c736a6bf7ac5bc482aea89b140618785b482fd0743113b3ed44febd730f8",
   "levels": [
     {
       "skill": "int-addsub",
@@ -8089,6 +8115,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "logarithms-6.json"
+    },
+    {
+      "skill": "series",
+      "level": 0,
+      "slug": "arithmetic-sums",
+      "name": "Arithmetic Sums",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-0.json"
+    },
+    {
+      "skill": "series",
+      "level": 1,
+      "slug": "finite-geometric",
+      "name": "Finite Geometric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-1.json"
+    },
+    {
+      "skill": "series",
+      "level": 2,
+      "slug": "sigma-notation",
+      "name": "Sigma Notation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-2.json"
+    },
+    {
+      "skill": "series",
+      "level": 3,
+      "slug": "infinite-geometric",
+      "name": "Infinite Geometric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-3.json"
+    },
+    {
+      "skill": "series",
+      "level": 4,
+      "slug": "series-in-context",
+      "name": "Series in Context",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "series-4.json"
+    },
+    {
+      "skill": "series",
+      "level": 5,
+      "slug": "working-backward",
+      "name": "Working Backward",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-5.json"
+    },
+    {
+      "skill": "series",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-6.json"
     }
   ]
 }

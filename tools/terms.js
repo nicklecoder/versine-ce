@@ -34,3 +34,5 @@ export const math = (terms) => ({ t: 'math', terms });
 
 /** The common shape: terms, an equals, and the space for an answer. */
 export const asks = (...terms) => [...terms, op('='), blank()];
+/** A sum in sigma notation: Σ from `lo` (k = 1) to `hi` (10, ∞) of the body terms. */
+export const sigma = (lo, hi, terms) => ({ t: 'sigma', lo: String(lo), hi: String(hi), terms });
