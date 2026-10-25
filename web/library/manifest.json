@@ -1,5 +1,5 @@
 {
-  "built": 604,
+  "built": 611,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -765,6 +765,15 @@
       "multiply",
       "conjugates-and-divide",
       "complex-roots",
+      "all-together"
+    ],
+    "logarithms": [
+      "log-as-exponent",
+      "evaluate",
+      "product-quotient-power",
+      "ln-and-change-of-base",
+      "exponential-equations",
+      "log-equations",
       "all-together"
     ]
   },
@@ -1871,9 +1880,38 @@
           "quadratic-formula"
         ]
       }
+    },
+    "logarithms": {
+      "dependsOn": [
+        "equations",
+        "exponential",
+        "exponents",
+        "quadratic-eq",
+        "radical-eq",
+        "rational-exponents"
+      ],
+      "levels": {
+        "log-as-exponent": [
+          "exponents"
+        ],
+        "evaluate": [
+          "rational-exponents"
+        ],
+        "product-quotient-power": [
+          "exponents"
+        ],
+        "exponential-equations": [
+          "equations",
+          "exponential"
+        ],
+        "log-equations": [
+          "quadratic-eq",
+          "radical-eq"
+        ]
+      }
     }
   },
-  "sources": "597112a9b27406fd01b1ea36cfa3a3ce32fa9ab8f3bc2350b129d67d41d7d5ff",
+  "sources": "acdbddee1961493601f9a933ca28d5dff51b7ce2ea8bc61a16f5648106cf2517",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7914,6 +7952,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "complex-5.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 0,
+      "slug": "log-as-exponent",
+      "name": "Log as Exponent",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "logarithms-0.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 1,
+      "slug": "evaluate",
+      "name": "Evaluate",
+      "count": 397,
+      "exhaustive": true,
+      "signed": true,
+      "file": "logarithms-1.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 2,
+      "slug": "product-quotient-power",
+      "name": "Product, Quotient & Power",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "logarithms-2.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 3,
+      "slug": "ln-and-change-of-base",
+      "name": "ln & Change of Base",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-3.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 4,
+      "slug": "exponential-equations",
+      "name": "Solve Exponential Equations",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-4.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 5,
+      "slug": "log-equations",
+      "name": "Solve Log Equations",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-5.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-6.json"
     }
   ]
 }

@@ -497,6 +497,16 @@ on the quadratic formula's The Discriminant. Answers are the new
 `complex` type, judged by exact real and imaginary parts rather than by
 `expr` or `equivalent`, neither of which knows that i² is −1.
 
+`logarithms` is built, in the plan's six levels and All Together. Log as
+Exponent depends on exponents' Zero and Negative, Evaluate on rational
+exponents' Negative Fractional Powers, Product, Quotient & Power on
+exponents' Dividing Powers and Power of a Power, Solve Exponential
+Equations on solving equations' Two Steps and exponential functions'
+Doubling and Half-Life, and Solve Log Equations on quadratic equations'
+By Factoring and radical equations' Extraneous Roots. ln & Change of
+Base builds on this skill's own Evaluate. Exact answers are fractions;
+rounded ones are decimals to the places the question names.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

@@ -7531,6 +7531,245 @@ CHOICE_RULES += (
     (re.compile(r"^nature of roots: (.+) = 0; options (.+)$"), cx_nature),
 )
 
+# --- Logarithms -----------------------------------------------------------------
+#
+# An exact log is found from prime factors: log_b v is the one ratio between
+# v's exponents and b's, prime by prime, and there is no such log if the
+# ratio is not the same for every prime. A number is held as r * e^t, so ln
+# is the e exponent. Logs to one base added or subtracted are combined into
+# one log of a product first, so log_6(4) + log_6(9) is log_6(36), worked out
+# without either half. A rounded log comes from Python's own logarithms. A
+# log equation is cleared into a polynomial -- logs added multiply, logs
+# subtracted divide, equal logs are of equal numbers -- whose rational zeros
+# are kept only where every log in the question is of a positive number.
+
+LG_TERM = re.compile(r"([+-])?\s*(\d*)(log_(\d+)|log|ln)\(((?:[^()]|\([^()]*\))*)\)")
+
+
+def lg_factor(n: int) -> dict:
+    out, p = {}, 2
+    while p * p <= n:
+        while n % p == 0:
+            out[p] = out.get(p, 0) + 1
+            n //= p
+        p += 1
+    if n > 1:
+        out[n] = out.get(n, 0) + 1
+    return out
+
+
+def lg_exponents(q: Fraction) -> dict:
+    assert q > 0, f"log of {q}"
+    top, bottom = lg_factor(q.numerator), lg_factor(q.denominator)
+    return {**top, **{p: -k for p, k in bottom.items()}}
+
+
+def lg_num(s: str) -> tuple:
+    """A log's argument as (r, t), the number r * e^t."""
+    s = s.replace(" ", "")
+    if s == "e":
+        return Fraction(1), Fraction(1)
+    if s == "sqrt(e)":
+        return Fraction(1), Fraction(1, 2)
+    m = re.fullmatch(r"root\(e,(\d+)\)", s)
+    if m:
+        return Fraction(1), Fraction(1, int(m[1]))
+    m = re.fullmatch(r"(1/)?e\^\(?(-?\d+)\)?", s)
+    if m:
+        return Fraction(1), Fraction(int(m[2])) * (-1 if m[1] else 1)
+    m = re.fullmatch(r"(\d+)\^\(?(-?\d+)\)?", s)
+    if m:
+        return Fraction(int(m[1])) ** int(m[2]), Fraction(0)
+    return Fraction(s), Fraction(0)
+
+
+def lg_base(name: str, digits) -> object:
+    return "e" if name == "ln" else 10 if name == "log" else int(digits)
+
+
+def lg_exact(base, r: Fraction, t: Fraction) -> Fraction:
+    if base == "e":
+        assert r == 1, f"ln of {r} e^{t} is not exact"
+        return t
+    assert t == 0, "e in a log that is not ln"
+    if r == 1:
+        return Fraction(0)
+    fb, fr = lg_exponents(Fraction(base)), lg_exponents(r)
+    assert set(fb) == set(fr), f"log_{base}({r}) is not exact"
+    ratios = {Fraction(fr[p], fb[p]) for p in fb}
+    assert len(ratios) == 1, f"log_{base}({r}) is not exact"
+    return ratios.pop()
+
+
+def lg_terms(expr: str) -> list:
+    """[(sign * coefficient, base, argument)] for every log in expr, which must be nothing else."""
+    out, used = [], ""
+    for m in LG_TERM.finditer(expr):
+        k = int(m[2]) if m[2] else 1
+        out.append((-k if m[1] == "-" else k, lg_base(m[3], m[4]), m[5]))
+        used += m[0]
+    assert used.replace(" ", "") == expr.replace(" ", ""), f"{expr} is not only logs"
+    return out
+
+
+def lg_value(expr: str) -> Fraction:
+    by_base = {}
+    for k, base, arg in lg_terms(expr):
+        r, t = lg_num(arg)
+        r0, t0 = by_base.get(base, (Fraction(1), Fraction(0)))
+        by_base[base] = (r0 * r ** k, t0 + t * k)
+    return sum((lg_exact(b, r, t) for b, (r, t) in by_base.items()), Fraction(0))
+
+
+def lg_float(base, arg: str) -> float:
+    r, t = lg_num(arg)
+    natural = math.log(r) + float(t)
+    return natural if base == "e" else natural / math.log(base)
+
+
+def lg_near(v: float) -> Fraction:
+    q = Fraction(v).limit_denominator(1000)
+    assert abs(float(q) - v) < 1e-9, f"{v} is not a plain number"
+    return q
+
+
+def lg_raise(base: str, k: str, name: str, digits, arg: str) -> Fraction:
+    """B^(k log_c(v)), by calculator."""
+    b = math.e if base == "e" else float(base)
+    return lg_near(b ** (int(k or 1) * lg_float(lg_base(name, digits), str(arg))))
+
+
+def lg_rounded(v: float, places: int) -> Fraction:
+    return Fraction(Decimal(repr(v)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+
+
+def lg_change(b, v, places) -> Fraction:
+    return lg_rounded(math.log(v) / math.log(b), places)
+
+
+def lg_claim(body: str) -> bool:
+    m = re.fullmatch(r"\(?(-?\d+(?:/\d+)?)\)?\^\(?(-?\d+)\)? = (-?\d+(?:/\d+)?)", body)
+    if m:
+        b, e, v = Fraction(m[1]), int(m[2]), Fraction(m[3])
+        if b == 0 and e <= 0:
+            return False
+        return b ** e == v
+    m = re.fullmatch(r"log_(\d+)\((-?\d+(?:/\d+)?)\) = (-?\d+)", body)
+    assert m, f"cannot read {body}"
+    b, v, e = int(m[1]), Fraction(m[2]), int(m[3])
+    return b > 1 and v > 0 and Fraction(b) ** e == v
+
+
+def lg_form(given: str, listing: str) -> str:
+    assert lg_claim(given), f"{given} is not true"
+    nums = lambda s: sorted(re.findall(r"\d+(?:/\d+)?", s))  # noqa: E731
+    return rf_pick(listing, lambda body: lg_claim(body) and nums(body) == nums(given))
+
+
+LG_POINTS = ({"x": 2, "y": 3, "z": 5}, {"x": 7, "y": 11, "z": 13})
+
+
+def lg_monomial(arg: str, at: dict) -> Fraction:
+    py = arg.replace("^", "**")
+    py = re.sub(r"(\d+)", r"F(\1)", py)
+    return eval(py, {"__builtins__": {}, "F": Fraction}, {k: Fraction(v) for k, v in at.items()})  # noqa: S307
+
+
+def lg_condense(expr: str, listing: str) -> str:
+    terms = lg_terms(expr)
+    bases = {b for _, b, _ in terms}
+    assert len(bases) == 1
+    base = bases.pop()
+    letters = sorted({a for _, _, a in terms})
+    points = [dict(zip(letters, p.values())) for p in LG_POINTS]
+
+    def fits(body):
+        [(k, b, arg)] = lg_terms(body)
+        if k != 1 or b != base:
+            return False
+        for at in points:
+            want = Fraction(1)
+            for c, _, a in terms:
+                want *= Fraction(at[a]) ** c
+            if lg_monomial(arg, at) != want:
+                return False
+        return True
+
+    return rf_pick(listing, fits)
+
+
+def lg_which(b, v, listing: str) -> str:
+    want = math.log(int(v)) / math.log(int(b))
+    calc = {"ln": math.log, "log": math.log10}
+
+    def value(body):
+        return eval(re.sub(r"(ln|log)\(", r"\1(", body), {"__builtins__": {}}, calc)  # noqa: S307
+
+    return rf_pick(listing, lambda body: abs(value(body) - want) < 1e-9)
+
+
+def lg_exp_exact(base, exponent, v) -> Fraction:
+    c = rf_poly(exponent or "x")
+    assert len(c) == 2, "not linear"
+    e = lg_exact(int(base), Fraction(v), Fraction(0))
+    return (e - c[0]) / c[1]
+
+
+def lg_exp_rounded(k, base, a, v, places) -> Fraction:
+    ln_b = 1.0 if base == "e" else math.log(int(base))
+    return lg_rounded(math.log(int(v) / int(k or 1)) / (int(a or 1) * ln_b), int(places))
+
+
+def lg_side(side: str) -> tuple:
+    """A side of a log equation: its logs [(sign, base, polynomial)] and its constant."""
+    logs = [((-1 if m[1] == "-" else 1) * (int(m[2]) if m[2] else 1), lg_base(m[3], m[4]), rf_poly(m[5]))
+            for m in LG_TERM.finditer(side)]
+    rest = LG_TERM.sub("", side).replace(" ", "")
+    const = Fraction(rest) if rest else Fraction(0)
+    return logs, const
+
+
+# requiem: catalogue/content/log-equation-domain-checked
+def lg_equation(lhs: str, rhs: str) -> OnGrid:
+    left, k_left = lg_side(lhs)
+    right, k_right = lg_side(rhs)
+    logs = left + [(-k, b, p) for k, b, p in right]
+    bases = {b for _, b, _ in logs}
+    assert len(bases) == 1, "logs to more than one base"
+    base = bases.pop()
+    power = k_right - k_left
+    assert power.denominator == 1
+    top, bottom = [Fraction(1)], [Fraction(1)]
+    for k, _, p in logs:
+        assert abs(k) == 1
+        if k > 0:
+            top = qe_times(top, p)
+        else:
+            bottom = qe_times(bottom, p)
+    scale = Fraction(base) ** int(power)
+    poly = qe_trim(qe_plus(top, [-scale * a for a in bottom]))
+    found = {x for x in qe_zeros(poly) if all(qe_at(p, x) > 0 for _, _, p in logs)}
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+BY_RULE += (
+    (re.compile(r"^log value: (e|\d+)\^\((-?\d*)(log_(\d+)|log|ln)\((\d+)\)\)$"), lg_raise),
+    (re.compile(r"^log value: (-?\d*(?:log|ln).*)$"), lg_value),
+    (re.compile(r"^change of base: log_(\d+)\((\d+)\) to (\d) dp$"), lg_change),
+    (re.compile(r"^exp eq: (?:(\d+)\*)?(\d+|e)\^(?:x|\((\d+)x\)) = (\d+) to (\d) dp$"), lg_exp_rounded),
+    (re.compile(r"^exp eq: (\d+)\^(?:x|\((.+)\)) = (\d+(?:/\d+)?)$"), lg_exp_exact),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^log form: (.+?); options (.+)$"), lg_form),
+    (re.compile(r"^condense: (.+?); options (.+)$"), lg_condense),
+    (re.compile(r"^change of base: log_(\d+)\((\d+)\); options (.+)$"), lg_which),
+)
+
+SET_RULES += (
+    (re.compile(r"^log eq: (.+) = (.+)$"), lg_equation),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

@@ -13,6 +13,20 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Logarithms**, a new skill under Powers, in seven levels: Log as Exponent
+(the power form of a log chosen, or the log form of a power), Evaluate
+(whole, negative and fractional answers, log for base 10 and ln for base
+e), Product, Quotient & Power (combine, then evaluate, or condense into
+one log against options that misuse a law), ln & Change of Base (a log
+found to 2 or 3 decimal places, which quotient equals it, and a base
+raised to its own log), Solve Exponential Equations (exactly when both
+sides are powers of one base, otherwise rounded), Solve Log Equations
+(rows with one solution, two, and none, every prompt allowing for none),
+then All Together. `check-answers.py` finds an exact log from prime
+factors, combining logs to one base into one product first, and solves a
+log equation by clearing it into a polynomial whose zeros it keeps only
+where every log in the question is of a positive number.
+
 **Complex Numbers**, a new skill under Powers, in six levels: Powers of i,
 Add & Subtract, Multiply, Conjugates & Divide, Complex Roots of Quadratics
 (a conjugate pair, and which kind of roots a discriminant gives), then All
