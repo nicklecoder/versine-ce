@@ -312,9 +312,37 @@ const CHANGES = {
   ],
 };
 
+// requiem: catalogue/content/fixed-menu-key-moves
+// Stories of change that is neither: the amount added grows each step, or
+// the quantity is a square of something growing steadily. With stories only
+// for the other two, "Neither" was offered and never right on every story
+// row, and could be struck unread there. Each is given with the values it
+// takes, which the checker classifies for itself.
+const NEITHER = [
+  (rng) => { const s = rng.int(2, 9), k = rng.int(1, 3);
+    return [`The side of a square starts at ${s} cm and grows by ${k} cm every minute. Is its area linear or exponential over time?`,
+      [0, 1, 2, 3].map((i) => (s + k * i) ** 2), `Its area goes ${[0, 1, 2, 3].map((i) => (s + k * i) ** 2).join(', ')} cm²: the side grows by the same amount, but the area grows by more each minute, and not by the same factor either. Neither.`]; },
+  (rng) => { const a = rng.int(2, 9);
+    return [`A dropped stone falls ${a} m in the first second, ${3 * a} m in the next and ${5 * a} m in the one after. Is the total distance it has fallen linear or exponential over time?`,
+      [0, a, 4 * a, 9 * a], `The total goes 0, ${a}, ${4 * a}, ${9 * a} m: it gains more each second, but by ${2 * a} m more each time, not by the same factor. Neither.`]; },
+  (rng) => { const k = rng.int(1, 9);
+    return [`A savings jar gets $${k} on day 1, $${2 * k} on day 2, $${3 * k} on day 3, and so on. Is the total in the jar linear or exponential over the days?`,
+      [k, 3 * k, 6 * k, 10 * k], `The total goes ${k}, ${3 * k}, ${6 * k}, ${10 * k}: the amount added grows by $${k} each day, so it is not the same amount, and the ratios ${3}, ${2}, ${'5/3'} are not the same factor. Neither.`]; },
+];
+
 function linearOrExp(rng, again = null) {
   const id = again ?? rng.pick(SHAPES).id;
-  if (id !== 'neither' && rng.chance(0.3)) {
+  if (!again && rng.chance(0.3)) {
+    if (id === 'neither') {
+      const [story, values, why] = rng.pick(NEITHER)(rng);
+      return {
+        prompt: [T.prose(story)],
+        text: `change: ~ values ${values.join(', ')}`,
+        answer: { type: 'choice', value: id, options: SHAPES },
+        visual: null,
+        explain: why,
+      };
+    }
     const [story, change] = rng.pick(CHANGES[id])(rng);
     return {
       prompt: [T.prose(`${story} Linear or exponential?`)],

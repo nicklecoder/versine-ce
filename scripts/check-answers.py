@@ -565,14 +565,24 @@ def story_at(story: str):
         return "t", lambda t: n[0] * t + n[1]
     if "Each box holds" in story:
         return "n", lambda x: n[0] * x + n[1]
+    if "split a bill" in story and "of their own" in story:
+        # Only the bill is shared; each adds their own tip.
+        people = NUMBER_WORDS[story.split()[0]]
+        return "b", lambda b: Fraction(b, people) + n[0]
     if "split a bill" in story:
         people = NUMBER_WORDS[story.split()[0]]
         return "b", lambda b: Fraction(b + n[0], people)
     if "the sum of n and" in story:
         k = NUMBER_WORDS[re.search(r"is (\w+)", story)[1]]
         return "n", lambda x: k * (x + n[0])
+    if "rectangle" in story and "area" in story:
+        return "w", lambda w: w * (w + n[0])
     if "rectangle" in story:
         return "w", lambda w: 2 * w + 2 * (w + n[0])
+    m = re.match(r"^Which expression is (\d+) more than (twice|three times|four times|five times|six times) n\?$", story)
+    if m:
+        k = {"twice": 2, "three times": 3, "four times": 4, "five times": 5, "six times": 6}[m[2]]
+        return "n", lambda x: k * x + int(m[1])
     if "pizzas are shared equally between p people" in story:
         return "p", lambda p: Fraction(n[0], p)
     if "How old will Sam be in" in story:
@@ -639,12 +649,19 @@ def story_solution(story: str):
     if "the sum of a number and" in story:
         k = NUMBER_WORDS[story.split(" the sum")[0]]
         return "n", Fraction(n[1], k) - n[0]
+    if "rectangle" in story and "area" in story:
+        # w(w + d) = A: the positive root, found by trying widths.
+        d, area = n[0], n[1]
+        return "w", next(Fraction(w) for w in range(1, area + 1) if w * (w + d) == area)
     if "rectangle" in story:
         return "w", Fraction(n[1] - 2 * n[0], 4)
     if "saves" in story:
         return "t", Fraction(n[2] - n[0], n[1])
     if "less than" in story:
         return "n", Fraction(n[2] + n[0], n[1])
+    m = re.match(r"^(\d+) more than (\w+) times a number is (\d+)\.", story)
+    if m:
+        return "n", Fraction(int(m[3]) - int(m[1]), {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6}[m[2]])
     raise ValueError(f"unread story: {story}")
 
 
@@ -1902,6 +1919,8 @@ CHOICE_RULES += (
     (re.compile(r"^grows or decays: (.+)$"), lambda src: "growth" if growth_factor(src) > 1 else "decay"),
     (re.compile(r"^table kind: (.+)$"), table_kind),
     (re.compile(r"^change: ([+*-])"), lambda op: "exponential" if op == "*" else "linear"),
+    # A story of change given with the values it takes, classified as a table is.
+    (re.compile(r"^change: ~ values (.+)$"), table_kind),
 )
 
 BY_RULE += (
@@ -4619,8 +4638,10 @@ CHOICE_RULES += (
      lambda *h: {"symmetric": "equal", "right": "mean", "left": "median"}[dist_shape(*h)]),
     (re.compile(rf"^histogram center: {DIST_HIST}$"), lambda *h: "mean" if dist_shape(*h) == "symmetric" else "median"),
     (re.compile(rf"^histogram spread: {DIST_HIST}$"), lambda *h: "sd" if dist_shape(*h) == "symmetric" else "iqr"),
-    (re.compile(r"^sd change: sd \d+, (times|plus) \d+; options same, plus, times$"),
-     lambda how: "times" if how == "times" else "same"),
+    # Adding a number to every value moves the mean by it and no distance
+    # from the mean; multiplying scales both.
+    (re.compile(r"^(sd|mean) change: (?:sd|mean) \d+, (times|plus) \d+; options same, plus, times$"),
+     lambda of, how: "times" if how == "times" else "plus" if of == "mean" else "same"),
     (re.compile(r"^greater sd: A (\d+(?: \d+)+) / B (\d+(?: \d+)+)$"),
      lambda a, b: "A" if dist_sd(a.split()) > dist_sd(b.split()) else "B"),
     (re.compile(rf"^better z: a=(\d+) mean (\d+) sd (\d+), b=(\d+) mean (\d+) sd (\d+)$"),
@@ -4730,14 +4751,17 @@ BY_RULE += (
 )
 
 CHOICE_RULES += (
-    (re.compile(r"^likelihood: (\d+)/(\d+) as (?:fraction|decimal|percent|bag)$"), chance_likely),
+    (re.compile(r"^likelihood: (\d+)/(\d+) as (?:fraction|decimal|percent|bag)(?:; [\w ]+)?$"), chance_likely),
     (re.compile(r"^sample list: ((?:\w(?: \w)*)(?: x \w(?: \w)*)+); options (.+)$"), chance_list),
     (re.compile(r"^sample missing: ((?:\w(?: \w)*)(?: x \w(?: \w)*)+); listed ([\w ]+); options (.+)$"), chance_missing),
     (re.compile(r"^compare experimental: ((?:\w+:\d+ ?)+); outcome (\w+)$"),
      lambda listing, face: (lambda r: {1: "higher", -1: "lower", 0: "equal"}[
          (r[face] * len(r) > sum(r.values())) - (r[face] * len(r) < sum(r.values()))])(chance_results(listing))),
-    (re.compile(r"^more trials: .+; options (.+)$"),
-     lambda listing: next(k for k, v in (item.split("=") for item in listing.split(", ")) if v == "closer")),
+    # Over many trials the share settles at the theoretical one, one over the
+    # number of equally likely faces.
+    (re.compile(r"^more trials: ((?:\w+:\d+ ?)+); outcome \w+; options (.+)$"),
+     lambda listing, options: next(k for k, v in (item.split("=") for item in options.split(", "))
+                                   if Fraction(v) == Fraction(1, len(chance_results(listing))))),
 )
 
 # --- Counting ---------------------------------------------------------------
@@ -8332,6 +8356,34 @@ for path in sorted(LIB.glob("*.json")):
         share = sum(MEDOID.medoid_share(a) for a in rows) / len(rows)
         if share > 0.4:
             problems.append(f"{lib['skill']} L{lib['level'] + 1}: the key is the medoid of its options in {share:.0%} of {len(rows)} choice rows written for the row")
+
+
+# requiem: catalogue/content/fixed-menu-key-moves
+# On a fixed menu -- labels that recur across a level's rows with the key
+# moving among them -- an option never the key can be struck without reading
+# the question. A level, in any skill, where a menu label is offered in 50
+# rows or more and keyed in none of them fails, unless it is listed here:
+# (skill, level slug, label) to the requiem statement that says why the
+# mathematics never makes it right. The list lives with the checker, not on
+# the level in web/skills/, because those files ship to the browser and say
+# what the student sees; and an exception names a recorded decision rather
+# than carrying a reason of its own, so `requiem trace` finds every one.
+MENU_NEVER_KEYED: dict[tuple[str, str, str], str] = {}
+
+
+def _menu_never_keyed():
+    found = []
+    for path in sorted(LIB.glob("*.json")):
+        if path.name in ("manifest.json", "schemas.json"):
+            continue
+        lib = json.loads(path.read_text())
+        for label, n in MEDOID.never_keyed(lib, 50):
+            if (lib["skill"], lib["slug"], label) not in MENU_NEVER_KEYED:
+                found.append(f"{lib['skill']} L{lib['level'] + 1}: the menu option {label!r} is offered in {n} rows and is never the key")
+    return found
+
+
+problems += _menu_never_keyed()
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")

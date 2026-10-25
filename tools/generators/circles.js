@@ -564,7 +564,15 @@ function equation(rng) {
       };
     }
     // Inside, on or outside: compare the squared distance with r².
-    const [a, b] = rng.pick([[r, 0], [0, -r], [3, 4], [-4, 3], [1, 1], [2, -1], [r, 1], [r + 1, 0], [-2, r], [0, r - 1], [1, -2]]);
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Inside, on and outside are drawn a third each, then an offset that
+    // gives it. Drawn from one list, two or three of its eleven offsets fell
+    // on the circle, and "On the circle" was the key in a fifth of the rows.
+    const want = rng.pick(['inside', 'on', 'outside']);
+    const offsets = [[r, 0], [0, -r], [-r, 0], [0, r], [3, 4], [-4, 3], [4, -3], [6, 8], [-8, 6], [5, 12], [-12, 5],
+      [1, 1], [2, -1], [r, 1], [r + 1, 0], [-2, r], [0, r - 1], [1, -2], [1 - r, 0], [-1, r], [r - 1, 1], [-r, -1]]
+      .filter(([x, y]) => (x * x + y * y === r * r ? 'on' : x * x + y * y < r * r ? 'inside' : 'outside') === want);
+    const [a, b] = rng.pick(offsets);
     const Q = [h + a, k + b], d2v = a * a + b * b, kind = d2v === r * r ? 'on' : d2v < r * r ? 'inside' : 'outside';
     if (Math.abs(Q[0]) > SPAN || Math.abs(Q[1]) > SPAN) continue;
     return {

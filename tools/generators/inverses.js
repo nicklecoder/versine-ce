@@ -203,7 +203,15 @@ function undoSteps(rng) {
     const f = rng.chance(0.5) ? [add, mul] : [mul, add];
     const undo = (s) => [UNDO[s[0]], s[1]];
     const right = [...f].reverse().map(undo);
-    const options = [right, f.map(undo), [...f].reverse(), [f[1], f[0]].map(([op, k]) => [op === 'times' ? 'divide' : op === 'divide' ? 'times' : op, k])];
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // Two slips crossed: undoing in f's own order, and undoing only one of
+    // the two steps (the other done again as f does it) -- alone and
+    // together. The old fourth option, reversed with only the multiplying
+    // undone, sat between the key and the rest, so the key was never the
+    // option nearest the others and a student could pick by avoiding it.
+    const kept = rng.pick(['add', 'mul']);
+    const half = (s) => (((s[0] === 'plus' || s[0] === 'minus') ? 'add' : 'mul') === kept ? s : undo(s));
+    const options = [right, f.map(undo), [...f].reverse().map(half), f.map(half)];
     const texts = options.map(stepText);
     if (new Set(texts).size < 4) continue;
     const order = rng.shuffle([0, 1, 2, 3]);
@@ -215,7 +223,7 @@ function undoSteps(rng) {
       visual: null,
       explain: `f⁻¹ undoes each step, and the last step done is the first undone, as taking off shoes comes before socks. `
         + `f's last step ${STEP_WORDS[f[1][0]](f[1][1])}, so f⁻¹ first ${STEP_WORDS[right[0][0]](right[0][1])}; then it undoes the first step: it ${STEP_WORDS[right[1][0]](right[1][1])}. `
-        + `(Undoing in the same order as f, or doing f's steps again backwards, does not get back to the start.)`,
+        + `(Undoing in the same order as f, or doing one of f's steps again instead of undoing it, does not get back to the start.)`,
     };
   }
 }
@@ -340,14 +348,17 @@ function restrict(rng) {
     // The cut is at the vertex's x, and the two slips cross: the sign of h
     // read off (x + 3)² as 3, and the vertex's height k taken for its x --
     // alone and together -- each a cut that leaves both sides of the vertex
-    // in, and All real numbers. Every option runs the same way, so the
+    // in. Every option runs the same way, so the
     // direction gives nothing away; it is the one away from 0, so that the
     // misread cut −h is on the wrong side.
     const op = right ? '>=' : '<=';
-    const all = [h, -h, k, -k].map((c) => `x ${op} ${c}`).concat('all');
-    if (new Set(all).size < 5) return restrict(rng);
-    const order = rng.shuffle([0, 1, 2, 3, 4]);
-    const label = (s) => (s === 'all' ? 'All real numbers' : s.replace('>=', '≥').replace('<=', '≤').replace(/-/g, '−'));
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // "All real numbers" is not offered: a parabola is never one-to-one on
+    // all of them, so it was never the key and could be struck unread.
+    const all = [h, -h, k, -k].map((c) => `x ${op} ${c}`);
+    if (new Set(all).size < 4) return restrict(rng);
+    const order = rng.shuffle([0, 1, 2, 3]);
+    const label = (s) => s.replace('>=', '≥').replace('<=', '≤').replace(/-/g, '−');
     return {
       prompt: [T.prose(`f(x) = ${show}. Which of these domains makes f one-to-one, so that it has an inverse?`)],
       text: `one-to-one: f(x) = ${f}; options ${order.map((j, i) => `${optionIds[i]}: ${all[j]}`).join(' | ')}`,

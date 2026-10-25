@@ -84,10 +84,15 @@ function meaning(rng) {
   const ask = rng.pick(['m', 'b']);
   const asked = ask === 'm' ? m : b;
   const rhs = lineText(whole(m), whole(b), { ascii: true }).slice(4);
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // Two options, the start and the rate. A third, "the number of hours",
+  // was offered in every row and never the key -- the question always asks
+  // about a number, and x is not one -- so it could be struck unread; and
+  // the prompt names x itself, so a row asking what x stands for would be
+  // read off the question.
   const options = [
     { id: 'start', label: s.b[0].toUpperCase() + s.b.slice(1), note: 'what y is when x is 0' },
     { id: 'rate', label: s.m[0].toUpperCase() + s.m.slice(1), note: 'how much y changes for each 1 of x' },
-    { id: 'x', label: `The number of ${s.x}`, note: 'the input' },
   ];
   return {
     prompt: [T.prose('The equation'), ...terms(`y = ${rhs}`), T.prose(`gives ${s.about}. What does the ${minus(asked)} tell you?`)],
