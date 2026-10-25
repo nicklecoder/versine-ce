@@ -698,7 +698,7 @@ defineType({
 defineType({
   id: 'points',
   input: 'free',
-  hint: 'Give each point in brackets, like (3, −2), (1, 4), or none if there are none.',
+  hint: 'Give each point in parentheses, like (3, −2), (1, 4), or none if there are none.',
   /**
    * The points where two curves meet, or the one solution (x, y, z) of a
    * system in three letters, judged as a set of exact points: (−3, 4), (3, 4)
@@ -706,7 +706,7 @@ defineType({
    * is no points at all. web/math/points.js has every form it reads.
    *
    * The preview draws the points as typed, fractions stacked and nothing
-   * worked out, so a student sees how the box read the brackets.
+   * worked out, so a student sees how the box read the parentheses.
    *
    * Value: { dim, pts }, pts a sorted list of points, each a list of {n, d}.
    */

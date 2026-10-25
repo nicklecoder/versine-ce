@@ -113,6 +113,16 @@ for (const file of readdirSync(join(ROOT, 'web/library')).filter((f) => /-\d+\.j
       break;
     }
   }
+  // requiem: catalogue/content/us-notation
+  // A price answer is drawn in dollars and cents, ($4.50, $1.00, $0.75),
+  // never as the fractions it is held as.
+  for (const q of problems.filter((q) => q.answer.type === 'points' && q.answer.value.money)) {
+    const shown = promptText([answerTerm('points', q.answer.value)].flat());
+    if (!/^\(\$\d+\.\d\d, ?\$\d+\.\d\d, ?\$\d+\.\d\d\)$/.test(shown.replace(/\s+/g, ' ').replace(/ ,/g, ','))) {
+      fail.push(`${file}: the price answer ${q.answer.accept[0]} was drawn as "${shown}"`);
+      break;
+    }
+  }
 }
 
 if (fail.length) {
