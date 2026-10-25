@@ -108,6 +108,56 @@ function choices(rng, expr, answer, pool, targeted = []) {
   return { opts: all.map((e, i) => ({ id: optionIds[i], e })), right: optionIds[all.indexOf(answer)] };
 }
 
+// requiem: catalogue/content/decoys-cross-two-slips
+/**
+ * The slips an answer can be read with, each a rewrite of the whole option:
+ * the partner function (sin²θ for cos²θ, cot θ for tan θ, csc θ for sec θ),
+ * the reciprocal, a square dropped or added, and a sign flipped -- the one in
+ * the middle of a sum when there is one (1 + 2 sin²θ for 1 − 2 sin²θ), the
+ * one in front otherwise. Null where the slip changes nothing.
+ */
+const PARTNER = { sin: 'cos', cos: 'sin', tan: 'cot', cot: 'tan', sec: 'csc', csc: 'sec' };
+const RECIPROCAL = { sin: 'csc', csc: 'sin', cos: 'sec', sec: 'cos', tan: 'cot', cot: 'tan' };
+const AXES = {
+  swap: (e) => e.replace(/\b(sin|cos|tan|cot|sec|csc)\(/g, (_, f) => `${PARTNER[f]}(`),
+  recip: (e) => e.replace(/\b(sin|cos|tan|cot|sec|csc)\(/g, (_, f) => `${RECIPROCAL[f]}(`),
+  square: (e) => (/\)\^2/.test(e) ? e.replace(/\)\^2/g, ')') : e.replace(/(\b(?:sin|cos|tan|cot|sec|csc)\([^()]*\))(?!\^)/g, '$1^2')),
+  sign: (e) => {
+    // A top-level + or −, outside every bracket.
+    let depth = 0;
+    for (let i = 1; i < e.length - 2; i++) {
+      if (e[i] === '(') depth++;
+      else if (e[i] === ')') depth--;
+      else if (depth === 0 && e[i - 1] === ' ' && e[i + 1] === ' ' && (e[i] === '-' || e[i] === '+')) return e.slice(0, i) + (e[i] === '-' ? '+' : '-') + e.slice(i + 1);
+    }
+    return negate(e);
+  },
+};
+const AXIS_PAIRS = [['swap', 'square'], ['swap', 'sign'], ['target', 'sign'], ['target', 'swap'], ['square', 'sign'], ['recip', 'sign'], ['target', 'square']];
+
+/**
+ * Four options from two slips crossed: the answer, each slip alone, and both
+ * together, so the answer is not the option nearest all the others. One slip
+ * may be a misconception listed for the expression (2 sin θ for sin 2θ), with
+ * the other slip then applied to it too. Null when no pair gives four options
+ * that are distinct and wrong but for the answer.
+ */
+function crossedChoices(rng, expr, answer, targeted) {
+  const finite = (e) => { try { return Number.isFinite(fnOf(e)(1.1)) && Number.isFinite(fnOf(e)(0.37)); } catch { return false; } };
+  for (const [a, b] of rng.shuffle(AXIS_PAIRS.slice())) {
+    const B = AXES[b];
+    const tries = a === 'target' ? rng.shuffle(targeted.slice()).map((d) => [d, B(answer), B(d)]) : [[AXES[a](answer), B(answer), B(AXES[a](answer))]];
+    for (const wrong of tries) {
+      const all = [answer, ...wrong];
+      if (!all.every(finite) || wrong.some((w) => w === answer || same(w, expr))) continue;
+      if (all.some((x, i) => all.some((y, j) => j > i && (x === y || same(x, y))))) continue;
+      const shown = rng.shuffle(all.slice());
+      return { opts: shown.map((e, i) => ({ id: optionIds[i], e })), right: optionIds[shown.indexOf(answer)] };
+    }
+  }
+  return null;
+}
+
 function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = 'Simplify', ask = null } = {}) {
   for (;;) {
     const [template, answerT, why, trap] = rng.pick(bank);
@@ -116,7 +166,7 @@ function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = '
     if (!same(expr, answer)) throw new Error(`${expr} is not ${answer}`);
     const targeted = (DECOYS[template] ?? []).map((p) => fill(p, k));
     if (!DECOYS[template]) throw new Error(`no targeted decoys for ${template}`);
-    const c = choices(rng, expr, answer, pool.map((p) => fill(p, k)), targeted);
+    const c = crossedChoices(rng, expr, answer, targeted) ?? choices(rng, expr, answer, pool.map((p) => fill(p, k)), targeted);
     if (!c) continue;
     return {
       prompt: [T.prose(ask ? ask(pretty(expr)) : `${lead}: ${pretty(expr)}`)],
@@ -903,17 +953,28 @@ const PROOFS = [
   ['tan(2*t)', '(2*tan(t))/(1 - tan(t)^2)', [['tan(t + t)', '2θ = θ + θ'], ['(tan(t) + tan(t))/(1 - tan(t)*tan(t))', 'tan(α + β) = (tan α + tan β)/(1 − tan α tan β), with α = β = θ'], ['(2*tan(t))/(1 - tan(t)^2)', 'add the top, and tan θ tan θ is tan²θ']]],
 ];
 
-/** Single changes a careless step makes: a sign, a square, a swapped function. */
+/**
+ * Single changes a careless step makes: a sign, a square, a swapped function,
+ * each at one place in the line ({ at, len, rep }), or to the whole line (a
+ * minus sign in front, a 2 in front).
+ */
 function slips(e) {
-  const out = new Set();
-  const swap = (s, a, b) => { for (let i = s.indexOf(a); i > -1; i = s.indexOf(a, i + 1)) if (!(a === '2*' && /[\^\d]/.test(s[i - 1] ?? ''))) out.add(s.slice(0, i) + b + s.slice(i + a.length)); };
-  swap(e, ' + ', ' - '); swap(e, ' - ', ' + ');
-  swap(e, 'sin', 'cos'); swap(e, 'cos', 'sin'); swap(e, 'tan', 'cot'); swap(e, 'cot', 'tan'); swap(e, 'sec', 'csc'); swap(e, 'csc', 'sec');
-  swap(e, ')^2', ')'); swap(e, '2*', ''); swap(e, '1 - ', '1 + ');
-  out.add(negate(e));
-  out.add(/^-?\d+$/.test(e) ? String(2 * Number(e)) : e.startsWith('-') ? `-2*${e.slice(1)}` : `2*${e}`);
-  out.add('0');
-  return [...out];
+  const out = [];
+  const swap = (a, b) => { for (let i = e.indexOf(a); i > -1; i = e.indexOf(a, i + 1)) if (!(a === '2*' && /[\^\d]/.test(e[i - 1] ?? ''))) out.push({ at: i, len: a.length, rep: b }); };
+  swap(' + ', ' - '); swap(' - ', ' + ');
+  swap('sin', 'cos'); swap('cos', 'sin'); swap('tan', 'cot'); swap('cot', 'tan'); swap('sec', 'csc'); swap('csc', 'sec');
+  swap(')^2', ')'); swap('2*', ''); swap('1 - ', '1 + ');
+  out.push({ whole: negate });
+  out.push({ whole: (x) => (/^-?\d+$/.test(x) ? String(2 * Number(x)) : x.startsWith('-') ? `-2*${x.slice(1)}` : `2*${x}`) });
+  return out;
+}
+const applySlip = (e, sl) => (sl.whole ? sl.whole(e) : e.slice(0, sl.at) + sl.rep + e.slice(sl.at + sl.len));
+/** Two slips made together: the later place first, so the earlier place has not moved; a whole-line slip last. */
+function bothSlips(e, s1, s2) {
+  if (s1.whole && s2.whole) return s1.whole === s2.whole ? null : applySlip(applySlip(e, s1), s2);
+  if (s1.whole || s2.whole) return s1.whole ? applySlip(applySlip(e, s2), s1) : applySlip(applySlip(e, s1), s2);
+  if (s1.at < s2.at + s2.len && s2.at < s1.at + s1.len) return null;
+  return s1.at > s2.at ? applySlip(applySlip(e, s1), s2) : applySlip(applySlip(e, s2), s1);
 }
 
 const ALL_STEPS = PROOFS.flatMap(([start, goal, steps]) => steps.map((_, i) => ({ start, goal, steps, i })));
@@ -934,13 +995,34 @@ function proofStep(rng) {
     if (!same(start, goal) || !same(next, lines[lines.length - 1])) throw new Error(`proof of ${goal} breaks at ${next}`);
     if (lines.includes(next)) throw new Error(`proof of ${goal} repeats ${next}`);
     const back = rng.chance(0.5) ? rng.pick(lines) : null;
-    const wrong = back ? [back] : [];
-    for (const e of rng.shuffle(slips(next))) {
-      let v;
-      try { v = fnOf(e)(1.1); } catch { continue; }
-      if (wrong.length < 3 && Number.isFinite(v) && !same(e, next) && !wrong.some((w) => same(w, e))) wrong.push(e);
+    const finite = (e) => { try { return Number.isFinite(fnOf(e)(1.1)); } catch { return false; } };
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // Two slips crossed, or a step back crossed with one slip: the next line,
+    // a slip in it, the line gone back to and the same kind of slip in that,
+    // so the right line is not the one nearest all the others.
+    let wrong = null;
+    const fresh = (opts) => opts.every(finite) && opts.every((x, a) => opts.every((y, b) => b <= a || (x !== y && !same(x, y))))
+      && opts.slice(1).every((w) => w === back || !same(w, next));
+    if (back) {
+      for (const sl of rng.shuffle(slips(next))) {
+        const kind = sl.whole ?? sl.rep;
+        const twin = rng.shuffle(slips(back)).find((t) => (t.whole ?? t.rep) === kind);
+        if (!twin) continue;
+        const opts = [next, applySlip(next, sl), back, applySlip(back, twin)];
+        if (fresh(opts)) { wrong = opts.slice(1); break; }
+      }
+    } else {
+      const all = rng.shuffle(slips(next));
+      for (let a = 0; a < all.length && !wrong; a++) {
+        for (let b = a + 1; b < all.length && !wrong; b++) {
+          const two = bothSlips(next, all[a], all[b]);
+          if (two === null) continue;
+          const opts = [next, applySlip(next, all[a]), applySlip(next, all[b]), two];
+          if (fresh(opts)) wrong = opts.slice(1);
+        }
+      }
     }
-    if (wrong.length < 3) throw new Error(`no slips for ${next}`);
+    if (!wrong) continue;
     const all = rng.shuffle([next, ...wrong]);
     const opts = all.map((e, j) => ({ id: optionIds[j], e }));
     const shown = lines.map((l) => pretty(l)).join(' = ');
