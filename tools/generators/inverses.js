@@ -18,7 +18,7 @@ import { reduce } from './chance.js';
 import { tenths } from './trig.js';
 import { LINE, ASKED } from './figures.js';
 
-const optionIds = ['a', 'b', 'c', 'd'];
+const optionIds = ['a', 'b', 'c', 'd', 'e'];
 const fracAns = (n, d = 1) => ({ type: 'frac', value: reduce(n, d), requireSimplest: false });
 const pm = (k, fancy) => (k < 0 ? `${fancy ? ' − ' : ' - '}${-k}` : ` + ${k}`);
 
@@ -302,8 +302,13 @@ const sqF = (h) => (h === 0 ? 'x' : `x${pm(-h, true)}`);
 
 function restrict(rng) {
   const shape = rng.pick(['value', 'value', 'sqrtValue', 'which', 'formula', 'formula']);
-  const h = rng.nonZero(-5, 6), k = rng.nonZero(-6, 6);
-  const right = rng.chance(0.6);
+  let h, k, right;
+  do {
+    h = rng.nonZero(-5, 6); k = rng.nonZero(-6, 6);
+    right = rng.chance(0.6);
+    // The domain choice needs the cut running away from 0, and |k| < |h|, so
+    // that −h, k and −k all fall on the wrong side of the vertex (see below).
+  } while (shape === 'which' && (right !== h > 0 || Math.abs(k) >= Math.abs(h)));
   const branch = right ? `x >= ${h}` : `x <= ${h}`, branchF = right ? `x ≥ ${minus(h)}` : `x ≤ ${minus(h)}`;
   const f = `(${sq(h)})^2${pm(k)}`, show = `(${sqF(h)})²${pm(k, true)}`;
   if (shape === 'value') {
@@ -331,12 +336,17 @@ function restrict(rng) {
     };
   }
   if (shape === 'which') {
-    const good = right ? `x >= ${h}` : `x <= ${h}`;
-    const bad = [`x >= ${h - 2}`, `x <= ${h + 2}`, 'all'];
-    if (k < h && right) bad[0] = `x >= ${k}`;
-    const all = [good, ...bad];
-    if (new Set(all).size < 4) return restrict(rng);
-    const order = rng.shuffle([0, 1, 2, 3]);
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // The cut is at the vertex's x, and the two slips cross: the sign of h
+    // read off (x + 3)² as 3, and the vertex's height k taken for its x --
+    // alone and together -- each a cut that leaves both sides of the vertex
+    // in, and All real numbers. Every option runs the same way, so the
+    // direction gives nothing away; it is the one away from 0, so that the
+    // misread cut −h is on the wrong side.
+    const op = right ? '>=' : '<=';
+    const all = [h, -h, k, -k].map((c) => `x ${op} ${c}`).concat('all');
+    if (new Set(all).size < 5) return restrict(rng);
+    const order = rng.shuffle([0, 1, 2, 3, 4]);
     const label = (s) => (s === 'all' ? 'All real numbers' : s.replace('>=', '≥').replace('<=', '≤').replace(/-/g, '−'));
     return {
       prompt: [T.prose(`f(x) = ${show}. Which of these domains makes f one-to-one, so that it has an inverse?`)],
@@ -344,17 +354,23 @@ function restrict(rng) {
       answer: { type: 'choice', value: optionIds[order.indexOf(0)], options: order.map((j, i) => ({ id: optionIds[i], label: label(all[j]) })) },
       visual: null,
       explain: `The vertex is at x = ${minus(h)}, and the parabola takes each height twice, once each side of it: f(${minus(h - 1)}) = f(${minus(h + 1)}). `
-        + `A domain with no input on one side of ${minus(h)} gives each output once: ${label(good)}. `
-        + `The others reach both sides of the vertex${k < h && right ? ` (${minus(k)} is the vertex's height, not its x)` : ''}.`,
+        + `A domain with no input on one side of ${minus(h)} gives each output once: ${label(all[0])}. `
+        + `The others reach both sides of the vertex: ${minus(-h)} has the sign of ${sqF(h)} turned round, and ${minus(k)} is the vertex's height, not its x.`,
     };
   }
   // formula: which is f⁻¹(x)?
-  const sign = right ? '' : '-';
+  // requiem: catalogue/content/decoys-cross-two-slips
+  // Two slips crossed: the other sign of the root (the inverse of the other
+  // half), and either h and k swapped or both shifts turned round -- alone
+  // and together.
+  const sign = right ? '' : '-', other = right ? '-' : '';
+  const swap = rng.chance(0.5);
+  const [h2, k2] = swap ? [k, h] : [-h, -k];
   const opts = [
     `${sign}sqrt(${sq(k)})${pm(h)}`,
-    `${right ? '-' : ''}sqrt(${sq(k)})${pm(h)}`,
-    `${sign}sqrt(${sq(h)})${pm(k)}`,
-    `${sign}sqrt(${sq(-k)})${pm(-h)}`,
+    `${other}sqrt(${sq(k)})${pm(h)}`,
+    `${sign}sqrt(${sq(k2)})${pm(h2)}`,
+    `${other}sqrt(${sq(k2)})${pm(h2)}`,
   ];
   if (new Set(opts).size < 4) return restrict(rng);
   const pretty = (s) => s.replace(/sqrt\(([^)]+)\)/, '√($1)').replace(/ - /g, ' − ').replace(/^-/, '−');

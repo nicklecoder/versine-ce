@@ -283,11 +283,12 @@ function phaseShift(rng) {
     const size = Q(Math.abs(H.n), H.d);
     const K = Q(b.n * size.n, size.d);
     const trap = b.n === 1 ? size : K;
-    // With b = 1 the slips are the direction and the size: the other way, or
-    // the shift doubled or halved, never a lift up or down.
-    const options = b.n === 1
-      ? [[dir, size], [other, size], ...rng.shuffle([[dir, Q(2 * size.n, size.d)], [dir, Q(size.n, 2 * size.d)], [other, Q(2 * size.n, size.d)]]).slice(0, 2)]
-      : [[dir, size], [other, size], [dir, trap], [other, trap]];
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // The slips are the direction and the size, crossed: the other way, the
+    // wrong size (b × h read as the shift, or with b = 1 the shift doubled or
+    // halved), and both -- never a lift up or down.
+    const wrongSize = b.n === 1 ? (rng.chance(0.5) ? Q(2 * size.n, size.d) : Q(size.n, 2 * size.d)) : trap;
+    const options = [[dir, size], [other, size], [dir, wrongSize], [other, wrongSize]];
     const valid = options.filter(([d, q]) => shiftWorks(s, base, d, q));
     if (valid.length !== 1) continue;
     const ids = ['a', 'b', 'c', 'd'];
@@ -318,20 +319,27 @@ function fromGraph(rng) {
     const s = randomWave(rng, [B(1), B(2), B(1, 2)], { shift: false });
     if (s.k === 0 && rng.chance(0.5)) continue;
     const A = Math.abs(s.a);
-    const tries = [
-      wave(-s.a, s.fn, s.b, s.h, s.k),
-      wave(s.a, s.fn === 'sin' ? 'cos' : 'sin', s.b, s.h, s.k),
-      wave(s.a, s.fn, B(s.b.n * 2, s.b.d), s.h, s.k),
-      wave(s.a, s.fn, B(s.b.n, s.b.d * 2), s.h, s.k),
-      ...(s.k !== 0 && Math.abs(s.k) !== A ? [wave(Math.sign(s.a) * Math.abs(s.k), s.fn, s.b, s.h, Math.sign(s.k) * A)] : []),
-      wave(s.a * 2, s.fn, s.b, s.h, s.k),
-      wave(s.a, s.fn, s.b, s.h, -s.k),
-    ].filter((t) => Math.abs(t.k) + Math.abs(t.a) <= 8 && !sameWave(t, s) && t.k !== undefined);
-    const wrong = [];
-    for (const t of rng.shuffle(tries)) {
-      if (wrong.length < 3 && !wrong.some((w) => sameWave(w, t)) && !(t.k === s.k && t.a === s.a && t.fn === s.fn && t.b.n === s.b.n && t.b.d === s.b.d)) wrong.push(t);
-    }
-    if (wrong.length < 3) continue;
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // Two misreadings of the graph from different features, crossed: the key,
+    // each alone, and both. The features: which way the wave starts (the
+    // sign of a, or sine for cosine), how fast it cycles (b doubled or
+    // halved), how tall it is (peak-to-trough taken as the amplitude, or
+    // amplitude and midline swapped), and where its middle is (k's sign).
+    const SLIPS = [
+      ['start', (t) => wave(-t.a, t.fn, t.b, t.h, t.k)],
+      ['start', (t) => wave(t.a, t.fn === 'sin' ? 'cos' : 'sin', t.b, t.h, t.k)],
+      ['speed', (t) => wave(t.a, t.fn, B(t.b.n * 2, t.b.d), t.h, t.k)],
+      ['speed', (t) => wave(t.a, t.fn, B(t.b.n, t.b.d * 2), t.h, t.k)],
+      ['height', (t) => wave(t.a * 2, t.fn, t.b, t.h, t.k)],
+      ['height', (t) => (t.k !== 0 && Math.abs(t.k) !== Math.abs(t.a) ? wave(Math.sign(t.a) * Math.abs(t.k), t.fn, t.b, t.h, Math.sign(t.k) * Math.abs(t.a)) : null)],
+      ['middle', (t) => (t.k !== 0 ? wave(t.a, t.fn, t.b, t.h, -t.k) : null)],
+    ];
+    const [[g1, s1], [g2, s2]] = rng.shuffle(SLIPS.slice()).slice(0, 2);
+    if (g1 === g2) continue;
+    const one = s1(s), two = s2(s), both = one && s2(one);
+    const wrong = [one, two, both];
+    if (wrong.some((t) => !t || Math.abs(t.k) + Math.abs(t.a) > 8 || sameWave(t, s))) continue;
+    if (wrong.some((t, i) => wrong.slice(i + 1).some((u) => sameWave(t, u)))) continue;
     const all = rng.shuffle([s, ...wrong]);
     const opts = all.map((t, i) => ({ id: optionId[i], label: eq(t), key: ascii(eq(t)) }));
     const right = opts[all.indexOf(s)];
