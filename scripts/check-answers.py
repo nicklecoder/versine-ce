@@ -8810,6 +8810,279 @@ CHOICE_RULES += (
 )
 
 
+# requiem: catalogue/content/conic-graphs-drawn-from-their-equation
+# requiem: catalogue/content/conic-points-exact
+# --- Conic Sections --------------------------------------------------------------
+# Every equation is read back as a polynomial in x and y off a grid (as for
+# systems-2), never from the center and squares it was built from, and the
+# conic is worked out from its coefficients: the squared terms say which it
+# is, completing the square on each letter gives the center or vertex and
+# the two denominators, and from those the foci, vertices, directrix and
+# asymptotes follow by c² = a² − b² for an ellipse and c² = a² + b² for a
+# hyperbola. A choice of equations is the option whose features are the ones
+# the question gives; a graph is the option every drawn point lies on.
+
+CN_READ = {}
+
+
+def cn_read(src):
+    """The conic an equation is, from its coefficients alone (read once per equation)."""
+    if src not in CN_READ:
+        CN_READ[src] = cn_conic(src)
+    return CN_READ[src]
+
+
+def cn_conic(src):
+    poly = s2_equation(src)
+    assert set(poly) <= {(2, 0), (0, 2), (1, 0), (0, 1), (0, 0)}, f"{src}: not a conic without an xy term"
+    A, C = poly.get((2, 0), Fraction(0)), poly.get((0, 2), Fraction(0))
+    D, E, F = poly.get((1, 0), Fraction(0)), poly.get((0, 1), Fraction(0)), poly.get((0, 0), Fraction(0))
+    if A and C:
+        h, k = -D / (2 * A), -E / (2 * C)
+        R = A * h * h + C * k * k - F
+        assert R != 0, f"{src}: degenerate"
+        X, Y = R / A, R / C
+        assert X > 0 or Y > 0, f"{src}: no real points"
+        kind = "hyperbola" if X * Y < 0 else "circle" if X == Y else "ellipse"
+        return {"kind": kind, "h": h, "k": k, "X": X, "Y": Y}
+    assert A or C, f"{src}: nothing squared"
+    if A:
+        assert E != 0, f"{src}: two lines, not a parabola"
+        h, p4 = -D / (2 * A), -E / A
+        return {"kind": "parabola", "axis": "v", "h": h, "k": (F / A - h * h) / p4, "p4": p4}
+    assert D != 0, f"{src}: two lines, not a parabola"
+    k, p4 = -E / (2 * C), -D / C
+    return {"kind": "parabola", "axis": "h", "h": (F / C - k * k) / p4, "k": k, "p4": p4}
+
+
+def cn_axes(c):
+    """a², b² and the letter the vertices lie along, for an ellipse or hyperbola."""
+    if c["kind"] == "hyperbola":
+        return (c["X"], -c["Y"], "x") if c["X"] > 0 else (c["Y"], -c["X"], "y")
+    return (c["X"], c["Y"], "x") if c["X"] > c["Y"] else (c["Y"], c["X"], "y")
+
+
+def cn_along(c, r, way):
+    h, k = c["h"], c["k"]
+    return [(h - r, k), (h + r, k)] if way == "x" else [(h, k - r), (h, k + r)]
+
+
+def cn_root(v):
+    """The rational square root of v, or None when it has none."""
+    try:
+        return fraction_root(v, 2)
+    except AssertionError:
+        return None
+
+
+def cn_features(c):
+    """Every point and line a conic question can ask about: those with rational coordinates."""
+    if c["kind"] == "parabola":
+        p = c["p4"] / 4
+        if c["axis"] == "v":
+            return {"vertex": [(c["h"], c["k"])], "focus": [(c["h"], c["k"] + p)], "directrix": ("y", c["k"] - p)}
+        return {"vertex": [(c["h"], c["k"])], "focus": [(c["h"] + p, c["k"])], "directrix": ("x", c["h"] - p)}
+    a2, b2, way = cn_axes(c)
+    out = {"center": [(c["h"], c["k"])], "way": way}
+    a, b, f = cn_root(a2), cn_root(b2), cn_root(a2 + b2 if c["kind"] == "hyperbola" else a2 - b2)
+    if a is not None:
+        out["a"], out["vertices"] = a, cn_along(c, a, way)
+    if b is not None:
+        out["b"] = b
+        if c["kind"] == "ellipse":
+            out["co-vertices"] = cn_along(c, b, "y" if way == "x" else "x")
+    if f is not None:
+        out["foci"] = cn_along(c, f, way)
+    if c["kind"] == "hyperbola" and a is not None and b is not None:
+        out["slope"] = b / a if way == "x" else a / b
+    return out
+
+
+def cn_kind(src, kind):
+    c = cn_read(src)
+    assert c["kind"] == kind, f"{src} is a {c['kind']}, not a {kind}"
+    return cn_features(c)
+
+
+def cn_value(c, x, y):
+    """The conic's equation, as left − right, at (x, y), with its gradient."""
+    h, k = c["h"], c["k"]
+    if c["kind"] == "parabola":
+        if c["axis"] == "v":
+            return (x - h) ** 2 - c["p4"] * (y - k), (2 * (x - h), -c["p4"])
+        return (y - k) ** 2 - c["p4"] * (x - h), (-c["p4"], 2 * (y - k))
+    X, Y = c["X"], c["Y"]
+    return (x - h) ** 2 / X + (y - k) ** 2 / Y - 1, (2 * (x - h) / X, 2 * (y - k) / Y)
+
+
+def cn_on(c, x, y, tol=0.01):
+    """Within tol of the curve, by the value over the slope of the equation there."""
+    v, (gx, gy) = cn_value(c, Fraction(x), Fraction(y))
+    g = math.hypot(float(gx), float(gy))
+    return abs(float(v)) <= tol * max(g, 1e-9)
+
+
+def cn_same(c, d):
+    if c["kind"] != d["kind"]:
+        return False
+    keys = ("axis", "h", "k", "p4") if c["kind"] == "parabola" else ("h", "k", "X", "Y")
+    return all(c[key] == d[key] for key in keys)
+
+
+def cn_point(s):
+    x, y = s.strip("()").split(", ")
+    return Fraction(x), Fraction(y)
+
+
+def cn_from_focus(focus, letter, d, listing):
+    """The parabola whose vertex is halfway from focus to directrix, opening toward the focus."""
+    fx, fy = cn_point(focus)
+    d = Fraction(d)
+    if letter == "y":
+        want = {"kind": "parabola", "axis": "v", "h": fx, "k": (fy + d) / 2, "p4": 2 * (fy - d)}
+    else:
+        want = {"kind": "parabola", "axis": "h", "h": (fx + d) / 2, "k": fy, "p4": 2 * (fx - d)}
+    return rf_pick(listing, lambda body: cn_same(cn_read(body), want))
+
+
+def cn_from_points(kind, given, listing):
+    """The ellipse or hyperbola with the center, vertex and focus a question gives."""
+    parts = dict(p.split(" ", 1) for p in given.split("; "))
+    if "center" in parts:
+        center, vertex, focus = (cn_point(parts[w]) for w in ("center", "vertex", "focus"))
+    else:
+        v1, v2 = (cn_point(s) for s in parts["vertices"].split(" and "))
+        f1, f2 = (cn_point(s) for s in parts["foci"].split(" and "))
+        center = ((v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2)
+        assert center == ((f1[0] + f2[0]) / 2, (f1[1] + f2[1]) / 2), f"{given}: foci and vertices not centered alike"
+        vertex, focus = v2, f2
+    way = "x" if vertex[1] == center[1] else "y"
+    assert (focus[1] == center[1]) == (way == "x") and vertex != center, f"{given}: not on one axis"
+    a = abs(vertex[0] - center[0]) + abs(vertex[1] - center[1])
+    c = abs(focus[0] - center[0]) + abs(focus[1] - center[1])
+    a2, c2 = a * a, c * c
+    b2 = a2 - c2 if kind == "ellipse" else c2 - a2
+    assert b2 > 0, f"{given}: no {kind} has these"
+    if kind == "ellipse":
+        X, Y = (a2, b2) if way == "x" else (b2, a2)
+    else:
+        X, Y = (a2, -b2) if way == "x" else (-b2, a2)
+    want = {"kind": kind, "h": center[0], "k": center[1], "X": X, "Y": Y}
+    return rf_pick(listing, lambda body: cn_same(cn_read(body), want))
+
+
+# A graph's key is the option every drawn point of the curve lies on, found
+# from the picture before the main pass reads the row.
+def cn_graph_keys() -> dict:
+    """The option every drawn point lies on, by text, for each Match the Graph row."""
+    keys = {}
+    for path in sorted(LIB.glob("conics-*.json")):
+        for p in json.loads(path.read_text())["problems"]:
+            m = re.match(r"^conic graph: (\w+); (.+?); options (.+)$", p["text"])
+            if not m:
+                continue
+            drawn = [pt for mk in p["visual"]["marks"] if mk["kind"] == "path" for pt in mk["points"]]
+            read = {oid: cn_read(body) for oid, body in te_options(m[3]).items()}
+            fits = [oid for oid, c in read.items()
+                    if c["kind"] == m[1] and len(drawn) >= 40 and all(cn_on(c, x, y) for x, y in drawn)]
+            if len(fits) != 1:
+                keys[p["text"]] = f"{len(fits)} options fit the drawing"
+                continue
+            # The points the text says are drawn are that option's own vertex,
+            # focus, center or vertices, so the text and the drawing agree.
+            feats = cn_features(read[fits[0]])
+            own = {pt for key in ("vertex", "focus", "center", "vertices", "co-vertices") for pt in feats.get(key, [])}
+            said = {tuple(Fraction(v) for v in s.split(", ")) for s in re.findall(r"\((-?\d+(?:/\d+)?, -?\d+(?:/\d+)?)\)", m[2])}
+            keys[p["text"]] = fits[0] if said <= own else "the text names points the drawing does not have"
+    return keys
+
+
+CN_GRAPH_KEY = cn_graph_keys()
+
+CHOICE_RULES += (
+    (re.compile(r"^which conic: (.+ = .+)$"), lambda src: cn_read(src)["kind"]),
+    (re.compile(r"^parabola equation: focus (\(\S+, \S+\)); directrix (x|y) = (\S+); options (.+)$"), cn_from_focus),
+    (re.compile(r"^conic equation: (ellipse|hyperbola); (.+); options (.+)$"), cn_from_points),
+    (re.compile(r"^(conic graph: .+)$"), lambda text: CN_GRAPH_KEY[text]),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^parabola focus: (.+)$"), lambda src: cn_kind(src, "parabola")["focus"][0]),
+    (re.compile(r"^vertex of parabola: (.+)$"), lambda src: cn_kind(src, "parabola")["vertex"][0]),
+    (re.compile(r"^center of (ellipse|hyperbola): (.+)$"), lambda kind, src: cn_kind(src, kind)["center"][0]),
+)
+
+POINT_RULES += (
+    (re.compile(r"^(ellipse|hyperbola) (foci|vertices|co-vertices): (.+)$"), lambda kind, what, src: cn_kind(src, kind)[what], 2),
+)
+
+BY_RULE += (
+    (re.compile(r"^parabola directrix: (.+)$"), lambda src: cn_kind(src, "parabola")["directrix"][1]),
+    (re.compile(r"^ellipse (major|minor) axis: (.+)$"), lambda which, src: 2 * cn_kind(src, "ellipse")["a" if which == "major" else "b"]),
+    (re.compile(r"^hyperbola asymptote slope: (.+)$"), lambda src: cn_kind(src, "hyperbola")["slope"]),
+)
+
+# A drawn conic is the student's copy of the equation: every point of its
+# curve lies on the equation in the row's text, enough of it is drawn to read
+# (each vertex, and the vertex of a parabola, is on the drawing), and once
+# answered every dot is one of its foci, vertices or centers and every dashed
+# line a directrix or an asymptote of it.
+for path in sorted(LIB.glob("conics-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        if not p.get("visual"):
+            continue
+        where = f"conics L{lib['level'] + 1} row {i}"
+        m = re.match(r"^(?:parabola (?:focus|directrix)|ellipse foci|hyperbola (?:foci|asymptote slope)): (.+)$", p["text"])
+        if m:
+            c = cn_read(m[1])
+        elif p["text"] in CN_GRAPH_KEY and len(CN_GRAPH_KEY[p["text"]]) == 1:
+            c = cn_read(te_options(p["text"].split("; options ", 1)[1])[CN_GRAPH_KEY[p["text"]]])
+        else:
+            problems.append(f"{where}: a drawing no rule holds to its equation")
+            continue
+        vis = p["visual"]
+        drawn = [pt for mk in vis["marks"] if mk["kind"] == "path" for pt in mk["points"]]
+        off = [pt for pt in drawn if not cn_on(c, *pt)]
+        if len(drawn) < 40 or off:
+            problems.append(f"{where}: {len(off)} of {len(drawn)} drawn points are off {p['text']}")
+        feats = cn_features(c)
+        tips = feats.get("vertices", feats.get("vertex", []))
+        for vx, vy in tips:
+            if min((math.hypot(float(vx) - x, float(vy) - y) for x, y in drawn), default=9) > 0.05:
+                problems.append(f"{where}: the vertex ({vx}, {vy}) is not on the drawing")
+        shown = vis.get("answer", [])
+        if not shown:
+            problems.append(f"{where}: nothing is revealed once answered")
+        for mk in shown:
+            if mk["kind"] == "point":
+                # A dot is where its label says, and is what its label names:
+                # a focus, a vertex or the center; a bare point label is a
+                # focus or vertex, and an unlabelled dot a vertex.
+                dot_at = (Fraction(mk["at"][0]).limit_denominator(1000), Fraction(mk["at"][1]).limit_denominator(1000))
+                lm = re.fullmatch(r"(?:(focus|vertex|center) )?\((\S+), (\S+)\)", (mk.get("label") or "").replace("−", "-"))
+                if mk.get("label") and not lm:
+                    problems.append(f"{where}: the revealed dot's label {mk['label']!r} is not a point")
+                    continue
+                pool = (feats.get("vertices", []) + feats.get("co-vertices", []) if not lm
+                        else feats.get(lm[1], []) + (feats.get("vertices", []) if lm[1] == "vertex" else []) if lm[1]
+                        else feats.get("foci", []) + feats.get("vertices", []))
+                if lm and (Fraction(lm[2]), Fraction(lm[3])) != dot_at:
+                    problems.append(f"{where}: the dot labelled {mk['label']!r} is drawn at {mk['at']}")
+                if dot_at not in pool:
+                    problems.append(f"{where}: the revealed dot at {mk['at']} is not the {lm[1] if lm and lm[1] else 'focus or vertex'} it should be")
+            if mk["kind"] == "segment":
+                (x0, y0), (x1, y1) = mk["from"], mk["to"]
+                if "directrix" in feats:
+                    letter, d = feats["directrix"]
+                    ok = all(abs(Fraction(v) - d) < Fraction(1, 1000) for v in ((x0, x1) if letter == "x" else (y0, y1)))
+                else:
+                    s = float(feats["slope"])
+                    ok = all(abs(abs((y - float(c["k"])) ) - s * abs(x - float(c["h"]))) < 0.01 for x, y in ((x0, y0), (x1, y1)))
+                if not ok:
+                    problems.append(f"{where}: the revealed line {mk['from']}–{mk['to']} is not a directrix or asymptote")
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

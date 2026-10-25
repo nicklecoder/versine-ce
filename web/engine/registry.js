@@ -45,6 +45,7 @@ import area from '../skills/area.js';
 import volume from '../skills/volume.js';
 import transformationsG from '../skills/transformations-g.js';
 import coordGeometry from '../skills/coord-geometry.js';
+import conics from '../skills/conics.js';
 import congruence from '../skills/congruence.js';
 import similarity from '../skills/similarity.js';
 import units from '../skills/units.js';
@@ -90,7 +91,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines, radians, unitCircle, trigGraphs, identities, trigEquations, domainRange, composition, inverses, radicalEq, rationalExpr, rationalEq, rationalFunctions, polyDivision, polyFunctions, complex, logarithms, series, binomial, systems2];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, conics, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines, radians, unitCircle, trigGraphs, identities, trigEquations, domainRange, composition, inverses, radicalEq, rationalExpr, rationalEq, rationalFunctions, polyDivision, polyFunctions, complex, logarithms, series, binomial, systems2];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 

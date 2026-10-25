@@ -13,6 +13,23 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Conic Sections** (`conics`), a new skill under Coordinates, in eight
+levels: Which Conic?, Parabola Focus & Directrix, Ellipses, Hyperbolas,
+Writing the Equation, Completing the Square, Match the Graph and All
+Together. An equation in general, standard or rearranged form is named
+from its squared terms; a parabola's focus and directrix come from 4p,
+and its equation from a focus and directrix; an ellipse's and a
+hyperbola's foci, vertices, co-vertices, axis lengths and asymptote slopes
+come from a², b² and c; an equation is chosen from a center, a vertex and
+a focus; the center or vertex is found out of general form by completing
+the square; and a drawn conic is matched to its equation. Points go in the
+pair and points boxes, numbers in the fraction box. Foci, directrix and
+asymptote questions are drawn, with the foci, directrix or asymptotes
+shown once answered. `scripts/check-answers.py` reads every equation back
+as a polynomial in x and y and works each feature out from its
+coefficients, picks the equation a choice's given points or drawing fit,
+and holds every drawing to its equation.
+
 **Inverse Functions** has a new level before All Together, Log Functions:
 y = log_b x as the reflection of y = bˣ in y = x, points reflected from
 bˣ + k to its inverse, the domain of a log of a line or of x² − c², its

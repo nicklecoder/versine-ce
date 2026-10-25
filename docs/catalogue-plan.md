@@ -588,6 +588,24 @@ prompt term with stacked limits, and is only ever read, never typed, so no
 Σ key is needed. An infinite series with no sum is asked as a choice of
 four series, half the rows asking which has a sum and half which has none.
 
+`conics` is built, as Which Conic? · Parabola Focus & Directrix ·
+Ellipses · Hyperbolas · Writing the Equation · Completing the Square ·
+Match the Graph · All Together. Writing the Equation, Completing the
+Square and Match the Graph are added: an ellipse or hyperbola from its
+center, a vertex and a focus (or both vertices and both foci), the center
+or vertex out of general form, and the equation of a drawn conic. Circles
+from general form are not repeated, since circles' Complete the Square for
+Center already asks them; a circle is one of the four answers to Which
+Conic?. Which Conic? depends on circles' Equation of a Circle, Parabola
+Focus & Directrix on graphs of quadratics' Vertex Form, and Completing the
+Square on circles' Complete the Square for Center. Foci and vertices are
+exact points, two in the points box and one in the pair box, so the
+ellipses and hyperbolas whose foci are asked are built on Pythagorean
+triples; lengths, slopes and a directrix's number go in the fraction box.
+Rows about foci, a directrix or asymptotes carry the graph, which the
+checker holds to the equation read back as a polynomial; rows about
+vertices carry none, since the vertices could be read off it.
+
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
 

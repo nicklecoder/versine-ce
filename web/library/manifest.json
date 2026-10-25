@@ -1,5 +1,5 @@
 {
-  "built": 640,
+  "built": 648,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -503,6 +503,16 @@
       "slopes-in-shapes",
       "classify-a-triangle",
       "complete-the-parallelogram",
+      "all-together"
+    ],
+    "conics": [
+      "which-conic",
+      "parabola-focus-and-directrix",
+      "ellipses",
+      "hyperbolas",
+      "writing-the-equation",
+      "completing-the-square",
+      "match-the-graph",
       "all-together"
     ],
     "congruence": [
@@ -1426,6 +1436,23 @@
       ],
       "levels": {}
     },
+    "conics": {
+      "dependsOn": [
+        "circles",
+        "quadratic-graphs"
+      ],
+      "levels": {
+        "which-conic": [
+          "circles"
+        ],
+        "parabola-focus-and-directrix": [
+          "quadratic-graphs"
+        ],
+        "completing-the-square": [
+          "circles"
+        ]
+      }
+    },
     "congruence": {
       "dependsOn": [
         "triangle-angles"
@@ -2023,7 +2050,7 @@
       }
     }
   },
-  "sources": "67b8aba1275a5b6d4993e5e0a257ca21bf97283bc815bd9a0132ef04d12f8d0a",
+  "sources": "a91c454b49869afcbf303c9b0a4fc55d7abdfdf040ca9f5628e59a24e022e1af",
   "levels": [
     {
       "skill": "int-addsub",
@@ -6004,6 +6031,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "coord-geometry-7.json"
+    },
+    {
+      "skill": "conics",
+      "level": 0,
+      "slug": "which-conic",
+      "name": "Which Conic?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "conics-0.json"
+    },
+    {
+      "skill": "conics",
+      "level": 1,
+      "slug": "parabola-focus-and-directrix",
+      "name": "Parabola Focus & Directrix",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-1.json"
+    },
+    {
+      "skill": "conics",
+      "level": 2,
+      "slug": "ellipses",
+      "name": "Ellipses",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-2.json"
+    },
+    {
+      "skill": "conics",
+      "level": 3,
+      "slug": "hyperbolas",
+      "name": "Hyperbolas",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-3.json"
+    },
+    {
+      "skill": "conics",
+      "level": 4,
+      "slug": "writing-the-equation",
+      "name": "Writing the Equation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "conics-4.json"
+    },
+    {
+      "skill": "conics",
+      "level": 5,
+      "slug": "completing-the-square",
+      "name": "Completing the Square",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-5.json"
+    },
+    {
+      "skill": "conics",
+      "level": 6,
+      "slug": "match-the-graph",
+      "name": "Match the Graph",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "conics-6.json"
+    },
+    {
+      "skill": "conics",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-7.json"
     },
     {
       "skill": "congruence",
