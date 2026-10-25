@@ -674,6 +674,14 @@ defineType({
     return { ok: true, terms };
   },
   equals: sameComplex,
+  // requiem: play/answers/plus-minus-only-when-touching
+  // 3+-2i is ± to a student taught +- for it, and plus a negative to one who
+  // means 3 − 2i. Where the question has one answer, not a pair, it is asked
+  // again rather than marked -- whatever either reading would score, so the
+  // refusal says nothing about the answer.
+  refuseHint: (parsed, spec) => (parsed.touching && !spec.value.pm
+    ? '+- touching is read as ±, two numbers, and this question has one answer. For plus a negative, type 3 − 2i, or leave a space: 3 + -2i.'
+    : null),
   // One root of a conjugate pair typed alone is half the answer: wrong,
   // and told that the other root is its conjugate.
   missHint: (v, spec) => (spec.value.pm && !v.pm

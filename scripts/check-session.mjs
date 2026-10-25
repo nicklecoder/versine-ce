@@ -463,6 +463,49 @@ for (const skill of SKILLS) {
   }
 }
 
+// requiem: play/answers/plus-minus-only-when-touching
+// requiem: catalogue/content/complex-judged-exactly
+// The complex box reads what students type: plus a negative with a space
+// apart, ± only with the signs touching, capitals, one outer bracket, each
+// root named, +/-, a minus before a bracket, a bracketed signed coefficient.
+// Touching +- on a question with one answer is asked again, not marked.
+{
+  const skill = SKILLS.find((s) => s.id === 'complex');
+  const at = (slug) => skill.levels.findIndex((l) => l.slug === slug);
+  const whole = (v) => v.re.d === 1 && v.im.d === 1 && v.re.n !== 0;
+  const one = libOf(skill, at('add-and-subtract')).problems.find((q) => whole(q.answer.value) && q.answer.value.im.n < -1);
+  const pair = libOf(skill, at('complex-roots')).problems.find((q) => q.answer.value.pm && whole(q.answer.value) && q.answer.value.im.n > 1);
+  const play = (p, raw) => {
+    const s = new Session({ skill, level: at('all-together'), mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const a = one.answer.value.re.n, b = -one.answer.value.im.n;
+  const p = pair.answer.value.re.n, q = pair.answer.value.im.n;
+  const cases = [
+    [one, `${a} + -${b}i`, 'correct'], [one, `${a} + −${b}i`, 'correct'], [one, `(${a} - ${b}i)`, 'correct'],
+    [one, `${a} - ${b}I`, 'correct'], [one, `${a} + (-${b})i`, 'correct'], [one, `z = ${a} - ${b}i`, 'correct'],
+    [one, `${a}+-${b}i`, 'invalid'], [one, `${a} +- ${b}i`, 'wrong'], [one, `${a} - sqrt(${b * b})i`, 'invalid'],
+    [pair, `${p} +- ${q}i`, 'correct'], [pair, `${p}+-${q}i`, 'correct'], [pair, `${p} +/- ${q}i`, 'correct'],
+    [pair, `x = ${p} + ${q}i or x = ${p} - ${q}i`, 'correct'], [pair, `x=${p}+${q}i, x=${p}-${q}i`, 'correct'],
+    [pair, `(${p} +- ${q}i)`, 'correct'], [pair, `${p} + -${q}i`, 'wrong'],
+  ];
+  for (const [row, raw, want] of cases) {
+    const r = play(row, raw);
+    if (r.status !== want) fail.push(`complex: "${raw}" for ${row.answer.accept[0]} was ${r.status}, not ${want}`);
+    if (raw.includes('sqrt') && !r.hint?.includes('root')) fail.push(`complex: "${raw}" was not told to work the root out`);
+    if (want === 'invalid' && raw.includes('+-') && !r.hint?.includes('±')) fail.push(`complex: "${raw}" was not told +- reads as ±`);
+  }
+  const box = getType('complex');
+  for (const [raw, want] of [['-(7+6i)/17', '−7/17 − 6i/17'], ['3 + (-2)i', '3 − 2i'], ['(-1+i)', '−1 + i'], ['3 - -2i', '3 + 2i']]) {
+    const r = box.parse(raw);
+    if (!r.ok || box.format(r.value) !== want) fail.push(`complex: "${raw}" was not read as ${want}`);
+  }
+  if (box.parse('-(7+6i)/17').value?.simplest === false) fail.push('complex: −(7 + 6i)/17 was called unfinished');
+  if (box.parse('-(3-2i)').value?.simplest !== false) fail.push('complex: −(3 − 2i) was called finished');
+}
+
 // requiem: play/answers/set-comma-after-not-equal
 // requiem: play/answers/set-all-but-points-shown
 // requiem: play/answers/set-complement-told

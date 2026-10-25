@@ -12,7 +12,13 @@
  * question copied back, not an answer.
  *
  * A conjugate pair, the two roots of a real quadratic, is one answer:
- * 2 ± 3i, or the two typed out, 2 + 3i, 2 − 3i (or "or").
+ * 2 ± 3i, or the two typed out, 2 + 3i, 2 − 3i (or "or"), each may be
+ * named, x = 2 + 3i or x = 2 − 3i. ± is typed +- with the signs touching,
+ * or +/-; a plus and a minus apart, 3 + -2i, are plus a negative.
+ *
+ * Read as typed besides: capitals (a phone's 3 − 2I), one bracket round the
+ * whole, (3 − 2i), a minus before a bracket, −(7 + 6i)/17, and a bracketed
+ * signed coefficient, 3 + (−2)i. A root left in is refused with its own hint.
  *
  * Value: { re, im, pm?, simplest? }, re and im fractions { n, d }; pm marks
  * the pair re ± im·i, im then stored positive. simplest is false when the
@@ -54,9 +60,30 @@ function number(text) {
 const cleared = (re, im, k) => re.d === 1 && im.d === 1 && k.n > 1 && gcd(gcd(re.n, im.n), k.n) === 1;
 
 const POWER = 'Work out the powers of i first: i² is −1, so a complex answer is a + bi.';
+const ROOT = 'Work out the root first: √−1 is i, so a complex answer is a + bi with no root left in.';
+
+/** Whether s is one bracketed whole: (3 − 2i), not (3)(2i) or (1 + i)/2. */
+function wrapped(s) {
+  if (!s.startsWith('(') || !s.endsWith(')')) return false;
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    depth += s[i] === '(' ? 1 : s[i] === ')' ? -1 : 0;
+    if (depth === 0 && i < s.length - 1) return false;
+  }
+  return true;
+}
 
 /** One complex number: real terms and i terms, summed. */
 function single(s) {
+  // −(7 + 6i)/17: a minus in front of a bracket reaches both parts. Over a
+  // number it is as finished as (−7 − 6i)/17; −(3 − 2i) alone is not yet a + bi.
+  if (/^-\(/.test(s)) {
+    const inner = single(s.slice(1));
+    if (!inner.ok) return inner;
+    const finished = inner.simplest && /^-\(.+\)\/\d+$/.test(s) && !wrapped(s.slice(1));
+    return { ok: true, re: Q(-inner.re.n, inner.re.d), im: Q(-inner.im.n, inner.im.d), simplest: finished };
+  }
+  if (wrapped(s)) return single(s.slice(1, -1));
   const over = /^\((.+)\)\/(\d+)$/.exec(s);
   if (over) {
     const inner = single(over[1]);
@@ -90,11 +117,31 @@ function single(s) {
 
 /** @returns {{ok: true, value: object} | {ok: false, hint?: string}} */
 export function parseComplex(raw) {
-  let s = String(raw).trim().replace(/^[a-hj-z]\s*=\s*/i, '');
-  s = s.replace(/[−–—]/g, '-').replace(/\s+/g, '').replace(/\*|·|×/g, '').replace(/\+-|-\+/g, '±');
+  // Lowercase: a phone capitalises the first letter, so 3 − 2I is 3 − 2i.
+  let s = String(raw).trim().toLowerCase().replace(/[−–—]/g, '-');
+  // requiem: play/answers/plus-minus-only-when-touching
+  // ± is +- with the two signs touching (2 +- 3i, 2+-3i) or +/-; a plus and a
+  // minus with a space between, 3 + -2i, is plus a negative, 3 − 2i. Touching
+  // signs with the number straight after, 3+-2i, could be either, and is
+  // flagged so a question with one answer can ask rather than mark it.
+  const touching = /\+-(?=[\d.i(])/.test(s);
+  s = s.replace(/\+\/-|\+-|-\+/g, '±');
+  // x = 2 + 3i or x = 2 − 3i: the letter may name each root.
+  s = s.replace(/(^|,|;|\bor\b)\s*[a-hj-z]\s*=/g, '$1');
+  s = s.replace(/\s+/g, '').replace(/\*|·|×/g, '').replace(/;/g, ',');
+  // 3 + (−2)i: a signed coefficient in a bracket, then the signs combined.
+  s = s.replace(/\(([+-])([\d./]+)\)(?=i)/g, '$1$2');
+  for (let was = ''; was !== s;) { was = s; s = s.replace(/\+-|-\+/g, '-').replace(/--|\+\+/g, '+'); }
   if (!s) return { ok: false };
-  if (/\^|²|³|√|sqrt/.test(s)) return { ok: false, hint: POWER };
+  if (/√|sqrt/.test(s)) return { ok: false, hint: ROOT };
+  if (/\^|²|³/.test(s)) return { ok: false, hint: POWER };
   if (/[^0-9.i+\-±/(),or]/.test(s.replace(/or/g, ''))) return { ok: false };
+  const read = parseOne(s);
+  return read.ok && read.value.pm && touching ? { ...read, touching: true } : read;
+}
+
+function parseOne(s) {
+  if (wrapped(s)) return parseOne(s.slice(1, -1));
   // A conjugate pair, a ± bi, or (a ± bi)/d.
   if (s.includes('±')) {
     const over = /^\((.*)±(.+)\)\/(\d+)$/.exec(s);
