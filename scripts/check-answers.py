@@ -8434,6 +8434,149 @@ EXPR_RULES += (
     (re.compile(r"^expand: (\(.+\)\^\d+)$"), bn_expanded),
 )
 
+# The worked text is checked as well as the answer. Pascal's triangle is
+# drawn as rows above the asked one, which must be the triangle's own rows,
+# numbered as they are, with the asked row held back and its number shown as
+# the two above added. C(n, k) is cancelled before it is multiplied: from the
+# smaller of k and n - k, each factor of j! dividing a factor on top, and what
+# is left multiplying to the triangle's number. An expansion is worked term
+# by term, and each worked term must be the product's term with its power. A
+# chance one minus a single case must have that case's chance right.
+
+BN_SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹−", "0123456789-")
+
+
+def bn_row_text(cell: str) -> list:
+    return [int(v) for v in cell.replace(" ", " ").split()]
+
+
+# requiem: catalogue/visuals/pascal-rows-above-the-asked
+def bn_table(text: str, vis: dict, answer) -> str:
+    m = re.match(r"^pascal next: ([\d, ]+); number (\d+)$", text)
+    if m:
+        given = [int(v) for v in m[1].split(", ")]
+        asked, k = len(given), int(m[2]) - 1
+        if BN_TRI[asked - 1] != given:
+            return f"{m[1]} is not a row"
+    else:
+        m = re.match(r"^coefficient: a(?:\^\d+)?b(\^\d+)? in \(a \+ b\)\^(\d+)$", text)
+        if not m:
+            return "has a triangle it should not"
+        asked, k = int(m[2]), int((m[1] or "^1")[1:])
+    rows = vis["rows"]
+    if [r[0] for r in rows] != [str(i) for i in range(asked - len(rows) + 1, asked + 1)]:
+        return f"rows numbered {[r[0] for r in rows]}, not up to {asked}"
+    if rows[-1][1] != "?" or any(bn_row_text(r[1]) != BN_TRI[int(r[0])] for r in rows[:-1]):
+        return "draws a row that is not the triangle's, or shows the asked row"
+    if bn_row_text(vis["fill"]) != BN_TRI[asked]:
+        return f"holds back {vis['fill']}, not row {asked}"
+    above = BN_TRI[asked - 1]
+    if vis["working"][:-1] != [""] * (len(rows) - 1) or vis["working"][-1] != f"{above[k - 1]} + {above[k]} = {answer}":
+        return f"works {vis['working'][-1]}, not the two above number {k + 1} of row {asked}"
+    if BN_TRI[asked][k] != answer:
+        return f"asks number {k + 1} of row {asked}, which is not {answer}"
+    return "ok"
+
+
+# requiem: catalogue/content/choose-cancels-the-smaller
+def bn_choose_work(n: int, k: int, explain: str) -> str:
+    j = min(k, n - k)
+    if j != k and f"C({n}, {k}) = C({n}, {j})" not in explain:
+        return f"works C({n}, {j}) without saying it is C({n}, {k})"
+    m = re.search(r"\(([\d × ]+)\)/\(([\d × ]+)\)\. Cancel before multiplying: (.+), leaving ([\d × ,]+?)(?: = ([\d,]+))?\. So", explain)
+    if not m:
+        return "does not cancel before multiplying"
+    top = [int(v) for v in m[1].split(" × ")]
+    if top != list(range(n, n - j, -1)) or m[2] != " × ".join(str(i) for i in range(j, 0, -1)):
+        return f"works {m[1]} over {m[2]}, not the {j} biggest factors over {j}!"
+    unused, unders, quotients = list(top), [], []
+    for f, under, q in re.findall(r"(\d+)/(\([\d × ]+\)|\d+) = (\d+)", m[3]):
+        ds = [int(v) for v in under.strip("()").split(" × ")]
+        if int(f) not in unused or Fraction(int(f), math.prod(ds)) != int(q):
+            return f"cancels {f}/{under} = {q}"
+        unused.remove(int(f))
+        unders += ds
+        quotients.append(int(q))
+    if sorted(unders) != list(range(2, j + 1)):
+        return f"cancels {sorted(unders)}, not 2 to {j}"
+    left = [int(v) for v in m[4].replace(",", "").split(" × ")]
+    rest = sorted(v for v in unused + quotients if v != 1)
+    if sorted(left) != rest and not (len(left) == 1 and len(rest) <= 1):
+        return f"leaves {left}, not {rest}"
+    if math.prod(left) != BN_TRI[n][k] or (m[5] and int(m[5].replace(",", "")) != BN_TRI[n][k]):
+        return f"leaves {left}, whose product is not C({n}, {k})"
+    return "ok"
+
+
+def bn_term_value(src: str):
+    """−240x⁴, x³y², 81 as (coefficient, letters)."""
+    m = re.fullmatch(r"(-?)(\d*)((?:[a-z]\d*)*)", src.translate(BN_SUP).replace(" ", ""))
+    assert m and (m[2] or m[3]), f"cannot read {src}"
+    return (-1 if m[1] else 1) * int(m[2] or 1), bn_letters(re.sub(r"([a-z])(\d+)", r"\1^\2", m[3]))
+
+
+def bn_full_work(src: str, explain: str) -> str:
+    m = re.search(r"Term by term, signs and all: (.+?)\. So it is", explain)
+    if not m:
+        return "does not work its terms"
+    terms = sorted(bn_power(src).items(), key=lambda kv: (-dict(kv[0]).get("x", 0), dict(kv[0]).get("y", 0)))
+    said = m[1].split("; ")
+    if len(said) != len(terms):
+        return f"works {len(said)} terms, not {len(terms)}"
+    for part, (key, coef) in zip(said, terms):
+        steps = part.split(" = ")
+        if bn_term_value(steps[-1]) != (coef, key):
+            return f"works a term as {steps[-1]}"
+        if len(steps) == 3:
+            nums = re.sub(r"[a-z][⁰¹²³⁴⁵⁶⁷⁸⁹]*", "", steps[1]).translate(BN_SUP).replace("(", "").replace(")", "").replace(",", "")
+            if math.prod(int(v) for v in nums.split(" × ")) != coef:
+                return f"multiplies {steps[1]} to {coef}"
+    return "ok"
+
+
+# requiem: catalogue/content/complement-leads
+def bn_complement_work(text: str, explain: str, answer: Fraction) -> str:
+    m = re.match(r"^binomial chance: n (\d+), p (\d+/\d+), (at least|at most) (\d+); \w+$", text)
+    if not m:
+        return "ok"
+    n, p, how, k = int(m[1]), Fraction(m[2]), m[3], int(m[4])
+    if not ((how == "at least" and k == 1) or (how == "at most" and k == n - 1)):
+        return "ok"
+    w = re.search(r"1 − \((\d+)/(\d+)\)([⁰¹²³⁴⁵⁶⁷⁸⁹]+) = 1 − (\d+)/(\d+) = (\d+)/(\d+)", explain)
+    if not w:
+        return "does not lead with one minus the case left out"
+    base, e = Fraction(int(w[1]), int(w[2])), int(w[3].translate(BN_SUP))
+    if base != (1 - p if how == "at least" else p) or e != n:
+        return f"takes ({base})^{e}, not the chance of the one case left out"
+    if Fraction(int(w[4]), int(w[5])) != base ** e or int(w[6]) != int(w[5]) - int(w[4]) or w[7] != w[5]:
+        return "has its subtraction wrong"
+    if Fraction(int(w[6]), int(w[7])) != answer:
+        return f"works {w[6]}/{w[7]}, not the answer"
+    return "ok"
+
+
+for path in sorted(LIB.glob("binomial-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"binomial L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i} ({p['text']})"
+        verdicts = []
+        vis = p.get("visual")
+        if vis:
+            verdicts.append(bn_table(p["text"], vis, p["answer"]["value"]) if vis.get("kind") == "table" else f"draws a {vis.get('kind')}")
+        elif p["text"].startswith("pascal next:") or re.match(r"^coefficient: a", p["text"]):
+            verdicts.append("draws no triangle")
+        m = re.match(r"^choose: (\d+), (\d+)$", p["text"])
+        if m:
+            verdicts.append(bn_choose_work(int(m[1]), int(m[2]), p["explain"]))
+        m = re.match(r"^expand: (\(.+\)\^\d+)$", p["text"])
+        if m:
+            verdicts.append(bn_full_work(m[1], p["explain"]))
+        if p["text"].startswith("binomial chance:"):
+            a = p["answer"]["value"]
+            verdicts.append(bn_complement_work(p["text"], p["explain"], Fraction(a["n"], a["d"]) if isinstance(a, dict) else Fraction(a)))
+        for v in verdicts:
+            if v != "ok":
+                problems.append(f"{where}: {v}")
+
 
 # --- Systems of Equations II ------------------------------------------------------
 # Where two curves meet is found again without putting one into the other:
