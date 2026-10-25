@@ -7417,6 +7417,10 @@ for path in sorted(LIB.glob("poly-functions-*.json")):
         zeros_read = sorted(float(x) for x, y in pf_readings(m[1]) if y == 0)
         if dots != zeros_read:
             problems.append(f"{where}: zero dots {dots}, but the heights are 0 at {zeros_read}")
+        # The turning points marked once answered are the ones the heights give.
+        marked = sum(1 for mk in p["visual"]["answer"] if mk["kind"] == "point")
+        if marked != pf_count(m[1]):
+            problems.append(f"{where}: {marked} turning points marked, but the heights turn {pf_count(m[1])} times")
 
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one

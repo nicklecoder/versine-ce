@@ -19,7 +19,7 @@ import { previewOf } from '../../web/ui/express.js';
 import { normalize, formatSet } from '../../web/math/solutions.js';
 import { fracAnswer } from './chance.js';
 import { tenths } from './trig.js';
-import { LINE } from './figures.js';
+import { LINE, ASKED } from './figures.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/poly-functions.js';
 
 const optionIds = ['a', 'b', 'c', 'd'];
@@ -222,13 +222,26 @@ function graph(P) {
   if (run.length) paths.push(run);
   const readings = [];
   for (let x = x0; x <= x1; x += 1) if (Math.abs(at(c, x)) <= Y) readings.push([x, at(c, x)]);
+  // Where the slope changes sign, found to a hundredth then halved down.
+  const d = c.slice(1).map((a, i) => a * (i + 1));
+  const turns = [];
+  for (let i = 0; i < (x1 - x0) * 100; i += 1) {
+    let lo = x0 + i / 100, hi = lo + 0.01;
+    if (Math.sign(at(d, lo)) * Math.sign(at(d, hi)) >= 0 && at(d, lo) !== 0) continue;
+    for (let k = 0; k < 40; k += 1) { const m = (lo + hi) / 2; if (Math.sign(at(d, m)) === Math.sign(at(d, lo))) lo = m; else hi = m; }
+    const x = (lo + hi) / 2;
+    if (Math.abs(at(c, x)) <= Y && !turns.some(([t]) => Math.abs(t - x) < 0.05)) turns.push([x, at(c, x)]);
+  }
   const visual = tenths({
     kind: 'plane', xRange: [x0, x1], yRange: [-Y, Y], grid: Y <= 10 ? 1 : 0,
     marks: [
       ...paths.filter((p) => p.length > 1).map((points) => ({ kind: 'path', points, tone: LINE })),
       ...rs.map((r) => ({ kind: 'point', at: [r, 0], tone: LINE, label: minus(r) })),
     ],
-    answer: [],
+    // requiem: catalogue/content/poly-graph-read-from-heights
+    // Once answered, the turning points the question was about are marked.
+    answer: turns.length ? turns.map((at_) => ({ kind: 'point', at: at_, tone: ASKED }))
+      : [{ kind: 'text', at: [x0 + 0.5, Y * 0.8], label: 'no turning points', tone: ASKED }],
   });
   return { visual, readings };
 }
