@@ -532,6 +532,23 @@ with a `longerBecause`: e as what compounding ever more often tends to,
 then P(1 + r/n)^(nt), P·e^(rt), and a·e^(kt) read for its rate, its factor
 each step and its value.
 
+`systems-2` is built, as Line Meets Parabola · How Many Intersections ·
+Line Meets Circle · Two Curves · Three Variables · No Solution or
+Infinitely Many · Three-Variable Word Problems · All Together. Line Meets
+Circle, Two Curves and No Solution or Infinitely Many are added: a line
+and a circle centered anywhere, two parabolas, a circle and a parabola,
+xy = k and a line, and the systems in three letters that do not fix one
+point. Line Meets Parabola depends on systems' Substitution and quadratic
+equations' By Factoring, How Many Intersections on the quadratic
+formula's The Discriminant, Line Meets Circle on circles' Equation of a
+Circle, Three Variables on systems' Elimination, No
+Solution or Infinitely Many on systems' None or Infinitely Many, and the
+word problems on systems' From Words. The points where curves meet, and the
+solution (x, y, z), go in a new `points` box that judges them as a set;
+How Many Intersections asks its count as a choice and a tangent's k as a
+number, each said by its question. Two Curves is capped at 450 rows, since
+a circle and a parabola meeting at whole points run out at a few hundred.
+
 `binomial` is built, as Pascal's Triangle · Coefficients by Combinations ·
 A Given Term · Full Expansion · The Constant Term · Binomial Probability ·
 All Together. The Constant Term and Binomial Probability are added: the

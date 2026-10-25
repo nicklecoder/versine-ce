@@ -1,5 +1,5 @@
 {
-  "built": 631,
+  "built": 639,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -798,6 +798,16 @@
       "full-expansion",
       "the-constant-term",
       "binomial-probability",
+      "all-together"
+    ],
+    "systems-2": [
+      "line-meets-parabola",
+      "how-many-intersections",
+      "line-meets-circle",
+      "two-curves",
+      "three-variables",
+      "no-solution-or-infinitely-many",
+      "three-variable-word-problems",
       "all-together"
     ]
   },
@@ -1977,9 +1987,38 @@
           "probability"
         ]
       }
+    },
+    "systems-2": {
+      "dependsOn": [
+        "circles",
+        "quadratic-eq",
+        "quadratic-formula",
+        "systems"
+      ],
+      "levels": {
+        "line-meets-parabola": [
+          "quadratic-eq",
+          "systems"
+        ],
+        "how-many-intersections": [
+          "quadratic-formula"
+        ],
+        "line-meets-circle": [
+          "circles"
+        ],
+        "three-variables": [
+          "systems"
+        ],
+        "no-solution-or-infinitely-many": [
+          "systems"
+        ],
+        "three-variable-word-problems": [
+          "systems"
+        ]
+      }
     }
   },
-  "sources": "7e72257b9fde436ab22d3d31cd82248d5510d5c0546c94d1f77f37d3b8676025",
+  "sources": "4393cca43d4315355104551f972d88a2a147575e5d0fb81dc8435e4a7b4633de",
   "levels": [
     {
       "skill": "int-addsub",
@@ -8290,6 +8329,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "binomial-6.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 0,
+      "slug": "line-meets-parabola",
+      "name": "Line Meets Parabola",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-0.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 1,
+      "slug": "how-many-intersections",
+      "name": "How Many Intersections",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-1.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 2,
+      "slug": "line-meets-circle",
+      "name": "Line Meets Circle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-2.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 3,
+      "slug": "two-curves",
+      "name": "Two Curves",
+      "count": 450,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-3.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 4,
+      "slug": "three-variables",
+      "name": "Three Variables",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-4.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 5,
+      "slug": "no-solution-or-infinitely-many",
+      "name": "No Solution or Infinitely Many",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "systems-2-5.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 6,
+      "slug": "three-variable-word-problems",
+      "name": "Three-Variable Word Problems",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-6.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-7.json"
     }
   ]
 }

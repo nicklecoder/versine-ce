@@ -8411,6 +8411,290 @@ EXPR_RULES += (
 )
 
 
+# --- Systems of Equations II ------------------------------------------------------
+# Where two curves meet is found again without putting one into the other:
+# each equation is read back as a polynomial in x and y by evaluating it on a
+# grid, y is eliminated with the Sylvester resultant -- worked out at many x
+# and fitted, never expanded by hand -- and the resultant's rational roots,
+# found by the rational root theorem, give every x where they can meet; each
+# is put back to find its y's. How many points a line and a curve share is
+# counted by walking the line as P + t·d and solving in t, and a tangent's k
+# is the lowest point of the parabola less the line, found on a grid. A
+# system in x, y and z is solved by Cramer's rule, and whether it has one
+# solution, none or infinitely many by the ranks of its matrices. The three-
+# letter stories are searched, every whole count tried.
+
+def s2_solve(M, b):
+    """Solve M v = b over the rationals by elimination; None if singular."""
+    n = len(M)
+    A = [[Fraction(v) for v in row] + [Fraction(bb)] for row, bb in zip(M, b)]
+    for c in range(n):
+        p = next((r for r in range(c, n) if A[r][c] != 0), None)
+        if p is None:
+            return None
+        A[c], A[p] = A[p], A[c]
+        for r in range(n):
+            if r != c and A[r][c] != 0:
+                f = A[r][c] / A[c][c]
+                A[r] = [x - f * y for x, y in zip(A[r], A[c])]
+    return [A[i][n] / A[i][i] for i in range(n)]
+
+
+def s2_det(M):
+    A = [[Fraction(v) for v in row] for row in M]
+    n, det = len(A), Fraction(1)
+    for c in range(n):
+        p = next((r for r in range(c, n) if A[r][c] != 0), None)
+        if p is None:
+            return Fraction(0)
+        if p != c:
+            A[c], A[p] = A[p], A[c]
+            det = -det
+        det *= A[c][c]
+        for r in range(c + 1, n):
+            f = A[r][c] / A[c][c]
+            A[r] = [x - f * y for x, y in zip(A[r], A[c])]
+    return det
+
+
+def s2_fit(values):
+    """Coefficients, constant first, of the polynomial through (k, values[k])."""
+    n = len(values)
+    return s2_solve([[Fraction(k) ** j for j in range(n)] for k in range(n)], values)
+
+
+def s2_at(cs, x):
+    out = Fraction(0)
+    for c in reversed(cs):
+        out = out * x + c
+    return out
+
+
+def s2_trim(cs):
+    cs = list(cs)
+    while cs and cs[-1] == 0:
+        cs.pop()
+    return cs
+
+
+def s2_equation(src):
+    """An equation in x and y as {(i, j): coefficient of x^i y^j}, read off a grid."""
+    left, right = src.split(" = ")
+    f = lambda x, y: (evaluate(left.replace("x", f"({x})").replace("y", f"({y})"))
+                      - evaluate(right.replace("x", f"({x})").replace("y", f"({y})")))
+    N = 4                                   # every equation here is of degree under 4 in each letter
+    by_x = [s2_fit([f(x, y) for y in range(N)]) for x in range(N)]
+    poly = {}
+    for j in range(N):
+        for i, c in enumerate(s2_fit([by_x[x][j] for x in range(N)])):
+            if c:
+                poly[(i, j)] = c
+    for x, y in ((7, -5), (-3, 11), (Fraction(1, 3), Fraction(-5, 2))):
+        assert s2_value(poly, x, y) == f(x, y), f"{src} is not of degree under 4"
+    return poly
+
+
+def s2_value(poly, x, y):
+    return sum(c * Fraction(x) ** i * Fraction(y) ** j for (i, j), c in poly.items())
+
+
+def s2_in_y(poly, x):
+    """The polynomial in y left when x is fixed."""
+    deg = max(j for _, j in poly)
+    return [sum((c * Fraction(x) ** i for (i, jj), c in poly.items() if jj == j), Fraction(0)) for j in range(deg + 1)]
+
+
+def s2_resultant_at(p, q, x):
+    a, b = s2_in_y(p, x), s2_in_y(q, x)
+    m, n = len(a) - 1, len(b) - 1
+    size = m + n
+    if size == 0:
+        return Fraction(1)
+    rows = []
+    for r in range(n):
+        rows.append([Fraction(0)] * r + list(reversed(a)) + [Fraction(0)] * (size - m - 1 - r))
+    for r in range(m):
+        rows.append([Fraction(0)] * r + list(reversed(b)) + [Fraction(0)] * (size - n - 1 - r))
+    return s2_det(rows)
+
+
+def s2_rational_roots(cs):
+    """Every rational root of a polynomial with rational coefficients, constant first."""
+    cs = s2_trim(cs)
+    if not cs:
+        raise ValueError("the zero polynomial has every root")
+    out = set()
+    while cs and cs[0] == 0:
+        out.add(Fraction(0))
+        cs = cs[1:]
+    if len(cs) <= 1:
+        return out
+    den = 1
+    for c in cs:
+        den = den * c.denominator // math.gcd(den, c.denominator)
+    ints = [int(c * den) for c in cs]
+
+    def divisors(n):
+        n, ds = abs(n), set()
+        for d in range(1, math.isqrt(n) + 1):
+            if n % d == 0:
+                ds |= {d, n // d}
+        return ds
+
+    for p in divisors(ints[0]):
+        for q in divisors(ints[-1]):
+            for r in (Fraction(p, q), Fraction(-p, q)):
+                if s2_at(cs, r) == 0:
+                    out.add(r)
+    return out
+
+
+def s2_meet(text):
+    """Every point where the two equations both hold, as sorted tuples."""
+    p, q = (s2_equation(e) for e in text.split("; "))
+    # y out of both: a polynomial in x whose roots are the x's of the points.
+    width = 13
+    res = s2_fit([s2_resultant_at(p, q, x) for x in range(width)])
+    for x in (13, 14, -2):
+        assert s2_at(res, x) == s2_resultant_at(p, q, x), f"{text}: resultant of degree {width} or more"
+    pts = set()
+    for x in s2_rational_roots(res):
+        a, b = s2_trim(s2_in_y(p, x)), s2_trim(s2_in_y(q, x))
+        pick = a or b
+        if not pick:
+            raise ValueError(f"{text}: a whole line in common at x = {x}")
+        for y in s2_rational_roots(pick):
+            if s2_value(p, x, y) == 0 and s2_value(q, x, y) == 0:
+                pts.add((x, y))
+    return sorted(pts)
+
+
+def s2_count(text):
+    """How many points a line and a curve share: the line walked as P + t·d."""
+    p, q = (s2_equation(e) for e in text.split("; "))
+    line, curve = (p, q) if all(i + j <= 1 for i, j in p) else (q, p)
+    assert all(i + j <= 1 for i, j in line), f"{text}: no line"
+    A, B, C = line.get((1, 0), 0), line.get((0, 1), 0), -line.get((0, 0), 0)
+    P = (Fraction(0), C / B) if B else (C / A, Fraction(0))
+    g = s2_trim(s2_fit([s2_value(curve, P[0] + t * B, P[1] - t * A) for t in range(4)]))
+    if len(g) == 4:
+        raise ValueError(f"{text}: cubic along the line")
+    if len(g) <= 1:
+        return "none" if g else "infinite"
+    if len(g) == 2:
+        return "one"
+    disc = g[1] ** 2 - 4 * g[2] * g[0]
+    return "two" if disc > 0 else "one" if disc == 0 else "none"
+
+
+def s2_tangent(par, m):
+    """k where y = mx + k touches the parabola: its lowest gap above the line."""
+    gap = s2_equation(f"{par.split(' = ')[1]} - ({m})x = 0")
+    vals = [s2_value(gap, Fraction(i, 2), 0) for i in range(-80, 81)]
+    low = min(vals)
+    assert vals.index(low) not in (0, len(vals) - 1), f"{par}: the lowest gap is off the grid"
+    return low
+
+
+def s2_linear3(src):
+    left, right = src.split(" = ")
+    at = lambda x, y, z: evaluate(left.replace("x", f"({x})").replace("y", f"({y})").replace("z", f"({z})"))
+    base = at(0, 0, 0)
+    row = [at(1, 0, 0) - base, at(0, 1, 0) - base, at(0, 0, 1) - base]
+    assert at(2, -3, 5) == base + 2 * row[0] - 3 * row[1] + 5 * row[2], f"{src} is not linear"
+    return row, evaluate(right) - base
+
+
+def s2_cramer(text):
+    rows = [s2_linear3(e) for e in text.split("; ")]
+    M, b = [r for r, _ in rows], [d for _, d in rows]
+    D = s2_det(M)
+    assert D != 0, f"{text} has no one solution"
+    sol = []
+    for k in range(3):
+        Mk = [[b[i] if j == k else M[i][j] for j in range(3)] for i in range(3)]
+        sol.append(s2_det(Mk) / D)
+    return [tuple(sol)]
+
+
+def s2_rank(M):
+    A = [[Fraction(v) for v in row] for row in M]
+    rank, col = 0, 0
+    while rank < len(A) and col < len(A[0]):
+        p = next((r for r in range(rank, len(A)) if A[r][col] != 0), None)
+        if p is None:
+            col += 1
+            continue
+        A[rank], A[p] = A[p], A[rank]
+        for r in range(len(A)):
+            if r != rank and A[r][col] != 0:
+                f = A[r][col] / A[rank][col]
+                A[r] = [x - f * y for x, y in zip(A[r], A[rank])]
+        rank, col = rank + 1, col + 1
+    return rank
+
+
+def s2_how_many3(text):
+    rows = [s2_linear3(e) for e in text.split("; ")]
+    M = [r for r, _ in rows]
+    aug = [r + [d] for r, d in rows]
+    rm, ra = s2_rank(M), s2_rank(aug)
+    return "none" if ra > rm else "one" if rm == 3 else "infinite"
+
+
+def s2_tickets(pa, ps, pc, n, cash, times):
+    pa, ps, pc, n, cash, times = map(int, (pa, ps, pc, n, cash, times))
+    found = [(a, s, c) for c in range(n + 1) for s in [times * c] for a in [n - s - c]
+             if a >= 0 and pa * a + ps * s + pc * c == cash]
+    assert len(found) == 1, f"tickets: {found}"
+    return found
+
+
+def s2_coins(n, cents, more):
+    n, cents, more = int(n), int(cents), int(more)
+    found = [(k, k + more, n - 2 * k - more) for k in range(n + 1)
+             if n - 2 * k - more >= 0 and 5 * k + 10 * (k + more) + 25 * (n - 2 * k - more) == cents]
+    assert len(found) == 1, f"coins: {found}"
+    return found
+
+
+def s2_snacks(orders):
+    rows = [o.split(" for ") for o in orders.split("; ")]
+    M = [[int(v) for v in left.split()] for left, _ in rows]
+    b = [Fraction(int(total), 100) for _, total in rows]
+    sol = s2_solve(M, b)
+    assert sol is not None, f"snacks: {orders} has no one price list"
+    return [tuple(sol)]
+
+
+def s2_numbers(total, more, times):
+    total, more, times = int(total), int(more), int(times)
+    found = [(a, a + more, times * a) for a in range(-200, 201) if a + (a + more) + times * a == total]
+    assert len(found) == 1, f"numbers: {found}"
+    return found
+
+
+# Each rule with the number of coordinates its points have, which an answer
+# of none must carry too.
+POINT_RULES = (
+    (re.compile(r"^meet: (.+; .+)$"), s2_meet, 2),
+    (re.compile(r"^system3: (.+; .+; .+)$"), s2_cramer, 3),
+    (re.compile(r"^tickets: prices (\d+) (\d+) (\d+); (\d+) sold; (\d+) taken; students (\d+) times children$"), s2_tickets, 3),
+    (re.compile(r"^coins: (\d+) coins; (\d+) cents; dimes (\d+) more than nickels$"), s2_coins, 3),
+    (re.compile(r"^snacks: (.+)$"), s2_snacks, 3),
+    (re.compile(r"^numbers: sum (-?\d+); second (\d+) more than first; third (\d+) times first$"), s2_numbers, 3),
+)
+
+BY_RULE += (
+    (re.compile(r"^tangent k: (y = .+); y = (-?\d+)x \+ k$"), s2_tangent),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^how many(?: circle| flat)?: (.+; .+)$"), s2_count),
+    (re.compile(r"^how many3: (.+; .+; .+)$"), s2_how_many3),
+)
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -8548,6 +8832,27 @@ for path in sorted(LIB.glob("*.json")):
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
             continue
+
+        # requiem: play/answers/points-judged-as-set
+        # Points: found again from the equations or the story, and compared
+        # as a set of exact points, none as the empty set of the question's size.
+        if answer["type"] == "points":
+            rule = next((r for r in POINT_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = sorted(tuple(Fraction(c) for c in pt) for pt in rule[1](*rule[0].match(text).groups()))
+                v = answer["value"]
+                got = sorted(tuple(as_fraction(c) for c in pt) for pt in v["pts"])
+                if got != want:
+                    problems.append(f"{where}: {text} meets at {want}, not {got}")
+                if v.get("dim") != rule[2]:
+                    problems.append(f"{where}: {text} has {rule[2]} coordinates, not {v.get('dim')}")
+                for pt in v["pts"]:
+                    for c in pt:
+                        if c["d"] <= 0 or math.gcd(c["n"], c["d"]) != 1:
+                            problems.append(f"{where}: coordinate {c} is not in lowest terms")
+            continue
+
 
         # requiem: catalogue/content/complex-judged-exactly
         # A complex number: worked out again in exact complex arithmetic and

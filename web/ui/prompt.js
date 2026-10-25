@@ -305,6 +305,11 @@ export function answerTerm(type, value) {
       return box.preview(box.format(value)).terms;
     }
     case 'roots': return rootTerms(value);
+    // As the box previews it: each point in its brackets, none as the word.
+    case 'points': {
+      const box = getType(type);
+      return box.preview(box.format(value)).terms;
+    }
     // A whole number is drawn as one: 1/2 ÷ 1/16 = 8, not a stacked 8/1.
     case 'frac': return value.d === 1 ? { t: 'num', v: String(value.n).replace('-', '−') }
       : { t: 'frac', n: value.n, d: value.d };

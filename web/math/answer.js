@@ -20,6 +20,7 @@ import { parseRoots, sameRoots, formatRoots, rootTexts } from './surds.js';
 import { previewOf } from '../ui/express.js';
 import { sameFunction, finished, withoutName, parseNamed } from './equivalent.js';
 import { parseComplex, sameComplex, formatComplex } from './complex.js';
+import { parsePoints, samePoints, formatPoints, previewPoints, partOf } from './points.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -691,6 +692,34 @@ defineType({
   isSimplest: (v) => v.simplest !== false,
   unfinished: 'as one real part and one imaginary part, in lowest terms',
   format: (v) => formatComplex(v),
+});
+
+// requiem: play/answers/points-judged-as-set
+defineType({
+  id: 'points',
+  input: 'free',
+  hint: 'Give each point in brackets, like (3, −2), (1, 4), or none if there are none.',
+  /**
+   * The points where two curves meet, or the one solution (x, y, z) of a
+   * system in three letters, judged as a set of exact points: (−3, 4), (3, 4)
+   * and (3, 4) and (−3, 4) agree, 1/2 and 0.5 are one coordinate, and none
+   * is no points at all. web/math/points.js has every form it reads.
+   *
+   * The preview draws the points as typed, fractions stacked and nothing
+   * worked out, so a student sees how the box read the brackets.
+   *
+   * Value: { dim, pts }, pts a sorted list of points, each a list of {n, d}.
+   */
+  parse: parsePoints,
+  preview: previewPoints,
+  equals: samePoints,
+  format: formatPoints,
+  // A point with two coordinates where the question has three letters is a
+  // different question, not a wrong answer: asked again, and the number
+  // of coordinates is the question's, never the answer's.
+  refuseHint: (parsed, spec) => (spec.value.dim && parsed.value.dim && parsed.value.dim !== spec.value.dim
+    ? `Each point here has ${spec.value.dim} coordinates, like ${spec.value.dim === 3 ? '(2, −1, 3)' : '(3, −2)'}.` : null),
+  missHint: (v, spec) => (partOf(v, spec.value) ? 'Those points are right, but the curves meet in more places than that.' : null),
 });
 
 defineType({

@@ -13,6 +13,28 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Systems of Equations II** (`systems-2`), a new skill under Equations, in
+eight levels: Line Meets Parabola, How Many Intersections, Line Meets
+Circle, Two Curves, Three Variables, No Solution or Infinitely Many,
+Three-Variable Word Problems and All Together. A line is put into a
+parabola (given multiplied out or in vertex form) or a circle (centered or
+not), the quadratic left is solved, and each root gives a point: two, one,
+or none. The discriminant, a circle's distance from the line, or a
+parabola's vertex counts the points without solving, and a tangent line's
+intercept is the k that leaves one. Two parabolas, a circle and a
+parabola, and xy = k with a line meet the same way. A system in x, y and z
+is cut to two letters and then one; one where an equation is a multiple
+of another, or the sum of two, has no solution or infinitely many. The
+stories are tickets, coins, a snack stand and three numbers. Meeting
+points and solutions go in a new `points` answer box, which reads the
+points in any order, fractions or decimals, and none for no points; it
+tells a student who gives some of the points that there are more, and
+asks again when a point has the wrong number of coordinates.
+`scripts/check-answers.py` reads each equation back as a polynomial,
+eliminates y with a resultant and finds its rational roots, walks a line
+to count where it meets a curve, solves three letters by Cramer's rule and
+ranks the matrices, and searches the stories' whole counts.
+
 **The Binomial Theorem** (`binomial`), a new skill under Sequences, in
 seven levels: Pascal's Triangle, Coefficients by Combinations, A Given Term,
 Full Expansion, The Constant Term, Binomial Probability and All Together.
