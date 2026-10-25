@@ -592,6 +592,14 @@ box says nothing of the form. Sigma notation is drawn by a new `sigma`
 prompt term with stacked limits, and is only ever read, never typed, so no
 Σ key is needed. An infinite series with no sum is asked as a choice of
 four series, half the rows asking which has a sum and half which has none.
+Sigma Notation also asks writing a series in sigma, as a choice of four
+one-line sigmas (Σ from k = 1 to 10 of (2k + 1)), since choice labels cannot
+stack limits, their wrong options crossing a slip at each limit, and the sum
+rules Σc = nc, Σc·aₖ = cΣaₖ, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6.
+Working Backward's count of terms factors at By Factoring's size once its
+common factor is divided out, and the explanation factors it. Every geometric
+sum is worked as a₁(1 − rⁿ)/(1 − r), and every series answer fits the
+fraction box, four characters top and bottom.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.

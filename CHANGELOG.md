@@ -13,6 +13,19 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Series, reworked.** Every answer now fits the fraction box; 586 rows were
+too wide to type, such as 1 + … + 200 and salaries in the hundreds of
+thousands. Working Backward's count of terms is a quadratic that factors at
+By Factoring's size once its common factor is divided out, and the
+explanation factors it. Sigma Notation now asks writing a series in sigma,
+as a choice of four sigmas spelled "Σ from k = 1 to 10 of (2k + 1)" whose
+wrong options cross a slip at each limit, and the sum rules Σc = nc,
+Σc·aₖ = cΣaₖ, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6. Finite
+geometric sums stay hand-sized, every geometric sum is worked in
+a₁(1 − rⁿ)/(1 − r), and the pay-rise story becomes a shop's monthly
+takings. `scripts/check-answers.py` writes each sigma option out term by
+term and checks a scaled sum on a concrete sequence.
+
 **Logarithms** has a new level before All Together, Log Functions: y =
 log_b x as the inverse of y = bˣ and its reflection in y = x; where a
 shifted log crosses the x-axis or reaches a height, through the key points
