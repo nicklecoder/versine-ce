@@ -175,25 +175,26 @@ function listSpace(rng) {
   const steps = rng.pick(SPACES.filter((s) => outcomesOf(s).length <= 9));
   const all = outcomesOf(steps);
   const same = steps.length === 2 && steps[0] === steps[1];
-  const missing = (k) => all.filter((_, i) => i !== k);
-  const decoys = [];
-  // The steps' outcomes alone, not pairs of them.
-  decoys.push(steps.length === 2 && !same ? [...STEPS[steps[0]].out, ...STEPS[steps[1]].out] : null);
-  // One order only: HT kept, TH dropped, the slip the level is about.
-  if (same || steps.length === 3) decoys.push(all.filter((o) => o.split('').join('') === o.split('').sort().join('')));
-  else decoys.push(all.filter((o) => o.startsWith(STEPS[steps[0]].out[0])));
-  // One left out, and one written twice in place of another.
-  const k = rng.int(0, all.length - 1);
-  decoys.push(missing(k));
-  const twice = [...all]; const j = (k + 1 + rng.int(0, all.length - 2)) % all.length; twice[j] = all[(j + 1) % all.length];
-  decoys.push(twice);
-  // requiem: catalogue/content/choice-labels-distinct
-  // Two slips can land on the same list (missing TH and starting from H both
-  // leave HH, HT, TT): each list is offered once.
-  const seen = new Set([all.join(' ')]);
-  const unique = decoys.filter((d) => d && !seen.has(d.join(' ')) && seen.add(d.join(' ')));
-  const wrong = rng.shuffle(unique).slice(0, 3);
-  const lists = rng.shuffle([all, ...wrong]);
+  // requiem: catalogue/content/decoys-cross-two-slips
+  // Two slips crossed: the full list, each slip alone, and both together.
+  // Each wrong list once had one slip and nothing else, which left the whole
+  // list as the one nearest all the others. Slip A takes one order only (HT
+  // kept, TH dropped) or, for two different steps, only the outcomes that
+  // start with the first step's first outcome; slip B writes one outcome
+  // twice in place of the next. B touches outcomes A keeps,
+  // so A and B together is a list with both slips.
+  const sliceA = same || steps.length === 3
+    ? (l) => l.filter((o) => o.split('').join('') === o.split('').sort().join(''))
+    : (l) => l.filter((o) => o.startsWith(STEPS[steps[0]].out[0]));
+  const kept = sliceA(all);
+  // A neighbour pair both kept by A: the first written again where the
+  // second goes. (Leaving one out instead would make the whole list the
+  // longest option every time; the level's other question asks for the
+  // missing one.)
+  const pairs = kept.slice(0, -1).map((o, i) => [o, kept[i + 1]]);
+  const [first, second] = rng.pick(pairs);
+  const sliceB = (l) => l.map((o) => (o === second ? first : o));
+  const lists = rng.shuffle([all, sliceA(all), sliceB(all), sliceB(sliceA(all))]);
   const opts = lists.map((l, i) => ({ id: LETTERS[i], l, label: l.join(', ') }));
   const want = opts.find((o) => o.l === all).id;
   const sizes = steps.map((s) => STEPS[s].out.length);
@@ -203,7 +204,7 @@ function listSpace(rng) {
     answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
     visual: null,
     explain: `Each of the ${sizes[0]} first outcomes goes with every ${steps.length === 3 ? 'outcome of the other two flips' : `one of the ${sizes[1]} second outcomes`}, so the sample space has ${sizes.join(' × ')} = ${all.length} outcomes, each once: ${all.join(', ')}. `
-      + `(${same || steps.length === 3 ? `${all[1]} and ${all[1].split('').reverse().join('')} are different outcomes: the order of the steps is part of the outcome.` : 'A list of each step\'s outcomes on its own, or one that skips or repeats a pair, is not the sample space.'}) So ${all.join(', ')}.`,
+      + `(${same || steps.length === 3 ? `${all[1]} and ${all[1].split('').reverse().join('')} are different outcomes: the order of the steps is part of the outcome.` : `A list of only the outcomes that start with ${STEPS[steps[0]].out[0]}, or one that repeats an outcome in place of another, is not the sample space.`}) So ${all.join(', ')}.`,
   };
 }
 
