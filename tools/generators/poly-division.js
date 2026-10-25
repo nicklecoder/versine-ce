@@ -91,22 +91,6 @@ function choice(prompt, head, opts, explain) {
   };
 }
 
-/**
- * The slips a division invites, each worked through: dividing by x + c,
- * leaving out a missing power's 0, bringing every number down unchanged,
- * and the remainder's sign turned round.
- */
-function slips(c, P) {
-  const right = synthetic(c, P);
-  const out = [synthetic(-c, P)];
-  const packed = P.filter((a, i) => a !== 0 || i === 0 || i === P.length - 1);
-  if (packed.length < P.length) out.push(synthetic(c, packed));
-  const top = fromTop(P);
-  out.push({ q: top.slice(0, -1), r: top[top.length - 1] });
-  if (right.r !== 0) out.push({ q: right.q, r: -right.r });
-  return out;
-}
-
 // --- Long Division ---------------------------------------------------------
 
 /** P with every power written, a 0 where one is missing: x³ + 0x² − 7x + 6. */
@@ -119,82 +103,187 @@ function withZeros(P) {
     return `${a < 0 ? ' − ' : ' + '}${body}`;
   }).join('');
 }
+const hasGap = (P) => P.slice(1, -1).some((a) => a === 0);
+/** P with its missing powers closed up, as if their 0s were never written. */
+const packed = (P) => P.filter((a, i) => a !== 0 || i === 0 || i === P.length - 1);
 
-const quotLine = ({ q, r }) => [`${write(fromTop(q))}, remainder ${r}`, `${write(fromTop(q), true)}, remainder ${minus(r)}`];
-
-/** The long division, step by step, in words. */
-function longSteps(c, P) {
+/**
+ * Long division of P by D (both from x^0 up), from the top term down. The
+ * slips are worked through the same steps: `flip` subtracts with the
+ * divisor's other terms' signs turned (every step, or only the first, or
+ * every one but the first), and `close` divides P with its missing
+ * powers' 0s left out. Null where a slip would leave a fraction in the
+ * quotient, which no student writes by accident.
+ */
+function longDivide(P, D, { flip = null, close = false } = {}) {
+  const rest = close ? packed(P) : [...P];
+  const n = rest.length - 1, m = D.length - 1;
+  if (n < m) return null;
+  const q = Array(n - m + 1).fill(0);
   const steps = [];
-  let rest = [...P];
-  const n = P.length - 1;
-  for (let p = n; p >= 1; p -= 1) {
-    const lead = rest[p];
-    const term = write([...Array(p - 1).fill(0), lead], true);
-    rest = rest.map((a, i) => a - (i === p ? lead : i === p - 1 ? -c * lead : 0));
-    rest[p] = 0;
-    steps.push(`${term} × (${divF(c)})`);
+  let step = 0;
+  for (let p = n; p >= m; p -= 1) {
+    const lead = rest[p] / D[m];
+    if (!Number.isInteger(lead)) return null;
+    q[p - m] = lead;
+    const turned = flip === 'all' || (flip === 'first' && step === 0) || (flip === 'rest' && step > 0);
+    for (let j = 0; j <= m; j += 1) rest[p - m + j] -= lead * (j === m || !turned ? D[j] : -D[j]);
+    steps.push({ p: p - m, lead });
+    step += 1;
   }
-  return steps;
+  const r = rest.slice(0, m);
+  while (r.length > 1 && r[r.length - 1] === 0) r.pop();
+  return { q, r, steps };
 }
+const quotLine = ({ q, r }) => [`${write(q)}, remainder ${write(r)}`, `${write(q, true)}, remainder ${write(r, true)}`];
+
+/** The long division in words: each term of the quotient times the divisor, taken away. */
+function longSteps(P, D) {
+  // A step whose quotient term is 0 only brings the next term down, and is not said.
+  return longDivide(P, D).steps.filter(({ lead }) => lead !== 0).map(({ p, lead }) => `${write([...Array(p).fill(0), lead], true)} × (${write(D, true)})`);
+}
+
+/**
+ * A divisor: x − c most often, then ax − b with a of 2 or 3, then a
+ * quadratic, x² + k or x² + bx + c, whose remainder can be a whole line.
+ */
+// requiem: catalogue/content/long-division-beyond-monic
+function divisor(rng, kind) {
+  if (kind === 'monic') return X(rng.nonZero(-5, 5));
+  if (kind === 'linear') {
+    for (;;) {
+      const a = rng.pick([2, 3]), b = rng.nonZero(-5, 5);
+      if (gcdOf(a, b) === 1) return [-b, a];
+    }
+  }
+  if (rng.chance(0.5)) return [rng.pick([1, 2, 3, 4, 5, -1, -2, -3]), 0, 1];
+  for (;;) {
+    const b = rng.nonZero(-3, 3), c = rng.nonZero(-5, 5);
+    // One that does not factor over the integers, or the division is two easy ones.
+    const disc = b * b - 4 * c;
+    if (disc >= 0 && Number.isInteger(Math.sqrt(disc))) continue;
+    return [c, b, 1];
+  }
+}
+const gcdOf = (a, b) => (b === 0 ? Math.abs(a) : gcdOf(b, a % b));
+const divText = (D) => write(D);
+const divShow = (D) => write(D, true);
 
 // requiem: catalogue/content/quotient-typed-when-exact
 function exactDivision(rng) {
   for (;;) {
-    const c = rng.nonZero(-5, 5);
-    const Q = [rng.int(-9, 9), rng.int(-6, 6), rng.pick([1, 1, 2, 3, -1, -2])];
-    if (rng.chance(0.25)) Q[1] = 0;
-    const P = mul(X(c), Q);
+    const kind = rng.pick(['monic', 'monic', 'linear', 'quad']);
+    const D = divisor(rng, kind);
+    const Q = kind === 'quad'
+      ? (rng.chance(0.5) ? [rng.int(-9, 9), rng.pick([1, 1, 2, 3, -1, -2])] : [rng.int(-6, 6), rng.int(-5, 5), rng.pick([1, 1, 2, -1])])
+      : [rng.int(-9, 9), rng.int(-6, 6), rng.pick([1, 1, 2, 3, -1, -2])];
+    if (kind !== 'quad' && rng.chance(0.25)) Q[1] = 0;
+    if (Q[0] === 0 && rng.chance(0.7)) continue;
+    const P = mul(D, Q);
     if (P.some((a) => Math.abs(a) > 60)) continue;
-    const missing = P.slice(1, -1).some((a) => a === 0);
     return {
-      prompt: [T.prose('Divide'), ...shown(P), T.prose(`by ${divF(c)}. It divides exactly: what is the quotient?`)],
-      text: `quotient: ${write(P)}; ${div(c)}`,
+      prompt: [T.prose('Divide'), ...shown(P), T.prose(`by ${divShow(D)}. It divides exactly: what is the quotient?`)],
+      text: `quotient: ${write(P)}; ${divText(D)}`,
       // Judged by value: any finished way of writing the quotient is right.
       answer: { type: 'equivalent', value: write(Q), requireSimplest: true },
       visual: null,
-      explain: `${missing ? `Write the missing power with a 0 first: ${withZeros(P)}. ` : ''}`
-        + `Divide the leading term each time, multiply back and subtract: ${longSteps(c, P).join(', then ')}. `
-        + `Nothing is left over, so the quotient is ${write(Q, true)}. Check: (${divF(c)})(${write(Q, true)}) = ${write(P, true)}.`,
+      explain: `${hasGap(P) ? `Write the missing power with a 0 first: ${withZeros(P)}. ` : ''}`
+        + `Divide the leading term each time, multiply back and subtract: ${longSteps(P, D).join(', then ')}. `
+        + `Nothing is left over, so the quotient is ${write(Q, true)}. Check: (${divShow(D)})(${write(Q, true)}) = ${write(P, true)}.`,
     };
   }
 }
 
+/**
+ * Two slips, crossed. The four options are the division done right, with
+ * one slip, with the other, and with both, so every option is one slip from
+ * two others and the right one sits no nearer the middle of the four than a
+ * wrong one does. Every option has its own quotient: a slip that changed
+ * only the remainder would print the right quotient twice, and the right
+ * answer would always be one of that pair.
+ */
+// Stopping a step early was tried as a slip too, and dropped: its remainder
+// is as long as the divisor, so the right option was never the longest and
+// rarely the one nearest the rest, and could be found by its look.
+const SLIPS = ['all', 'first', 'close'];
+const slipped = (P, D, set) => longDivide(P, D, {
+  flip: set.has('all') && set.has('first') ? 'rest' : set.has('all') ? 'all' : set.has('first') ? 'first' : null,
+  close: set.has('close'),
+});
+
+// requiem: catalogue/content/decoys-crossed-not-centred
 function longDivision(rng) {
   if (rng.chance(0.4)) return exactDivision(rng);
+  const kind = rng.pick(['monic', 'monic', 'linear', 'quad']);
+  const gap = rng.chance(0.35);
   for (;;) {
-    const P = dividend(rng), c = rng.nonZero(-5, 5);
-    const right = synthetic(c, P);
-    if (right.r === 0) continue;
-    const opts = [quotLine(right), ...slips(c, P).map(quotLine)];
-    const seen = new Set(), uniq = [];
-    for (const o of opts) if (!seen.has(o[0])) { seen.add(o[0]); uniq.push(o); }
-    if (uniq.length < 4) continue;
-    const pick = [uniq[0], ...rng.shuffle(uniq.slice(1)).slice(0, 3)];
-    const missing = P.slice(1, -1).some((a) => a === 0);
+    const D = divisor(rng, kind);
+    // Over x² + k the turned signs change the quotient alike, so the second
+    // slip there is a missing power's 0 left out, and the dividend has one.
+    if (D.length === 3 && D[1] === 0 && !gap) continue;
+    // A cubic over a line, or a quartic over a quadratic, its numbers drawn
+    // at random rather than built from a small quotient: built, the right
+    // option had the smallest numbers of the four and could be picked by size.
+    const deg = D.length === 3 ? 4 : 3;
+    const P = Array.from({ length: deg + 1 }, (_, i) => (i === deg ? rng.pick([1, 1, 2, -1, 3]) * D[D.length - 1] : rng.int(-9, 9)));
+    if (gap) P[rng.int(1, deg - 1)] = 0;
+    if (P[0] === 0 || hasGap(P) !== gap) continue;
+    const right = longDivide(P, D);
+    if (!right || right.r.every((v) => v === 0)) continue;
+    // Two slips crossed; any pair whose four divisions stay whole and keep four
+    // quotients apart will do, and none may claim the division is exact.
+    const pairs = [];
+    for (let i = 0; i < SLIPS.length; i += 1) {
+      for (let j = i + 1; j < SLIPS.length; j += 1) {
+        const [A, B] = [SLIPS[i], SLIPS[j]];
+        if ((A === 'close' || B === 'close') && !gap) continue;
+        const all = [right, slipped(P, D, new Set([A])), slipped(P, D, new Set([B])), slipped(P, D, new Set([A, B]))];
+        if (all.some((o) => !o || o.r.every((v) => v === 0))) continue;
+        if (new Set(all.map((o) => JSON.stringify(o.q))).size !== 4) continue;
+        if (all.some((o) => o.q.some((v) => Math.abs(v) > 99) || o.r.some((v) => Math.abs(v) > 999))) continue;
+        pairs.push(all);
+      }
+    }
+    if (!pairs.length) continue;
+    const opts = rng.pick(pairs).map(quotLine);
     const make = choice(
-      [T.prose('Divide'), ...shown(P), T.prose(`by ${divF(c)}. Which is the quotient and remainder?`)],
-      `long division: ${write(P)}; ${div(c)}`, pick,
-      `${missing ? `Write the missing power with a 0 first: ${withZeros(P)}. ` : ''}`
-      + `Divide the leading term each time, multiply back and subtract: ${longSteps(c, P).join(', then ')}. `
-      + `The quotient is ${write(fromTop(right.q), true)} and ${right.r === 0 ? 'nothing is left over: remainder 0' : `${minus(right.r)} is left over: the remainder`}. `
-      + `Check: (${divF(c)})(${write(fromTop(right.q), true)}) ${right.r < 0 ? '−' : '+'} ${Math.abs(right.r)} = ${write(P, true)}.`);
+      [T.prose('Divide'), ...shown(P), T.prose(`by ${divShow(D)}. Which is the quotient and remainder?`)],
+      `long division: ${write(P)}; ${divText(D)}`, opts,
+      `${hasGap(P) ? `Write the missing power with a 0 first: ${withZeros(P)}. ` : ''}`
+      + `Divide the leading term each time, multiply back and subtract: ${longSteps(P, D).join(', then ')}. `
+      + `What is left, ${write(right.r, true)}, has a lower degree than ${divShow(D)}, so it is the remainder, and the quotient is ${write(right.q, true)}. `
+      + `Check: (${divShow(D)})(${write(right.q, true)}) + ${right.r.length > 1 || right.r[0] < 0 ? `(${write(right.r, true)})` : write(right.r, true)} = ${write(P, true)}.`);
     if (make) return make(rng);
   }
 }
 
 // --- Synthetic -------------------------------------------------------------
 
+/**
+ * The bottom row of synthetic division by x − c, worked with the slips it
+ * invites: `sign` puts −c in the box for x − c, `close` leaves out a
+ * missing power's 0, and `above` multiplies c by the number above in the
+ * top row instead of the one just brought down.
+ */
+function syntheticRow(c, P, { sign = false, close = false, above = false } = {}) {
+  const top = [...(close ? packed(P) : P)].reverse();
+  const k = sign ? -c : c;
+  const row = [top[0]];
+  for (let i = 1; i < top.length; i += 1) row.push(top[i] + k * (above ? top[i - 1] : row[i - 1]));
+  return { q: row.slice(0, -1), r: row[row.length - 1] };
+}
 const rowLine = ({ q, r }) => [`${q.join(', ')} r ${r}`, `${q.map(minus).join(', ')} | ${minus(r)}`];
 
-function syntheticRow(rng) {
+// requiem: catalogue/content/decoys-crossed-not-centred
+function syntheticLevel(rng) {
   for (;;) {
     const P = dividend(rng), c = rng.nonZero(-5, 5);
     const right = synthetic(c, P);
-    const opts = [rowLine(right), ...slips(c, P).map(rowLine)];
-    const seen = new Set(), uniq = [];
-    for (const o of opts) if (!seen.has(o[0])) { seen.add(o[0]); uniq.push(o); }
-    if (uniq.length < 4) continue;
-    const pick = [uniq[0], ...rng.shuffle(uniq.slice(1)).slice(0, 3)];
+    const can = ['sign', 'above', ...(hasGap(P) ? ['close'] : [])];
+    const [A, B] = rng.shuffle(can).slice(0, 2);
+    const all = [right, syntheticRow(c, P, { [A]: true }), syntheticRow(c, P, { [B]: true }), syntheticRow(c, P, { [A]: true, [B]: true })];
+    // Every option its own quotient numbers, not only its own remainder.
+    if (new Set(all.map((o) => o.q.join(','))).size !== 4) continue;
     const top = fromTop(P);
     const steps = [];
     for (let i = 1; i < top.length; i += 1) {
@@ -204,9 +293,9 @@ function syntheticRow(rng) {
     }
     const make = choice(
       [T.prose('Use synthetic division to divide'), ...shown(P), T.prose(`by ${divF(c)}. Which is the bottom row, quotient numbers then remainder?`)],
-      `synthetic: ${write(P)}; ${div(c)}`, pick,
+      `synthetic: ${write(P)}; ${div(c)}`, all.map(rowLine),
       `Put ${minus(c)} in the box, since ${c < 0 ? `${divF(c)} is x − (${minus(c)})` : `the divisor is ${divF(c)}`}, and write the coefficients ${top.map(minus).join(', ')}${top.includes(0) ? ', a 0 for each missing power' : ''}. `
-      + `Bring down ${minus(top[0])}. Then ${steps.join('; ')}. The last number is the remainder: ${rowLine(right)[1]}.`);
+      + `Bring down ${minus(top[0])}. Then multiply each number just brought down by ${minus(c)} and add it to the next: ${steps.join('; ')}. The last number is the remainder: ${rowLine(right)[1]}.`);
     if (make) return make(rng);
   }
 }
@@ -281,6 +370,123 @@ function factorTheorem(rng) {
   }
 }
 
+// --- Rational Root Theorem -------------------------------------------------
+
+/** Characters to change, add or drop to turn one label into another. */
+function editDistance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j += 1) cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+const divisorsOf = (n) => Array.from({ length: Math.abs(n) }, (_, i) => i + 1).filter((d) => n % d === 0);
+/**
+ * Every p/q the theorem allows, p dividing the constant term and q the
+ * leading coefficient, in lowest terms: by size, each just before its negative.
+ */
+function candidates(P) {
+  const seen = new Map();
+  for (const n of divisorsOf(P[0])) {
+    for (const d of divisorsOf(P[P.length - 1])) {
+      const g = gcdOf(n, d);
+      seen.set(`${n / g}/${d / g}`, [n / g, d / g]);
+    }
+  }
+  return [...seen.values()].sort((u, v) => u[0] / u[1] - v[0] / v[1]).flatMap(([n, d]) => [[n, d], [-n, d]]);
+}
+const qShow = ([n, d]) => (d === 1 ? minus(n) : `${minus(n)}/${d}`);
+const qBody = ([n, d]) => (d === 1 ? String(n) : `${n}/${d}`);
+/** P(n/d) as a fraction, exactly: P's terms over d to the degree. */
+function atQ(P, [n, d]) {
+  const deg = P.length - 1;
+  const top = P.reduce((acc, a, i) => acc + a * n ** i * d ** (deg - i), 0);
+  return fracAnswer(top, d ** deg).value;
+}
+const qSaid = ({ n, d }) => (d === 1 ? minus(n) : `${minus(n)}/${d}`);
+const listQ = (qs) => qs.map((q) => (q[0] < 0 ? null : `±${qShow(q)}`)).filter(Boolean).join(', ');
+
+// requiem: catalogue/content/rational-root-candidates-listed
+function rationalRoots(rng) {
+  if (rng.chance(0.4)) {
+    // Which does the theorem rule out? Three it allows, and one it does not.
+    // The rank it is to take is drawn once, before any redraw, so the redraws
+    // cannot favour the ranks that are easy to reach.
+    const rank = rng.int(0, 3);
+    for (;;) {
+      const an = rng.pick([2, 3, 4, 6]), a0 = rng.pick([1, 2, 3, 4, 5, 6, 8, 9, -2, -3, -4, -6]);
+      const P = [a0, rng.int(-9, 9), rng.int(-9, 9), an * rng.pick([1, -1])];
+      const L = candidates(P);
+      const inL = (q) => L.some(([n, d]) => n * q[1] === d * q[0]);
+      const outs = [];
+      // The slips: the fraction upside down, a factor of the leading
+      // coefficient taken for the constant's, a denominator from the constant.
+      for (const [n, d] of L) if (n > 0 && d > 1 && !inL([d, n])) outs.push([rng.pick([d, -d]), n].map((v, i) => (i === 1 ? Math.abs(v) : v)));
+      for (const v of divisorsOf(an)) if (v > 1 && !inL([v, 1])) outs.push([rng.pick([v, -v]), 1]);
+      for (const v of divisorsOf(a0)) if (v > 1 && !inL([1, v])) outs.push([rng.pick([1, -1]), v]);
+      const fix = (q) => { const g = gcdOf(q[0], q[1]); return [q[0] / g, q[1] / g]; };
+      const key = outs.length ? fix(rng.pick(outs)) : null;
+      if (!key || inL(key)) continue;
+      // The three it allows look like the one it does not: fractions beside a
+      // fraction, whole numbers beside a whole number. A number off the list
+      // still tends to look unlike the rest, so the set is chosen to put it
+      // at a rank drawn at random among the four by how far each option's
+      // label is from the others': nearest, farthest or between, evenly, so
+      // it is found by the theorem and not by its look.
+      const alike = L.filter(([n, d]) => (d > 1) === (key[1] > 1) && !(Math.abs(n) === 1 && d === 1));
+      const pool = alike.length >= 3 ? alike : L.filter(([n, d]) => !(Math.abs(n) === 1 && d === 1));
+      if (pool.length < 3) continue;
+      let ins = null;
+      for (let t = 0; t < 12 && !ins; t += 1) {
+        const tryIns = rng.shuffle(pool).slice(0, 3);
+        const labels = [key, ...tryIns].map(qShow);
+        const totals = labels.map((l) => labels.reduce((sum, m) => sum + editDistance(l, m), 0));
+        const below = totals.filter((v) => v < totals[0]).length, tied = totals.filter((v) => v === totals[0]).length;
+        if (rank >= below && rank < below + tied) ins = tryIns;
+      }
+      if (!ins) continue;
+      const opts = [key, ...ins].map((q) => [qBody(q), qShow(q)]);
+      const make = choice(
+        [T.prose('P(x) ='), ...shown(P), T.prose('. Which of these does the rational root theorem rule out as a zero of P?')],
+        `not a candidate: ${write(P)}`, opts,
+        `A rational zero p/q in lowest terms has p dividing the constant term, ${minus(P[0])}, and q dividing the leading coefficient, ${minus(P[P.length - 1])}. `
+        + `So the only candidates are ${listQ(L)}. ${qShow(key)} is not one of them${key[1] > 1 && !divisorsOf(P[P.length - 1]).includes(key[1]) ? `: ${key[1]} does not divide ${minus(P[P.length - 1])}` : !divisorsOf(P[0]).includes(Math.abs(key[0])) ? `: ${Math.abs(key[0])} does not divide ${minus(P[0])}` : ''}. `
+        + `The others are on the list; that does not make them zeros, only possible ones.`);
+      if (make) return make(rng);
+    }
+  }
+  for (;;) {
+    // Exactly one rational zero n/d: (dx − n) times a quadratic with none.
+    const d = rng.pick([1, 1, 2, 3]), n = rng.nonZero(-6, 6);
+    if (gcdOf(n, d) !== 1) continue;
+    const b = rng.int(-5, 5), c = rng.nonZero(-7, 7);
+    const disc = b * b - 4 * c;
+    if (disc >= 0 && Number.isInteger(Math.sqrt(disc))) continue;
+    const P = mul([-n, d], [c, b, 1]);
+    if (P.some((a) => Math.abs(a) > 60)) continue;
+    const L = candidates(P);
+    const tests = [];
+    for (const q of L) {
+      const v = atQ(P, q);
+      tests.push(`P(${qShow(q)}) = ${qSaid(v)}`);
+      if (v.n === 0) break;
+    }
+    const shownTests = tests.length > 6 ? [...tests.slice(0, 3), '…', ...tests.slice(-2)] : tests;
+    return {
+      prompt: [T.prose('P(x) ='), ...shown(P), T.prose('has exactly one rational zero. Use the rational root theorem to find it.')],
+      text: `rational zero: ${write(P)}`,
+      answer: fracAnswer(n, d),
+      visual: null,
+      explain: `A rational zero p/q in lowest terms has p dividing the constant term, ${minus(P[0])}, and q dividing the leading coefficient, ${minus(P[3])}. `
+        + `So the candidates are ${listQ(L)}. Test them: ${shownTests.join(', ')}. `
+        + `Dividing out leaves ${write([c * d, b * d, d], true)}${d === 1 ? '' : `, which is ${d}(${write([c, b, 1], true)})`}, and ${write([c, b, 1], true)} has discriminant ${minus(disc)}, ${disc < 0 ? 'negative, so no real zeros at all' : 'not a perfect square, so its zeros are irrational'}. `
+        + `So the one rational zero is ${qShow([n, d])}.`,
+    };
+  }
+}
+
 // --- All Zeros From One ----------------------------------------------------
 
 const setOf = (xs) => {
@@ -321,7 +527,7 @@ function allZeros(rng) {
   }
 }
 
-const CONTENT = [longDivision, syntheticRow, remainder, factorTheorem, allZeros];
+const CONTENT = [longDivision, syntheticLevel, remainder, factorTheorem, rationalRoots, allZeros];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
