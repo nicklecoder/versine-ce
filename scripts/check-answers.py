@@ -8731,6 +8731,40 @@ def s2_numbers(total, more, times):
     return found
 
 
+def s2_pairs(orders):
+    """Three items priced two at a time: each row two of them, solved as a system."""
+    rows = [o.split(" for ") for o in orders.split("; ")]
+    M = [[int(v) for v in left.split()] for left, _ in rows]
+    assert all(sorted(r) == [0, 1, 1] for r in M) and len({tuple(r) for r in M}) == 3, f"pairs: {orders} is not three different pairs"
+    sol = s2_solve(M, [Fraction(int(total), 100) for _, total in rows])
+    assert sol is not None and all(v > 0 for v in sol), f"pairs: {orders} has no one price list"
+    return [tuple(sol)]
+
+
+def s2_batches(text):
+    """Whole batches of three kinds from what was used, every count tried."""
+    rows = {}
+    for part in text.split("; "):
+        m = re.match(r"^(flour|sugar|eggs) (\d+) (\d+) (\d+) for (\d+)$", part)
+        assert m, f"batches: cannot read {part}"
+        rows[m[1]] = ([int(m[2]), int(m[3]), int(m[4])], int(m[5]))
+    assert set(rows) == {"flour", "sugar", "eggs"}, f"batches: {text}"
+    eqs = list(rows.values())
+    flour, used = rows["flour"]
+    assert all(flour), f"batches: every batch takes flour, {text}"
+    found = []
+    for a in range(used // flour[0] + 1):
+        for b in range((used - flour[0] * a) // flour[1] + 1):
+            rest = used - flour[0] * a - flour[1] * b
+            if rest % flour[2]:
+                continue
+            c = rest // flour[2]
+            if all(r[0] * a + r[1] * b + r[2] * c == t for r, t in eqs):
+                found.append((a, b, c))
+    assert len(found) == 1, f"batches: {text} has {found}"
+    return found
+
+
 # Each rule with the number of coordinates its points have, which an answer
 # of none must carry too.
 POINT_RULES = (
@@ -8740,6 +8774,8 @@ POINT_RULES = (
     (re.compile(r"^coins: (\d+) coins; (\d+) cents; dimes (\d+) more than nickels$"), s2_coins, 3),
     (re.compile(r"^snacks: (.+)$"), s2_snacks, 3),
     (re.compile(r"^numbers: sum (-?\d+); second (\d+) more than first; third (\d+) times first$"), s2_numbers, 3),
+    (re.compile(r"^pairs: (.+)$"), s2_pairs, 3),
+    (re.compile(r"^batches: (.+)$"), s2_batches, 3),
 )
 
 BY_RULE += (
@@ -8750,6 +8786,99 @@ CHOICE_RULES += (
     (re.compile(r"^how many(?: circle| flat)?: (.+; .+)$"), s2_count),
     (re.compile(r"^how many3: (.+; .+; .+)$"), s2_how_many3),
 )
+
+
+def s2_off_curve(poly, x, y):
+    """How far (x, y) is from the curve poly = 0, to first order: |F| over the gradient's length."""
+    f = sum(float(c) * x ** i * y ** j for (i, j), c in poly.items())
+    fx = sum(float(c) * i * x ** (i - 1) * y ** j for (i, j), c in poly.items() if i)
+    fy = sum(float(c) * j * x ** i * y ** (j - 1) for (i, j), c in poly.items() if j)
+    g = math.hypot(fx, fy)
+    return abs(f) / g if g > 1e-9 else (0.0 if abs(f) < 1e-9 else math.inf)
+
+
+def s2_picture(text, visual, value):
+    """What is wrong with a meeting picture, or None: it must draw both curves of
+    the text, each stretch on one of them and inside the window, ended on the
+    window's edge unless it closes on itself, and mark exactly the answer's
+    points -- all of it withheld until answered."""
+    if visual.get("marks"):
+        return "draws something while the question is open"
+    polys = [s2_equation(e) for e in text[len("meet: "):].split("; ")]
+    (x0, x1), (y0, y1) = visual["xRange"], visual["yRange"]
+    if not (x0 <= 0 <= x1 and y0 <= 0 <= y1):
+        return "has a window without the origin"
+    drawn = [False, False]
+    for mk in visual["answer"]:
+        if mk["kind"] != "path":
+            continue
+        pts = mk["points"]
+        if any(not (x0 - 0.051 <= x <= x1 + 0.051 and y0 - 0.051 <= y <= y1 + 0.051) for x, y in pts):
+            return f"runs a curve outside the window at {pts[0]}"
+        on = [k for k, p in enumerate(polys) if all(s2_off_curve(p, x, y) <= 0.08 for x, y in pts)]
+        if not on:
+            worst = max(pts, key=lambda q: min(s2_off_curve(p, *q) for p in polys))
+            return f"draws a curve off both equations, at {worst}"
+        for k in on:
+            drawn[k] = True
+        # requiem: catalogue/visuals/curves-split-at-window
+        edge = lambda q: min(abs(q[0] - x0), abs(q[0] - x1), abs(q[1] - y0), abs(q[1] - y1)) <= 0.051
+        closed = math.dist(pts[0], pts[-1]) <= 0.11
+        if not closed and not (edge(pts[0]) and edge(pts[-1])):
+            return f"ends a curve inside the window, at {pts[0]} or {pts[-1]}"
+        if any(math.dist(p, q) > 1.5 for p, q in zip(pts, pts[1:])):
+            return "joins two stretches of a curve with a straight line"
+    if not all(drawn):
+        return "leaves one of the two curves out"
+    marked = sorted((round(mk["at"][0], 1), round(mk["at"][1], 1)) for mk in visual["answer"] if mk["kind"] == "point")
+    want = sorted((round(float(as_fraction(c[0])), 1), round(float(as_fraction(c[1])), 1)) for c in value["pts"])
+    if marked != want:
+        return f"marks {marked}, not the meeting points {want}"
+    for mk in visual["answer"]:
+        if mk["kind"] == "point" and "label" in mk:
+            x, y = (Fraction(str(v)) for v in mk["at"])
+            if mk["label"] != f"({x}, {y})".replace("-", "−"):
+                return f"labels {mk['at']} as {mk['label']}"
+    return None
+
+
+# requiem: catalogue/visuals/meeting-picture-on-reveal
+# requiem: catalogue/content/prices-answered-in-dollars
+# Every picture of where two curves meet draws the two curves the text
+# names and marks the points the answer gives, and nothing before the answer.
+# A price answer is held as dollars and written as dollars: a question that
+# asks for dollars has a money answer, and only one that asks does.
+for path in sorted(LIB.glob("systems-2-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"systems-2 L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        if p.get("visual"):
+            if not p["text"].startswith("meet: "):
+                problems.append(f"{where}: a picture on a row that is not where two curves meet")
+            else:
+                wrong = s2_picture(p["text"], p["visual"], p["answer"]["value"])
+                if wrong:
+                    problems.append(f"{where}: the picture {wrong}")
+        elif p["text"].startswith("meet: "):
+            problems.append(f"{where}: where two curves meet, drawn nowhere")
+        prompt = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+        if p["answer"]["type"] == "points":
+            money = bool(p["answer"]["value"].get("money"))
+            if money != ("in dollars" in prompt):
+                problems.append(f"{where}: asks {'for' if 'in dollars' in prompt else 'for no'} dollars but its answer is {'money' if money else 'not money'}")
+            if money and not re.fullmatch(r"\((?:\$\d+\.\d\d, ){2}\$\d+\.\d\d\)", p["answer"]["accept"][0]):
+                problems.append(f"{where}: a price answer written {p['answer']['accept'][0]}")
+            # Every total in a store's story is in its prompt, as a price.
+            if p["text"].startswith(("snacks: ", "pairs: ")):
+                for cents in re.findall(r" for (\d+)", p["text"]):
+                    if f"${int(cents) // 100}.{int(cents) % 100:02d}" not in prompt:
+                        problems.append(f"{where}: the total {cents}¢ is not in the question")
+            if p["text"].startswith("batches: "):
+                for part in p["text"][len("batches: "):].split("; "):
+                    kind, *_, total = part.split()
+                    said = {"flour": "cups of flour", "sugar": "cups of sugar", "eggs": "eggs"}[kind]
+                    if f"used {total} {said}" not in prompt and f", {total} {said}" not in prompt and f"and {total} {said}" not in prompt \
+                            and not (total == "1" and f"1 {said[:-1] if kind == 'eggs' else said.replace('cups', 'cup')}" in prompt):
+                        problems.append(f"{where}: {total} {said} used is not in the question")
 
 
 # --- Inverses: Log Functions -----------------------------------------------------
