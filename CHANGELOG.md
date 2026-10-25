@@ -13,6 +13,21 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**The Binomial Theorem** (`binomial`), a new skill under Sequences, in
+seven levels: Pascal's Triangle, Coefficients by Combinations, A Given Term,
+Full Expansion, The Constant Term, Binomial Probability and All Together.
+Pascal's triangle is built by adding, read from either end, and its rows
+sum to 2ⁿ; C(n, k) gives the coefficients of (x + 1)ⁿ and (x + y)ⁿ; one
+term is found with the numbers and signs inside raised along, by its power
+or by its place; a whole expansion goes in the expression box; the constant
+term of (x² + 1/x)ⁿ, and which term it is, come from where the powers
+cancel; and the chance of exactly, at least or at most k successes is
+asked of coins, dice, free throws, seeds, guesses, rain and a spinner.
+Counts and coefficients go in the whole-number box, a probability in the
+fraction box. `scripts/check-answers.py` builds the triangle by adding,
+multiplies the brackets out one at a time, and lists every run of
+successes and failures.
+
 **Series**, a new skill under Sequences, in seven levels: Arithmetic Sums,
 Finite Geometric, Sigma Notation, Infinite Geometric, Series in Context,
 Working Backward and All Together. Arithmetic sums pair the first term with

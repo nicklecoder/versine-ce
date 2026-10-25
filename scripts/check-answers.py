@@ -8250,6 +8250,167 @@ CHOICE_RULES += (
     (re.compile(r"^infinite which: (has sum|no sum); options (.+)$"), sr_which_sum),
 )
 
+# --- The Binomial Theorem ------------------------------------------------------------
+#
+# Pascal's triangle is built by adding, row from row, and a row is found by
+# the numbers it begins with. A binomial power is multiplied out one bracket
+# at a time, as a polynomial in its letters (negative powers included, for
+# 1/x), so a coefficient is read off the product and never from C(n, k). An
+# expansion typed as an answer is read term by term into the same form and
+# must be that product with each power once. A chance of k successes lists
+# every run of n successes and failures and adds the ones that count.
+
+def bn_triangle(rows: int = 25) -> list:
+    out = [[1]]
+    for _ in range(rows):
+        prev = out[-1]
+        out.append([1] + [a + b for a, b in zip(prev, prev[1:])] + [1])
+    return out
+
+
+BN_TRI = bn_triangle()
+
+
+def bn_row_beginning(listing: str) -> int:
+    head = [int(v) for v in listing.split(", ")]
+    hits = [n for n, r in enumerate(BN_TRI) if r[:len(head)] == head]
+    assert len(hits) == 1, f"{len(hits)} rows begin {listing}"
+    return hits[0]
+
+
+def bn_next(listing: str, number) -> int:
+    r = [int(v) for v in listing.split(", ")]
+    n = len(r) - 1
+    assert BN_TRI[n] == r, f"{listing} is not a row"
+    return BN_TRI[n + 1][int(number) - 1]
+
+
+BN_MONO = re.compile(r"^(-?)(\d*)([a-z])?(?:\^(\d+))?$|^(-?)(\d+)/([a-z])(?:\^(\d+))?$")
+
+
+def bn_mono(src: str) -> tuple:
+    """A monomial as (coefficient, ((letter, power), ...))."""
+    m = BN_MONO.match(src.replace(" ", ""))
+    assert m, f"cannot read {src}"
+    if m[6]:
+        sign = -1 if m[5] else 1
+        return Fraction(sign * int(m[6])), ((m[7], -int(m[8] or 1)),)
+    sign = -1 if m[1] else 1
+    coef = Fraction(int(m[2]) if m[2] else 1) * sign
+    return coef, (((m[3], int(m[4] or 1)),) if m[3] else ())
+
+
+def bn_times(p: dict, q: dict) -> dict:
+    out = {}
+    for (ka, ca) in p.items():
+        for (kb, cb) in q.items():
+            powers = dict(ka)
+            for letter, e in kb:
+                powers[letter] = powers.get(letter, 0) + e
+            key = tuple(sorted((l, e) for l, e in powers.items() if e != 0))
+            out[key] = out.get(key, 0) + ca * cb
+    return {k: c for k, c in out.items() if c != 0}
+
+
+def bn_power(src: str) -> dict:
+    """(A + B)^n multiplied out, one bracket at a time."""
+    m = re.fullmatch(r"\((-?[^ ]+) ([+-]) ([^ ]+)\)\^(\d+)", src)
+    assert m, f"cannot read {src}"
+    a = bn_mono(m[1])
+    b = bn_mono(("-" if m[2] == "-" else "") + m[3])
+    bracket = {a[1]: a[0]}
+    bracket[b[1]] = bracket.get(b[1], 0) + b[0]
+    out = {(): Fraction(1)}
+    for _ in range(int(m[4])):
+        out = bn_times(out, bracket)
+    return out
+
+
+def bn_letters(asked: str) -> tuple:
+    """x^2y^4, a^5b^3, x, x^0, x^-3 as ((letter, power), ...)."""
+    powers = {}
+    for letter, e in re.findall(r"([a-z])(?:\^(-?\d+))?", asked):
+        powers[letter] = powers.get(letter, 0) + int(e or 1)
+    return tuple(sorted((l, e) for l, e in powers.items() if e != 0))
+
+
+def bn_coefficient(asked: str, src: str):
+    return bn_power(src).get(bn_letters(asked), 0)
+
+
+def bn_term_number(k, src: str):
+    # In descending powers of x: the kth term of the product, so ordered.
+    terms = sorted(bn_power(src).items(), key=lambda kv: -dict(kv[0]).get("x", 0))
+    return terms[int(k) - 1][1]
+
+
+def bn_choose_same(n, k):
+    n, k = int(n), int(k)
+    hits = [j for j, v in enumerate(BN_TRI[n]) if v == BN_TRI[n][k] and j != k]
+    assert len(hits) == 1, f"{len(hits)} other k"
+    return hits[0]
+
+
+BN_TERM = re.compile(r"^(\d*)((?:[a-z](?:\^\d+)?)*)$")
+
+
+def bn_expanded(src: str, answer: str) -> str:
+    """The product, written as one term per power, each coefficient worked out."""
+    seen = {}
+    for term in answer.replace(" - ", " + -").split(" + "):
+        sign, body = ("-", term[1:]) if term.startswith("-") else ("", term)
+        m = BN_TERM.match(body)
+        if not m or m[1] in ("0", "1") and m[2] or not (m[1] or m[2]):
+            return f"has a term {body} that is not worked out"
+        key = bn_letters(m[2])
+        if key in seen:
+            return f"has the power {m[2] or 'constant'} twice"
+        seen[key] = Fraction(int(m[1]) if m[1] else 1) * (-1 if sign else 1)
+    if seen != bn_power(src):
+        return f"is not {src} multiplied out"
+    return "ok"
+
+
+def bn_chance(n, p, how, k):
+    import itertools
+    n, k, p = int(n), int(k), Fraction(p)
+    total = Fraction(0)
+    for run in itertools.product((True, False), repeat=n):
+        wins = sum(run)
+        if {"exactly": wins == k, "at least": wins >= k, "at most": wins <= k}[how]:
+            chance = Fraction(1)
+            for won in run:
+                chance *= p if won else 1 - p
+            total += chance
+    return total
+
+
+def bn_constant_number(src: str) -> int:
+    # Every term multiplied out, in descending powers of x: where x's power is 0.
+    terms = sorted(bn_power(src).items(), key=lambda kv: -dict(kv[0]).get("x", 0))
+    hits = [i + 1 for i, (key, _) in enumerate(terms) if dict(key).get("x", 0) == 0]
+    assert len(hits) == 1, f"{src} has {len(hits)} constant terms"
+    return hits[0]
+
+
+BY_RULE += (
+    (re.compile(r"^pascal next: ([\d, ]+); number (\d+)$"), bn_next),
+    (re.compile(r"^constant term number: (\(.+\)\^\d+)$"), bn_constant_number),
+    (re.compile(r"^pascal sum: begins ([\d, ]+)$"), lambda head: sum(BN_TRI[bn_row_beginning(head)])),
+    (re.compile(r"^pascal mirror: begins ([\d, ]+); number (\d+)$"), lambda head, k: BN_TRI[bn_row_beginning(head)][int(k) - 1]),
+    (re.compile(r"^pascal power: begins ([\d, ]+)$"), bn_row_beginning),
+    (re.compile(r"^choose: (\d+), (\d+)$"), lambda n, k: BN_TRI[int(n)][int(k)]),
+    (re.compile(r"^choose same: (\d+), (\d+)$"), bn_choose_same),
+    (re.compile(r"^coefficient: (\S+) in (\(.+\)\^\d+)$"), bn_coefficient),
+    (re.compile(r"^term number: (\d+) of (\(.+\)\^\d+)$"), bn_term_number),
+    (re.compile(r"^binomial chance: n (\d+), p (\d+/\d+), (exactly|at least|at most) (\d+); \w+$"), bn_chance),
+)
+
+EXPR_RULES += (
+    (re.compile(r"^expand: (\(.+\)\^\d+)$"), bn_expanded),
+)
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

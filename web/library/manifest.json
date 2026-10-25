@@ -1,5 +1,5 @@
 {
-  "built": 624,
+  "built": 631,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -789,6 +789,15 @@
       "infinite-geometric",
       "series-in-context",
       "working-backward",
+      "all-together"
+    ],
+    "binomial": [
+      "pascals-triangle",
+      "coefficients-by-combinations",
+      "a-given-term",
+      "full-expansion",
+      "the-constant-term",
+      "binomial-probability",
       "all-together"
     ]
   },
@@ -1942,9 +1951,35 @@
           "quadratic-eq"
         ]
       }
+    },
+    "binomial": {
+      "dependsOn": [
+        "counting",
+        "exponents",
+        "monomials",
+        "polynomials",
+        "probability"
+      ],
+      "levels": {
+        "coefficients-by-combinations": [
+          "counting"
+        ],
+        "a-given-term": [
+          "monomials"
+        ],
+        "full-expansion": [
+          "polynomials"
+        ],
+        "the-constant-term": [
+          "exponents"
+        ],
+        "binomial-probability": [
+          "probability"
+        ]
+      }
     }
   },
-  "sources": "d704c736a6bf7ac5bc482aea89b140618785b482fd0743113b3ed44febd730f8",
+  "sources": "7e72257b9fde436ab22d3d31cd82248d5510d5c0546c94d1f77f37d3b8676025",
   "levels": [
     {
       "skill": "int-addsub",
@@ -8185,6 +8220,76 @@
       "exhaustive": false,
       "signed": true,
       "file": "series-6.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 0,
+      "slug": "pascals-triangle",
+      "name": "Pascal's Triangle",
+      "count": 165,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-0.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 1,
+      "slug": "coefficients-by-combinations",
+      "name": "Coefficients by Combinations",
+      "count": 300,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-1.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 2,
+      "slug": "a-given-term",
+      "name": "A Given Term",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-2.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 3,
+      "slug": "full-expansion",
+      "name": "Full Expansion",
+      "count": 142,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-3.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 4,
+      "slug": "the-constant-term",
+      "name": "The Constant Term",
+      "count": 520,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-4.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 5,
+      "slug": "binomial-probability",
+      "name": "Binomial Probability",
+      "count": 266,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-5.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-6.json"
     }
   ]
 }

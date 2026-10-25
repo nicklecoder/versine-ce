@@ -532,6 +532,19 @@ with a `longerBecause`: e as what compounding ever more often tends to,
 then P(1 + r/n)^(nt), P·e^(rt), and a·e^(kt) read for its rate, its factor
 each step and its value.
 
+`binomial` is built, as Pascal's Triangle · Coefficients by Combinations ·
+A Given Term · Full Expansion · The Constant Term · Binomial Probability ·
+All Together. The Constant Term and Binomial Probability are added: the
+term of (x² + 1/x)ⁿ where the powers cancel, and exactly, at least or at
+most k successes in n tries. Coefficients by Combinations depends on
+counting's Combinations, A Given Term on monomials' A Power of a Monomial,
+Full Expansion on polynomials' Special Products, The Constant Term on
+exponents' negative-exponent and power-of-a-power levels, and Binomial
+Probability on probability's independent events. Counts and coefficients
+are whole-number box answers, an expansion an expression, and a
+probability a fraction, each said by its question. The Constant Term is
+capped at 520 rows, since its constant terms run out at a few hundred.
+
 `series` is built, as Arithmetic Sums · Finite Geometric · Sigma Notation ·
 Infinite Geometric · Series in Context · Working Backward · All Together.
 Series in Context and Working Backward are added: stories of seats, stacks,
