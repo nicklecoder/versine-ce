@@ -390,8 +390,14 @@ function counterexample(crit, m, f) {
 }
 const whichCriterion = (rng) => criterion(rng, false, rng.pick(CRITERIA));
 function enoughOrNot(rng) {
-  // Half of them fall short; most of the rest are the look-alikes, SAS and AAS.
-  const crit = rng.chance(0.5) ? (rng.chance(0.65) ? 'ssa' : 'aaa') : rng.pick(['sas', 'sas', 'asa', 'aas', 'aas', 'hl', 'sss']);
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // A quarter fall short, and the five criteria share the rest evenly. Half
+  // short, with SAS and AAS doubled, keyed "Not enough" in 44% of rows and
+  // SSS, ASA and HL in 8% each: a student always answering "Not enough"
+  // nearly tripled a guess. A quarter is still more than each criterion's
+  // share, because SSA and AAA are the look-alikes the level is about, and
+  // both answer "Not enough".
+  const crit = rng.chance(0.25) ? (rng.chance(0.65) ? 'ssa' : 'aaa') : rng.pick(['sas', 'asa', 'aas', 'hl', 'sss']);
   return criterion(rng, true, crit);
 }
 
@@ -450,7 +456,22 @@ function missing(rng) {
     const all = [S(0, 1), S(1, 2), S(2, 0), A(0), A(1), A(2)].filter((p) => p.angle !== right);
     const key = (p) => (p.side ? sideKey(...p.side) : `angle ${ABC[p.angle]}`);
     const taken = given.map(key);
-    const options = all.filter((p) => !taken.includes(key(p)));
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Every option is a part of the kind the criterion still needs. Offered
+    // every part not yet known, the parts of the other kind were never the
+    // key, and the criterion named in the question (S, S, S; A, A, S) told a
+    // student which to strike by counting letters -- for SSS, the one side
+    // left was the answer outright. Instead two slips are crossed: the wrong
+    // part of the right kind (the angle that makes SSA, the side that makes
+    // AAS), and the right part matched to the wrong corner of the second
+    // triangle, so each left side and each right side appears twice. SSS has
+    // no other side to offer, so its third side is matched against each side
+    // of the second triangle.
+    const others = all.filter((p) => !taken.includes(key(p)) && key(p) !== key(need) && !p.side === !need.side);
+    const pairs = others.length
+      ? (() => { const q = rng.pick(others); return [[need, need], [q, q], [need, q], [q, need]]; })()
+      : [[need, need], ...given.map((g) => [need, g])];
+    const options = pairs.map(([a, b]) => ({ id: a === b ? key(a) : `${key(a)} as ${key(b)}`, label: `${partWords(ABC, a)} = ${partWords(f.names2, b)}` }));
     const equal = (p) => `${partWords(ABC, p)} = ${partWords(f.names2, p)}`;
     const marks = [];
     let count = { side: 0, angle: 0 };
@@ -464,9 +485,9 @@ function missing(rng) {
           + `To prove them congruent by HL, you know ${equal(given[0])}. What else do you need?`
         : `To prove △ABC ≅ △${f.statement} by ${label}, you know ${equal(given[0])} and ${equal(given[1])}. What else do you need?`)],
       text: `missing for ${label}: ABC = ${f.statement}; ${right !== null ? `right angle ${ABC[right]}, ` : ''}${taken.join(', ')}`,
-      answer: { type: 'choice', value: key(need), options: rng.shuffle(options).map((p) => ({ id: key(p), label: equal(p) })) },
+      answer: { type: 'choice', value: key(need), options: rng.shuffle(options) },
       visual: drawing(f, marks, needMarks),
-      explain: `${why} So ${equal(need)}.`,
+      explain: `${why} (△ABC ≅ △${f.statement} pairs the corners in order, so ${partWords(ABC, need)} goes with ${partWords(f.names2, need)}.) So ${equal(need)}.`,
     };
   }
 }

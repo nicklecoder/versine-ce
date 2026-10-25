@@ -156,17 +156,44 @@ function upDown(rng) {
     return image(rng, { v: dv }, (p, q, X, Y) => `${dv > 0 ? `Adding ${dv}` : `Taking away ${-dv}`} outside moves every height `
       + `${dv > 0 ? 'up' : 'down'} ${Math.abs(dv)}, and leaves x as it is: y → ${minus(q)} ${dv > 0 ? '+' : '−'} ${Math.abs(dv)} = ${minus(Y)}.`);
   }
+  return vertical(rng, dv, false);
+}
+
+// requiem: catalogue/content/fixed-menu-key-moves
+// On Up and Down, where left and right are not yet met, a menu of all four
+// directions keyed up or down every time: two options never right, and a
+// student could drop them unread. Here the menu crosses direction with the
+// amount, the change against the new number read alone (x² + 2 to x² + 5 is
+// up 3, not up 5), so the start is always moved and the two amounts differ.
+// On Left and Right, where every direction has been met, some of the moves
+// asked are up or down, so all four directions are keyed.
+function vertical(rng, dv, fourWay) {
   const s = start(rng);
+  if (!fourWay && s.v === 0) s.v = rng.nonZero(-4, 4);
+  const now = s.v + dv;
+  // The wrong amount is the new number read alone, or the two numbers
+  // combined with the start's sign slipped (x² − 2 to x² + 3 read as 3 − 2):
+  // the first is printed in the question, so the key is not always the one
+  // amount that is not.
+  const readAlone = rng.chance(0.5), m = readAlone ? Math.abs(now) : Math.abs(now + s.v);
   // Both graphs turn on the grid, so the move can be seen once it is answered.
-  if (Math.abs(s.v + dv) > 6) return upDown(rng);
-  return compare(moved(s.family, s), moved(s.family, { ...s, v: s.v + dv }), 'how is the graph moved',
-    DIRECTIONS(Math.abs(dv)), dv > 0 ? 'up' : 'down',
-    `Only the number outside changed, by ${minus(dv)}, and that is added to every height: `
-    + `${dv > 0 ? 'up' : 'down'} ${Math.abs(dv)}, as it reads.`, 'moved');
+  if (Math.abs(now) > 6 || (!fourWay && (now === 0 || m === 0 || m === Math.abs(dv)))) return vertical(rng, rng.nonZero(-6, 6), fourWay);
+  const n = Math.abs(dv);
+  const options = fourWay ? DIRECTIONS(n) : [
+    { id: 'up', label: `Up ${n}` }, { id: 'down', label: `Down ${n}` },
+    { id: 'up-new', label: `Up ${m}` }, { id: 'down-new', label: `Down ${m}` },
+  ];
+  return compare(moved(s.family, s), moved(s.family, { ...s, v: now }), 'how is the graph moved',
+    options, dv > 0 ? 'up' : 'down',
+    fourWay
+      ? `Only the number outside changed, by ${minus(dv)}, and that is added to every height: ${dv > 0 ? 'up' : 'down'} ${n}, as it reads.`
+      : `Only the number outside changed, from ${minus(s.v)} to ${minus(now)}: by ${minus(dv)}, and that is added to every height. `
+        + `So ${dv > 0 ? 'up' : 'down'} ${n}, not ${m}: ${readAlone ? `the ${minus(now)} includes the ${minus(s.v)} the start already had` : `take the start's ${minus(s.v)} away, ${minus(now)} − (${minus(s.v)}) = ${minus(dv)}; adding it instead gives ${minus(now + s.v)}`}.`, 'moved');
 }
 
 function leftRight(rng) {
   const h = rng.nonZero(-6, 6);
+  if (rng.chance(0.3)) return vertical(rng, rng.nonZero(-6, 6), true);
   if (rng.chance(0.5)) {
     return image(rng, { h }, `Inside, x ${h > 0 ? '−' : '+'} ${Math.abs(h)} gives f's own x when x is ${Math.abs(h)} ${h > 0 ? 'more' : 'less'}: `
       + `every x moves ${h > 0 ? 'right' : 'left'} ${Math.abs(h)}, against the sign.`);
@@ -222,7 +249,11 @@ function reflect(rng, again = null) {
       ? 'A minus outside turns every height to its opposite: the x stays.'
       : 'A minus inside reaches each height at the opposite x: the height stays.');
   }
-  const kind = again ?? rng.pick(['x-axis', 'x-axis', 'y-axis', 'y-axis', 'same']);
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // Drawn evenly: the same graph comes from fewer starts, so it still ends
+  // up the rarer key (about a quarter, where 2 : 2 : 1 left it at 11% and a
+  // student never picking it gained on a guess).
+  const kind = again ?? rng.pick(['x-axis', 'y-axis', 'same']);
   const s = start(rng);
   // (−x)² is x², and −x³ is (−x)³: a reflection that changes nothing, or
   // that is also the other reflection, is only asked as the same graph.
@@ -230,7 +261,7 @@ function reflect(rng, again = null) {
   const odd = s.c === 0 && s.v === 0 && s.family === 'cubic';
   if (odd || (kind === 'same') !== symmetric) return reflect(rng, kind);
   // The same graph comes from so few starts that a number in front widens it.
-  if (kind === 'same') s.a = rng.pick([1, 2, 3, -1, -2, 1 / 2]);
+  if (kind === 'same') s.a = rng.pick([1, 2, 3, 4, -1, -2, -3, 1 / 2, -1 / 2, 1 / 3]);
   const base = moved(s.family, s);
   const g = kind === 'x-axis' ? moved(s.family, { ...s, a: -1, v: -s.v }) : moved(s.family, { ...s, k: -1 });
   const why = kind === 'x-axis'

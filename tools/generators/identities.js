@@ -142,9 +142,9 @@ const AXIS_PAIRS = [['swap', 'square'], ['swap', 'sign'], ['target', 'sign'], ['
  * the other slip then applied to it too. Null when no pair gives four options
  * that are distinct and wrong but for the answer.
  */
-function crossedChoices(rng, expr, answer, targeted) {
+function crossedChoices(rng, expr, answer, targeted, pairs = AXIS_PAIRS) {
   const finite = (e) => { try { return Number.isFinite(fnOf(e)(1.1)) && Number.isFinite(fnOf(e)(0.37)); } catch { return false; } };
-  for (const [a, b] of rng.shuffle(AXIS_PAIRS.slice())) {
+  for (const [a, b] of rng.shuffle(pairs.slice())) {
     const B = AXES[b];
     const tries = a === 'target' ? rng.shuffle(targeted.slice()).map((d) => [d, B(answer), B(d)]) : [[AXES[a](answer), B(answer), B(AXES[a](answer))]];
     for (const wrong of tries) {
@@ -152,28 +152,61 @@ function crossedChoices(rng, expr, answer, targeted) {
       if (!all.every(finite) || wrong.some((w) => w === answer || same(w, expr))) continue;
       if (all.some((x, i) => all.some((y, j) => j > i && (x === y || same(x, y))))) continue;
       const shown = rng.shuffle(all.slice());
-      return { opts: shown.map((e, i) => ({ id: optionIds[i], e })), right: optionIds[shown.indexOf(answer)] };
+      return { opts: shown.map((e, i) => ({ id: optionIds[i], e })), right: optionIds[shown.indexOf(answer)], axes: [a, b] };
     }
   }
   return null;
 }
 
-function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = 'Simplify', ask = null } = {}) {
+/** Whether an expression has a + or − outside every bracket, a sum and not one term. */
+const isSum = (e) => {
+  let depth = 0;
+  for (let i = 0; i < e.length; i++) {
+    if (e[i] === '(') depth++;
+    else if (e[i] === ')') depth--;
+    else if (depth === 0 && i > 0 && e[i - 1] === ' ' && e[i + 1] === ' ' && (e[i] === '-' || e[i] === '+')) return true;
+  }
+  return false;
+};
+/** What each slip does, for the explanation of a row whose decoys it made. */
+const SLIP_WORDS = { swap: 'swap in the partner function', recip: 'take the reciprocal', square: 'drop or add a square', sign: 'flip a sign' };
+
+function simplifyProblem(rng, bank, pool, { ks = [1, 1, 1, 2, 3, 4, 5], lead = 'Simplify', ask = null, pairs = AXIS_PAIRS } = {}) {
   for (;;) {
     const [template, answerT, why, trap] = rng.pick(bank);
     const k = rng.pick(ks);
-    const expr = fill(template, k), answer = fill(answerT, k);
+    let expr = fill(template, k), answer = fill(answerT, k);
     if (!same(expr, answer)) throw new Error(`${expr} is not ${answer}`);
-    const targeted = (DECOYS[template] ?? []).map((p) => fill(p, k));
     if (!DECOYS[template]) throw new Error(`no targeted decoys for ${template}`);
-    const c = crossedChoices(rng, expr, answer, targeted) ?? choices(rng, expr, answer, pool.map((p) => fill(p, k)), targeted);
+    let targeted = DECOYS[template].map((p) => fill(p, k));
+    let wrongPool = pool.map((p) => fill(p, k));
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // A single term is sometimes asked negated (−2 sin θ csc θ, −cos(−θ)),
+    // every option negated with it, so the key carries a minus as often as
+    // the sign slip does. With the keys nearly all positive, the slip only
+    // ever added a minus, and "never pick the option with a minus in front"
+    // beat a guess.
+    const flipped = !isSum(expr) && !isSum(answer) && rng.chance(0.4);
+    if (flipped) {
+      const neg = (e) => (isSum(e) ? `-(${e})` : negate(e));
+      expr = neg(expr); answer = neg(answer);
+      targeted = targeted.map(neg); wrongPool = wrongPool.map(neg);
+    }
+    const c = crossedChoices(rng, expr, answer, targeted, pairs) ?? choices(rng, expr, answer, wrongPool, targeted);
     if (!c) continue;
+    // requiem: catalogue/library/explanation-true-for-its-row
+    // The trap names one of the template's own misconceptions; it is told
+    // only when the options were built from them. Options crossed from two
+    // general slips are described by those slips instead, so an explanation
+    // never warns of a choice the row does not show.
+    const aside = !c.axes || c.axes.includes('target') ? trap
+      : `The other options ${c.axes.map((a) => SLIP_WORDS[a]).join(', or ')}, or both.`;
     return {
       prompt: [T.prose(ask ? ask(pretty(expr)) : `${lead}: ${pretty(expr)}`)],
       text: `trig simplify: ${expr}; options ${c.opts.map((o) => `${o.id}: ${o.e}`).join(' | ')}`,
       answer: { type: 'choice', value: c.right, options: c.opts.map((o) => ({ id: o.id, label: pretty(o.e) })) },
       visual: null,
-      explain: `${k === 1 && why.includes(pretty(expr)) ? why : `${why}: ${pretty(expr)} = ${pretty(answer)}`}. (${trap}) So ${pretty(answer)}.`,
+      explain: `${k === 1 && !flipped && why.includes(pretty(expr)) ? why : `${why}: ${pretty(expr)} = ${pretty(answer)}`}. (${aside}) So ${pretty(answer)}.`,
     };
   }
 }
@@ -190,6 +223,8 @@ const DECOYS = {
   'K - K*cos(t)^2': ['-K*sin(t)^2', 'K*sin(t)', 'K*cos(t)^2', 'K*cot(t)^2'],
   'K*sec(t)^2 - K': ['K*cot(t)^2', 'K*tan(t)', '-K*tan(t)^2', 'K*cos(t)^2'],
   'K*csc(t)^2 - K': ['K*tan(t)^2', 'K*cot(t)', '-K*cot(t)^2', 'K*sin(t)^2'],
+  'K - K*sec(t)^2': ['-K*cot(t)^2', '-K*tan(t)', 'K*tan(t)^2', '-K*cos(t)^2'],
+  'K - K*csc(t)^2': ['-K*tan(t)^2', '-K*cot(t)', 'K*cot(t)^2', '-K*sin(t)^2'],
   'K + K*tan(t)^2': ['K', 'K*csc(t)^2', 'K*sec(t)', 'K*cos(t)^2'],
   'K + K*cot(t)^2': ['K*sec(t)^2', 'K', 'K*csc(t)', 'K*sin(t)^2'],
   'K*sin(t)^2 + K*cos(t)^2': ['D', '0', '-K'],
@@ -221,6 +256,9 @@ const DECOYS = {
   'K*sin(t)/tan(t)': ['K*sec(t)', '-K*cos(t)', 'K*cot(t)'],
   'K*tan(t)*csc(t)': ['K*csc(t)', 'K*cos(t)', '-K*sec(t)'],
   'K*cot(t)*sec(t)': ['K*sec(t)', 'K*sin(t)', '-K*csc(t)'],
+  'K*sin(t)^2/cos(t)^2': ['K*cot(t)^2', 'K*tan(t)', 'K*sec(t)^2'],
+  'K*cos(t)^2/sin(t)^2': ['K*tan(t)^2', 'K*cot(t)', 'K*csc(t)^2'],
+  'K/sec(t)^2': ['K*sec(t)^2', 'K*cos(t)', 'K*sin(t)^2'],
   // Even & Odd
   'K*sin(-t)': ['K*sin(t)', '-K*cos(t)', 'K*cos(t)'],
   'K*cos(-t)': ['-K*cos(t)', 'K*sin(t)', '-K*sin(t)'],
@@ -266,7 +304,13 @@ const DECOYS = {
   'cos(2*t)/(cos(t) - sin(t))': ['cos(t) - sin(t)', '1', '-cos(t) - sin(t)', 'sin(t) - cos(t)'],
   '(cos(t) + sin(t))^2 - 1': ['0', '2*sin(2*t)', 'cos(2*t)', '-sin(2*t)'],
   '2 - 4*sin(t)^2': ['cos(4*t)', 'cos(2*t)', '-2*cos(2*t)', '2*sin(2*t)'],
+  'sin(t)^2 - cos(t)^2': ['cos(2*t)', '-1', 'sin(2*t)', '-2*cos(2*t)'],
+  '2*sin(t)^2 - 1': ['cos(2*t)', 'sin(2*t)', '-sin(t)^2', '-2*cos(2*t)'],
+  '1 - 2*cos(t)^2': ['cos(2*t)', '-sin(2*t)', 'sin(t)^2', '-2*cos(2*t)'],
   'cos(2*t) + 2*sin(t)^2': ['1 + 4*sin(t)^2', 'cos(2*t)', '0', '-1'],
+  '4*sin(t)^2*cos(t)^2': ['sin(2*t)', '2*sin(2*t)^2', 'sin(4*t)^2', 'cos(2*t)^2'],
+  '1 - 4*sin(t)^2*cos(t)^2': ['sin(2*t)^2', 'cos(2*t)', 'cos(4*t)', '-cos(2*t)^2'],
+  '(cos(t)^2 - sin(t)^2)^2': ['cos(2*t)', '1', 'cos(4*t)', 'sin(2*t)^2'],
   // Double Angle, read the other way: which form equals the double angle
   'cos(2*t)': ['1 + 2*sin(t)^2', '2*sin(t)^2 - 1', '1 - 2*cos(t)^2', '2*cos(t)^2 + 1', 'sin(t)^2 - cos(t)^2', '2*cos(t)'],
   'sin(2*t)': ['2*sin(t)', 'sin(t)*cos(t)', '-2*sin(t)*cos(t)', '2*sin(t)^2', 'cos(t)^2 - sin(t)^2'],
@@ -318,10 +362,15 @@ const PY_BANK = [
   ['K*cos(t)^2 - K', '-K*sin(t)^2', 'cos²θ = 1 − sin²θ, so cos²θ − 1 = −sin²θ', 'This is 1 − cos²θ the other way round, so it is negative.'],
   ['K*sin(t)^2 - K', '-K*cos(t)^2', 'sin²θ = 1 − cos²θ, so sin²θ − 1 = −cos²θ', 'The order matters: sin²θ − 1 is the negative of 1 − sin²θ.'],
   ['K*tan(t)^2 - K*sec(t)^2', '-K', 'sec²θ = 1 + tan²θ, so tan²θ − sec²θ = −1', 'tan²θ is the smaller, so the difference is −1.'],
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // The same identities the other way round, so −tan²θ and −cot²θ are keys
+  // as well as sign slips.
+  ['K - K*sec(t)^2', '-K*tan(t)^2', '1 + tan²θ = sec²θ, so 1 − sec²θ = −tan²θ', 'sec²θ is the larger, so 1 − sec²θ is negative.'],
+  ['K - K*csc(t)^2', '-K*cot(t)^2', '1 + cot²θ = csc²θ, so 1 − csc²θ = −cot²θ', 'csc²θ is the larger, so 1 − csc²θ is negative.'],
   ['K*(sec(t) - 1)*(sec(t) + 1)', 'K*tan(t)^2', 'Multiplying out gives sec²θ − 1, which is tan²θ', 'A difference of squares first, then the identity.'],
   ['K*cos(t)^2*(1 + tan(t)^2)', 'K', '1 + tan²θ = sec²θ, and cos²θ sec²θ = 1', 'A function times its reciprocal is 1.'],
 ];
-const PY_POOL = ['K', '-K', 'K*sin(t)^2', 'K*cos(t)^2', 'K*tan(t)^2', 'K*sec(t)^2', 'K*csc(t)^2', 'K*cot(t)^2', '-K*sin(t)^2', '-K*cos(t)^2', '0'];
+const PY_POOL = ['K', '-K', 'K*sin(t)^2', 'K*cos(t)^2', 'K*tan(t)^2', 'K*sec(t)^2', 'K*csc(t)^2', 'K*cot(t)^2', '-K*sin(t)^2', '-K*cos(t)^2', '-K*tan(t)^2', '-K*cot(t)^2', '0'];
 
 function pythagorean(rng) {
   const kind = rng.pick(['simplify', 'simplify', 'ratio', 'ratio', 'value']);
@@ -390,6 +439,11 @@ const RQ_BANK = [
   ['K*sin(t)/tan(t)', 'K*cos(t)', 'sin θ ÷ (sin θ/cos θ) = cos θ', 'Dividing by tan θ multiplies by cos θ/sin θ.'],
   ['K*tan(t)*csc(t)', 'K*sec(t)', '(sin θ/cos θ)(1/sin θ) = 1/cos θ = sec θ', 'The sines cancel.'],
   ['K*cot(t)*sec(t)', 'K*csc(t)', '(cos θ/sin θ)(1/cos θ) = 1/sin θ = csc θ', 'The cosines cancel.'],
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // Some answers are squares, so a square is not only ever the slip.
+  ['K*sin(t)^2/cos(t)^2', 'K*tan(t)^2', 'tan θ = sin θ/cos θ, so sin²θ/cos²θ = tan²θ', 'Sine over cosine is tangent, squared or not; cosine over sine is cotangent.'],
+  ['K*cos(t)^2/sin(t)^2', 'K*cot(t)^2', 'cot θ = cos θ/sin θ, so cos²θ/sin²θ = cot²θ', 'Cosine over sine is cotangent, squared or not.'],
+  ['K/sec(t)^2', 'K*cos(t)^2', 'sec θ = 1/cos θ, so 1/sec²θ = cos²θ', 'One over a reciprocal squared is the function squared.'],
 ];
 const RQ_POOL = ['K', 'K*sin(t)', 'K*cos(t)', 'K*tan(t)', 'K*cot(t)', 'K*sec(t)', 'K*csc(t)', 'K*sin(t)^2', 'K*tan(t)^2'];
 const DEF = { sin: 'y/r', cos: 'x/r', tan: 'sin θ/cos θ', cot: 'cos θ/sin θ', sec: '1/cos θ', csc: '1/sin θ' };
@@ -442,7 +496,10 @@ const EO_POOL = ['K*sin(t)', '-K*sin(t)', 'K*cos(t)', '-K*cos(t)', 'K*tan(t)', '
 
 function evenOdd(rng) {
   const kind = rng.pick(['simplify', 'simplify', 'value', 'exact']);
-  if (kind === 'simplify') return simplifyProblem(rng, EO_BANK, EO_POOL);
+  // requiem: catalogue/content/identity-decoys-are-misconceptions
+  // Even and odd is about the sign: sin θ for sin(−θ) is the slip, cos θ is
+  // not, so the partner-function swap is not one of the slips crossed here.
+  if (kind === 'simplify') return simplifyProblem(rng, EO_BANK, EO_POOL, { pairs: AXIS_PAIRS.filter((p) => !p.includes('swap')) });
   if (kind === 'exact') {
     const radians = rng.chance(0.5);
     const deg = -rng.pick([30, 45, 60, 120, 135, 150, 210, 240, 300, 315]);
@@ -578,7 +635,12 @@ function sumDifference(rng) {
     }
     const right = surdSum(fifteen(fn, deg));
     const [p, q] = fifteen(fn, deg);
-    const pool = [surdSum([p, -q]), surdSum([-p, q]), surdSum([-p, -q]), '(sqrt(2) + sqrt(3))/2', '(sqrt(3) - 1)/2', '(sqrt(6) + sqrt(2))/2', '(1 + sqrt(3))/4'];
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // The four signings of (√6 ± √2)/4, each the sine or cosine of one of
+    // the angles asked, so every option is the key of some row. The fixed
+    // extras ((√6 + √2)/2, (√2 + √3)/2, ...) were never the key -- two of
+    // them are more than 1, no sine or cosine at all -- and could be struck.
+    const pool = [surdSum([p, -q]), surdSum([-p, q]), surdSum([-p, -q])];
     const wrong = [];
     for (const e of rng.shuffle(pool)) if (wrong.length < 3 && Math.abs(fnOf(e)(0) - fnOf(right)(0)) > 1e-9 && !wrong.some((w) => Math.abs(fnOf(w)(0) - fnOf(e)(0)) < 1e-9)) wrong.push(e);
     const all = rng.shuffle([right, ...wrong]);
@@ -653,8 +715,19 @@ const DA_BANK = [
   ['(cos(t) + sin(t))^2 - 1', 'sin(2*t)', '(cos θ + sin θ)² = 1 + 2 sin θ cos θ, so this is sin 2θ', 'The middle term of the square is 2 sin θ cos θ.'],
   ['2 - 4*sin(t)^2', '2*cos(2*t)', '2 − 4 sin²θ = 2(1 − 2 sin²θ) = 2 cos 2θ', 'Take out the 2 first.'],
   ['cos(2*t) + 2*sin(t)^2', '1', 'cos 2θ = 1 − 2 sin²θ, so adding 2 sin²θ leaves 1', 'Choose the form of cos 2θ that matches the rest.'],
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // The forms of cos 2θ the other way round, so −cos 2θ is a key and not
+  // only ever the sign slip.
+  ['sin(t)^2 - cos(t)^2', '-cos(2*t)', 'cos 2θ = cos²θ − sin²θ, and this is its negative', 'Cosine squared comes first in cos 2θ; the other order is −cos 2θ.'],
+  ['2*sin(t)^2 - 1', '-cos(2*t)', 'cos 2θ = 1 − 2 sin²θ, and this is its negative', 'The sine form of cos 2θ is 1 − 2 sin²θ; turned round, it is −cos 2θ.'],
+  ['1 - 2*cos(t)^2', '-cos(2*t)', 'cos 2θ = 2 cos²θ − 1, and this is its negative', 'The cosine form of cos 2θ is 2 cos²θ − 1; turned round, it is −cos 2θ.'],
+  // Squares of the double angle, so a squared option is a key and not only
+  // ever the dropped-or-added-square slip.
+  ['4*sin(t)^2*cos(t)^2', 'sin(2*t)^2', '4 sin²θ cos²θ = (2 sin θ cos θ)² = (sin 2θ)²', 'Every factor is squared, so the double angle comes out squared.'],
+  ['1 - 4*sin(t)^2*cos(t)^2', 'cos(2*t)^2', '4 sin²θ cos²θ = sin²2θ, and 1 − sin²2θ = cos²2θ', 'Spot (2 sin θ cos θ)² first, then use sin² + cos² = 1 on the angle 2θ.'],
+  ['(cos(t)^2 - sin(t)^2)^2', 'cos(2*t)^2', 'cos²θ − sin²θ = cos 2θ, and the whole is squared', 'The bracket is cos 2θ; the square outside stays.'],
 ];
-const DA_POOL = ['sin(2*t)', 'cos(2*t)', 'tan(2*t)', '2*sin(t)', '2*cos(t)', 'sin(t)', 'cos(t)', '2*sin(2*t)', '2*cos(2*t)', 'sin(t)^2', 'sin(4*t)', 'sin(6*t)', 'cos(6*t)', '1', 'cos(t) - sin(t)', '3*sin(2*t)', '3*cos(2*t)', '2*tan(t)'];
+const DA_POOL = ['sin(2*t)', 'cos(2*t)', '-cos(2*t)', 'sin(2*t)^2', 'cos(2*t)^2', 'tan(2*t)', '2*sin(t)', '2*cos(t)', 'sin(t)', 'cos(t)', '2*sin(2*t)', '2*cos(2*t)', 'sin(t)^2', 'sin(4*t)', 'sin(6*t)', 'cos(6*t)', '1', 'cos(t) - sin(t)', '3*sin(2*t)', '3*cos(2*t)', '2*tan(t)'];
 
 // The formulas the other way round: which expansion is the double angle.
 const DA_FORMS = [
@@ -964,10 +1037,23 @@ function slips(e) {
   swap(' + ', ' - '); swap(' - ', ' + ');
   swap('sin', 'cos'); swap('cos', 'sin'); swap('tan', 'cot'); swap('cot', 'tan'); swap('sec', 'csc'); swap('csc', 'sec');
   swap(')^2', ')'); swap('2*', ''); swap('1 - ', '1 + ');
-  out.push({ whole: negate });
-  out.push({ whole: (x) => (/^-?\d+$/.test(x) ? String(2 * Number(x)) : x.startsWith('-') ? `-2*${x.slice(1)}` : `2*${x}`) });
+  // requiem: catalogue/content/identity-decoys-are-misconceptions
+  // A minus in front negates the whole line, bracketed when it is a sum
+  // (−(1 − cos²θ), not −1 − cos²θ). A 2 in front is a slip only on a single
+  // term, merged into its number (4 csc²θ, not 2·2 csc²θ); put in front of a
+  // sum or a fraction it read as 2·1 + cos 2θ or 2 (…)/2, which no one writes.
+  out.push({ whole: NEG_LINE });
+  if (ONE_TERM.test(e)) out.push({ whole: DOUBLE_LINE });
   return out;
 }
+const NEG_LINE = (x) => (x.startsWith('-') ? x.slice(1) : x === '0' ? '0' : isSum(x) ? `-(${x})` : `-${x}`);
+/** A number, or one function term with perhaps a number in front: 3, 2*csc(t)^2, -sin(2*t). */
+const ONE_TERM = /^-?(?:\d+|(?:\d+\*)?(?:sin|cos|tan|cot|sec|csc)\([^()]*\)(?:\^\d)?)$/;
+const DOUBLE_LINE = (x) => {
+  if (/^-?\d+$/.test(x)) return String(2 * Number(x));
+  const m = x.match(/^(-?)(?:(\d+)\*)?(.*)$/);
+  return `${m[1]}${2 * Number(m[2] ?? 1)}*${m[3]}`;
+};
 const applySlip = (e, sl) => (sl.whole ? sl.whole(e) : e.slice(0, sl.at) + sl.rep + e.slice(sl.at + sl.len));
 /** Two slips made together: the later place first, so the earlier place has not moved; a whole-line slip last. */
 function bothSlips(e, s1, s2) {

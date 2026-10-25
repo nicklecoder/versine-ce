@@ -227,15 +227,24 @@ const HOW = {
 // ── Hypothesis and conclusion ───────────────────────────────────────────
 
 function parts(rng) {
-  const { domain, st } = pickStatement(rng, rng.chance(0.55));
+  const picked = pickStatement(rng, rng.chance(0.55));
+  const { domain } = picked;
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // Some statements are worded with both parts negated ("If you do not
+  // study, then you do not pass the test"), so the key is a negated clause
+  // as often as a plain one is a decoy: with every statement positive, the
+  // two "not" options were never right and could be struck unread.
+  const negated = rng.chance(0.45);
+  const st = picked.st.map((l) => lit(l.id, negated));
   const [p, q] = st;
   const ask = rng.chance(0.55) ? 'hypothesis' : 'conclusion';
   // The same statement, worded four ways; the hypothesis is p in every one.
   const P = alone(domain, p), Q = alone(domain, q);
+  const said = (l) => DOMAINS[domain].atoms[l.id][l.neg ? 1 : 0];
   const wordings = [
     ['if-then', `If ${clause(domain, p, true)}, then ${clause(domain, q, false)}.`],
-    ['q-if-p', `${cap(domain === 'life' ? Q : `${DOMAINS[domain].subject} ${DOMAINS[domain].atoms[q.id][0]}`)} if ${domain === 'life' ? P : `${DOMAINS[domain].it} ${DOMAINS[domain].atoms[p.id][0]}`}.`],
-    ['p-only-if-q', `${cap(P)} only if ${domain === 'life' ? Q : `${DOMAINS[domain].it} ${DOMAINS[domain].atoms[q.id][0]}`}.`],
+    ['q-if-p', `${cap(domain === 'life' ? Q : `${DOMAINS[domain].subject} ${said(q)}`)} if ${domain === 'life' ? P : `${DOMAINS[domain].it} ${said(p)}`}.`],
+    ['p-only-if-q', `${cap(P)} only if ${domain === 'life' ? Q : `${DOMAINS[domain].it} ${said(q)}`}.`],
   ];
   // "p only if q" reads naturally about numbers and shapes ("a number is
   // divisible by 4 only if it is even") and backward about events, so
@@ -253,7 +262,10 @@ function parts(rng) {
     answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
     visual: null,
     explain: `${how} As “if p, then q”: ${sentence(domain, st)} `
-      + `(Neither part is negated: “not” only appears when the statement says it.) So the ${ask} is “${ask === 'hypothesis' ? P : Q}”.`,
+      + (negated
+        ? `(Both parts are negated as the statement says them: the “not” stays with each part, and dropping it names a different clause.) `
+        : `(Neither part is negated: “not” only appears when the statement says it.) `)
+      + `So the ${ask} is “${ask === 'hypothesis' ? P : Q}”.`,
   };
 }
 
@@ -286,11 +298,19 @@ function formLevel(rng, form) {
         + `So the ${form} is ${truth}.`,
     };
   }
-  const { domain, st } = pickStatement(rng);
+  // requiem: catalogue/library/strategy-not-from-surface
+  // Some statements are worded with both parts negated, so the inverse and
+  // the contrapositive drop their "not"s: from positive statements only they
+  // were the two longest options every time, and the key half the time.
+  const picked = pickStatement(rng), domain = picked.domain;
+  const st = rng.chance(0.45) ? picked.st.map((l) => not(l)) : picked.st;
   const forms = ['converse', 'inverse', 'contrapositive', 'original'];
   // The original is replaced by a near miss: only one part negated, a common slip.
+  // For the inverse it is sometimes swapped as well, so it does not always sit
+  // one word from the key, which made the key the option nearest the rest.
+  const slipSwapped = form !== 'inverse' || rng.chance(0.5);
   const opts = formOptions(rng, domain, st, forms).map((o) => (o.form === 'original'
-    ? { ...o, form: 'slip', cond: form === 'inverse' ? [not(st[0]), st[1]] : [st[1], not(st[0])], label: '' } : o));
+    ? { ...o, form: 'slip', cond: slipSwapped ? [st[1], not(st[0])] : [not(st[0]), st[1]], label: '' } : o));
   for (const o of opts) if (o.form === 'slip') o.label = sentence(domain, o.cond);
   const want = opts.find((o) => o.form === form).id;
   return {
@@ -319,9 +339,15 @@ function equivalent(rng) {
     // Told one sentence's truth, what follows for another made from it?
     const truth = rng.pick(['true', 'false']);
     if (rng.chance(0.15)) {
+      // requiem: catalogue/content/fixed-menu-key-moves
+      // The partner is asked two times in three, so true, false and "it
+      // could be either" are each keyed about a third of the time: drawn
+      // evenly among the other three forms, two of them unrelated, "either"
+      // was the key in 68-75% of these rows.
       const known = rng.pick(['original', 'converse', 'inverse', 'contrapositive']);
-      const asked = rng.pick(['original', 'converse', 'inverse', 'contrapositive'].filter((f) => f !== known));
       const partner = { original: 'contrapositive', contrapositive: 'original', converse: 'inverse', inverse: 'converse' };
+      const asked = rng.chance(2 / 3) ? partner[known]
+        : rng.pick(['original', 'converse', 'inverse', 'contrapositive'].filter((f) => f !== known && f !== partner[known]));
       const want = partner[known] === asked ? truth : 'unknown';
       const name = (f) => (f === 'original' ? 'the statement' : `its ${f}`);
       // Two forms that are not partners are each other's converse or inverse.
@@ -343,7 +369,7 @@ function equivalent(rng) {
     const [p, q] = rng.pick(LIFE_PAIRS), neg = rng.chance(0.3);
     const st = [lit(p, neg), lit(q, neg)];
     const known = FORMS[rng.pick(['original', 'converse', 'inverse', 'contrapositive'])](st);
-    const asked = FORMS[rng.pick(['converse', 'inverse', 'contrapositive'])](known);
+    const asked = FORMS[rng.chance(0.8) ? 'contrapositive' : rng.pick(['converse', 'inverse'])](known);
     const how = relation(known, asked);
     const want = how === 'contrapositive' ? truth : 'unknown';
     return {
@@ -358,7 +384,12 @@ function equivalent(rng) {
         + ` So ${want === 'unknown' ? 'it could be either' : `it is ${truth}`}.`,
     };
   }
-  const { domain, st } = pickStatement(rng);
+  // requiem: catalogue/library/strategy-not-from-surface
+  // Some statements are negated on both sides, so the key loses its "not"s:
+  // from positive statements only, the key and its swap were the two longest
+  // options in every row.
+  const picked = pickStatement(rng), domain = picked.domain;
+  const st = rng.chance(0.45) ? picked.st.map((l) => not(l)) : picked.st;
   const of = rng.chance(0.65) ? 'original' : 'converse';
   const shown = FORMS[of](st);
   const target = of === 'original' ? 'contrapositive' : 'inverse';
@@ -394,11 +425,28 @@ function equivalent(rng) {
 
 const FALSE_TESTED = TESTED.filter(([d, p, q]) => failure(d, [lit(p), lit(q)]) !== null);
 
+// requiem: catalogue/content/fixed-menu-key-moves
+// False claims with a negated conclusion: "a rectangle is not a rhombus" is
+// broken by the square. With every conclusion positive, a square has every
+// property a quadrilateral statement can ask for, so "A square" was offered
+// in a quarter of the rows and never the key; a student could strike it
+// unread. These are false generalizations students do make, and the most
+// special case is what breaks them.
+const NOT_FALSE = [
+  ['quadrilaterals', 'rect', 'rhom'], ['quadrilaterals', 'right4', 'eq4'], ['quadrilaterals', 'rhom', 'right4'],
+  ['quadrilaterals', 'diageq', 'perp'], ['quadrilaterals', 'rect', 'perp'], ['quadrilaterals', 'eq4', 'diageq'],
+  ['quadrilaterals', 'para', 'perp'], ['quadrilaterals', 'par2', 'diageq'],
+  ['numbers', 'prime', 'even'], ['numbers', 'even', 'div3'], ['numbers', 'odd', 'square'], ['numbers', 'div4', 'div3'],
+  ['triangles', 'iso', 'acute'], ['triangles', 'right', 'iso'], ['triangles', 'ang2', 'acute'],
+].filter(([d, p, q]) => failure(d, [lit(p), lit(q, true)]) !== null);
+
 function counterexample(rng) {
   for (;;) {
-    const [domain, p, q] = rng.pick(FALSE_TESTED);
-    const D = DOMAINS[domain], st = [lit(p), lit(q)];
-    const kind = (c) => (D.holds(p, c) ? 1 : 0) * 2 + (D.holds(q, c) ? 1 : 0);   // 2 is the counterexample: p, not q
+    const negated = rng.chance(0.18);
+    const [domain, p, q] = rng.pick(negated ? NOT_FALSE : FALSE_TESTED);
+    const D = DOMAINS[domain], st = [lit(p), lit(q, negated)];
+    // 2 is the counterexample: the hypothesis holds and the conclusion, as stated, does not.
+    const kind = (c) => (D.holds(p, c) ? 1 : 0) * 2 + (D.holds(q, c) !== negated ? 1 : 0);
     const byKind = [0, 1, 2, 3].map((k) => D.cases.filter((c) => kind(c) === k));
     if (!byKind[2].length) continue;
     // The counterexample, and a case for each kind that is not one; fill up from both-true.

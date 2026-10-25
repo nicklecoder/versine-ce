@@ -1918,7 +1918,7 @@
       }
     }
   },
-  "sources": "f9f1ab77db190d74dd60a365d14e6a9a5f3092cc4e6e24ce90e4c0aefb5ba01a",
+  "sources": "ce9834093c0c709cce081b3ab67ae86fedf42f68a6707a6da16afbe005962f7b",
   "levels": [
     {
       "skill": "int-addsub",
@@ -4435,7 +4435,7 @@
       "level": 4,
       "slug": "which-expression-fits",
       "name": "Which Expression Fits",
-      "count": 547,
+      "count": 775,
       "exhaustive": true,
       "signed": false,
       "file": "evaluate-4.json"
@@ -6435,8 +6435,8 @@
       "level": 5,
       "slug": "correlation-vs-causation",
       "name": "Correlation vs Causation",
-      "count": 1000,
-      "exhaustive": false,
+      "count": 804,
+      "exhaustive": true,
       "signed": false,
       "file": "bivariate-5.json"
     },
@@ -6545,8 +6545,8 @@
       "level": 0,
       "slug": "likelihood",
       "name": "Likelihood",
-      "count": 398,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "probability-0.json"
     },

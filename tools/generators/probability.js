@@ -29,13 +29,19 @@ const LIKELY = [
   { id: 'even', label: 'As likely as not' }, { id: 'likely', label: 'Likely' }, { id: 'certain', label: 'Certain' },
 ];
 const RAIN = ['rain tomorrow', 'snow on Saturday', 'the bus running late', 'a thunderstorm this afternoon',
-  'a power outage tonight', 'the ferry being canceled', 'a school snow day on Monday', 'the home team winning'];
+  'a power outage tonight', 'the ferry being canceled', 'a school snow day on Monday', 'the home team winning',
+  'fog at the airport', 'the train arriving early', 'a frost tonight', 'the concert selling out'];
 
 // requiem: catalogue/content/likelihood-quarter-bands
 // Unlikely is below 1/4 and likely above 3/4, strictly, so "closer to 0
 // than to 1/2" (or to 1 than to 1/2) is true of every probability asked.
+// requiem: catalogue/content/fixed-menu-key-moves
+// The five words are keyed equally often. The context is in the text, so
+// impossible, certain and as likely as not (one numerator to each
+// denominator) are not collapsed to a few rows each while unlikely and
+// likely fill the level.
 function likelihood(rng) {
-  const kind = rng.pick(['impossible', 'unlikely', 'unlikely', 'even', 'likely', 'likely', 'certain']);
+  const kind = rng.pick(['impossible', 'unlikely', 'even', 'likely', 'certain']);
   let n, d, shown;
   for (;;) {
     d = rng.pick([5, 8, 10, 12, 20, 25, 50, 100]);
@@ -43,7 +49,7 @@ function likelihood(rng) {
     if (Number.isInteger(n) && n >= 0 && (kind !== 'unlikely' || 4 * n < d) && (kind !== 'likely' || 4 * n > 3 * d)) break;
   }
   let form = rng.pick(['fraction', 'decimal', 'percent', 'bag']);
-  let prompt;
+  let prompt, context = '';
   if (form === 'bag' && !(['unlikely', 'likely'].includes(kind) && d <= 20)) form = 'fraction';
   if (form === 'bag') {
     const colors = rng.shuffle(['red', 'blue', 'green', 'yellow']);
@@ -51,13 +57,14 @@ function likelihood(rng) {
     shown = `${n} of the ${d} marbles are ${colors[0]}: a probability of ${fracWork(n, d)}`;
   } else {
     const what = rng.pick(RAIN);
+    context = `; ${what}`;
     const p = form === 'percent' ? `${said((100 * n) / d)}%` : form === 'decimal' ? said(n / d) : fracText(n, d);
     prompt = `The probability of ${what} is ${p}. How likely is it?`;
     shown = `The probability is ${p}${form === 'fraction' || p === fracText(n, d) ? '' : `, which is ${fracText(n, d)}`}`;
   }
   return {
     prompt: [T.prose(prompt)],
-    text: `likelihood: ${n}/${d} as ${form}`,
+    text: `likelihood: ${n}/${d} as ${form}${context}`,
     answer: { type: 'choice', value: kind, options: LIKELY },
     visual: null,
     explain: `${shown}. On the scale from 0 (impossible) to 1 (certain), `
@@ -377,16 +384,25 @@ function expected(rng) {
 function experimental(rng) {
   const S = rng.chance(0.6) ? { name: 'a number cube', faces: [1, 2, 3, 4, 5, 6] } : { name: 'a spinner with 4 equal sections, A to D', faces: ['A', 'B', 'C', 'D'] };
   const N = rng.pick(S.faces.length === 6 ? [30, 36, 42, 48, 60] : [20, 24, 32, 40, 48]);
-  // Results drawn honestly, so they wander around the expected count.
-  let counts;
-  for (;;) {
-    counts = S.faces.map(() => 0);
-    for (let i = 0; i < N; i++) counts[rng.int(0, S.faces.length - 1)]++;
-    if (counts.every((c) => c > 0)) break;
-  }
-  const i = rng.int(0, S.faces.length - 1), face = S.faces[i], c = counts[i];
   const exp = N / S.faces.length;
   const mode = rng.pick(['exp', 'exp', 'compare', 'more']);
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // Higher, lower and equal are each keyed a third of the time: the
+  // relation is drawn first and the honest draw repeated until the asked
+  // face meets it. Left to chance, equal came up in 15% of rows, and a
+  // student who never picked it gained on a guess.
+  const want = mode === 'compare' ? rng.pick(['higher', 'lower', 'equal']) : null;
+  // Results drawn honestly, so they wander around the expected count.
+  let counts, i;
+  for (;;) {
+    counts = S.faces.map(() => 0);
+    for (let t = 0; t < N; t++) counts[rng.int(0, S.faces.length - 1)]++;
+    if (!counts.every((c) => c > 0)) continue;
+    i = rng.int(0, S.faces.length - 1);
+    const rel = counts[i] > exp ? 'higher' : counts[i] < exp ? 'lower' : 'equal';
+    if (!want || rel === want) break;
+  }
+  const face = S.faces[i], c = counts[i];
   // An outcome already at its theoretical share has nowhere closer to go.
   if (mode === 'more' && c * S.faces.length === N) return experimental(rng);
   const table = (working) => ({ kind: 'table', cols: ['Outcome', 'Count'], rows: [...S.faces.map((f, j) => [String(f), String(counts[j])]), ['Total', String(N)]],
@@ -418,18 +434,27 @@ function experimental(rng) {
         + `(A difference in a short run does not mean the ${S.faces.length === 6 ? 'cube' : 'spinner'} is unfair.) So ${rel === 'equal' ? 'equal' : rel}.`,
     };
   }
-  const opts = rng.shuffle([
-    ['closer', 'It will most likely get closer to the theoretical probability'],
-    ['farther', 'It will most likely move further from the theoretical probability'],
-    ['same', `It will stay exactly ${fracText(c, N)}`],
-  ]).map(([meaning, label], n) => ({ id: LETTERS[n], meaning, label }));
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // The options are values, every one over the same N trials, not the
+  // words "closer / further / stays": that menu had one honest answer, so
+  // its key never moved and the words alone gave it away. The key is the
+  // theoretical share; the decoys are the short run taken as the truth (it
+  // stays near c/N), the run read as a trend (further out by the same gap),
+  // a catch-up that overshoots (as far past the theory on the other side),
+  // and "it happens or it does not" (1/2). Two of the last three are drawn,
+  // so the key is not always in the same place by size.
+  const pool = [['farther', 2 * c - exp], ['overshoot', 2 * exp - c], ['half', N / 2]]
+    .filter(([, k], i, all) => k > 0 && k < N && k !== exp && k !== c && all.findIndex(([, j]) => j === k) === i);
+  if (pool.length < 2) return experimental(rng);
+  const opts = rng.shuffle([['theory', exp], ['stay', c], ...rng.shuffle(pool).slice(0, 2)])
+    .map(([meaning, k], n) => ({ id: LETTERS[n], meaning, k, label: `About ${k}/${N}` }));
   return {
-    prompt: [T.prose(`${intro} If the experiment is repeated for many more trials, what will most likely happen to the experimental probability of ${S.faces.length === 6 ? `rolling a ${face}` : `landing on ${face}`}?`)],
-    text: `more trials: ${results}; outcome ${face}; options ${opts.map((o) => `${o.id}=${o.meaning}`).join(', ')}`,
-    answer: { type: 'choice', value: opts.find((o) => o.meaning === 'closer').id, options: opts.map(({ id, label }) => ({ id, label })) },
+    prompt: [T.prose(`${intro} If the experiment is repeated for many more trials, about what will the experimental probability of ${S.faces.length === 6 ? `rolling a ${face}` : `landing on ${face}`} most likely be?`)],
+    text: `more trials: ${results}; outcome ${face}; options ${opts.map((o) => `${o.id}=${o.k}/${N}`).join(', ')}`,
+    answer: { type: 'choice', value: opts.find((o) => o.meaning === 'theory').id, options: opts.map(({ id, label }) => ({ id, label })) },
     visual: table(true),
-    explain: `Over more and more trials the share of ${face}s settles toward 1/${S.faces.length}: the luck of a short run averages out. `
-      + `(It does not have to "catch up" on any one ${S.faces.length === 6 ? 'roll' : 'spin'}; each is still 1/${S.faces.length}.) So it will most likely get closer to the theoretical probability.`,
+    explain: `Over more and more trials the share of ${face}s settles toward the theoretical 1/${S.faces.length}, which over ${N} is ${exp}/${N}: the luck of a short run averages out. `
+      + `(It does not have to "catch up" by going past ${exp}/${N} the other way, and ${c}/${N} was one short run, not the truth: each ${S.faces.length === 6 ? 'roll' : 'spin'} is still 1/${S.faces.length}.) So about ${exp}/${N}.`,
   };
 }
 

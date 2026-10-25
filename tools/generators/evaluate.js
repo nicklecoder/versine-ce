@@ -232,6 +232,17 @@ const SITUATIONS = [
   },
   (rng) => {
     const k = rng.int(2, 6), tip = rng.int(5, 24);
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Sometimes the tip is each person's own, so the right expression is
+    // the shorter b/k + tip as often as the bracketed (b + tip)/k: asked
+    // only the one way, with the next two stories, the key was the longest
+    // option in 48% of the level.
+    if (rng.chance(0.5)) {
+      return { story: `${['Two', 'Three', 'Four', 'Five', 'Six'][k - 2]} friends split a bill of b dollars equally, and each `
+        + `also leaves ${an(tip)} $${tip} tip of their own. What does each pay?`, right: `b/${k} + ${tip}`,
+      wrong: [`(b + ${tip})/${k}`, `${k}b + ${tip}`, `${k}(b + ${tip})`],
+      why: `Only the bill is shared: each pays b/${k} of it, then adds their own ${tip}: b/${k} + ${tip}.` };
+    }
     return { story: `${['Two', 'Three', 'Four', 'Five', 'Six'][k - 2]} friends split a bill of b dollars `
       + `and ${an(tip)} $${tip} tip equally. What does each pay?`, right: `(b + ${tip})/${k}`,
     wrong: [`b/${k} + ${tip}`, `${k}(b + ${tip})`, `${k}b + ${tip}`],
@@ -251,6 +262,11 @@ const SITUATIONS = [
     let add = rng.int(2, 20);
     while (add === k) add = rng.int(2, 20);   // equal, the swapped reading is the right one
     const times = ['twice', 'three times', 'four times', 'five times', 'six times'][k - 2];
+    if (rng.chance(0.5)) {
+      return { story: `Which expression is ${add} more than ${times} n?`, right: `${k}n + ${add}`,
+        wrong: [`${k}(n + ${add})`, `${add}n + ${k}`, `${add}(n + ${k})`],
+        why: `Only n is multiplied, and ${add} is added after: no bracket. ${k}n + ${add}.` };
+    }
     return { story: `Which expression is ${times} the sum of n and ${add}?`, right: `${k}(n + ${add})`,
     wrong: [`${k}n + ${add}`, `${add}(n + ${k})`, `${add}n + ${k}`],
     why: `The adding happens first and the whole sum is multiplied, so it needs a bracket: ${k}(n + ${add}).` };
@@ -259,6 +275,12 @@ const SITUATIONS = [
     const longer = rng.int(2, 20);
     // requiem: catalogue/content/units-both-systems
     const u = rng.pick(['cm', 'inches']);
+    if (rng.chance(0.5)) {
+      return { story: `A rectangle is w ${u} wide and ${longer} ${u} longer than it is wide. What is its area?`,
+        right: `w(w + ${longer})`, wrong: [`2w + 2(w + ${longer})`, `w(w − ${longer})`, `2w + 2(w − ${longer})`],
+        why: `The length is w + ${longer}, and the area is the width times the length: w(w + ${longer}). `
+          + `2w + 2(w + ${longer}) is the perimeter.` };
+    }
     return { story: `A rectangle is w ${u} wide and ${longer} ${u} longer than it is wide. What is its perimeter?`,
       right: `2w + 2(w + ${longer})`, wrong: [`w(w + ${longer})`, `2w + 2(w − ${longer})`, `w(w − ${longer})`],
       why: `The length is w + ${longer}. A perimeter goes round all four sides, two of each: `

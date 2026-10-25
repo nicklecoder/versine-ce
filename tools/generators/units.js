@@ -242,7 +242,19 @@ function compare(rng, a, ua, b, ub, why) {
   };
 }
 /** Compared after putting one into the other's unit. */
+// requiem: catalogue/content/fixed-menu-key-moves
+// A third of the time the smaller unit's amount is made exactly the larger's
+// (3 ft against 1 yd, 500 m against 1/2 km), so "They are the same" is keyed
+// as often as each amount: drawn at random it was right in 0-6% of rows and
+// a student could drop it unread.
 function compareWithin(rng, a, ua, b, ub) {
+  if (rng.chance(1 / 3)) {
+    // The larger unit's amount drawn afresh, so the same pair can be asked
+    // at more than the one size it was drawn at.
+    const exact = (v, from, to) => Math.round(converted(v, from, to).result * 1e6) / 1e6;
+    const n = rng.int(1, 9) / (rng.chance(0.2) ? 2 : 1);
+    if (SIZE[ua] > SIZE[ub]) { a = n; b = exact(a, ua, ub); } else { b = n; a = exact(b, ub, ua); }
+  }
   const c = converted(a, ua, ub);
   const verdict = Math.abs(c.result - b) < 1e-9 ? 'the same amount' : c.result > b ? `more than ${amt(b, ub)}` : `less than ${amt(b, ub)}`;
   return compare(rng, a, ua, b, ub, `Put them in the same unit. ${c.work.split(' (')[0]} That is ${verdict}.`);
@@ -373,12 +385,25 @@ const NEAR = { in: ['in', 'ft'], cm: ['cm', 'm', 'mm'], mi: ['mi'], km: ['km', '
 function between(rng) {
   const r = rng.float();
   if (r < 0.2) {
-    const [ua, ub] = rng.pick([['mi', 'km'], ['yd', 'm'], ['in', 'cm'], ['kg', 'lb'], ['gal', 'L'], ['qt', 'L'], ['ft', 'm'], ['oz', 'g'], ['lb', 'kg'], ['mm', 'in']]);
-    const [a, b] = rng.chance(0.6) ? [1, 1] : [rng.int(2, 9), rng.int(2, 9)];
+    let [ua, ub] = rng.pick([['mi', 'km'], ['yd', 'm'], ['in', 'cm'], ['kg', 'lb'], ['gal', 'L'], ['qt', 'L'], ['ft', 'm'], ['oz', 'g'], ['lb', 'kg'], ['mm', 'in']]);
+    let [a, b] = rng.chance(0.6) ? [1, 1] : [rng.int(2, 9), rng.int(2, 9)];
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Inches and centimeters are tied exactly (1 in = 2.54 cm), so they are
+    // the one bridge that can be the same; it is asked that way often enough
+    // that "They are the same" is keyed in about a fifth of these rows.
+    if (rng.chance(0.25)) {
+      [ua, ub] = rng.pick([['in', 'cm'], ['mm', 'in']]);
+      a = rng.int(1, 9);
+      b = ua === 'in' ? Math.round(a * 254) / 100 : a;
+      if (ua === 'mm') a = Math.round(b * 254) / 10;
+    }
     const [x, ux, y, uy] = rng.chance(0.5) ? [a, ua, b, ub] : [b, ub, a, ua];
     const qa = x * SIZE[ux], qb = y * SIZE[uy];
     const base = METRIC.has(ux) ? ux : uy;            // compare in the metric one of the two
     const inBase = (v, u) => `${amt(v, u)} is about ${num(Math.round((v * SIZE[u]) / SIZE[base] * 1000) / 1000)} ${UNIT[base][0]}`;
+    if (Math.abs(qa - qb) < 1e-12 * Math.max(qa, qb)) {
+      return compare(rng, x, ux, y, uy, `An inch is exactly 2.54 cm, so ${ua === 'in' ? `${amt(a, 'in')} is ${num(a)} × 2.54 = ${amt(b, 'cm')}` : `${amt(b, 'in')} is ${num(b)} × 25.4 = ${amt(a, 'mm')}`}: exactly, not about.`);
+    }
     return compare(rng, x, ux, y, uy, `${inBase(x, ux)}, and ${inBase(y, uy)}. ${qa > qb ? amt(x, ux) : amt(y, uy)} is more.`);
   }
   for (;;) {

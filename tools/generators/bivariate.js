@@ -585,30 +585,34 @@ function strength(rng) {
 // Observational: two things measured, both driven by a third.
 const OBSERVED = [
   { x: 'ice cream sales', y: 'sunburn cases', sign: 1, how: 'A beach town recorded ice cream sales and sunburn cases each day of the summer.',
-    cause: 'Eating ice cream causes sunburn.', reverse: 'Getting sunburned makes people buy ice cream.', lurking: 'hot, sunny weather' },
+    cause: 'Eating ice cream causes sunburn.', lurking: 'hot, sunny weather' },
   { x: 'shoe size', y: 'reading score', sign: 1, how: 'A school measured the shoe size and reading score of every student in grades 1 to 6.',
-    cause: 'Bigger feet make students better readers.', reverse: 'Reading well makes feet grow.', lurking: 'age' },
+    cause: 'Bigger feet make students better readers.', lurking: 'age' },
   { x: 'firefighters sent', y: 'damage done', sign: 1, how: 'A city compared the number of firefighters sent to each fire with the damage, in dollars.',
-    cause: 'Sending more firefighters causes more damage.', reverse: 'More damage makes firefighters arrive.', lurking: 'how big the fire was' },
+    cause: 'Sending more firefighters causes more damage.', lurking: 'how big the fire was' },
   { x: 'umbrellas sold', y: 'car accidents', sign: 1, how: 'A town recorded umbrella sales and car accidents each day for a year.',
-    cause: 'Selling umbrellas causes car accidents.', reverse: 'Car accidents make people buy umbrellas.', lurking: 'rain' },
+    cause: 'Selling umbrellas causes car accidents.', lurking: 'rain' },
   { x: 'heating bills', y: 'hot cocoa sales', sign: 1, how: 'A store compared local heating bills with its hot cocoa sales, week by week.',
-    cause: 'Higher heating bills make people buy cocoa.', reverse: 'Buying cocoa raises heating bills.', lurking: 'cold weather' },
+    cause: 'Higher heating bills make people buy cocoa.', lurking: 'cold weather' },
   { x: 'hours of daylight', y: 'coats sold', sign: -1, how: 'A store recorded the hours of daylight and the number of coats it sold each week of the year.',
-    cause: 'Shorter days make people buy coats.', reverse: 'Buying coats makes the days shorter.', lurking: 'the season and its temperature' },
+    cause: 'Shorter days make people buy coats.', lurking: 'the season and its temperature' },
   { x: 'lifeguards on duty', y: 'swimmers rescued', sign: 1, how: 'A beach recorded the lifeguards on duty and the swimmers rescued each day.',
-    cause: 'Having more lifeguards on duty causes more rescues.', reverse: 'More rescues put more lifeguards on duty.', lurking: 'how crowded the beach was' },
+    cause: 'Having more lifeguards on duty causes more rescues.', lurking: 'how crowded the beach was' },
 ];
 // Experiments: the amount of x was assigned at random.
 const ASSIGNED = [
   { x: 'fertilizer', y: 'plant height', sign: 1, how: 'Researchers randomly assigned 40 plots to get 0, 1, 2 or 3 scoops of fertilizer, then measured the plants.',
-    cause: 'More fertilizer causes taller plants.', reverse: 'Taller plants cause more fertilizer.' },
+    cause: 'More fertilizer causes taller plants.',
+    observed: 'A garden club asked 40 members how many scoops of fertilizer they use, then measured their plants.', lurking: 'how much care each gardener gives the plants' },
   { x: 'hours of sleep', y: 'reaction time', sign: -1, how: 'Researchers randomly assigned 60 volunteers to sleep 5, 6, 7 or 8 hours, then timed their reactions.',
-    cause: 'More sleep causes faster reactions.', reverse: 'Faster reactions cause more sleep.' },
+    cause: 'More sleep causes faster reactions.',
+    observed: 'A survey asked 60 volunteers how many hours they usually sleep, then timed their reactions.', lurking: 'age or general health' },
   { x: 'minutes of practice', y: 'typing speed', sign: 1, how: 'A class was randomly split into groups that practiced typing for 0, 10, 20 or 30 minutes a day for a month.',
-    cause: 'More practice causes faster typing.', reverse: 'Faster typing causes more practice.' },
+    cause: 'More practice causes faster typing.',
+    observed: 'Students in a class reported how many minutes a day they practice typing, and their typing speed was measured.', lurking: 'how much each student types at home' },
   { x: 'water', y: 'tomatoes picked', sign: 1, how: 'A farm randomly assigned rows of tomato plants to get 1, 2, 3 or 4 quarts (about 1 to 4 liters) of water a day.',
-    cause: 'More water causes more tomatoes.', reverse: 'More tomatoes cause more water.' },
+    cause: 'More water causes more tomatoes.',
+    observed: 'A survey of farms recorded how many quarts (about 1 liter each) of water a day their tomato plants got, and how many tomatoes were picked.', lurking: 'the soil and the weather at each farm' },
 ];
 
 // Observed pairs with nothing linking them, where a correlation near 0 is
@@ -616,13 +620,13 @@ const ASSIGNED = [
 // real correlation, since a third thing driving both would make one.
 const UNLINKED = [
   { x: 'house number', y: 'number of pets', how: 'A survey asked 60 families for their house number and how many pets they have.',
-    cause: 'A higher house number causes more pets.', reverse: 'Having more pets raises the house number.' },
+    cause: 'A higher house number causes more pets.' },
   { x: 'shoe size', y: 'quiz score', how: 'A teacher recorded the shoe size and the quiz score of every student in one 8th-grade class.',
-    cause: 'Bigger feet cause higher quiz scores.', reverse: 'Higher quiz scores make feet grow.' },
+    cause: 'Bigger feet cause higher quiz scores.' },
   { x: 'day of the month born', y: 'height', how: 'A club recorded the day of the month each member was born and each member’s height.',
-    cause: 'Being born later in the month makes people taller.', reverse: 'Being taller changes the day people were born.' },
+    cause: 'Being born later in the month makes people taller.' },
   { x: 'last digit of phone number', y: 'minutes to get to school', how: 'A class recorded the last digit of each student’s phone number and how many minutes they take to get to school.',
-    cause: 'A higher last digit causes a longer trip.', reverse: 'A longer trip changes the phone number.' },
+    cause: 'A higher last digit causes a longer trip.' },
 ];
 
 function causation(rng) {
@@ -630,9 +634,13 @@ function causation(rng) {
     // Which study could show a cause at all?
     const S = rng.pick(ASSIGNED);
     const opts = rng.shuffle([
-      ['survey', `Survey people about their ${S.x} and ${S.y}, and find the correlation.`],
+      // requiem: catalogue/content/decoys-cross-two-slips
+      // A random sample beside the random assignment: the word "randomly"
+      // alone does not make the study an experiment, and with the survey
+      // worded unlike it the experiment was the odd one out in every row.
+      ['survey', `Randomly choose people, ask about their ${S.x} and ${S.y}, and find the correlation.`],
       ['records', `Look up past records of ${S.x} and ${S.y}, and compare them.`],
-      ['experiment', `Randomly assign different amounts of ${S.x}, then measure ${S.y}.`],
+      ['experiment', `Randomly assign amounts of ${S.x}, then measure the ${S.y} and compare them.`],
     ]).map(([design, label], i) => ({ id: LETTERS[i], design, label }));
     const want = opts.find((o) => o.design === 'experiment').id;
     return {
@@ -641,17 +649,29 @@ function causation(rng) {
       answer: { type: 'choice', value: want, options: opts.map(({ id, label }) => ({ id, label })) },
       visual: null,
       explain: `Only random assignment makes the groups alike in everything except ${S.x}, so a difference in ${S.y} can be put down to it. `
-        + `(A survey or old records, however large, only show that the two go together: something else could drive both.) So the experiment that randomly assigns ${S.x}.`,
+        + `(A survey or old records, however large and however randomly the people are chosen, only show that the two go together: something else could drive both.) So the experiment that randomly assigns ${S.x}.`,
     };
   }
-  const experiment = rng.chance(0.4);
-  const real = rng.chance(0.8);
-  const S = rng.pick(experiment ? ASSIGNED : real ? OBSERVED : UNLINKED);
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // The experiments are also met as observed data (the same two things
+  // surveyed, nothing assigned), so in each of them "causes", "associated"
+  // and "no association" can all be the key: run only as experiments, each
+  // keyed "causes" every time it had a real correlation. The weights put the
+  // three keys near a third each. The reverse cause ("taller plants cause
+  // more fertilizer") is not offered: no study here supports it, so it was
+  // never the key and could be struck unread.
+  const experiment = rng.chance(0.45);
+  const real = rng.chance(experiment ? 0.67 : 0.75);
+  const S = rng.pick(experiment ? ASSIGNED : real ? [...OBSERVED, ...ASSIGNED.map((A) => ({ ...A, how: A.observed }))] : UNLINKED);
   const r = (real ? S.sign * rng.int(70, 95) / 100 : rng.sign() * rng.int(0, 6) / 100) || 0;
   const right = !real ? 'none' : experiment ? 'cause' : 'associated';
+  // requiem: catalogue/library/strategy-not-from-surface
+  // Worded to much the same length: "associated, but this does not show
+  // that one causes the other" was the longest option in every row and the
+  // key in two of five.
   const opts = rng.shuffle([
-    ['cause', S.cause], ['reverse', S.reverse],
-    ['associated', `${cap(S.x)} and ${S.y} are associated, but this does not show that one causes the other.`],
+    ['cause', `This shows that ${S.cause[0].toLowerCase()}${S.cause.slice(1)}`],
+    ['associated', 'They are associated, but this does not show a cause.'],
     ['none', `${cap(S.x)} and ${S.y} show no association.`],
   ]).map(([meaningId, label], i) => ({ id: LETTERS[i], meaning: meaningId, label }));
   const want = opts.find((o) => o.meaning === right).id;
