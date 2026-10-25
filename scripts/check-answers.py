@@ -8134,9 +8134,19 @@ problems += chance_out_of_range()
 # A choice whose decoys each change the key in one way and nothing else
 # leaves the key as the option nearest all the others -- the medoid, by edit
 # distance between the labels -- so it can be picked without the
-# mathematics. Logarithms and complex numbers cross two slips instead, and
-# the key is the medoid of a level's choices no more often than about one in
-# four; a level where it is more than 40% has slid back.
+# mathematics. Decoys crossed from two slips put no option in the middle, and
+# the key is the medoid of a level's choices about as often as chance; a
+# level, in any skill, where it is more than 40% has slid back.
+#
+# Only options written for the row are measured. A fixed menu -- Higher /
+# Lower / Equal, Inside / On / Outside, the same four labels with the key
+# moving among them -- has a medoid fixed by the wording, not by the decoys;
+# what matters there is that the key moves, which is a different question.
+# Two things mark it, both read from the library rather than listed by hand:
+# a label set that recurs with different keys, and a stock label (one in at
+# least a third of the level's choice rows, such as "They are the same").
+# A row is measured when its label set never carries another key and it has
+# at least three labels that are not stock.
 def edit_distance(a: str, b: str) -> int:
     prev = list(range(len(b) + 1))
     for i, ca in enumerate(a, 1):
@@ -8155,16 +8165,42 @@ def key_is_medoid(answer: dict) -> float:
     return 1 / len(tied) if answer["value"] in tied else 0.0
 
 
-MEDOID_SKILLS = ("logarithms", "complex")
+def key_label(answer: dict) -> str:
+    return next(o["label"] for o in answer["options"] if o["id"] == answer["value"])
+
+
+def rows_written_for(answers: list[dict]) -> list[dict]:
+    """The choice rows whose options were written for the row, not drawn from a fixed menu."""
+    seen: dict[str, int] = {}
+    keys: dict[frozenset, set] = {}
+    for a in answers:
+        labels = frozenset(o["label"] for o in a["options"])
+        for label in labels:
+            seen[label] = seen.get(label, 0) + 1
+        keys.setdefault(labels, set()).add(key_label(a))
+    stock = {label for label, n in seen.items() if n >= len(answers) / 3}
+    return [a for a in answers
+            if len(keys[frozenset(o["label"] for o in a["options"])]) == 1
+            and sum(o["label"] not in stock for o in a["options"]) >= 3]
+
+
+# TEMPORARY -- remove at merge. These four skills' decoys are being crossed
+# on another branch; until that lands they would fail this gate. The
+# coordinator deletes this tuple (and its use below) when the branches meet.
+MEDOID_PENDING_ELSEWHERE = ("poly-division", "poly-functions", "rational-functions", "rational-eq")
+
 for path in sorted(LIB.glob("*.json")):
-    if not path.name.startswith(MEDOID_SKILLS):
+    if path.name in ("manifest.json", "schemas.json"):
         continue
     lib = json.loads(path.read_text())
-    rows = [p["answer"] for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+    if lib["skill"] in MEDOID_PENDING_ELSEWHERE:
+        continue
+    choices = [p["answer"] for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+    rows = rows_written_for(choices)
     if len(rows) >= 20:
         share = sum(key_is_medoid(a) for a in rows) / len(rows)
         if share > 0.4:
-            problems.append(f"{lib['skill']} L{lib['level'] + 1}: the key is the medoid of its options in {share:.0%} of {len(rows)} choice rows")
+            problems.append(f"{lib['skill']} L{lib['level'] + 1}: the key is the medoid of its options in {share:.0%} of {len(rows)} choice rows written for the row")
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")
