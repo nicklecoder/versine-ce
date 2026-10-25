@@ -13,6 +13,24 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Parametric & Polar** (`parametric-polar`), a new skill under Vectors &
+Polar, in eight levels: Plot Parametric, Eliminate the Parameter,
+Parametric Motion, Polar to Rectangular, Rectangular to Polar, Converting
+Equations, Polar Graphs and All Together. A parametric curve gives a
+point at a value of t, a value of t at a point, and where it crosses the
+y-axis, drawn with its direction for some; a line is eliminated to y in
+terms of x, and a parabola or an ellipse chosen from four equations; a
+thrown ball's height, distance, landing time and highest moment come from
+x = (v cos θ)t and y = h + (v sin θ)t − 16t²; a polar point's x or y is
+exact from the unit circle, in degrees or radians, and a point's r exact
+and θ to 1 dp; equations convert both ways; and a polar curve's petals,
+farthest reach and name are asked, and a drawn one matched to its
+equation. `scripts/check-answers.py` puts t into each parametric pair
+exactly, tests every option at points of the curve -- at angles whose
+cosine and sine are rational, for an ellipse -- and samples each polar
+curve for its loops, its farthest point and its shape, holding every
+drawing to its equation.
+
 **Vectors** (`vectors`), a new skill in a new category, Vectors & Polar,
 under Trigonometry, in eight levels: Components, Magnitude & Direction,
 From Magnitude & Direction, Adding & Subtracting, Scalar Multiples, Unit

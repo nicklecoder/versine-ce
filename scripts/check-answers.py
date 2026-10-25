@@ -9259,6 +9259,350 @@ def vc_check_drawings() -> None:
 vc_check_drawings()
 
 
+# ── Parametric & Polar ──────────────────────────────────────────────────
+# A parametric point is found by putting t into both equations, exactly; a
+# value of t by solving x(t) and checking y; an eliminated equation by
+# putting points of the curve into every option -- at values of t, or for a
+# cosine and a sine at angles whose cosine and sine are rational -- where
+# exactly one must hold everywhere. A thrown ball, a polar point and a
+# polar angle go by the calculator, twice where a trig value is copied to 4
+# places. A conversion is tested the same way, points of one equation put
+# into the other; and a polar curve is sampled for its petals, its farthest
+# point and its shape, never read from the form it is written in.
+PP_NUM = r"-?\d+(?:/\d+)?"
+# (cos t, sin t) pairs that are rational, all round the circle.
+PP_ANGLES = [(Fraction(1), Fraction(0)), (Fraction(0), Fraction(1)), (Fraction(-1), Fraction(0)), (Fraction(0), Fraction(-1)),
+             (Fraction(3, 5), Fraction(4, 5)), (Fraction(-5, 13), Fraction(12, 13)), (Fraction(-8, 17), Fraction(-15, 17)), (Fraction(24, 25), Fraction(-7, 25))]
+
+
+def pp_at(src: str, t) -> Fraction:
+    """A polynomial in t, or a cos(t)/sin(t) expression at a (cos, sin) pair, exactly."""
+    if isinstance(t, tuple):
+        c, s = t
+        return evaluate(src.replace("cos(t)", f"({c})").replace("sin(t)", f"({s})"))
+    return evaluate(src, "t", t)
+
+
+def pp_trig_at(src: str, degrees: int) -> Fraction:
+    c, s = round(math.cos(math.radians(degrees))), round(math.sin(math.radians(degrees)))
+    return pp_at(src, (Fraction(c), Fraction(s)))
+
+
+def pp_point(xs, ys, t, degrees=None):
+    if degrees:
+        return pp_trig_at(xs, int(t)), pp_trig_at(ys, int(t))
+    return pp_at(xs, Fraction(t)), pp_at(ys, Fraction(t))
+
+
+def pp_solve_x(xs: str, x) -> Fraction:
+    """t where the linear x(t) is x."""
+    b = pp_at(xs, Fraction(0))
+    a = pp_at(xs, Fraction(1)) - b
+    assert a != 0 and pp_at(xs, Fraction(2)) == b + 2 * a, f"{xs} is not linear in t"
+    return (Fraction(x) - b) / a
+
+
+def pp_when(xs, ys, x, y) -> Fraction:
+    t = pp_solve_x(xs, x)
+    assert pp_at(ys, t) == Fraction(y), f"({x}, {y}) is not on the curve"
+    return t
+
+
+def pp_y_axis(xs, ys):
+    t = pp_solve_x(xs, 0)
+    return Fraction(0), pp_at(ys, t)
+
+
+def pp_line(xs, ys):
+    """y = mx + b through two points of the curve, checked at a third."""
+    pts = [(pp_at(xs, Fraction(t)), pp_at(ys, Fraction(t))) for t in (0, 1, 5)]
+    (x0, y0), (x1, y1), (x2, y2) = pts
+    m = (y1 - y0) / (x1 - x0)
+    assert y2 - y0 == m * (x2 - x0), f"x = {xs}, y = {ys} is not a line"
+    return m, y0 - m * x0
+
+
+def pp_holds(equation: str, x, y) -> bool:
+    left, right = equation.split(" = ")
+    sub = lambda s: s.replace("x", f"({x})").replace("y", f"({y})")
+    return evaluate(sub(left)) == evaluate(sub(right))
+
+
+def pp_eliminated(xs, ys, listing):
+    samples = PP_ANGLES if "cos" in xs else [Fraction(t) for t in range(-3, 4)]
+    fits = [oid for oid, opt in te_options(listing).items()
+            if all(pp_holds(opt, pp_at(xs, t), pp_at(ys, t)) for t in samples)]
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+def pp_motion(want, v, th, h, t, places) -> Fraction:
+    v, th, h = int(v), int(th), int(h)
+    s, c = math.sin(math.radians(th)), math.cos(math.radians(th))
+    s4, c4 = round(s, 4), round(c, 4)
+    t = float(t) if t else None
+    def value(s, c):
+        if want == "height":
+            return h + v * s * t - 16 * t * t
+        if want == "distance":
+            return v * c * t
+        if want == "top":
+            return v * s / 32
+        # The positive root of h + (v s)t − 16t² = 0.
+        a, b, cc = -16, v * s, h
+        return (-b - math.sqrt(b * b - 4 * a * cc)) / (2 * a)
+    if want == "height":
+        assert value(s, c) > 0, "the ball has already landed"
+    return trig_agree(value(s, c), value(s4, c4), int(places))
+
+
+def pp_polar_xy(want, r, deg, radians):
+    theta = math.radians(int(deg))
+    return int(r) * (math.cos(theta) if want == "x" else math.sin(theta))
+
+
+def pp_polar_angle(x, y, places) -> Fraction:
+    x, y = int(x), int(y)
+    exact = math.degrees(math.atan2(y, x)) % 360
+    ref = round(math.degrees(math.atan(abs(y / x))), 4)
+    four_place = ref if x > 0 and y >= 0 else 180 - ref if x < 0 and y >= 0 else 180 + ref if x < 0 else 360 - ref
+    return trig_agree(exact, four_place, int(places))
+
+
+def pp_r_of(src: str):
+    """r(θ in radians) for r = a, r = a fn(nθ), r = a/fn(θ), r = a ± b fn(θ)."""
+    body = src.replace(" ", "").removeprefix("r=")
+    fns = {"cos": math.cos, "sin": math.sin}
+    if m := re.fullmatch(r"(-?\d*)(cos|sin)\((\d*)θ\)", body):
+        a = -1 if m[1] == "-" else int(m[1] or 1)
+        n = int(m[3] or 1)
+        return lambda t: a * fns[m[2]](n * t)
+    if m := re.fullmatch(r"\d+", body):
+        return lambda t: int(body)
+    if m := re.fullmatch(r"(-?\d+)/(cos|sin)\(θ\)", body):
+        return lambda t: int(m[1]) / fns[m[2]](t)
+    if m := re.fullmatch(r"(\d+)([+-])(\d*)(cos|sin)\(θ\)", body):
+        a, b = int(m[1]), int(m[3] or 1) * (1 if m[2] == "+" else -1)
+        return lambda t: a + b * fns[m[4]](t)
+    raise ValueError(f"unread polar equation {src}")
+
+
+def pp_rect_holds(equation: str, x: float, y: float) -> bool:
+    left, right = equation.replace(" ", "").split("=")
+    val = lambda s: eval(re.sub(r"(\d)([xy])", r"\1*\2", s).replace("^", "**"), {"x": x, "y": y})
+    scale = 1 + abs(val(left)) + abs(val(right))
+    return abs(val(left) - val(right)) < 1e-9 * scale
+
+
+# Angles that miss every axis, so no sample divides by a zero cos or sin.
+PP_THETAS = [math.radians(d) for d in (10, 35, 70, 100, 125, 160, 200, 250, 290, 340)]
+
+
+def pp_to_rect(src, listing):
+    f = pp_r_of(src)
+    pts = [(f(t) * math.cos(t), f(t) * math.sin(t)) for t in PP_THETAS]
+    fits = [oid for oid, opt in te_options(listing).items() if all(pp_rect_holds(opt, x, y) for x, y in pts)]
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+def pp_to_polar(src, listing):
+    fits = []
+    for oid, opt in te_options(listing).items():
+        f = pp_r_of(opt)
+        if all(pp_rect_holds(src, f(t) * math.cos(t), f(t) * math.sin(t)) for t in PP_THETAS):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+def pp_samples(src, n=7200):
+    f = pp_r_of(src)
+    return [(2 * math.pi * i / n, f(2 * math.pi * i / n)) for i in range(n)]
+
+
+def pp_petals(src) -> int:
+    """The loops the curve makes: each stretch of θ where r keeps one sign is
+    a loop pointing where its farthest point is (a half-turn on where r is
+    negative), and loops pointing the same way are traced twice, counted once."""
+    pts = pp_samples(src)
+    sign = lambda r: (r > 1e-12) - (r < -1e-12)
+    # Start the walk where r changes sign, so no loop is split at θ = 0.
+    start = next((i for i in range(len(pts)) if sign(pts[i][1]) != sign(pts[i - 1][1])), 0)
+    walk = pts[start:] + pts[:start]
+    loops, run = [], []
+    for t, r in walk:
+        if run and sign(r) != sign(run[-1][1]):
+            loops.append(run)
+            run = []
+        if sign(r):
+            run.append((t, r))
+    loops.append(run)
+    tips = []
+    for run in filter(None, loops):
+        t, r = max(run, key=lambda tr: abs(tr[1]))
+        d = math.degrees(t if r > 0 else t + math.pi) % 360
+        if not any(min(abs(d - e), 360 - abs(d - e)) < 1 for e in tips):
+            tips.append(d)
+    return len(tips)
+
+
+def pp_max(src) -> Fraction:
+    return Fraction(max(abs(r) for _, r in pp_samples(src))).limit_denominator(100)
+
+
+def pp_kind(src) -> str:
+    pts = [(r * math.cos(t), r * math.sin(t)) for t, r in pp_samples(src, 720)]
+    # A circle through the origin: x² + y² = Dx + Ey for one D and E.
+    (x1, y1), (x2, y2) = pts[37], pts[101]
+    det = x1 * y2 - x2 * y1
+    if max(abs(r) for _, r in pp_samples(src, 720)) - min(abs(r) for _, r in pp_samples(src, 720)) < 1e-9:
+        return "circle"
+    if abs(det) > 1e-6:
+        D = ((x1 * x1 + y1 * y1) * y2 - (x2 * x2 + y2 * y2) * y1) / det
+        E = (x1 * (x2 * x2 + y2 * y2) - x2 * (x1 * x1 + y1 * y1)) / det
+        if all(abs(x * x + y * y - D * x - E * y) < 1e-6 for x, y in pts):
+            return "circle"
+    if pp_petals(src) >= 3:
+        return "rose"
+    # A cardioid comes in to the origin and no further; a limaçon either
+    # stays clear of it or loops through it, r turning negative.
+    least = min(r for _, r in pp_samples(src))
+    return "cardioid" if abs(least) < 1e-9 else "limacon"
+
+
+def pp_off(f, x, y) -> float:
+    """About how far (x, y) is from r = f(θ): the miss in r, scaled by how steeply r turns there."""
+    rho, phi = math.hypot(x, y), math.atan2(y, x)
+    if rho < 0.02:
+        # At the origin the angle means nothing: it is on the curve if the
+        # curve comes in to it.
+        return min(abs(f(math.radians(d / 10))) for d in range(3600))
+    best = math.inf
+    for theta, sign in ((phi, 1), (phi + math.pi, -1)):
+        miss = f(theta) - sign * rho
+        slope = (f(theta + 1e-6) - f(theta - 1e-6)) / 2e-6
+        best = min(best, abs(miss) * rho / math.hypot(rho, slope))
+    return best
+
+
+def pp_graph_keys() -> dict:
+    """For each drawn polar graph, the option the text's points and the drawing both fit."""
+    keys = {}
+    for path in sorted(LIB.glob("parametric-polar-*.json")):
+        for p in json.loads(path.read_text())["problems"]:
+            m = re.match(r"^polar graph: through (.+); options (.+)$", p["text"])
+            if not m:
+                continue
+            said = [(float(r), int(d)) for r, d in re.findall(r"\((-?[\d.]+), (\d+)\)", m[1])]
+            opts = {oid: pp_r_of(o) for oid, o in te_options(m[2]).items()}
+            fits = [oid for oid, f in opts.items() if all(abs(f(math.radians(d)) - r) < 0.0006 for r, d in said)]
+            if len(fits) != 1:
+                keys[p["text"]] = f"{len(fits)} options fit the points"
+                continue
+            f = opts[fits[0]]
+            drawn = [pt for mk in p["visual"]["marks"] if mk["kind"] == "path" for pt in mk["points"]]
+            # Every drawn point is on the curve, at r or at −r a half-turn on,
+            # and the curve is all drawn: each of its points is near one drawn.
+            on = lambda x, y: pp_off(f, x, y) < 0.005
+            near = lambda t: min((f(t) * math.cos(t) - x) ** 2 + (f(t) * math.sin(t) - y) ** 2 for x, y in drawn) < 0.05 ** 2
+            if len(drawn) < 200 or not all(on(x, y) for x, y in drawn) or not all(near(math.radians(d)) for d in range(0, 360, 7)):
+                keys[p["text"]] = "the drawing is not the curve its points name"
+                continue
+            keys[p["text"]] = fits[0]
+    return keys
+
+
+PP_GRAPH_KEY = pp_graph_keys()
+IDS_ABCD = ("a", "b", "c", "d")
+
+CHOICE_RULES += (
+    (re.compile(r"^eliminate: x = (.+); y = (.+); options (.+)$"), pp_eliminated),
+    (re.compile(r"^to rectangular: (r = .+); options (.+)$"), pp_to_rect),
+    (re.compile(r"^to polar: (.+ = .+); options (.+)$"), pp_to_polar),
+    (re.compile(r"^polar curve: (r = .+)$"), pp_kind),
+    (re.compile(r"^(polar graph: .+)$"), lambda text: PP_GRAPH_KEY[text]),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^param point: x = (.+); y = (.+) at t = (-?\d+)( degrees)?$"), pp_point),
+    (re.compile(r"^param y-axis: x = (.+); y = (.+)$"), pp_y_axis),
+)
+
+LINE_RULES += (
+    (re.compile(r"^eliminate line: x = (.+); y = (.+)$"), pp_line),
+)
+
+RADICAL_RULES += (
+    (re.compile(rf"^polar r: \(({PP_NUM}), ({PP_NUM})\)$"), lambda x, y: int(x) ** 2 + int(y) ** 2),
+)
+
+EXACT_RULES += (
+    (re.compile(r"^polar (x|y): r = (-?\d+) at (\d+) degrees( as radians)?$"), pp_polar_xy),
+)
+
+BY_RULE += (
+    (re.compile(rf"^param when: x = (.+); y = (.+) at \(({PP_NUM}), ({PP_NUM})\)$"), pp_when),
+    (re.compile(r"^motion (height|distance|landing|top): v (\d+) at (\d+) degrees from (\d+) ft(?: after ([\d.]+) s)? to (\d) dp$"), pp_motion),
+    (re.compile(r"^polar angle: \((-?\d+), (-?\d+)\) to (\d) dp$"), pp_polar_angle),
+    (re.compile(r"^polar petals: (r = .+)$"), pp_petals),
+    (re.compile(r"^polar max r: (r = .+)$"), pp_max),
+)
+
+
+def pp_check_drawings() -> None:
+    """A parametric drawing is its own curve, and its revealed dot the point asked."""
+    for path in sorted(LIB.glob("parametric-polar-*.json")):
+        lib = json.loads(path.read_text())
+        for i, p in enumerate(lib["problems"]):
+            vis = p.get("visual")
+            if not vis:
+                continue
+            where = f"parametric-polar L{lib['level'] + 1} row {i}"
+            text = p["text"]
+            if text in PP_GRAPH_KEY:
+                # Once answered: a dot at the farthest point of the curve, and
+                # the equation written as the key's label.
+                key = PP_GRAPH_KEY[text]
+                if key not in IDS_ABCD:
+                    continue
+                f = pp_r_of(te_options(text.split("; options ", 1)[1])[key])
+                far = max(abs(f(math.radians(d / 10))) for d in range(3600))
+                dots = [mk["at"] for mk in vis.get("answer", []) if mk["kind"] == "point"]
+                if len(dots) != 1 or abs(math.hypot(*dots[0]) - far) > 0.002 or pp_off(f, *dots[0]) > 0.005:
+                    problems.append(f"{where}: the revealed dot {dots} is not the curve's farthest point")
+                label = next(o["label"] for o in p["answer"]["options"] if o["id"] == key)
+                if [mk["label"] for mk in vis.get("answer", []) if mk["kind"] == "text"] != [label]:
+                    problems.append(f"{where}: the revealed equation is not {label}")
+                continue
+            m = re.match(r"^param point: x = (.+); y = (.+) at t = (-?\d+)( degrees)?$", text)
+            if not m:
+                problems.append(f"{where}: a drawing no rule holds to its text")
+                continue
+            xs, ys = m[1], m[2]
+            drawn = [pt for mk in vis["marks"] if mk["kind"] == "path" and len(mk["points"]) > 3 for pt in mk["points"]]
+            # Each drawn point is the curve's at some t: x fixes t when x is
+            # linear; a cosine and sine pair is on its ellipse.
+            if m[4]:
+                A = float(pp_trig_at(xs, 0) - pp_trig_at(xs, 180)) / 2
+                h = float(pp_trig_at(xs, 0)) - A
+                B = float(pp_trig_at(ys, 90) - pp_trig_at(ys, 270)) / 2
+                k = float(pp_trig_at(ys, 90)) - B
+                off = [q for q in drawn if abs(((q[0] - h) / A) ** 2 + ((q[1] - k) / B) ** 2 - 1) > 0.01]
+            else:
+                off = []
+                for x, y in drawn:
+                    t = pp_solve_x(xs, Fraction(x).limit_denominator(1000))
+                    if abs(float(pp_at(ys, t)) - y) > 0.01:
+                        off.append((x, y))
+            if len(drawn) < 40 or off:
+                problems.append(f"{where}: {len(off)} of {len(drawn)} drawn points are off the curve")
+            want = [float(c) for c in pp_point(xs, ys, m[3], m[4])]
+            dots = [mk["at"] for mk in vis.get("answer", []) if mk["kind"] == "point"]
+            if dots != [want]:
+                problems.append(f"{where}: the revealed dot is {dots}, not {want}")
+
+
+pp_check_drawings()
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

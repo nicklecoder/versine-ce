@@ -623,6 +623,21 @@ form; unit vectors are built on Pythagorean triples so their components are
 fractions; a rounded component, angle or resultant agrees to 1 dp with its
 trig values copied to 4 places.
 
+`parametric-polar` is built, as Plot Parametric · Eliminate the Parameter ·
+Parametric Motion · Polar to Rectangular · Rectangular to Polar · Converting
+Equations · Polar Graphs · All Together. Eliminate the Parameter builds on
+conics' Ellipses, Parametric Motion on vectors' From Magnitude & Direction
+and the quadratic formula, Polar to Rectangular on the unit circle's
+special angles and radians, Rectangular to Polar on vectors' Magnitude &
+Direction, and Converting Equations on circles' Equation of a Circle. A
+point goes in the pair box, an eliminated line in the line box as y in
+terms of x, an exact coordinate or r in simplest radical form, an angle or
+a thrown ball's height, distance or time to 1 dp; an eliminated curve, a
+converted equation and a drawn polar graph are chosen from four options
+crossing two slips, and a curve's name from Circle, Cardioid, Limaçon and
+Rose. Every question in degrees says so, and every polar angle is from 0°
+to 360° with r > 0.
+
 ## Category sizes when complete
 
 Functions 9, Equations 9, Expressions 8, Coordinates 8, Powers 7; everything
