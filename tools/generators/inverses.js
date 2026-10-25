@@ -9,7 +9,8 @@
  *
  * Every `text` carries f in plain ASCII, so scripts/check-answers.py can
  * undo it by its own route: solving f(x) = c, composing f with the answer,
- * or reading a table or graph backwards.
+ * or reading a table or graph backwards; a log's domain is sampled, and its
+ * inverse is the option that composes with it to give x back.
  */
 import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
@@ -447,13 +448,167 @@ function reflect(rng) {
   }
 }
 
-const CONTENT = [undoValue, formula, checkPair, restrict, reflect];
+// --- Log Functions ------------------------------------------------------------
+
+const SUBS = '₀₁₂₃₄₅₆₇₈₉';
+const SUPS = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹', '-': '⁻', '+': '⁺', x: 'ˣ', y: 'ʸ' };
+/** log₂, or log alone for base 10, as logarithms writes it. */
+const logF = (b) => (b === 10 ? 'log' : `log${String(b).replace(/\d/g, (d) => SUBS[d])}`);
+/** 2ˣ, 2ˣ⁻³: the exponent raised. */
+const powF = (b, e) => `${b}${e.replace(/\s/g, '').replace(/[-+xy\d]/g, (c) => SUPS[c])}`;
+/** A whole power of b as {n, d}: 2^-2 = 1/4. */
+const powB = (b, e) => (e >= 0 ? { n: b ** e, d: 1 } : { n: 1, d: b ** -e });
+const qText = ({ n, d }) => (d === 1 ? String(n) : `${n}/${d}`);
+const qShow = ({ n, d }) => (d === 1 ? minus(n) : `${minus(n)}/${d}`);
+const LOG_BASES = [2, 2, 3, 3, 4, 5, 10];
+
+function logFunctions(rng) {
+  const shape = rng.pick(['reflect', 'reflect', 'reflect', 'reflect', 'reflect', 'domain', 'domain', 'domain', 'domain', 'domain', 'domain',
+    'asymptote', 'asymptote', 'asymptote', 'asymptote', 'inverse', 'inverse', 'inverse', 'inverse', 'inverse']);
+  const b = rng.pick(LOG_BASES);
+  if (shape === 'reflect' && rng.chance(0.55)) {
+    // A point of bˣ + k, and the point of its inverse it reflects to.
+    const e = rng.int(-2, b >= 5 ? 2 : 3), k = rng.nonZero(-6, 6);
+    const v = powB(b, e), y = { n: v.n + k * v.d, d: v.d };
+    const pt = (p) => `(${qShow(p[0])}, ${qShow(p[1])})`;
+    const from = [{ n: e, d: 1 }, y], to = [y, { n: e, d: 1 }];
+    return {
+      prompt: [T.prose(`f(x) = ${b}ˣ${pm(k, true)}. The point ${pt(from)} is on the graph of f. Which point must be on the graph of f⁻¹?`)],
+      text: `reflect shifted: (${e}, ${qText(y)}) on base ${b} plus ${k}`,
+      answer: { type: 'pair', value: { x: to[0], y: to[1] } },
+      visual: null,
+      explain: `f(${minus(e)}) = ${qShow(v)}${pm(k, true)} = ${qShow(y)}, so f⁻¹(${qShow(y)}) = ${minus(e)}: f⁻¹, here ${logF(b)}(x${pm(-k, true)}), sends each output back to its input. `
+        + `So the graph of f⁻¹ is the graph of f reflected in y = x, and ${pt(from)} becomes ${pt(to)}.`,
+    };
+  }
+  if (shape === 'reflect') {
+    // A point of bˣ and the point of log_b x it reflects to, either way round.
+    const e = rng.int(b === 10 ? -2 : -3, b >= 5 ? 3 : 4);
+    const v = powB(b, e), toLog = rng.chance(0.5);
+    const [from, to] = toLog ? [[{ n: e, d: 1 }, v], [v, { n: e, d: 1 }]] : [[v, { n: e, d: 1 }], [{ n: e, d: 1 }, v]];
+    const pt = (p) => `(${qShow(p[0])}, ${qShow(p[1])})`;
+    const said = toLog ? `y = ${b}ˣ` : `y = ${logF(b)} x`, other = toLog ? `y = ${logF(b)} x` : `y = ${b}ˣ`;
+    return {
+      prompt: [T.prose(`The point ${pt(from)} is on the graph of ${said}. Which point must be on the graph of ${other}?`)],
+      text: `${toLog ? 'reflect onto log' : 'reflect onto power'}: (${qText(from[0])}, ${qText(from[1])}) on base ${b}`,
+      answer: { type: 'pair', value: { x: to[0], y: to[1] } },
+      visual: null,
+      explain: `${logF(b)} x is the inverse of ${b}ˣ: ${b}${String(e).replace(/[-\d]/g, (c) => SUPS[c])} = ${qShow(v)} says the same as ${logF(b)} ${qShow(v)} = ${minus(e)}. `
+        + `So the two graphs are reflections of each other in y = x, and each point's coordinates swap: ${pt(from)} becomes ${pt(to)}.`,
+    };
+  }
+  if (shape === 'domain' || shape === 'asymptote') {
+    // log_b of a line rising or falling, or (for the domain) of x² − c².
+    const kind = shape === 'domain' ? rng.pick(['up', 'up', 'down', 'square']) : rng.pick(['up', 'up', 'down']);
+    const k = rng.chance(0.5) ? 0 : rng.nonZero(-5, 5);
+    const outside = k ? pm(k) : '', outsideF = k ? pm(k, true) : '';
+    if (kind === 'square') {
+      const c = rng.int(1, 6), flip = rng.chance(0.35);
+      const inner = flip ? `${c * c} - x^2` : `x^2 - ${c * c}`, innerF = flip ? `${c * c} − x²` : `x² − ${c * c}`;
+      const parts = flip
+        ? [{ lo: { n: -c, d: 1 }, loIn: false, hi: { n: c, d: 1 }, hiIn: false }]
+        : [{ lo: null, loIn: false, hi: { n: -c, d: 1 }, hiIn: false }, { lo: { n: c, d: 1 }, loIn: false, hi: null, hiIn: false }];
+      const set = flip ? `−${c} < x < ${c}` : `x < −${c} or x > ${c}`;
+      return {
+        prompt: [T.prose(`What is the domain of f(x) = ${logF(b)}(${innerF})${outsideF}? Write it with x.`)],
+        text: `log domain: log_${b}(${inner})${outside}`,
+        answer: { type: 'solutions', value: { letter: 'x', parts } },
+        visual: null,
+        explain: `A log takes only positive numbers, so ${innerF} > 0: ${flip ? `x² < ${c * c}` : `x² > ${c * c}`}, which holds for ${set}${flip ? '' : ' (x² = ' + c * c + ' at x = ±' + c + ', and x² is bigger farther out on both sides)'}. `
+          + `${k ? `The ${minus(k)} outside the log moves the graph ${k > 0 ? 'up' : 'down'} and leaves the domain alone. ` : ''}So the domain is ${set}.`,
+      };
+    }
+    let m, n;
+    do { m = rng.pick([1, 1, 1, 2, 3, 4]); n = rng.nonZero(-9, 9); } while (gcdOf(m, n) !== 1);
+    if (kind === 'down') m = -m;
+    const inner = kind === 'down' ? `${n} - ${m === -1 ? '' : -m}x` : lin(m, n), innerF = kind === 'down' ? `${minus(n)} − ${m === -1 ? '' : -m}x` : lin(m, n, true);
+    const edge = reduce(-n * Math.sign(m), Math.abs(m));
+    const edgeF = qShow(edge);
+    const steps = Math.abs(m) === 1
+      ? (kind === 'down' ? `${minus(n)} > x` : `x > ${minus(-n)}`)
+      : `${kind === 'down' ? `${minus(n)} > ${-m}x` : `${m}x > ${minus(-n)}`}, so ${kind === 'down' ? `${edgeF} > x` : `x > ${edgeF}`}`;
+    const set = kind === 'down' ? `x < ${edgeF}` : `x > ${edgeF}`;
+    if (shape === 'domain') {
+      return {
+        prompt: [T.prose(`What is the domain of f(x) = ${logF(b)}(${innerF})${outsideF}? Write it with x.`)],
+        text: `log domain: log_${b}(${inner})${outside}`,
+        answer: { type: 'solutions', value: { letter: 'x', parts: [kind === 'down'
+          ? { lo: null, loIn: false, hi: edge, hiIn: false } : { lo: edge, loIn: false, hi: null, hiIn: false }] } },
+        visual: null,
+        explain: `A log takes only positive numbers, so ${innerF} > 0: ${steps}. `
+          + `${k ? `The ${minus(k)} outside the log moves the graph ${k > 0 ? 'up' : 'down'} and leaves the domain alone. ` : ''}So the domain is ${set}.`,
+      };
+    }
+    return {
+      prompt: [T.prose(`The graph of y = ${logF(b)}(${innerF})${outsideF} has a vertical asymptote, the line x = a. What is a?`)],
+      text: `log asymptote: log_${b}(${inner})${outside}`,
+      answer: fracAns(edge.n, edge.d),
+      visual: null,
+      explain: `${logF(b)} x falls without end as x comes down to 0, so the graph runs down the line where the inside of the log is 0: ${innerF} = 0 at x = ${edgeF}. `
+        + `${k ? `The ${minus(k)} outside moves the graph ${k > 0 ? 'up' : 'down'}, which leaves a vertical line where it was. ` : ''}So a = ${edgeF}.`,
+    };
+  }
+  // The inverse, as a choice: the one slip of undoing in the wrong order
+  // crossed with the other, a sign or a step turned the wrong way.
+  // requiem: catalogue/content/decoys-cross-two-slips
+  // Each family has a twin with the same four options and another key
+  // (2ˣ + 3 and 2ˣ − 3, 3 · 2ˣ and 2ˣ/3), so the options alone never say which.
+  const kind = rng.pick(['b^x + k', 'b^(x - h)', 'log + k', 'c b^x', 'c b^x', 'b^x / c']);
+  const k = rng.nonZero(-6, 6), c = rng.int(2, 5);
+  const L = logF(b), lname = `log_${b}`;
+  const sh = (v, s = ' ') => (v < 0 ? `${s}+${s}${-v}` : `${s}-${s}${v}`);
+  const shF = (v) => (v < 0 ? ` + ${-v}` : ` − ${v}`);
+  const opp = (v) => -v;
+  let f, fF, opts, why;
+  if (kind === 'b^x + k') {
+    f = `${b}^x${pm(k)}`; fF = `${b}ˣ${pm(k, true)}`;
+    opts = [[`${lname}(x${sh(k)})`, `${L}(x${shF(k)})`], [`${lname}(x${sh(opp(k))})`, `${L}(x${shF(opp(k))})`],
+      [`${lname}(x)${sh(k)}`, `${L} x${shF(k)}`], [`${lname}(x)${sh(opp(k))}`, `${L} x${shF(opp(k))}`]];
+    why = `Write y = ${fF} and swap x and y: x = ${b}ʸ${pm(k, true)}. ${k > 0 ? `Take ${k} away` : `Add ${-k}`} first, ${b}ʸ = x${shF(k)}, then the power: y = ${L}(x${shF(k)}). `
+      + `(Taking the log first, ${L} x${shF(k)}, undoes the steps in the wrong order.)`;
+  } else if (kind === 'b^(x - h)') {
+    f = `${b}^(x${sh(k)})`; fF = powF(b, `x${sh(k, '')}`);
+    opts = [[`${lname}(x)${sh(opp(k))}`, `${L} x${shF(opp(k))}`], [`${lname}(x)${sh(k)}`, `${L} x${shF(k)}`],
+      [`${lname}(x${sh(opp(k))})`, `${L}(x${shF(opp(k))})`], [`${lname}(x${sh(k)})`, `${L}(x${shF(k)})`]];
+    why = `Write y = ${fF} and swap x and y: x = ${powF(b, `y${sh(k, '')}`)}. The log undoes the power, y${shF(k)} = ${L} x, and then y = ${L} x${shF(opp(k))}. `
+      + `(The ${minus(-k)} is inside the power, so it is undone after the log, outside it: ${L}(x${shF(opp(k))}) puts it back inside.)`;
+  } else if (kind === 'log + k') {
+    f = `${lname}(x)${pm(k)}`; fF = `${L} x${pm(k, true)}`;
+    opts = [[`${b}^(x${sh(k)})`, powF(b, `x${sh(k, '')}`)], [`${b}^(x${sh(opp(k))})`, powF(b, `x${sh(opp(k), '')}`)],
+      [`${b}^x${sh(k)}`, `${b}ˣ${shF(k)}`], [`${b}^x${sh(opp(k))}`, `${b}ˣ${shF(opp(k))}`]];
+    why = `Write y = ${fF} and swap x and y: x = ${L} y${pm(k, true)}. ${k > 0 ? `Take ${k} away` : `Add ${-k}`} first, ${L} y = x${shF(k)}, then the log, as a power: y = ${powF(b, `x${sh(k, '')}`)}. `
+      + `(${b}ˣ${shF(k)} undoes the steps in the wrong order.)`;
+  } else if (kind === 'b^x / c') {
+    f = `${b}^x/${c}`; fF = `${b}ˣ/${c}`;
+    opts = [[`${lname}(${c}x)`, `${L}(${c}x)`], [`${lname}(x/${c})`, `${L}(x/${c})`],
+      [`${c}*${lname}(x)`, `${c} ${L} x`], [`${lname}(x)/${c}`, `(${L} x)/${c}`]];
+    why = `Write y = ${fF} and swap x and y: x = ${b}ʸ/${c}. Undo the ÷${c} first, ${b}ʸ = ${c}x, then the power: y = ${L}(${c}x). `
+      + `(Multiplying after the log, ${c} ${L} x, undoes the steps in the wrong order.)`;
+  } else {
+    f = `${c}*${b}^x`; fF = `${c} · ${b}ˣ`;
+    opts = [[`${lname}(x/${c})`, `${L}(x/${c})`], [`${lname}(${c}x)`, `${L}(${c}x)`],
+      [`${lname}(x)/${c}`, `(${L} x)/${c}`], [`${c}*${lname}(x)`, `${c} ${L} x`]];
+    why = `Write y = ${fF} and swap x and y: x = ${c} · ${b}ʸ. Undo the ×${c} first, ${b}ʸ = x/${c}, then the power: y = ${L}(x/${c}). `
+      + `(Dividing after the log, (${L} x)/${c}, undoes the steps in the wrong order.)`;
+  }
+  const order = rng.shuffle([0, 1, 2, 3]);
+  return {
+    prompt: [T.prose(`f(x) = ${fF}. Which is f⁻¹(x)?`)],
+    text: `log inverse: f(x) = ${f}; options ${order.map((j, i) => `${optionIds[i]}: ${opts[j][0]}`).join(' | ')}`,
+    answer: { type: 'choice', value: optionIds[order.indexOf(0)], options: order.map((j, i) => ({ id: optionIds[i], label: opts[j][1] })) },
+    visual: null,
+    explain: `${why} So f⁻¹(x) = ${opts[0][1]}.`,
+  };
+}
+
+const CONTENT = [undoValue, formula, checkPair, restrict, reflect, logFunctions];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
   // requiem: catalogue/content/one-input-per-level
   // Each question shape keeps one box, and the question says which: "find
-  // f⁻¹(7)" a number, "find f⁻¹(x)" a formula, "which point" a pair.
+  // f⁻¹(7)" a number, "find f⁻¹(x)" a formula, "which point" a pair, "the
+  // domain" written with x, "what is a" a number, "which is f⁻¹(x)" a choice.
   const p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
   p.parSeconds = PAR_SECONDS[level];
   return p;

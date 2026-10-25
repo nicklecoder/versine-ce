@@ -13,6 +13,71 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Inverse Functions** has a new level before All Together, Log Functions:
+y = log_b x as the reflection of y = bˣ in y = x, points reflected from
+bˣ + k to its inverse, the domain of a log of a line or of x² − c², its
+vertical asymptote, and the inverse of an exponential or a log picked from
+four options that cross undoing in the wrong order with a sign or a step
+turned round. It depends on logarithms' Log as Exponent, so Inverse
+Functions now opens after Logarithms. `scripts/check-answers.py` samples a
+log's domain, finds its asymptote from two values of what it takes the log
+of, and picks the inverse that composes with the function to give x back.
+
+**Systems of Equations II** (`systems-2`), a new skill under Equations, in
+eight levels: Line Meets Parabola, How Many Intersections, Line Meets
+Circle, Two Curves, Three Variables, No Solution or Infinitely Many,
+Three-Variable Word Problems and All Together. A line is put into a
+parabola (given multiplied out or in vertex form) or a circle (centered or
+not), the quadratic left is solved, and each root gives a point: two, one,
+or none. The discriminant, a circle's distance from the line, or a
+parabola's vertex counts the points without solving, and a tangent line's
+intercept is the k that leaves one. Two parabolas, a circle and a
+parabola, and xy = k with a line meet the same way. A system in x, y and z
+is cut to two letters and then one; one where an equation is a multiple
+of another, or the sum of two, has no solution or infinitely many. The
+stories are tickets, coins, a snack stand and three numbers. Meeting
+points and solutions go in a new `points` answer box, which reads the
+points in any order, fractions or decimals, and none for no points; it
+tells a student who gives some of the points that there are more, and
+asks again when a point has the wrong number of coordinates.
+`scripts/check-answers.py` reads each equation back as a polynomial,
+eliminates y with a resultant and finds its rational roots, walks a line
+to count where it meets a curve, solves three letters by Cramer's rule and
+ranks the matrices, and searches the stories' whole counts.
+
+**The Binomial Theorem** (`binomial`), a new skill under Sequences, in
+seven levels: Pascal's Triangle, Coefficients by Combinations, A Given Term,
+Full Expansion, The Constant Term, Binomial Probability and All Together.
+Pascal's triangle is built by adding, read from either end, and its rows
+sum to 2ⁿ; C(n, k) gives the coefficients of (x + 1)ⁿ and (x + y)ⁿ; one
+term is found with the numbers and signs inside raised along, by its power
+or by its place; a whole expansion goes in the expression box; the constant
+term of (x² + 1/x)ⁿ, and which term it is, come from where the powers
+cancel; and the chance of exactly, at least or at most k successes is
+asked of coins, dice, free throws, seeds, guesses, rain and a spinner.
+Counts and coefficients go in the whole-number box, a probability in the
+fraction box. `scripts/check-answers.py` builds the triangle by adding,
+multiplies the brackets out one at a time, and lists every run of
+successes and failures.
+
+**Series**, a new skill under Sequences, in seven levels: Arithmetic Sums,
+Finite Geometric, Sigma Notation, Infinite Geometric, Series in Context,
+Working Backward and All Together. Arithmetic sums pair the first term with
+the last, in halves and negatives as well as whole steps; geometric sums
+take ratios like −2 and 2/3. Sigma notation is drawn with its limits
+stacked, a new `sigma` prompt term, and is evaluated, counted (both ends
+included) and matched to the series it writes out, the wrong options
+crossing a sum started a term early with one stopped a term early. Infinite
+geometric series find a sum where the ratio is between −1 and 1, pick out
+which of four series has one (or has none), write a repeating decimal as a
+fraction, and find the first term or ratio from the sum. Stories are seats,
+stacks, savings, pay rises, a pendulum and a bouncing ball; working
+backward counts the terms that make a total, finds a difference or first
+term, and a term from Sₙ − Sₙ₋₁. Every answer goes in the fraction box,
+which takes whole numbers too. `scripts/check-answers.py` adds each series
+up term by term, takes an infinite one as the limit of its partial sums, and
+reads a repeating decimal by shifting it.
+
 **Polynomial division, polynomial and rational functions, and rational
 equations, reworked.** Choice options no longer give the right one away by
 their look: each set is two slips crossed (neither, one, the other, both),

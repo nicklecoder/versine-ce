@@ -506,6 +506,58 @@ for (const skill of SKILLS) {
   if (box.parse('-(3-2i)').value?.simplest !== false) fail.push('complex: −(3 − 2i) was called finished');
 }
 
+// requiem: play/answers/points-judged-as-set
+// The points box reads the points in any order, said once or twice, with
+// commas, semicolons or and between them; a fraction and a decimal are one
+// coordinate; none is no points; a point keeps its order; some of the points
+// are not all of them, and are told so; and a point with the wrong number of
+// coordinates is asked again, not marked.
+{
+  const box = getType('points');
+  const want = box.parse('(-3, 4), (3, 4)').value;
+  for (const raw of ['(3, 4) and (-3, 4)', '(3,4);(−3,4)', '(-3, 4) (3, 4)', '(3, 4), (-3, 4), (3, 4)', '(3, 4) or (−3, 4)']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, want)) fail.push(`points: "${raw}" was not read as (−3, 4), (3, 4)`);
+  }
+  if (box.equals(box.parse('(4, 3), (4, -3)').value, want)) fail.push('points: (4, 3) was taken for (3, 4)');
+  if (box.equals(box.parse('(3, 4)').value, want)) fail.push('points: one of two points was taken for both');
+  if (!box.equals(box.parse('(1/2, -0.25)').value, box.parse('(0.5, -1/4)').value)) fail.push('points: 1/2 and 0.5 were not one coordinate');
+  for (const raw of ['none', 'no points', 'They do not meet.', 'no solution', 'no real solutions']) {
+    const r = box.parse(raw);
+    if (!r.ok || r.value.pts.length) fail.push(`points: "${raw}" was not read as no points`);
+  }
+  for (const raw of ['x = 3, y = 4', '3, 4', '(3, 4', '(3)']) {
+    if (box.parse(raw).ok) fail.push(`points: "${raw}" was read as points`);
+  }
+  if (!box.parse('x = 3, y = 4').hint?.includes('brackets')) fail.push('points: x = 3, y = 4 was not told to use brackets');
+
+  const skill = SKILLS.find((s) => s.id === 'systems-2');
+  const at = (slug) => skill.levels.findIndex((l) => l.slug === slug);
+  const two = libOf(skill, at('line-meets-parabola')).problems.find((q) => q.answer.value.pts.length === 2);
+  const none = libOf(skill, at('line-meets-parabola')).problems.find((q) => !q.answer.value.pts.length);
+  const three = libOf(skill, at('three-variables')).problems[0];
+  const play = (p, raw) => {
+    const s = new Session({ skill, level: at('all-together'), mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const [p1, p2] = two.answer.accept[0].split(/\), /).map((t) => `${t.replace(/\)$/, '')})`);
+  const [x, y, z] = three.answer.accept[0].replace(/[()]/g, '').split(', ');
+  const cases = [
+    [two, `${p2}, ${p1}`, 'correct'], [two, `${p1} and ${p2}`, 'correct'], [two, p1, 'wrong'], [two, 'none', 'wrong'],
+    [none, 'none', 'correct'], [none, 'They do not meet', 'correct'], [none, '(0, 0)', 'wrong'],
+    [three, `(${x}, ${y}, ${z})`, 'correct'], [three, `(${x}, ${y})`, 'invalid'], [three, `x = ${x}, y = ${y}, z = ${z}`, 'invalid'],
+  ];
+  for (const [row, raw, want] of cases) {
+    const r = play(row, raw);
+    if (r.status !== want) fail.push(`points: "${raw}" for ${row.answer.accept[0]} was ${r.status}, not ${want}`);
+  }
+  if (!play(two, p1).hint?.includes('more places')) fail.push('points: one of two meeting points was not told there are more');
+  if (!play(three, `(${x}, ${y})`).hint?.includes('3 coordinates')) fail.push('points: a pair for (x, y, z) was not told it needs 3 coordinates');
+}
+
+
 // requiem: play/answers/set-comma-after-not-equal
 // requiem: play/answers/set-all-but-points-shown
 // requiem: play/answers/set-complement-told

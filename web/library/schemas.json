@@ -379,6 +379,7 @@
     "blank",
     "pow",
     "root",
+    "sigma",
     "var",
     "juxt",
     "group",
@@ -412,6 +413,7 @@
     "solutions",
     "roots",
     "complex",
+    "points",
     "pair"
   ]
 }

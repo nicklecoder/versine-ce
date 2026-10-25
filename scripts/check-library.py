@@ -54,6 +54,7 @@ TERM_FIELDS = {
     "op": ("v",), "blank": (), "prose": ("v",),
     "pow": ("b", "e"), "root": ("v",),
     "var": ("v",), "group": (), "juxt": (), "math": (),
+    "sigma": ("lo", "hi", "terms"),
 }
 
 
@@ -96,7 +97,8 @@ def check_terms(terms, where, path, out):
     was perfectly good.
     """
     NESTED = {"frac": ("n", "d"), "pow": ("b", "e"), "root": ("c", "v"),
-              "group": ("terms",), "juxt": ("terms",), "math": ("terms",)}
+              "group": ("terms",), "juxt": ("terms",), "math": ("terms",),
+              "sigma": ("terms",)}
     for i, term in enumerate(terms):
         at = f"{where}: {path}[{i}]"
         if not isinstance(term, dict):

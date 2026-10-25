@@ -1,5 +1,5 @@
 {
-  "built": 617,
+  "built": 640,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -707,6 +707,7 @@
       "check-by-composing",
       "restrict-the-domain",
       "graph-reflection",
+      "log-functions",
       "all-together"
     ],
     "radical-eq": [
@@ -780,6 +781,34 @@
       "ln-and-change-of-base",
       "exponential-equations",
       "log-equations",
+      "all-together"
+    ],
+    "series": [
+      "arithmetic-sums",
+      "finite-geometric",
+      "sigma-notation",
+      "infinite-geometric",
+      "series-in-context",
+      "working-backward",
+      "all-together"
+    ],
+    "binomial": [
+      "pascals-triangle",
+      "coefficients-by-combinations",
+      "a-given-term",
+      "full-expansion",
+      "the-constant-term",
+      "binomial-probability",
+      "all-together"
+    ],
+    "systems-2": [
+      "line-meets-parabola",
+      "how-many-intersections",
+      "line-meets-circle",
+      "two-curves",
+      "three-variables",
+      "no-solution-or-infinitely-many",
+      "three-variable-word-problems",
       "all-together"
     ]
   },
@@ -1683,6 +1712,7 @@
         "composition",
         "equations",
         "functions",
+        "logarithms",
         "quadratic-graphs",
         "roots"
       ],
@@ -1704,6 +1734,9 @@
         ],
         "graph-reflection": [
           "functions"
+        ],
+        "log-functions": [
+          "logarithms"
         ]
       }
     },
@@ -1916,9 +1949,81 @@
           "radical-eq"
         ]
       }
+    },
+    "series": {
+      "dependsOn": [
+        "quadratic-eq",
+        "sequences"
+      ],
+      "levels": {
+        "arithmetic-sums": [
+          "sequences"
+        ],
+        "finite-geometric": [
+          "sequences"
+        ],
+        "working-backward": [
+          "quadratic-eq"
+        ]
+      }
+    },
+    "binomial": {
+      "dependsOn": [
+        "counting",
+        "exponents",
+        "monomials",
+        "polynomials",
+        "probability"
+      ],
+      "levels": {
+        "coefficients-by-combinations": [
+          "counting"
+        ],
+        "a-given-term": [
+          "monomials"
+        ],
+        "full-expansion": [
+          "polynomials"
+        ],
+        "the-constant-term": [
+          "exponents"
+        ],
+        "binomial-probability": [
+          "probability"
+        ]
+      }
+    },
+    "systems-2": {
+      "dependsOn": [
+        "circles",
+        "quadratic-eq",
+        "quadratic-formula",
+        "systems"
+      ],
+      "levels": {
+        "line-meets-parabola": [
+          "quadratic-eq",
+          "systems"
+        ],
+        "how-many-intersections": [
+          "quadratic-formula"
+        ],
+        "line-meets-circle": [
+          "circles"
+        ],
+        "three-variables": [
+          "systems"
+        ],
+        "no-solution-or-infinitely-many": [
+          "systems"
+        ],
+        "three-variable-word-problems": [
+          "systems"
+        ]
+      }
     }
   },
-  "sources": "ce9834093c0c709cce081b3ab67ae86fedf42f68a6707a6da16afbe005962f7b",
+  "sources": "67b8aba1275a5b6d4993e5e0a257ca21bf97283bc815bd9a0132ef04d12f8d0a",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7513,12 +7618,22 @@
     {
       "skill": "inverses",
       "level": 5,
+      "slug": "log-functions",
+      "name": "Log Functions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-5.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "inverses-5.json"
+      "file": "inverses-6.json"
     },
     {
       "skill": "radical-eq",
@@ -8089,6 +8204,226 @@
       "exhaustive": false,
       "signed": true,
       "file": "logarithms-6.json"
+    },
+    {
+      "skill": "series",
+      "level": 0,
+      "slug": "arithmetic-sums",
+      "name": "Arithmetic Sums",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-0.json"
+    },
+    {
+      "skill": "series",
+      "level": 1,
+      "slug": "finite-geometric",
+      "name": "Finite Geometric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-1.json"
+    },
+    {
+      "skill": "series",
+      "level": 2,
+      "slug": "sigma-notation",
+      "name": "Sigma Notation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-2.json"
+    },
+    {
+      "skill": "series",
+      "level": 3,
+      "slug": "infinite-geometric",
+      "name": "Infinite Geometric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-3.json"
+    },
+    {
+      "skill": "series",
+      "level": 4,
+      "slug": "series-in-context",
+      "name": "Series in Context",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "series-4.json"
+    },
+    {
+      "skill": "series",
+      "level": 5,
+      "slug": "working-backward",
+      "name": "Working Backward",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-5.json"
+    },
+    {
+      "skill": "series",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-6.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 0,
+      "slug": "pascals-triangle",
+      "name": "Pascal's Triangle",
+      "count": 165,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-0.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 1,
+      "slug": "coefficients-by-combinations",
+      "name": "Coefficients by Combinations",
+      "count": 300,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-1.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 2,
+      "slug": "a-given-term",
+      "name": "A Given Term",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-2.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 3,
+      "slug": "full-expansion",
+      "name": "Full Expansion",
+      "count": 142,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-3.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 4,
+      "slug": "the-constant-term",
+      "name": "The Constant Term",
+      "count": 520,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-4.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 5,
+      "slug": "binomial-probability",
+      "name": "Binomial Probability",
+      "count": 266,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-5.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-6.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 0,
+      "slug": "line-meets-parabola",
+      "name": "Line Meets Parabola",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-0.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 1,
+      "slug": "how-many-intersections",
+      "name": "How Many Intersections",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-1.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 2,
+      "slug": "line-meets-circle",
+      "name": "Line Meets Circle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-2.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 3,
+      "slug": "two-curves",
+      "name": "Two Curves",
+      "count": 450,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-3.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 4,
+      "slug": "three-variables",
+      "name": "Three Variables",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-4.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 5,
+      "slug": "no-solution-or-infinitely-many",
+      "name": "No Solution or Infinitely Many",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "systems-2-5.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 6,
+      "slug": "three-variable-word-problems",
+      "name": "Three-Variable Word Problems",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-6.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-7.json"
     }
   ]
 }

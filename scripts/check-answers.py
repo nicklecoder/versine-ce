@@ -8074,6 +8074,742 @@ SET_RULES += (
     (re.compile(r"^log eq: (.+) = (.+)$"), lg_equation),
 )
 
+# --- Series ----------------------------------------------------------------------
+#
+# A finite series is added up term by term, walked from its first term by its
+# own difference or ratio -- read from the terms the question shows -- and
+# never by the n(a + l)/2 or a(1 - r^n)/(1 - r) the generator uses. A story's
+# series is built again from the story's numbers. An infinite series is the
+# limit its partial sums settle on: a few hundred terms out, the nearest
+# fraction with a small bottom, which a ratio inside -1 to 1 pins exactly. A
+# repeating decimal is read as x, shifted by its repeat and taken from
+# itself. A count of terms is found by adding terms until the total is hit.
+
+def sr_nums(listing: str) -> list:
+    return [Fraction(v) for v in listing.split(", ")]
+
+
+def sr_step(ts: list, geometric: bool) -> Fraction:
+    """The common difference or ratio, which every shown term must share."""
+    if geometric:
+        r = ts[1] / ts[0]
+        assert all(b == a * r for a, b in zip(ts, ts[1:])), f"{ts} is not geometric"
+        return r
+    d = ts[1] - ts[0]
+    assert all(b - a == d for a, b in zip(ts, ts[1:])), f"{ts} is not arithmetic"
+    return d
+
+
+def sr_walk(first: Fraction, step: Fraction, geometric: bool, count: int) -> list:
+    out, t = [], first
+    for _ in range(count):
+        out.append(t)
+        t = t * step if geometric else t + step
+    return out
+
+
+def sr_to(first: Fraction, step: Fraction, geometric: bool, last: Fraction) -> list:
+    out, t = [], first
+    for _ in range(2000):
+        out.append(t)
+        if t == last:
+            return out
+        t = t * step if geometric else t + step
+    raise AssertionError(f"{last} is never reached")
+
+
+def sr_first_n(n, listing, geometric):
+    ts = sr_nums(listing)
+    return sum(sr_walk(ts[0], sr_step(ts, geometric), geometric, int(n)))
+
+
+def sr_up_to(listing, last, geometric):
+    ts = sr_nums(listing)
+    return sum(sr_to(ts[0], sr_step(ts, geometric), geometric, Fraction(last)))
+
+
+def sr_ends(n, first, last):
+    n, a, l = int(n), Fraction(first), Fraction(last)
+    return sum(sr_to(a, (l - a) / (n - 1), False, l))
+
+
+def sr_limit(partial: Fraction) -> Fraction:
+    """The fraction a partial sum far out is settling on."""
+    return partial.limit_denominator(10 ** 7)
+
+
+def sr_infinite(listing):
+    ts = sr_nums(listing)
+    r = sr_step(ts, True)
+    assert abs(r) < 1, "no sum"
+    return sr_limit(sum(sr_walk(ts[0], r, True, 400)))
+
+
+def sr_infinite_rule(lo, src):
+    return sr_limit(sum(evaluate(src, "k", k) for k in range(int(lo), int(lo) + 400)))
+
+
+def sr_repeating(digits: str) -> Fraction:
+    # x = 0.lead(block): shifting by the repeat's length lines the repeats up.
+    # Read as one string, so a block such as 05 keeps its zero.
+    lead, block = re.fullmatch(r"(\d*)\((\d+)\)", digits).groups()
+    m, n = len(lead), len(block)
+    whole = int(lead + block) - int(lead or "0")
+    return Fraction(whole, 10 ** (m + n) - 10 ** m)
+
+
+def sr_first_of(total, ratio):
+    # The sum is a times the sum of r^k, which the partial sums give.
+    unit = sr_limit(sum(sr_walk(Fraction(1), Fraction(ratio), True, 400)))
+    return Fraction(total) / unit
+
+
+def sr_ratio_of(first, total):
+    a, S = Fraction(first), Fraction(total)
+    hits = {Fraction(p, q) for q in range(1, 13) for p in range(-q + 1, q)
+            if sr_limit(sum(sr_walk(a, Fraction(p, q), True, 400))) == S}
+    assert len(hits) == 1, f"{len(hits)} ratios give {S}"
+    return hits.pop()
+
+
+def sr_count(listing, target):
+    ts = sr_nums(listing)
+    geometric = ts[1] - ts[0] != ts[2] - ts[1]
+    step, t, total = sr_step(ts, geometric), ts[0], Fraction(0)
+    for n in range(1, 500):
+        total += t
+        if total == Fraction(target):
+            return n
+        t = t * step if geometric else t + step
+    raise AssertionError(f"no count of terms makes {target}")
+
+
+def sr_difference(n, first, total):
+    hits = [d for d in range(-60, 61) if sum(sr_walk(Fraction(first), Fraction(d), False, int(n))) == Fraction(total)]
+    assert len(hits) == 1, f"{len(hits)} differences fit"
+    return hits[0]
+
+
+def sr_first_term(n, diff, total):
+    # Raising the first term by one raises every term, so the sum, by n.
+    base = sum(sr_walk(Fraction(0), Fraction(diff), False, int(n)))
+    return (Fraction(total) - base) / int(n)
+
+
+def sr_stack(bottom, top):
+    return sum(range(int(top), int(bottom) + 1))
+
+
+def sr_salary(pay, pct, years):
+    return sum(sr_walk(Fraction(pay), Fraction(100 + int(pct), 100), True, int(years)))
+
+
+def sr_ball(drop, rebound, landings):
+    h, r = Fraction(drop), Fraction(rebound)
+    far, height = h, h
+    for _ in range(int(landings) - 1 if landings else 400):
+        height *= r
+        far += 2 * height
+    return far if landings else sr_limit(far)
+
+
+def sr_term_from_sums(src, n):
+    n = int(n)
+    return evaluate(src, "n", n) - evaluate(src, "n", n - 1)
+
+
+def sr_which_sigma(lo, hi, src, listing):
+    lo, hi = int(lo), int(hi)
+    want = [evaluate(src, "k", k) for k in (lo, lo + 1, lo + 2)], evaluate(src, "k", hi)
+
+    def fits(body):
+        head, last = body.split(" ... ")
+        return (sr_nums(head), Fraction(last)) == want
+    return rf_pick(listing, fits)
+
+
+def sr_which_sum(has: str, listing: str) -> str:
+    def converges(body):
+        return abs(sr_step(sr_nums(body), True)) < 1
+    return rf_pick(listing, lambda body: converges(body) == (has == "has sum"))
+
+
+BY_RULE += (
+    (re.compile(r"^arith sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, False)),
+    (re.compile(r"^arith sum: (\d+) terms, first (\S+), last (\S+)$"), sr_ends),
+    (re.compile(r"^arith sum: (\d+) terms, first (\S+), difference (\S+)$"),
+     lambda n, a, d: sum(sr_walk(Fraction(a), Fraction(d), False, int(n)))),
+    (re.compile(r"^arith sum: (.+) to (\S+?)(?:; (?:whole|even|odd|multiples))?$"), lambda ts, l: sr_up_to(ts, l, False)),
+    (re.compile(r"^geo sum: first (\d+), a1 (\S+), r (\S+)$"),
+     lambda n, a, r: sum(sr_walk(Fraction(a), Fraction(r), True, int(n)))),
+    (re.compile(r"^geo sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, True)),
+    (re.compile(r"^geo sum: (.+) to (\S+)$"), lambda ts, l: sr_up_to(ts, l, True)),
+    (re.compile(r"^sigma: k=(\d+)\.\.(\d+) of (.+)$"),
+     lambda lo, hi, src: sum(evaluate(src, "k", k) for k in range(int(lo), int(hi) + 1))),
+    (re.compile(r"^sigma terms: k=(\d+)\.\.(\d+) of (.+)$"), lambda lo, hi, src: len(range(int(lo), int(hi) + 1))),
+    (re.compile(r"^infinite sum: (.+)$"), sr_infinite),
+    (re.compile(r"^infinite sigma: k=(\d+) of (.+)$"), sr_infinite_rule),
+    (re.compile(r"^repeating: 0\.(\d*\(\d+\))$"), sr_repeating),
+    (re.compile(r"^infinite first: sum (\S+), r (\S+)$"), sr_first_of),
+    (re.compile(r"^infinite ratio: first (\S+), sum (\S+)$"), sr_ratio_of),
+    (re.compile(r"^seats: (\d+) rows, (\d+) first, (\d+) more each$"),
+     lambda rows, first, more: sum(sr_walk(Fraction(first), Fraction(more), False, rows))),
+    (re.compile(r"^stack: (\d+) bottom, 1 fewer, (\d+) top; \w+$"), sr_stack),
+    (re.compile(r"^savings: (\d+) first, (\d+) more, (\d+) weeks$"),
+     lambda first, more, weeks: sum(sr_walk(Fraction(first), Fraction(more), False, weeks))),
+    (re.compile(r"^growing: (\d+) first, times (\d+), (\d+) days$"),
+     lambda first, times, days: sum(sr_walk(Fraction(first), Fraction(times), True, days))),
+    (re.compile(r"^salary: (\d+) first, (\d+) percent, (\d+) years$"), sr_salary),
+    (re.compile(r"^ball: (\S+) drop, (\S+) rebound(?:, (\d+) landings)?; (?:feet|meters)$"), sr_ball),
+    (re.compile(r"^pendulum: (\d+) first, (\S+) each, (\d+) swings$"),
+     lambda first, r, swings: sum(sr_walk(Fraction(first), Fraction(r), True, swings))),
+    (re.compile(r"^terms to sum: (.+) make (\d+)$"), sr_count),
+    (re.compile(r"^find difference: (\d+) terms, first (-?\d+), sum (-?\d+)$"), sr_difference),
+    (re.compile(r"^find first: (\d+) terms, difference (-?\d+), sum (-?\d+)$"), sr_first_term),
+    (re.compile(r"^term from sums: (.+), a(\d+)$"), sr_term_from_sums),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^sigma which: k=(\d+)\.\.(\d+) of (.+?); options (.+)$"), sr_which_sigma),
+    (re.compile(r"^infinite which: (has sum|no sum); options (.+)$"), sr_which_sum),
+)
+
+# --- The Binomial Theorem ------------------------------------------------------------
+#
+# Pascal's triangle is built by adding, row from row, and a row is found by
+# the numbers it begins with. A binomial power is multiplied out one bracket
+# at a time, as a polynomial in its letters (negative powers included, for
+# 1/x), so a coefficient is read off the product and never from C(n, k). An
+# expansion typed as an answer is read term by term into the same form and
+# must be that product with each power once. A chance of k successes lists
+# every run of n successes and failures and adds the ones that count.
+
+def bn_triangle(rows: int = 25) -> list:
+    out = [[1]]
+    for _ in range(rows):
+        prev = out[-1]
+        out.append([1] + [a + b for a, b in zip(prev, prev[1:])] + [1])
+    return out
+
+
+BN_TRI = bn_triangle()
+
+
+def bn_row_beginning(listing: str) -> int:
+    head = [int(v) for v in listing.split(", ")]
+    hits = [n for n, r in enumerate(BN_TRI) if r[:len(head)] == head]
+    assert len(hits) == 1, f"{len(hits)} rows begin {listing}"
+    return hits[0]
+
+
+def bn_next(listing: str, number) -> int:
+    r = [int(v) for v in listing.split(", ")]
+    n = len(r) - 1
+    assert BN_TRI[n] == r, f"{listing} is not a row"
+    return BN_TRI[n + 1][int(number) - 1]
+
+
+BN_MONO = re.compile(r"^(-?)(\d*)([a-z])?(?:\^(\d+))?$|^(-?)(\d+)/([a-z])(?:\^(\d+))?$")
+
+
+def bn_mono(src: str) -> tuple:
+    """A monomial as (coefficient, ((letter, power), ...))."""
+    m = BN_MONO.match(src.replace(" ", ""))
+    assert m, f"cannot read {src}"
+    if m[6]:
+        sign = -1 if m[5] else 1
+        return Fraction(sign * int(m[6])), ((m[7], -int(m[8] or 1)),)
+    sign = -1 if m[1] else 1
+    coef = Fraction(int(m[2]) if m[2] else 1) * sign
+    return coef, (((m[3], int(m[4] or 1)),) if m[3] else ())
+
+
+def bn_times(p: dict, q: dict) -> dict:
+    out = {}
+    for (ka, ca) in p.items():
+        for (kb, cb) in q.items():
+            powers = dict(ka)
+            for letter, e in kb:
+                powers[letter] = powers.get(letter, 0) + e
+            key = tuple(sorted((l, e) for l, e in powers.items() if e != 0))
+            out[key] = out.get(key, 0) + ca * cb
+    return {k: c for k, c in out.items() if c != 0}
+
+
+def bn_power(src: str) -> dict:
+    """(A + B)^n multiplied out, one bracket at a time."""
+    m = re.fullmatch(r"\((-?[^ ]+) ([+-]) ([^ ]+)\)\^(\d+)", src)
+    assert m, f"cannot read {src}"
+    a = bn_mono(m[1])
+    b = bn_mono(("-" if m[2] == "-" else "") + m[3])
+    bracket = {a[1]: a[0]}
+    bracket[b[1]] = bracket.get(b[1], 0) + b[0]
+    out = {(): Fraction(1)}
+    for _ in range(int(m[4])):
+        out = bn_times(out, bracket)
+    return out
+
+
+def bn_letters(asked: str) -> tuple:
+    """x^2y^4, a^5b^3, x, x^0, x^-3 as ((letter, power), ...)."""
+    powers = {}
+    for letter, e in re.findall(r"([a-z])(?:\^(-?\d+))?", asked):
+        powers[letter] = powers.get(letter, 0) + int(e or 1)
+    return tuple(sorted((l, e) for l, e in powers.items() if e != 0))
+
+
+def bn_coefficient(asked: str, src: str):
+    return bn_power(src).get(bn_letters(asked), 0)
+
+
+def bn_term_number(k, src: str):
+    # In descending powers of x: the kth term of the product, so ordered.
+    terms = sorted(bn_power(src).items(), key=lambda kv: -dict(kv[0]).get("x", 0))
+    return terms[int(k) - 1][1]
+
+
+def bn_choose_same(n, k):
+    n, k = int(n), int(k)
+    hits = [j for j, v in enumerate(BN_TRI[n]) if v == BN_TRI[n][k] and j != k]
+    assert len(hits) == 1, f"{len(hits)} other k"
+    return hits[0]
+
+
+BN_TERM = re.compile(r"^(\d*)((?:[a-z](?:\^\d+)?)*)$")
+
+
+def bn_expanded(src: str, answer: str) -> str:
+    """The product, written as one term per power, each coefficient worked out."""
+    seen = {}
+    for term in answer.replace(" - ", " + -").split(" + "):
+        sign, body = ("-", term[1:]) if term.startswith("-") else ("", term)
+        m = BN_TERM.match(body)
+        if not m or m[1] in ("0", "1") and m[2] or not (m[1] or m[2]):
+            return f"has a term {body} that is not worked out"
+        key = bn_letters(m[2])
+        if key in seen:
+            return f"has the power {m[2] or 'constant'} twice"
+        seen[key] = Fraction(int(m[1]) if m[1] else 1) * (-1 if sign else 1)
+    if seen != bn_power(src):
+        return f"is not {src} multiplied out"
+    return "ok"
+
+
+def bn_chance(n, p, how, k):
+    import itertools
+    n, k, p = int(n), int(k), Fraction(p)
+    total = Fraction(0)
+    for run in itertools.product((True, False), repeat=n):
+        wins = sum(run)
+        if {"exactly": wins == k, "at least": wins >= k, "at most": wins <= k}[how]:
+            chance = Fraction(1)
+            for won in run:
+                chance *= p if won else 1 - p
+            total += chance
+    return total
+
+
+def bn_constant_number(src: str) -> int:
+    # Every term multiplied out, in descending powers of x: where x's power is 0.
+    terms = sorted(bn_power(src).items(), key=lambda kv: -dict(kv[0]).get("x", 0))
+    hits = [i + 1 for i, (key, _) in enumerate(terms) if dict(key).get("x", 0) == 0]
+    assert len(hits) == 1, f"{src} has {len(hits)} constant terms"
+    return hits[0]
+
+
+BY_RULE += (
+    (re.compile(r"^pascal next: ([\d, ]+); number (\d+)$"), bn_next),
+    (re.compile(r"^constant term number: (\(.+\)\^\d+)$"), bn_constant_number),
+    (re.compile(r"^pascal sum: begins ([\d, ]+)$"), lambda head: sum(BN_TRI[bn_row_beginning(head)])),
+    (re.compile(r"^pascal mirror: begins ([\d, ]+); number (\d+)$"), lambda head, k: BN_TRI[bn_row_beginning(head)][int(k) - 1]),
+    (re.compile(r"^pascal power: begins ([\d, ]+)$"), bn_row_beginning),
+    (re.compile(r"^choose: (\d+), (\d+)$"), lambda n, k: BN_TRI[int(n)][int(k)]),
+    (re.compile(r"^choose same: (\d+), (\d+)$"), bn_choose_same),
+    (re.compile(r"^coefficient: (\S+) in (\(.+\)\^\d+)$"), bn_coefficient),
+    (re.compile(r"^term number: (\d+) of (\(.+\)\^\d+)$"), bn_term_number),
+    (re.compile(r"^binomial chance: n (\d+), p (\d+/\d+), (exactly|at least|at most) (\d+); \w+$"), bn_chance),
+)
+
+EXPR_RULES += (
+    (re.compile(r"^expand: (\(.+\)\^\d+)$"), bn_expanded),
+)
+
+
+# --- Systems of Equations II ------------------------------------------------------
+# Where two curves meet is found again without putting one into the other:
+# each equation is read back as a polynomial in x and y by evaluating it on a
+# grid, y is eliminated with the Sylvester resultant -- worked out at many x
+# and fitted, never expanded by hand -- and the resultant's rational roots,
+# found by the rational root theorem, give every x where they can meet; each
+# is put back to find its y's. How many points a line and a curve share is
+# counted by walking the line as P + t·d and solving in t, and a tangent's k
+# is the lowest point of the parabola less the line, found on a grid. A
+# system in x, y and z is solved by Cramer's rule, and whether it has one
+# solution, none or infinitely many by the ranks of its matrices. The three-
+# letter stories are searched, every whole count tried.
+
+def s2_solve(M, b):
+    """Solve M v = b over the rationals by elimination; None if singular."""
+    n = len(M)
+    A = [[Fraction(v) for v in row] + [Fraction(bb)] for row, bb in zip(M, b)]
+    for c in range(n):
+        p = next((r for r in range(c, n) if A[r][c] != 0), None)
+        if p is None:
+            return None
+        A[c], A[p] = A[p], A[c]
+        for r in range(n):
+            if r != c and A[r][c] != 0:
+                f = A[r][c] / A[c][c]
+                A[r] = [x - f * y for x, y in zip(A[r], A[c])]
+    return [A[i][n] / A[i][i] for i in range(n)]
+
+
+def s2_det(M):
+    A = [[Fraction(v) for v in row] for row in M]
+    n, det = len(A), Fraction(1)
+    for c in range(n):
+        p = next((r for r in range(c, n) if A[r][c] != 0), None)
+        if p is None:
+            return Fraction(0)
+        if p != c:
+            A[c], A[p] = A[p], A[c]
+            det = -det
+        det *= A[c][c]
+        for r in range(c + 1, n):
+            f = A[r][c] / A[c][c]
+            A[r] = [x - f * y for x, y in zip(A[r], A[c])]
+    return det
+
+
+def s2_fit(values):
+    """Coefficients, constant first, of the polynomial through (k, values[k])."""
+    n = len(values)
+    return s2_solve([[Fraction(k) ** j for j in range(n)] for k in range(n)], values)
+
+
+def s2_at(cs, x):
+    out = Fraction(0)
+    for c in reversed(cs):
+        out = out * x + c
+    return out
+
+
+def s2_trim(cs):
+    cs = list(cs)
+    while cs and cs[-1] == 0:
+        cs.pop()
+    return cs
+
+
+def s2_equation(src):
+    """An equation in x and y as {(i, j): coefficient of x^i y^j}, read off a grid."""
+    left, right = src.split(" = ")
+    f = lambda x, y: (evaluate(left.replace("x", f"({x})").replace("y", f"({y})"))
+                      - evaluate(right.replace("x", f"({x})").replace("y", f"({y})")))
+    N = 4                                   # every equation here is of degree under 4 in each letter
+    by_x = [s2_fit([f(x, y) for y in range(N)]) for x in range(N)]
+    poly = {}
+    for j in range(N):
+        for i, c in enumerate(s2_fit([by_x[x][j] for x in range(N)])):
+            if c:
+                poly[(i, j)] = c
+    for x, y in ((7, -5), (-3, 11), (Fraction(1, 3), Fraction(-5, 2))):
+        assert s2_value(poly, x, y) == f(x, y), f"{src} is not of degree under 4"
+    return poly
+
+
+def s2_value(poly, x, y):
+    return sum(c * Fraction(x) ** i * Fraction(y) ** j for (i, j), c in poly.items())
+
+
+def s2_in_y(poly, x):
+    """The polynomial in y left when x is fixed."""
+    deg = max(j for _, j in poly)
+    return [sum((c * Fraction(x) ** i for (i, jj), c in poly.items() if jj == j), Fraction(0)) for j in range(deg + 1)]
+
+
+def s2_resultant_at(p, q, x):
+    a, b = s2_in_y(p, x), s2_in_y(q, x)
+    m, n = len(a) - 1, len(b) - 1
+    size = m + n
+    if size == 0:
+        return Fraction(1)
+    rows = []
+    for r in range(n):
+        rows.append([Fraction(0)] * r + list(reversed(a)) + [Fraction(0)] * (size - m - 1 - r))
+    for r in range(m):
+        rows.append([Fraction(0)] * r + list(reversed(b)) + [Fraction(0)] * (size - n - 1 - r))
+    return s2_det(rows)
+
+
+def s2_rational_roots(cs):
+    """Every rational root of a polynomial with rational coefficients, constant first."""
+    cs = s2_trim(cs)
+    if not cs:
+        raise ValueError("the zero polynomial has every root")
+    out = set()
+    while cs and cs[0] == 0:
+        out.add(Fraction(0))
+        cs = cs[1:]
+    if len(cs) <= 1:
+        return out
+    den = 1
+    for c in cs:
+        den = den * c.denominator // math.gcd(den, c.denominator)
+    ints = [int(c * den) for c in cs]
+
+    def divisors(n):
+        n, ds = abs(n), set()
+        for d in range(1, math.isqrt(n) + 1):
+            if n % d == 0:
+                ds |= {d, n // d}
+        return ds
+
+    for p in divisors(ints[0]):
+        for q in divisors(ints[-1]):
+            for r in (Fraction(p, q), Fraction(-p, q)):
+                if s2_at(cs, r) == 0:
+                    out.add(r)
+    return out
+
+
+def s2_meet(text):
+    """Every point where the two equations both hold, as sorted tuples."""
+    p, q = (s2_equation(e) for e in text.split("; "))
+    # y out of both: a polynomial in x whose roots are the x's of the points.
+    width = 13
+    res = s2_fit([s2_resultant_at(p, q, x) for x in range(width)])
+    for x in (13, 14, -2):
+        assert s2_at(res, x) == s2_resultant_at(p, q, x), f"{text}: resultant of degree {width} or more"
+    pts = set()
+    for x in s2_rational_roots(res):
+        a, b = s2_trim(s2_in_y(p, x)), s2_trim(s2_in_y(q, x))
+        pick = a or b
+        if not pick:
+            raise ValueError(f"{text}: a whole line in common at x = {x}")
+        for y in s2_rational_roots(pick):
+            if s2_value(p, x, y) == 0 and s2_value(q, x, y) == 0:
+                pts.add((x, y))
+    return sorted(pts)
+
+
+def s2_count(text):
+    """How many points a line and a curve share: the line walked as P + t·d."""
+    p, q = (s2_equation(e) for e in text.split("; "))
+    line, curve = (p, q) if all(i + j <= 1 for i, j in p) else (q, p)
+    assert all(i + j <= 1 for i, j in line), f"{text}: no line"
+    A, B, C = line.get((1, 0), 0), line.get((0, 1), 0), -line.get((0, 0), 0)
+    P = (Fraction(0), C / B) if B else (C / A, Fraction(0))
+    g = s2_trim(s2_fit([s2_value(curve, P[0] + t * B, P[1] - t * A) for t in range(4)]))
+    if len(g) == 4:
+        raise ValueError(f"{text}: cubic along the line")
+    if len(g) <= 1:
+        return "none" if g else "infinite"
+    if len(g) == 2:
+        return "one"
+    disc = g[1] ** 2 - 4 * g[2] * g[0]
+    return "two" if disc > 0 else "one" if disc == 0 else "none"
+
+
+def s2_tangent(par, m):
+    """k where y = mx + k touches the parabola: its lowest gap above the line."""
+    gap = s2_equation(f"{par.split(' = ')[1]} - ({m})x = 0")
+    vals = [s2_value(gap, Fraction(i, 2), 0) for i in range(-80, 81)]
+    low = min(vals)
+    assert vals.index(low) not in (0, len(vals) - 1), f"{par}: the lowest gap is off the grid"
+    return low
+
+
+def s2_linear3(src):
+    left, right = src.split(" = ")
+    at = lambda x, y, z: evaluate(left.replace("x", f"({x})").replace("y", f"({y})").replace("z", f"({z})"))
+    base = at(0, 0, 0)
+    row = [at(1, 0, 0) - base, at(0, 1, 0) - base, at(0, 0, 1) - base]
+    assert at(2, -3, 5) == base + 2 * row[0] - 3 * row[1] + 5 * row[2], f"{src} is not linear"
+    return row, evaluate(right) - base
+
+
+def s2_cramer(text):
+    rows = [s2_linear3(e) for e in text.split("; ")]
+    M, b = [r for r, _ in rows], [d for _, d in rows]
+    D = s2_det(M)
+    assert D != 0, f"{text} has no one solution"
+    sol = []
+    for k in range(3):
+        Mk = [[b[i] if j == k else M[i][j] for j in range(3)] for i in range(3)]
+        sol.append(s2_det(Mk) / D)
+    return [tuple(sol)]
+
+
+def s2_rank(M):
+    A = [[Fraction(v) for v in row] for row in M]
+    rank, col = 0, 0
+    while rank < len(A) and col < len(A[0]):
+        p = next((r for r in range(rank, len(A)) if A[r][col] != 0), None)
+        if p is None:
+            col += 1
+            continue
+        A[rank], A[p] = A[p], A[rank]
+        for r in range(len(A)):
+            if r != rank and A[r][col] != 0:
+                f = A[r][col] / A[rank][col]
+                A[r] = [x - f * y for x, y in zip(A[r], A[rank])]
+        rank, col = rank + 1, col + 1
+    return rank
+
+
+def s2_how_many3(text):
+    rows = [s2_linear3(e) for e in text.split("; ")]
+    M = [r for r, _ in rows]
+    aug = [r + [d] for r, d in rows]
+    rm, ra = s2_rank(M), s2_rank(aug)
+    return "none" if ra > rm else "one" if rm == 3 else "infinite"
+
+
+def s2_tickets(pa, ps, pc, n, cash, times):
+    pa, ps, pc, n, cash, times = map(int, (pa, ps, pc, n, cash, times))
+    found = [(a, s, c) for c in range(n + 1) for s in [times * c] for a in [n - s - c]
+             if a >= 0 and pa * a + ps * s + pc * c == cash]
+    assert len(found) == 1, f"tickets: {found}"
+    return found
+
+
+def s2_coins(n, cents, more):
+    n, cents, more = int(n), int(cents), int(more)
+    found = [(k, k + more, n - 2 * k - more) for k in range(n + 1)
+             if n - 2 * k - more >= 0 and 5 * k + 10 * (k + more) + 25 * (n - 2 * k - more) == cents]
+    assert len(found) == 1, f"coins: {found}"
+    return found
+
+
+def s2_snacks(orders):
+    rows = [o.split(" for ") for o in orders.split("; ")]
+    M = [[int(v) for v in left.split()] for left, _ in rows]
+    b = [Fraction(int(total), 100) for _, total in rows]
+    sol = s2_solve(M, b)
+    assert sol is not None, f"snacks: {orders} has no one price list"
+    return [tuple(sol)]
+
+
+def s2_numbers(total, more, times):
+    total, more, times = int(total), int(more), int(times)
+    found = [(a, a + more, times * a) for a in range(-200, 201) if a + (a + more) + times * a == total]
+    assert len(found) == 1, f"numbers: {found}"
+    return found
+
+
+# Each rule with the number of coordinates its points have, which an answer
+# of none must carry too.
+POINT_RULES = (
+    (re.compile(r"^meet: (.+; .+)$"), s2_meet, 2),
+    (re.compile(r"^system3: (.+; .+; .+)$"), s2_cramer, 3),
+    (re.compile(r"^tickets: prices (\d+) (\d+) (\d+); (\d+) sold; (\d+) taken; students (\d+) times children$"), s2_tickets, 3),
+    (re.compile(r"^coins: (\d+) coins; (\d+) cents; dimes (\d+) more than nickels$"), s2_coins, 3),
+    (re.compile(r"^snacks: (.+)$"), s2_snacks, 3),
+    (re.compile(r"^numbers: sum (-?\d+); second (\d+) more than first; third (\d+) times first$"), s2_numbers, 3),
+)
+
+BY_RULE += (
+    (re.compile(r"^tangent k: (y = .+); y = (-?\d+)x \+ k$"), s2_tangent),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^how many(?: circle| flat)?: (.+; .+)$"), s2_count),
+    (re.compile(r"^how many3: (.+; .+; .+)$"), s2_how_many3),
+)
+
+
+# --- Inverses: Log Functions -----------------------------------------------------
+# A point of bˣ or of log_b x is confirmed on its own curve, by raising the
+# base, and swapped; a log's domain is sampled, every x kept where what it
+# takes the log of is positive; its asymptote is where that is 0, found from
+# two values of it; and the inverse is the option that composes with f to
+# give x back, both ways, at several x, in floating point.
+
+def il_inside(src):
+    """What a log_b(...) takes the log of, and the base."""
+    m = re.match(r"^log_(\d+)\((.+?)\)(?: [-+] \d+)?$", src)
+    assert m, f"no log in {src}"
+    return int(m[1]), m[2]
+
+
+def il_reflect(x, y, base, onto):
+    x, y, b = Fraction(x), Fraction(y), int(base)
+    if onto == "log":
+        assert Fraction(b) ** int(x) == y and x.denominator == 1, f"({x}, {y}) is not on {b}^x"
+    else:
+        assert Fraction(b) ** int(y) == x and y.denominator == 1, f"({x}, {y}) is not on log_{b} x"
+    return (y, x)
+
+
+def il_domain(src):
+    _, inner = il_inside(src)
+    return on_grid({x for x in DR_X if evaluate(inner, "x", x) > 0}, DR_X)
+
+
+def il_asymptote(src):
+    _, inner = il_inside(src)
+    at0, at1 = evaluate(inner, "x", 0), evaluate(inner, "x", 1)
+    assert evaluate(inner, "x", 5) == at0 + 5 * (at1 - at0), f"{inner} is not a line"
+    return -at0 / (at1 - at0)
+
+
+def il_float(src):
+    """An ASCII rule in x as a Python function of floats: log_2(x), 3*2^x, 2^(x - 1)."""
+    py = re.sub(r"log_(\d+)\(", r"_log(\1, ", src)
+    py = re.sub(r"(\d)(x)", r"\1*\2", py).replace("^", "**")
+    return lambda x: eval(py, {"_log": lambda b, v: math.log(v, b) if v > 0 else float("nan")}, {"x": x})
+
+
+def il_inverse(f, listing):
+    fn = il_float(f.split(" = ", 1)[1])
+    good = []
+    for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
+        g = il_float(label)
+        ok = True
+        for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0):
+            try:
+                back = g(fn(x))                        # f⁻¹(f(x)) = x, for every x
+                ok &= back == back and abs(back - x) < 1e-9
+            except (ValueError, ZeroDivisionError, OverflowError):
+                ok = False
+        for y in (13.0, 40.0, 97.5):                   # f(f⁻¹(y)) = y, for y in f's range
+            try:
+                there = fn(g(y))
+                ok &= there == there and abs(there - y) < 1e-9 * y
+            except (ValueError, ZeroDivisionError, OverflowError):
+                ok = False
+        if ok:
+            good.append(oid)
+    assert len(good) == 1, f"{f}: {good} undo it"
+    return good[0]
+
+
+def il_reflect_shifted(x, y, base, k):
+    x, y = Fraction(x), Fraction(y)
+    assert x.denominator == 1 and Fraction(int(base)) ** int(x) + int(k) == y, f"({x}, {y}) is not on {base}^x + {k}"
+    return (y, x)
+
+
+PAIR_RULES += (
+    (re.compile(r"^reflect shifted: \((\S+), (\S+)\) on base (\d+) plus (-?\d+)$"), il_reflect_shifted),
+    (re.compile(r"^reflect onto log: \((\S+), (\S+)\) on base (\d+)$"), lambda x, y, b: il_reflect(x, y, b, "log")),
+    (re.compile(r"^reflect onto power: \((\S+), (\S+)\) on base (\d+)$"), lambda x, y, b: il_reflect(x, y, b, "power")),
+)
+
+SET_RULES += (
+    (re.compile(r"^log domain: (.+)$"), il_domain),
+)
+
+BY_RULE += (
+    (re.compile(r"^log asymptote: (.+)$"), il_asymptote),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^log inverse: (f\(x\) = .+?); options (.+)$"), il_inverse),
+)
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -8211,6 +8947,27 @@ for path in sorted(LIB.glob("*.json")):
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
             continue
+
+        # requiem: play/answers/points-judged-as-set
+        # Points: found again from the equations or the story, and compared
+        # as a set of exact points, none as the empty set of the question's size.
+        if answer["type"] == "points":
+            rule = next((r for r in POINT_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = sorted(tuple(Fraction(c) for c in pt) for pt in rule[1](*rule[0].match(text).groups()))
+                v = answer["value"]
+                got = sorted(tuple(as_fraction(c) for c in pt) for pt in v["pts"])
+                if got != want:
+                    problems.append(f"{where}: {text} meets at {want}, not {got}")
+                if v.get("dim") != rule[2]:
+                    problems.append(f"{where}: {text} has {rule[2]} coordinates, not {v.get('dim')}")
+                for pt in v["pts"]:
+                    for c in pt:
+                        if c["d"] <= 0 or math.gcd(c["n"], c["d"]) != 1:
+                            problems.append(f"{where}: coordinate {c} is not in lowest terms")
+            continue
+
 
         # requiem: catalogue/content/complex-judged-exactly
         # A complex number: worked out again in exact complex arithmetic and
