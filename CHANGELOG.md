@@ -13,6 +13,39 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Polynomial division, polynomial and rational functions, and rational
+equations, reworked.** Choice options no longer give the right one away by
+their look: each set is two slips crossed (neither, one, the other, both),
+so the right option is no nearer the middle of the four than a wrong one,
+and the numbers are drawn rather than built from a small answer, which
+had left the right option the shortest. In Sketch From Factors the right
+formula had been the one the others differed from least in 92% of rows;
+across these skills' choice levels it is now 15% to 32%, against 25% by
+chance, as `scripts/measure-medoid.py` reports for any library.
+Polynomial division's wrong quotients are all different quotients: the
+remainder with its sign turned, which printed the right quotient twice,
+and the dividend copied down are gone. Long Division divides by ax − b
+and by quadratics like x² + 1, with a remainder that can be a line, and
+a new Rational Root Theorem level, before All Zeros From One, asks which
+number the theorem rules out and finds a cubic's one rational zero.
+Rational functions has two new levels, Intercepts (a zero the top
+shares with the bottom is a hole, not an intercept; the y-intercept is
+f(0)) and Match the Graph (a drawn graph with its hole, matched to its
+formula, the asymptotes drawn once it is answered), and Vertical
+Asymptotes now counts a repeated factor: (x − 2)/(x − 2)² still has one
+at 2. Polynomial functions has a new Rational Inequalities level, the
+sign chart with the bottom's zeros added and never included. Every
+rational equation now offers none, so All Together no longer says which
+rows can have no solution; Work & Rate answers are whole numbers, halves
+or thirds, with rivers that run at most a third of a boat's speed and
+tanks that fill within a day. Rational functions no longer waits on
+exponential functions, and two level edges that were not needed are
+gone. `check-answers.py` works the new levels out on its own routes:
+long division over any divisor, the rational root list from divisors, a
+rational inequality read at every half-step, and a drawn rational graph
+held point by point to the one option whose own intercepts, holes,
+asymptotes and level match the readings its text lists.
+
 **Logarithms**, a new skill under Powers, in seven levels: Log as Exponent
 (the power form of a log chosen, or the log form of a power), Evaluate
 (whole, negative and fractional answers, log for base 10 and ln for base

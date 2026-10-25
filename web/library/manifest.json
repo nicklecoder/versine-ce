@@ -1,5 +1,5 @@
 {
-  "built": 611,
+  "built": 615,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -741,6 +741,8 @@
       "holes",
       "oblique",
       "end-behavior",
+      "intercepts",
+      "match-the-graph",
       "all-together"
     ],
     "poly-division": [
@@ -748,6 +750,7 @@
       "synthetic",
       "remainder-theorem",
       "factor-theorem",
+      "rational-root-theorem",
       "all-zeros-from-one",
       "all-together"
     ],
@@ -757,6 +760,7 @@
       "sketch-from-factors",
       "turning-points",
       "polynomial-inequalities",
+      "rational-inequalities",
       "all-together"
     ],
     "complex": [
@@ -1782,7 +1786,6 @@
     "rational-functions": {
       "dependsOn": [
         "domain-range",
-        "exponential",
         "poly-division",
         "polynomials",
         "rational-expr"
@@ -1793,7 +1796,6 @@
           "rational-expr"
         ],
         "horizontal-by-degree": [
-          "exponential",
           "polynomials"
         ],
         "holes": [
@@ -1819,9 +1821,6 @@
         "remainder-theorem": [
           "evaluate"
         ],
-        "factor-theorem": [
-          "quadratic-eq"
-        ],
         "all-zeros-from-one": [
           "quadratic-eq"
         ]
@@ -1834,7 +1833,8 @@
         "functions",
         "polynomials",
         "quadratic-eq",
-        "quadratic-graphs"
+        "quadratic-graphs",
+        "rational-expr"
       ],
       "levels": {
         "zeros-and-multiplicity": [
@@ -1848,12 +1848,12 @@
         "sketch-from-factors": [
           "functions"
         ],
-        "turning-points": [
-          "quadratic-graphs"
-        ],
         "polynomial-inequalities": [
           "compound-ineq",
           "quadratic-eq"
+        ],
+        "rational-inequalities": [
+          "rational-expr"
         ]
       }
     },
@@ -1911,7 +1911,7 @@
       }
     }
   },
-  "sources": "acdbddee1961493601f9a933ca28d5dff51b7ce2ea8bc61a16f5648106cf2517",
+  "sources": "7dbe0cb0a39b117594ba95f6fc844cd1f494a6393462265a5745721741e33b45",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7698,7 +7698,7 @@
       "level": 4,
       "slug": "work-and-rate",
       "name": "Work & Rate",
-      "count": 830,
+      "count": 648,
       "exhaustive": true,
       "signed": false,
       "file": "rational-eq-4.json"
@@ -7766,12 +7766,32 @@
     {
       "skill": "rational-functions",
       "level": 5,
+      "slug": "intercepts",
+      "name": "Intercepts",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "rational-functions-5.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 6,
+      "slug": "match-the-graph",
+      "name": "Match the Graph",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "rational-functions-6.json"
+    },
+    {
+      "skill": "rational-functions",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "rational-functions-5.json"
+      "file": "rational-functions-7.json"
     },
     {
       "skill": "poly-division",
@@ -7816,8 +7836,8 @@
     {
       "skill": "poly-division",
       "level": 4,
-      "slug": "all-zeros-from-one",
-      "name": "All Zeros From One",
+      "slug": "rational-root-theorem",
+      "name": "Rational Root Theorem",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7826,12 +7846,22 @@
     {
       "skill": "poly-division",
       "level": 5,
+      "slug": "all-zeros-from-one",
+      "name": "All Zeros From One",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-division-5.json"
+    },
+    {
+      "skill": "poly-division",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "poly-division-5.json"
+      "file": "poly-division-6.json"
     },
     {
       "skill": "poly-functions",
@@ -7886,12 +7916,22 @@
     {
       "skill": "poly-functions",
       "level": 5,
+      "slug": "rational-inequalities",
+      "name": "Rational Inequalities",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-5.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "poly-functions-5.json"
+      "file": "poly-functions-6.json"
     },
     {
       "skill": "complex",

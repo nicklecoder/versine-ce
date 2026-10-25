@@ -7158,6 +7158,123 @@ CHOICE_RULES += (
     (re.compile(r"^end behavior: (.+ over .+); x to (-?inf); options (.+)$"), rf_ends),
 )
 
+# An x-intercept is a number at which f is 0, so f must be defined there:
+# a zero of the top that also makes the bottom 0 is no intercept, whatever
+# cancels. The y-intercept is f(0), read from the formula as written.
+# requiem: catalogue/content/x-intercept-needs-the-domain
+def rf_xint(f: str) -> OnGrid:
+    top, bottom = rf_split(f)
+    found = {r for r in (qe_zeros(top) if len(qe_trim(top)) > 1 else set()) if qe_at(bottom, r) != 0}
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+def rf_yint(f: str) -> tuple:
+    top, bottom = rf_split(f)
+    assert qe_at(bottom, Fraction(0)) != 0, "0 is not in the domain"
+    return Fraction(0), qe_at(top, Fraction(0)) / qe_at(bottom, Fraction(0))
+
+
+# requiem: catalogue/content/rational-graph-read-from-features
+# Match the Graph: an option fits when its own graph, worked out from its
+# formula alone, has the readings the text lists -- the x-intercepts, the
+# holes, each vertical asymptote with the way f goes just left and just
+# right of it, and the level far out. Exactly one may fit. The drawing is
+# then held to that option below, point by point.
+def rf_value(top: list, bottom: list, x: Fraction):
+    """f at x, with any factor the top and bottom share there cancelled first."""
+    while qe_at(bottom, x) == 0 and qe_at(top, x) == 0:
+        top, bottom = qe_deflate(top, x), qe_deflate(bottom, x)
+    return None if qe_at(bottom, x) == 0 else qe_at(top, x) / qe_at(bottom, x)
+
+
+def rf_readings(f: str) -> tuple:
+    top, bottom = rf_split(f)
+    poles = sorted(r for r in qe_zeros(bottom) if rf_times(bottom, r) > rf_times(top, r))
+    holes = sorted(r for r in qe_zeros(bottom) if rf_times(bottom, r) <= rf_times(top, r))
+    zeros = sorted(r for r in (qe_zeros(top) if len(qe_trim(top)) > 1 else set()) if qe_at(bottom, r) != 0)
+    tiny = Fraction(1, 10 ** 6)
+    side = lambda v: "up" if v > 0 else "down"
+    turns = [(v, side(rf_value(top, bottom, v - tiny)), side(rf_value(top, bottom, v + tiny))) for v in poles]
+    right, left = rf_far(top, bottom, 10 ** 12), rf_far(top, bottom, -(10 ** 12))
+    assert not isinstance(right, str) and not isinstance(left, str), f"{f} does not level off"
+    level = round(right)
+    assert abs(right - level) < Fraction(1, 10 ** 5) and abs(left - level) < Fraction(1, 10 ** 5), f"{f} levels at {right}, {left}"
+    return zeros, holes, turns, level
+
+
+RF_GRAPH = re.compile(r"^match graph: zeros (none|-?\d+(?:, -?\d+)*); holes (none|-?\d+(?:, -?\d+)*); asymptotes (.+), y = (-?\d+); options (.+)$")
+
+
+def rf_listed(xs: str) -> list:
+    return [] if xs == "none" else [Fraction(int(v)) for v in xs.split(", ")]
+
+
+def rf_said(zeros: str, holes: str, asymptotes: str, level: str) -> tuple:
+    turns = [(Fraction(int(v)), l, r) for v, l, r in re.findall(r"x = (-?\d+) \((up|down), (up|down)\)", asymptotes)]
+    return rf_listed(zeros), rf_listed(holes), turns, int(level)
+
+
+def rf_match(zeros: str, holes: str, asymptotes: str, level: str, listing: str) -> str:
+    said = rf_said(zeros, holes, asymptotes, level)
+    return rf_pick(listing, lambda body: rf_readings(body) == said)
+
+
+SET_RULES += (
+    (re.compile(r"^x-intercepts: (.+ over .+)$"), rf_xint),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^y-intercept: (.+ over .+)$"), rf_yint),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^match graph: zeros (none|-?\d+(?:, -?\d+)*); holes (none|-?\d+(?:, -?\d+)*); asymptotes (.+), y = (-?\d+); options (.+)$"), rf_match),
+)
+
+# The graph is the student's copy of f: every point of the curve drawn must
+# lie on the formula the readings pick (to the thousandths the points are
+# written to), each dot on the x-axis must be an intercept and each open
+# circle a hole at its height, and once answered the dashed lines must be
+# that formula's asymptotes.
+for path in sorted(LIB.glob("rational-functions-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        if not p["text"].startswith("match graph: "):
+            continue
+        where = f"rational-functions L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        m = RF_GRAPH.match(p["text"])
+        fit = [b for b in te_options(m[5]).values() if rf_readings(b) == rf_said(m[1], m[2], m[3], m[4])]
+        if len(fit) != 1:
+            continue  # the choice rule above reports it
+        body = fit[0]
+        top, bottom = rf_split(body)
+        zeros, holes, turns, level = rf_readings(body)
+        marks, shown = p["visual"]["marks"], p["visual"]["answer"]
+        drawn = [pt for mk in marks if mk["kind"] == "path" for pt in mk["points"]]
+        if len(drawn) < 40:
+            problems.append(f"{where}: only {len(drawn)} points of curve drawn")
+        far = 0
+        for x, y in drawn:
+            v = rf_value(top, bottom, Fraction(str(x)))
+            if v is None or abs(v - Fraction(str(y))) > Fraction(6, 100):
+                far += 1
+        if far:
+            problems.append(f"{where}: {far} drawn points are not on {body}")
+        dots = sorted(Fraction(str(mk["at"][0])) for mk in marks if mk["kind"] == "point" and not mk.get("open"))
+        if dots != zeros or any(mk["at"][1] != 0 for mk in marks if mk["kind"] == "point" and not mk.get("open")):
+            problems.append(f"{where}: intercept dots at {dots}, but {body} crosses at {zeros}")
+        circles = [mk["at"] for mk in marks if mk["kind"] == "point" and mk.get("open")]
+        if sorted(Fraction(str(a)) for a, _ in circles) != holes:
+            problems.append(f"{where}: open circles at {circles}, but {body} has holes at {holes}")
+        for a, b in circles:
+            v = rf_value(top, bottom, Fraction(str(a)))
+            if v is None or abs(v - Fraction(str(b))) > Fraction(1, 1000):
+                problems.append(f"{where}: the hole at x = {a} is drawn at height {b}")
+        lines = [mk for mk in shown if mk["kind"] == "segment" and mk.get("dashed")]
+        upright = sorted(Fraction(str(mk["from"][0])) for mk in lines if mk["from"][0] == mk["to"][0])
+        flat = [mk["from"][1] for mk in lines if mk["from"][1] == mk["to"][1]]
+        if upright != [v for v, _, _ in turns] or flat != [level]:
+            problems.append(f"{where}: asymptotes drawn at x = {upright}, y = {flat}, but {body} has x = {[v for v, _, _ in turns]}, y = {level}")
+
 # The asymptote sets are read at the half-steps from -60 to 60 and at the
 # zeros found, so every key must be a lone half-step there.
 for path in sorted(LIB.glob("rational-functions-*.json")):
@@ -7196,13 +7313,29 @@ def pd_divisor(d: str) -> Fraction:
     return Fraction(int(m[2])) * (1 if m[1] == "-" else -1)
 
 
+# requiem: catalogue/content/long-division-beyond-monic
+def pd_divide(P: list, D: list) -> tuple:
+    """Quotient and remainder of P / D for any divisor, by long division from
+    the top term: the leading term over D's, times D, taken away."""
+    rest, D = list(P), qe_trim(list(D))
+    m = len(D) - 1
+    q = [Fraction(0)] * max(len(P) - m, 1)
+    for p in range(len(P) - 1, m - 1, -1):
+        lead = rest[p] / D[m]
+        q[p - m] = lead
+        for j in range(m + 1):
+            rest[p - m + j] -= lead * D[j]
+    return qe_trim(q), qe_trim(rest[:m] or [Fraction(0)])
+
+
 def pd_parse_quotient(body: str) -> tuple:
-    m = re.fullmatch(r"(.+), remainder (-?\d+)", body)
-    return rf_poly(m[1]), Fraction(int(m[2]))
+    m = re.fullmatch(r"(.+), remainder (.+)", body)
+    return rf_poly(m[1]), qe_trim(rf_poly(m[2]))
 
 
 def pd_long_choice(src: str, d: str, listing: str) -> str:
-    q, r = pd_long(rf_poly(src), pd_divisor(d))
+    q, r = pd_divide(rf_poly(src), rf_poly(d))
+    assert len(r) < len(qe_trim(rf_poly(d))), "the remainder's degree is not below the divisor's"
     return rf_pick(listing, lambda body: pd_parse_quotient(body) == (q, r))
 
 
@@ -7242,18 +7375,43 @@ def pd_zeros(src: str, given: str) -> OnGrid:
 
 # requiem: catalogue/content/quotient-typed-when-exact
 def pd_quotient(src: str, d: str, form: str) -> str:
-    q, r = pd_long(rf_poly(src), pd_divisor(d))
-    if r != 0:
+    q, r = pd_divide(rf_poly(src), rf_poly(d))
+    if r != [0]:
         return f"leaves a remainder of {r}, so it does not divide exactly"
     return "ok" if rf_poly(form) == q else f"is not the quotient {q}"
 
 
+# requiem: catalogue/content/rational-root-candidates-listed
+# The theorem's list is built from the divisors of the constant term and
+# the leading coefficient, and every rational zero is found by putting each
+# candidate into P exactly. A question that says P has exactly one rational
+# zero is held to that; one that asks which option the theorem rules out
+# must have exactly one option off the list.
+def pd_candidates(P: list) -> set:
+    a0, an = int(P[0]), int(P[-1])
+    assert a0 != 0, "the constant term is 0"
+    return {s * Fraction(n, d) for n in qe_divisors(a0) for d in qe_divisors(an) for s in (1, -1)}
+
+
+def pd_rational_zero(src: str) -> Fraction:
+    P = rf_poly(src)
+    hits = [r for r in pd_candidates(P) if qe_at(P, r) == 0]
+    assert len(hits) == 1, f"{len(hits)} rational zeros"
+    return hits[0]
+
+
+def pd_ruled_out(src: str, listing: str) -> str:
+    allowed = pd_candidates(rf_poly(src))
+    return rf_pick(listing, lambda body: Fraction(body) not in allowed)
+
+
 EXPR_RULES += (
-    (re.compile(r"^quotient: (.+); (x [+-] \d+)$"), pd_quotient),
+    (re.compile(r"^quotient: (.+); ([^;]+)$"), pd_quotient),
 )
 
 CHOICE_RULES += (
-    (re.compile(r"^long division: (.+); (x [+-] \d+); options (.+)$"), pd_long_choice),
+    (re.compile(r"^long division: (.+); ([^;]+); options (.+)$"), pd_long_choice),
+    (re.compile(r"^not a candidate: (.+); options (.+)$"), pd_ruled_out),
     (re.compile(r"^synthetic: (.+); (x [+-] \d+); options (.+)$"), pd_synthetic),
     (re.compile(r"^is factor: (.+); (x [+-] \d+); options (.+)$"), pd_is_factor),
 )
@@ -7261,6 +7419,7 @@ CHOICE_RULES += (
 BY_RULE += (
     (re.compile(r"^remainder: (.+); (x [+-] \d+)$"), pd_remainder),
     (re.compile(r"^factor k: (.+); (x [+-] \d+)$"), pd_k),
+    (re.compile(r"^rational zero: (.+)$"), pd_rational_zero),
 )
 
 SET_RULES += (
@@ -7377,8 +7536,23 @@ def pf_inequality(src: str, op: str) -> frozenset:
     return frozenset(x for x in SAMPLES_ON_LINE if PF_TEST[op](qe_at(c, x)))
 
 
+# requiem: catalogue/content/rational-inequality-sign-chart
+# A rational inequality is read at every half-step from -60 to 60 by putting
+# that x into both sides as written: where a denominator is 0 the x is out,
+# whatever the sign, and elsewhere it is in when the two sides compare as
+# asked. No sign chart, no moving terms over, no factoring.
+def pf_rational_ineq(lhs: str, op: str, rhs: str) -> frozenset:
+    def keeps(x):
+        try:
+            return PF_TEST[op](qe_eval(lhs, x) - qe_eval(rhs, x))
+        except ZeroDivisionError:
+            return False
+    return frozenset(x for x in SAMPLES_ON_LINE if keeps(x))
+
+
 SET_RULES += (
     (re.compile(r"^poly zeros: (.+)$"), pf_zeros),
+    (re.compile(r"^rational ineq: (.+) (>=|<=|>|<) (-?\d+)$"), pf_rational_ineq),
     (re.compile(r"^poly ineq: (.+) (>=|<=|>|<) 0$"), pf_inequality),
 )
 

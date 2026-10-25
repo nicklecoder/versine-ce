@@ -101,6 +101,8 @@ const setOf = (xs) => {
 const ord = (m) => ({ 1: 'once', 2: 'twice', 3: 'three times' }[m]);
 const times = (k) => ({ 0: 'no times', 1: 'once', 2: 'twice' }[k] ?? `${k} times`);
 const byX = (fs) => [...fs].sort((p, q) => p.r - q.r);
+/** The degree as the factors' powers add to it: 2 + 1 = 3, or 3 alone. */
+const powers = (P) => (P.fs.length > 1 ? `${P.fs.map(({ m }) => m).join(' + ')} = ${degree(P)}` : String(degree(P)));
 
 // --- Zeros & Multiplicity --------------------------------------------------
 
@@ -191,7 +193,7 @@ function ends(rng) {
     const lead = `${P.k === 1 ? '' : P.k === -1 ? '−' : minus(P.k)}x${SUP[n]}`;
     const make = choice([T.prose('P(x) ='), ...drawn(src), T.prose('. Which way do the ends of its graph go?')],
       `poly ends: ${src}`, [want, ...ENDS.filter((e) => e !== want)],
-      `${asF ? `Multiplying out, the x's in the factors give degree ${P.fs.map(({ m }) => m).join(' + ')} = ${n}, and the leading coefficient is ${minus(P.k)}: the leading term is ${lead}. ` : `The leading term is ${lead}. `}`
+      `${asF ? `Multiplying out, the x's in the factors give degree ${powers(P)}, and the leading coefficient is ${minus(P.k)}: the leading term is ${lead}. ` : `The leading term is ${lead}. `}`
       + `${n} is ${even ? 'even, so both ends go the same way' : 'odd, so the ends go opposite ways'}, and ${P.k > 0 ? 'a positive' : 'a negative'} leading coefficient sends the right end ${up ? 'up' : 'down'}. So: ${want[1].toLowerCase()}.`);
     if (make) return make(rng);
   }
@@ -247,6 +249,17 @@ function graph(P) {
 }
 const listed = (readings) => readings.map(([x, y]) => `(${x}, ${y})`).join(' ');
 
+/** One thing a wrong polynomial's graph would do that P's does not. */
+function wrongBy(P, Q) {
+  for (const { r, m } of byX(Q.fs)) {
+    const same = P.fs.find((f) => f.r === r);
+    if (!same) return `would meet the x-axis at ${minus(r)}`;
+    if ((same.m % 2) !== (m % 2)) return `would ${m % 2 ? 'cross' : 'touch and turn back'} at ${minus(r)}`;
+  }
+  return `would have its right end going ${Q.k > 0 ? 'up' : 'down'}`;
+}
+
+// requiem: catalogue/content/decoys-crossed-not-centred
 function sketch(rng) {
   for (;;) {
     const P = randomP(rng, { n: rng.pick([2, 3, 3]), lo: -4, hi: 4, mults: [1, 1, 2], maxDeg: 4, leads: [1, -1] });
@@ -254,20 +267,26 @@ function sketch(rng) {
     if (rs.some((r, i) => i && r - rs[i - 1] < 2)) continue;
     const { visual, readings } = graph(P);
     if (readings.length < degree(P) + 2) continue;
-    // The slips: the sign turned over, one multiplicity changed, one zero's sign turned.
-    const flip = { k: -P.k, fs: P.fs };
+    // The slips: the sign turned over, one multiplicity changed, one zero's
+    // sign turned. Two of them are crossed, so the options are neither, one,
+    // the other and both: every option is one slip from two others, and the
+    // right one is no nearer the middle of the four than any wrong one.
     const i = rng.int(0, P.fs.length - 1);
-    const remult = { k: P.k, fs: P.fs.map((f, j) => (j === i ? { r: f.r, m: f.m === 1 ? 2 : 1 } : f)) };
     const movable = P.fs.filter(({ r }) => r !== 0 && !rs.includes(-r));
-    if (!movable.length) continue;
-    const mv = rng.pick(movable);
-    const mirror = { k: P.k, fs: P.fs.map((f) => (f === mv ? { r: -f.r, m: f.m } : f)) };
-    const opts = [P, flip, remult, mirror].map((Q) => [factored(Q), factored(Q, true)]);
+    const mv = movable.length ? rng.pick(movable).r : null;
+    const SLIP = {
+      flip: (Q) => ({ k: -Q.k, fs: Q.fs }),
+      remult: (Q) => ({ k: Q.k, fs: Q.fs.map((f, j) => (j === i ? { r: f.r, m: f.m === 1 ? 2 : 1 } : f)) }),
+      mirror: (Q) => ({ k: Q.k, fs: Q.fs.map((f) => (f.r === mv ? { r: -f.r, m: f.m } : f)) }),
+    };
+    const [A, B] = rng.shuffle(mv === null ? ['flip', 'remult'] : ['flip', 'remult', 'mirror']).slice(0, 2);
+    const opts = [P, SLIP[A](P), SLIP[B](P), SLIP[B](SLIP[A](P))].map((Q) => [factored(Q), factored(Q, true)]);
     const crossings = byX(P.fs).map(({ r, m }) => `${m === 1 ? 'crosses' : 'touches'} at ${minus(r)}`).join(', ');
     const n = degree(P);
     const make = choice([T.prose('Which polynomial has this graph?')], `sketch: graph ${listed(readings)}`, opts,
       `Read the graph: it ${crossings}, so ${byX(P.fs).map(({ r, m }) => `${facOf(r, true)}${m > 1 ? '²' : ''}`).join(', ')} are the factors, `
-      + `an odd power where it crosses and an even one where it touches. The degree is ${n}, and the right end goes ${P.k > 0 ? 'up' : 'down'}, so the leading coefficient is ${P.k > 0 ? 'positive' : 'negative'}: ${factored(P, true)}.`,
+      + `an odd power where it crosses and an even one where it touches. The degree is ${n}, and the right end goes ${P.k > 0 ? 'up' : 'down'}, so the leading coefficient is ${P.k > 0 ? 'positive' : 'negative'}: ${factored(P, true)}. `
+      + `The others: ${opts.slice(1).map(([, label], j) => `${label} ${wrongBy(P, [SLIP[A](P), SLIP[B](P), SLIP[B](SLIP[A](P))][j])}`).join('; ')}.`,
       visual);
     if (make) return make(rng);
   }
@@ -289,7 +308,7 @@ function turning(rng) {
         text: `most turning points: ${src}`,
         answer: fracAnswer(n - 1, 1),
         visual: null,
-        explain: `${asF ? `Its degree is the sum of the powers, ${P.fs.map(({ m }) => m).join(' + ')} = ${n}. ` : `Its degree is ${n}. `}A degree-${n} polynomial turns at most ${n} − 1 = ${n - 1} times.`,
+        explain: `${asF ? (P.fs.length > 1 ? `Its degree is the sum of the powers, ${powers(P)}. ` : `Its degree is the power, ${n}. `) : `Its degree is ${n}. `}A degree-${n} polynomial turns at most ${n} − 1 = ${n - 1} times.`,
       };
     }
   }
@@ -392,7 +411,111 @@ function signs(c, pts) {
   return out.join('; ');
 }
 
-const CONTENT = [zeros, ends, sketch, turning, inequality];
+// --- Rational Inequalities -------------------------------------------------
+
+/** "x < −2: positive; −2 < x < 1: negative; …", from f's sign at a number in each piece. */
+function signsOf(f, pts) {
+  const edges = [-Infinity, ...pts, Infinity];
+  const out = [];
+  for (let i = 0; i + 1 < edges.length; i += 1) {
+    const lo = edges[i], hi = edges[i + 1];
+    const mid = lo === -Infinity && hi === Infinity ? 0.5 : lo === -Infinity ? hi - 1 : hi === Infinity ? lo + 1 : (lo + hi) / 2;
+    const where = lo === -Infinity ? `x < ${minus(hi)}` : hi === Infinity ? `x > ${minus(lo)}` : `${minus(lo)} < x < ${minus(hi)}`;
+    out.push(`${where}: ${f(mid) > 0 ? 'positive' : 'negative'}`);
+  }
+  return out.join('; ');
+}
+
+/**
+ * The answer set of f op 0, f = top/bottom: the pieces between the zeros
+ * of either where the sign is right, and the top's zeros when op allows 0.
+ * A zero of the bottom is never in it, whatever op says.
+ */
+function solveQuotient(f, tops, bots, op) {
+  const test = OPS[op];
+  const pts = [...new Set([...tops, ...bots])].sort((p, q) => p - q);
+  const edges = [-Infinity, ...pts, Infinity];
+  const parts = [];
+  for (let i = 0; i + 1 < edges.length; i += 1) {
+    const lo = edges[i], hi = edges[i + 1];
+    const mid = lo === -Infinity && hi === Infinity ? 0.5 : lo === -Infinity ? hi - 1 : hi === Infinity ? lo + 1 : (lo + hi) / 2;
+    if (test(f(mid))) parts.push({ lo: lo === -Infinity ? null : { n: lo, d: 1 }, loIn: false, hi: hi === Infinity ? null : { n: hi, d: 1 }, hiIn: false });
+  }
+  if (test(0)) for (const z of tops) if (!bots.includes(z)) parts.push({ lo: { n: z, d: 1 }, loIn: true, hi: { n: z, d: 1 }, hiIn: true });
+  return { type: 'solutions', value: { letter: 'x', parts: normalize(parts) } };
+}
+
+const prodOf = (rs, k = 1) => rs.reduce((acc, r) => mul(acc, X(r)), [k]);
+/** k(x − a)(x − c) as factors, a bare x first. */
+const facs = (rs, k, fancy) => factored({ k, fs: [...new Set(rs)].map((r) => ({ r, m: rs.filter((v) => v === r).length })) }, fancy);
+const wrap = (t) => (/^(-?\d+|x|\([^()]*\)(\^\d|[²³])?)$/.test(t) ? t : `(${t})`);
+
+// requiem: catalogue/content/rational-inequality-sign-chart
+// requiem: catalogue/content/none-offered-on-every-row
+function rationalIneq(rng) {
+  for (;;) {
+    const op = rng.pick(['>', '<', '>=', '<=']);
+    const kind = rng.pick(['one', 'one', 'two', 'two', 'square', 'shift', 'shift', 'never']);
+    const k = rng.pick([1, 1, 1, -1, 2, 3]);
+    const [a, b, c] = rng.shuffle([-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]).slice(0, 3);
+    let tops, bots, lhs, rhs = '0', setup = '';
+    if (kind === 'never') {
+      // k/(x² + m): the bottom is never 0, so the sign of k is the sign everywhere.
+      const m = rng.int(1, 9), kk = rng.pick([1, 2, 3, 5, -1, -2, -4]);
+      const f = (x) => kk / (x * x + m);
+      const ans = solveQuotient(f, [], [], op);
+      lhs = `${kk}/(x^2 + ${m})`;
+      return {
+        prompt: [T.prose('Solve'), ...drawn(`${lhs} ${op} 0`), T.prose('.'), T.prose('Give every solution, or none if there is no solution.')],
+        text: `rational ineq: ${lhs} ${op} 0`,
+        answer: ans,
+        visual: null,
+        explain: `The bottom, x² + ${m}, is never 0 and always positive, since x² is never negative. So the fraction has the sign of its top, ${minus(kk)}, for every x: it is always ${kk > 0 ? 'positive' : 'negative'}, and never 0. So ${formatSet(ans.value)}.`,
+      };
+    }
+    if (kind === 'one') { tops = [a]; bots = [b]; }
+    else if (kind === 'two') { [tops, bots] = rng.chance(0.5) ? [[a, c], [b]] : [[a], [b, c]]; }
+    else if (kind === 'square') { tops = [a, a]; bots = [b]; }
+    else { tops = [a]; bots = [b]; }
+    const top = prodOf(tops, k), bottom = prodOf(bots);
+    const f = (x) => at(top, x) / at(bottom, x);
+    if (kind === 'shift') {
+      // (px + q)/(x − b) op m: take m over first, never multiply by x − b.
+      const m = rng.nonZero(-3, 3), pp = k + m;
+      if (pp === 0) continue;
+      const q = -k * a - m * b;
+      const num = write([q, pp]), numF = write([q, pp], true);
+      if (Math.abs(q) > 30) continue;
+      lhs = `(${num})/${wrap(write(bottom))}`;
+      rhs = String(m);
+      setup = `Do not multiply both sides by ${write(bottom, true)}: it is negative for some x, where the inequality would have to flip. Instead take ${minus(m)} to the left and write it over the same bottom: `
+        + `(${numF} ${m > 0 ? '−' : '+'} ${Math.abs(m) === 1 ? '' : Math.abs(m)}${wrap(write(bottom, true))})/${wrap(write(bottom, true))} = ${facs(tops, k, true)}/${wrap(write(bottom, true))}, and compare that with 0. `;
+    } else {
+      const asF = kind !== 'two' || rng.chance(0.6);
+      const tSrc = asF ? facs(tops, k) : write(top), bSrc = asF ? facs(bots, 1) : write(bottom);
+      lhs = `${wrap(tSrc)}/${wrap(bSrc)}`;
+      if (!asF) setup = `Factor first: ${facs(tops, k, true)}/${wrap(facs(bots, 1, true))}. `;
+    }
+    const ans = solveQuotient(f, tops, bots, op);
+    const tz = [...new Set(tops)].sort((p, q) => p - q), bz = [...bots].sort((p, q) => p - q);
+    const pts = [...new Set([...tz, ...bz])].sort((p, q) => p - q);
+    const strict = !op.includes('=');
+    const explain = `${setup}The top is 0 at ${tz.map(minus).join(' and ')} and the bottom at ${bz.map(minus).join(' and ')}. Those split the number line, and the sign can change only there. `
+      + `Testing a number in each piece: ${signsOf(f, pts)}${kind === 'square' ? `, the same sign either side of ${minus(a)}, since the square never goes negative` : ''}. `
+      + `${bz.map(minus).join(' and ')} ${bz.length > 1 ? 'are' : 'is'} never included: ${bz.length > 1 ? 'they make' : 'it makes'} the bottom 0. `
+      + `${strict ? `${tz.map(minus).join(' and ')} ${tz.length > 1 ? 'are' : 'is'} not included either, since the inequality is strict.` : `${tz.map(minus).join(' and ')} ${tz.length > 1 ? 'are' : 'is'} included, since the inequality allows 0.`} `
+      + `So ${formatSet(ans.value)}.`;
+    return {
+      prompt: [T.prose('Solve'), ...drawn(`${lhs} ${op} ${rhs}`), T.prose('.'), T.prose('Give every solution, or none if there is no solution.')],
+      text: `rational ineq: ${lhs} ${op} ${rhs}`,
+      answer: ans,
+      visual: null,
+      explain,
+    };
+  }
+}
+
+const CONTENT = [zeros, ends, sketch, turning, inequality, rationalIneq];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
