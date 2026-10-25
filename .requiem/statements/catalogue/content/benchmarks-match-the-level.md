@@ -13,4 +13,4 @@ relationships:
       via: batch
 ---
 
-The units familiarity rows ask about the quantity the level teaches: length benchmarks on the length level, weight and capacity on their level, all three in the mixed level. A capacity benchmark on the length level asks for a sense the student has not been taught yet in that unit system. Metric capacity decoys are the same unit 100 times off (not a different unit), so the choice tests size, not unit names.
+The units familiarity rows ask about the quantity the level teaches: length benchmarks on the length level, weight and capacity on their level, all three in the mixed level. A capacity benchmark on the length level asks for a sense the student has not been taught yet in that unit system. Metric capacity, with only mL and L, crosses two slips for its decoys -- the number a hundred times out, the other unit, and both together (4 L against 400 L, 4 mL and 400 mL) -- so the key is not the one choice every other is a single step from, and every decoy stays at least three times off.

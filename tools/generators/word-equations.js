@@ -76,14 +76,16 @@ const STORIES = [
     const total = fixed + rate * rng.int(3, 12);
     return { story: `A taxi charges ${money(fixed)} plus ${money(rate)} for every mile. A ride costs `
       + `${money(total)}. Which equation gives the number of miles, m?`,
-    right: `${fixed} + ${rate}m = ${total}`, wrong: [`${rate} + ${fixed}m = ${total}`, `${fixed + rate}m = ${total}`],
+    // Crossed: the rate and the fixed charge swapped, and the fixed charge left out.
+    right: `${fixed} + ${rate}m = ${total}`, wrong: [`${rate} + ${fixed}m = ${total}`, `${rate}m = ${total}`, `${fixed}m = ${total}`],
     why: `${money(rate)} for each of m miles is ${rate}m, and the ${money(fixed)} is charged once: ${fixed} + ${rate}m = ${total}.` };
   },
   (rng) => {
     const d = rng.int(2, 9), total = 2 * rng.int(8, 30) + d;
     return { story: `Two numbers add up to ${total}. One is ${d} more than the other. Which equation gives `
       + 'the smaller number, n?', right: `n + (n + ${d}) = ${total}`,
-    wrong: [`n + ${d} = ${total}`, `n + (n - ${d}) = ${total}`],
+    // Crossed: only one of the numbers added, and "more" read as less.
+    wrong: [`n + ${d} = ${total}`, `n + (n - ${d}) = ${total}`, `n - ${d} = ${total}`],
     why: `The smaller is n, so the larger is n + ${d}, and together they make ${total}: n + (n + ${d}) = ${total}.` };
   },
   (rng) => {
@@ -91,7 +93,8 @@ const STORIES = [
     const times = ['Twice', 'Three times', 'Four times', 'Five times', 'Six times'][k - 2];
     return { story: `${times} the sum of a number and ${add} is ${k * (n + add)}. Which equation says that?`,
       right: `${k}(n + ${add}) = ${k * (n + add)}`,
-      wrong: [`${k}n + ${add} = ${k * (n + add)}`, `n + ${k * add} = ${k * (n + add)}`],
+      // Crossed: the bracket dropped, and the two numbers in each other's places.
+      wrong: [`${k}n + ${add} = ${k * (n + add)}`, `${add}(n + ${k}) = ${k * (n + add)}`, `${add}n + ${k} = ${k * (n + add)}`],
       why: `"The sum of a number and ${add}" is n + ${add}, and the whole sum is multiplied, so it needs a `
         + `bracket: ${k}(n + ${add}) = ${k * (n + add)}.` };
   },
@@ -106,7 +109,8 @@ const STORIES = [
     const u = rng.pick(['cm', 'inches']);
     return { story: `A rectangle is ${more} ${more === 1 && u === 'inches' ? 'inch' : u} longer than it is wide, and its perimeter is ${p} ${u}. Which `
       + 'equation gives the width, w?', right: `2w + 2(w + ${more}) = ${p}`,
-    wrong: [`w(w + ${more}) = ${p}`, `w + (w + ${more}) = ${p}`],
+    // Crossed: the area for the perimeter, and "longer" read as shorter.
+    wrong: [`w(w + ${more}) = ${p}`, `2w + 2(w - ${more}) = ${p}`, `w(w - ${more}) = ${p}`],
     why: `The length is w + ${more}. A perimeter goes round all four sides, two widths and two lengths: `
       + `2w + 2(w + ${more}) = ${p}. w(w + ${more}) would be its area.` };
   },
@@ -114,7 +118,8 @@ const STORIES = [
     const start = rng.int(20, 80), save = rng.int(3, 15), goal = start + save * rng.int(3, 15);
     return { story: `Sam has ${money(start)} and saves ${money(save)} a week. Which equation gives the number `
       + `of weeks, t, until Sam has ${money(goal)}?`, right: `${start} + ${save}t = ${goal}`,
-    wrong: [`${save} + ${start}t = ${goal}`, `${start}t + ${save} = ${goal}`],
+    // Crossed: the weekly amount and the starting one swapped, and the start left out.
+    wrong: [`${save} + ${start}t = ${goal}`, `${save}t = ${goal}`, `${start}t = ${goal}`],
     why: `${money(save)} a week for t weeks is ${save}t, added to the ${money(start)} already there: `
       + `${start} + ${save}t = ${goal}.` };
   },
@@ -122,14 +127,35 @@ const STORIES = [
     const less = rng.int(2, 9), n = rng.int(less + 1, 20), k = rng.int(2, 5);
     return { story: `${less} less than ${k} times a number is ${k * n - less}. Which equation says that?`,
       right: `${k}n - ${less} = ${k * n - less}`,
-      wrong: [`${less} - ${k}n = ${k * n - less}`, `${k}(n - ${less}) = ${k * n - less}`],
+      // Crossed: the subtraction turned round, and a bracket put in.
+      wrong: [`${less} - ${k}n = ${k * n - less}`, `${k}(n - ${less}) = ${k * n - less}`, `${k}(${less} - n) = ${k * n - less}`],
       why: `"${less} less than ${k} times a number" starts from ${k}n and takes ${less} away: `
         + `${k}n − ${less} = ${k * n - less}.` };
   },
 ];
 
+/** lhs − rhs of an ASCII equation in one letter, at a value: 2(w + 3) = 10 at w = 1 is −2. */
+function gap(eq, value) {
+  const js = eq.replace(/[a-z]/g, `(${value})`).replace(/([\d)])\s*\(/g, '$1*(');
+  const [l, r] = js.split(' = ');
+  return Function(`return (${l}) - (${r});`)();
+}
+
+// requiem: catalogue/content/decoys-cross-two-slips
+// Each story's decoys are two misreadings crossed -- the first alone, the
+// second alone, both together -- so the right equation is not the one
+// nearest all the others. A crossing can land on a decoy that also balances
+// (w(w − 1) = 4w + 2 at w = 6) or two that print the same, and is redrawn.
 function whichEquation(rng) {
-  const s = rng.pick(STORIES)(rng);
+  let s;
+  for (;;) {
+    s = rng.pick(STORIES)(rng);
+    const all = [s.right, ...s.wrong];
+    if (new Set(all).size < all.length) continue;
+    let root = null;
+    for (let v = -60; v <= 400 && root === null; v++) if (gap(s.right, v) === 0) root = v;
+    if (root !== null && s.wrong.every((w) => gap(w, root) !== 0)) break;
+  }
   // Shuffled by the draw. Sorted shortest first, the right one sat second or
   // third in four rows of five, and its length was a clue.
   const options = rng.shuffle([s.right, ...s.wrong]).map((e) => ({ id: e, label: tm(e) }));

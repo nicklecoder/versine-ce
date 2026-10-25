@@ -202,9 +202,13 @@ function wordsIntoSymbols(rng) {
 }
 
 /**
- * A situation and three expressions. The wrong two are the readings
- * students actually produce: the numbers swapped, and the bracket put
- * round the wrong thing.
+ * A situation and four expressions. The wrong three are two readings
+ * students actually produce, crossed: each alone and both together -- the
+ * numbers swapped, the bracket put round the wrong thing, the area for the
+ * perimeter, an operation turned round. One slip three ways would leave the
+ * right expression the one nearest all the others.
+ *
+ * requiem: catalogue/content/decoys-cross-two-slips
  *
  * Each story's numbers range over about a hundred cases or fewer, so no
  * one story fills the level: a wide range on one of them once made 60% of
@@ -217,20 +221,20 @@ const SITUATIONS = [
     while (fee === each) fee = rng.int(2, 9);   // equal, the swapped reading is the right one
     return { story: `Tickets cost $${each} each, plus ${an(fee)} $${fee} booking fee for the whole order. `
       + 'What do t tickets cost?', right: `${each}t + ${fee}`,
-    wrong: [`${fee}t + ${each}`, `${each}(t + ${fee})`],
+    wrong: [`${fee}t + ${each}`, `${each}(t + ${fee})`, `${fee}(t + ${each})`],
     why: `Each ticket adds $${each}, so t of them is ${each}t, and the fee is paid once: ${each}t + ${fee}.` };
   },
   (rng) => {
     const start = 5 * rng.int(6, 18), spend = rng.int(3, 9);
     return { story: `You have $${start} and spend $${spend} every week. How much is left after w weeks?`,
-      right: `${start} − ${spend}w`, wrong: [`${spend}w − ${start}`, `${start}w − ${spend}`],
+      right: `${start} − ${spend}w`, wrong: [`${spend}w − ${start}`, `${start}w − ${spend}`, `${spend} − ${start}w`],
       why: `You start with ${start} and ${spend} goes each week, so ${spend}w has gone after w weeks: ${start} − ${spend}w.` };
   },
   (rng) => {
     const k = rng.int(2, 6), tip = rng.int(5, 24);
     return { story: `${['Two', 'Three', 'Four', 'Five', 'Six'][k - 2]} friends split a bill of b dollars `
       + `and ${an(tip)} $${tip} tip equally. What does each pay?`, right: `(b + ${tip})/${k}`,
-    wrong: [`b/${k} + ${tip}`, `${k}(b + ${tip})`],
+    wrong: [`b/${k} + ${tip}`, `${k}(b + ${tip})`, `${k}b + ${tip}`],
     why: `The tip is shared too, so the whole of b + ${tip} is divided by ${k}: (b + ${tip})/${k}.` };
   },
   (rng) => {
@@ -239,14 +243,16 @@ const SITUATIONS = [
     while (loose === boxes) loose = rng.int(2, 11);
     return { story: `Each box holds n pens. There are ${boxes} full boxes and ${loose} loose pens. `
       + 'How many pens altogether?', right: `${boxes}n + ${loose}`,
-    wrong: [`${loose}n + ${boxes}`, `${boxes}(n + ${loose})`],
+    wrong: [`${loose}n + ${boxes}`, `${boxes}(n + ${loose})`, `${loose}(n + ${boxes})`],
     why: `${boxes} boxes of n is ${boxes}n, and the ${loose} loose pens are added once: ${boxes}n + ${loose}.` };
   },
   (rng) => {
-    const k = rng.int(2, 6), add = rng.int(2, 20);
+    const k = rng.int(2, 6);
+    let add = rng.int(2, 20);
+    while (add === k) add = rng.int(2, 20);   // equal, the swapped reading is the right one
     const times = ['twice', 'three times', 'four times', 'five times', 'six times'][k - 2];
     return { story: `Which expression is ${times} the sum of n and ${add}?`, right: `${k}(n + ${add})`,
-    wrong: [`${k}n + ${add}`, `n + ${k * add}`],
+    wrong: [`${k}n + ${add}`, `${add}(n + ${k})`, `${add}n + ${k}`],
     why: `The adding happens first and the whole sum is multiplied, so it needs a bracket: ${k}(n + ${add}).` };
   },
   (rng) => {
@@ -254,21 +260,21 @@ const SITUATIONS = [
     // requiem: catalogue/content/units-both-systems
     const u = rng.pick(['cm', 'inches']);
     return { story: `A rectangle is w ${u} wide and ${longer} ${u} longer than it is wide. What is its perimeter?`,
-      right: `2w + 2(w + ${longer})`, wrong: [`w(w + ${longer})`, `2w + ${longer}`],
+      right: `2w + 2(w + ${longer})`, wrong: [`w(w + ${longer})`, `2w + 2(w − ${longer})`, `w(w − ${longer})`],
       why: `The length is w + ${longer}. A perimeter goes round all four sides, two of each: `
         + `2w + 2(w + ${longer}). w(w + ${longer}) is the area.` };
   },
   (rng) => {
     const k = rng.int(2, 12);
     return { story: `${k} pizzas are shared equally between p people. How much pizza does each person get?`,
-      right: `${k}/p`, wrong: [`p/${k}`, `${k}p`],
+      right: `${k}/p`, wrong: [`p/${k}`, `${k} − p`, `p − ${k}`],
       why: `The ${k} pizzas are what is shared, so they go on top and the p people underneath: ${k}/p. `
         + `p/${k} would be p pizzas shared by ${k}.` };
   },
   (rng) => {
     const k = rng.int(2, 30);
     return { story: `Sam is a years old. How old will Sam be in ${k} years?`,
-      right: `a + ${k}`, wrong: [`a − ${k}`, `${k}a`],
+      right: `a + ${k}`, wrong: [`a − ${k}`, `${k}a`, `a/${k}`],
       why: `Each year adds one to Sam's age, so ${k} years add ${k}: a + ${k}. a − ${k} was his age ${k} years ago.` };
   },
 ];

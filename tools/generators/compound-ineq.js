@@ -256,32 +256,31 @@ function intervalNotation(rng) {
   const parts = shape === 'between' ? [run(lo, loIn, hi, hiIn)]
     : shape === 'or' ? [run(null, false, lo, loIn), run(hi, hiIn, null, false)]
       : rng.chance(0.5) ? [run(lo, loIn, null, false)] : [run(null, false, hi, hiIn)];
-  const toggle = (i, end) => parts.map((p, j) => (j === i ? { ...p, [end]: !p[end] } : p));
-  const finite = parts.flatMap((p, i) => [p.lo !== null ? [i, 'loIn'] : null, p.hi !== null ? [i, 'hiIn'] : null]).filter(Boolean);
-  const wrong = [
-    notation(toggle(...finite[0])),
-    // Infinity "included" is the slip worth naming; a double one, if there is no infinity.
-    parts.some((p) => p.lo === null || p.hi === null)
-      ? notation(parts, { lo: '[', hi: ']' })
-      : notation(toggle(...finite[1]).map((p, i) => (i === finite[0][0] ? { ...p, [finite[0][1]]: !p[finite[0][1]] } : p))),
-    notation(finite.length > 1 ? toggle(...finite[1]) : parts.map((p) => ({ lo: p.hi, loIn: p.hiIn, hi: p.lo, hiIn: p.loIn }))),
-  ];
-  const right = notation(parts);
-  const labels = [...new Set([right, ...wrong])];
-  if (labels.length < 3) return intervalNotation(rng);
   const back = rng.chance(0.4);
+  // requiem: catalogue/content/decoys-cross-two-slips
+  // Two slips crossed rather than one slip three ways: the key, each slip
+  // alone, and both together, so the key is not the option nearest the rest.
+  // The slips: an end's bracket the wrong way round (≤ read as <), infinity
+  // given a square bracket, and a ray read the wrong way (x > 3 for x < 3).
+  // Infinity has no inequality, so it is a slip only when the notation is
+  // what is chosen.
+  const finite = parts.flatMap((p, i) => [p.lo !== null ? [i, 'loIn'] : null, p.hi !== null ? [i, 'hiIn'] : null]).filter(Boolean);
+  const toggleEnd = ([i, end]) => (o) => ({ ...o, parts: o.parts.map((p, j) => (j === i ? { ...p, [end]: !p[end] } : p)) });
+  const slips = finite.map(toggleEnd);
+  if (!back && parts.some((p) => p.lo === null || p.hi === null)) slips.push((o) => ({ ...o, inf: true }));
+  if (shape === 'ray') slips.push((o) => ({ ...o, parts: o.parts.map((p) => ({ lo: p.hi, loIn: p.hiIn, hi: p.lo, hiIn: p.loIn })) }));
+  const [s1, s2] = rng.shuffle(slips).slice(0, 2);
+  const key = { parts, inf: false };
+  const states = [key, s1(key), s2(key), s2(s1(key))];
+  const right = notation(parts);
+  const labels = states.map((o) => (back ? written(o.parts) : notation(o.parts, o.inf ? { lo: '[', hi: ']' } : {})));
+  if (new Set(labels).size < 4) return intervalNotation(rng);
   if (back) {
     // The other way: interval notation given, the inequality asked for.
-    const ineqs = [written(parts), ...wrong.map((w) => {
-      const r = parseSet(w.replace(/−∞/g, '-inf').replace(/∞/g, 'inf').replace(/∪/g, 'U').replace(/−/g, '-'));
-      return r.ok ? formatSet(r.value) : null;
-    }).filter(Boolean)];
-    const opts = [...new Set(ineqs)];
-    if (opts.length < 3) return intervalNotation(rng);
     return {
       prompt: [T.prose(`Which inequality is ${right}?`)],
       text: `inequality for: ${ascii(parts)}`,
-      answer: { type: 'choice', value: written(parts), options: rng.shuffle(opts.slice(0, 4)).map((label) => ({ id: label, label })) },
+      answer: { type: 'choice', value: written(parts), options: rng.shuffle(labels).map((label) => ({ id: label, label })) },
       visual: null,
       explain: `A square bracket keeps its end in (≤ or ≥); a round one leaves it out (< or >). So ${right} is ${written(parts)}.`,
     };
@@ -289,7 +288,7 @@ function intervalNotation(rng) {
   return {
     prompt: [T.prose(`Which is ${written(parts)} in interval notation?`)],
     text: `interval for: ${ascii(parts)}`,
-    answer: { type: 'choice', value: right, options: rng.shuffle(labels.slice(0, 4)).map((label) => ({ id: label, label })) },
+    answer: { type: 'choice', value: right, options: rng.shuffle(labels).map((label) => ({ id: label, label })) },
     visual: null,
     explain: `≤ and ≥ keep the end in: a square bracket. < and > leave it out: a round one. `
       + `${parts.some((p) => p.lo === null || p.hi === null) ? 'An end at ∞ is never a number you reach, so it always takes a round bracket. ' : ''}`
