@@ -32,7 +32,7 @@ export const LEVELS = [
   { name: 'Words Into Symbols', slug: 'words-into-symbols',
     blurb: '"Less than" turns the order around. Read the whole phrase before writing.' },
   { name: 'Which Expression Fits', slug: 'which-expression-fits',
-    blurb: 'A situation and three expressions. Only one says what the words say.' },
+    blurb: 'A situation and four expressions. Only one says what the words say.' },
   {
     name: 'Equivalent or Not', slug: 'equivalent-or-not',
     blurb: 'Equal for every value, or only for some? One number can prove they differ.',

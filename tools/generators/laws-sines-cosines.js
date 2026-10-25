@@ -299,28 +299,51 @@ function area(rng) {
  * line holds in an obtuse triangle too. Each step is the line, the reason
  * it follows, and the slips a student makes at that step. The first line is
  * given; the student picks each one after it.
+ *
+ * requiem: catalogue/content/decoys-cross-two-slips
+ * The slips come in crossings [A, B, A and B]: two misreadings of the step
+ * (a sine for a cosine, the wrong side, the equation solved upside down, a
+ * sign or a 2 dropped), each alone and both together, so no option sits in
+ * the middle of the others.
  */
 const LAW_PROOFS = {
   sines: {
     goal: 'p/sin(P) = q/sin(Q)',
     steps: [
       ['sin(P) = h/q', 'In right triangle PDR, h is opposite P and q = PR is the hypotenuse', []],
-      ['h = q*sin(P)', 'Multiply both sides by q', ['h = sin(P)/q', 'h = q*cos(P)', 'h = q/sin(P)']],
-      ['sin(Q) = h/p', 'In right triangle QDR, h is opposite Q and p = QR is the hypotenuse', ['sin(Q) = h/q', 'sin(Q) = p/h', 'cos(Q) = h/p', 'sin(Q) = h/r']],
-      ['h = p*sin(Q)', 'Multiply both sides by p', ['h = sin(Q)/p', 'h = p*cos(Q)', 'h = q*sin(Q)', 'h = p/sin(Q)']],
-      ['q*sin(P) = p*sin(Q)', 'Both lines are h, so they are equal', ['p*sin(P) = q*sin(Q)', 'q*cos(P) = p*cos(Q)', 'q*sin(Q) = p*sin(P)', 'q + sin(P) = p + sin(Q)']],
-      ['p/sin(P) = q/sin(Q)', 'Divide both sides by sin P sin Q', ['p/sin(Q) = q/sin(P)', 'p*sin(P) = q*sin(Q)', 'sin(P)/p = q/sin(Q)', 'p/q = sin(Q)/sin(P)']],
+      ['h = q*sin(P)', 'Multiply both sides by q', [
+        ['h = q*cos(P)', 'h = sin(P)/q', 'h = cos(P)/q'],
+        ['h = q*cos(P)', 'h = r*sin(P)', 'h = r*cos(P)']]],
+      ['sin(Q) = h/p', 'In right triangle QDR, h is opposite Q and p = QR is the hypotenuse', [
+        ['cos(Q) = h/p', 'sin(Q) = p/h', 'cos(Q) = p/h'],
+        ['cos(Q) = h/p', 'sin(Q) = h/q', 'cos(Q) = h/q']]],
+      ['h = p*sin(Q)', 'Multiply both sides by p', [
+        ['h = p*cos(Q)', 'h = sin(Q)/p', 'h = cos(Q)/p'],
+        ['h = p*cos(Q)', 'h = q*sin(Q)', 'h = q*cos(Q)']]],
+      ['q*sin(P) = p*sin(Q)', 'Both lines are h, so they are equal', [
+        ['q*cos(P) = p*cos(Q)', 'p*sin(P) = q*sin(Q)', 'p*cos(P) = q*cos(Q)'],
+        ['q*cos(P) = p*cos(Q)', 'q + sin(P) = p + sin(Q)', 'q + cos(P) = p + cos(Q)']]],
+      ['p/sin(P) = q/sin(Q)', 'Divide both sides by sin P sin Q', [
+        ['p/sin(Q) = q/sin(P)', 'sin(P)/p = q/sin(Q)', 'sin(Q)/p = q/sin(P)']]],
     ],
   },
   cosines: {
     goal: 'p^2 = q^2 + r^2 - 2*q*r*cos(P)',
     steps: [
       ['q^2 = x^2 + h^2', 'Pythagoras in right triangle PDR', []],
-      ['p^2 = (r - x)^2 + h^2', 'Pythagoras in right triangle QDR, where DQ = r − x', ['p^2 = (r + x)^2 + h^2', 'p^2 = r^2 + h^2', 'p^2 = (r - x)^2 - h^2', 'p^2 = x^2 + h^2']],
-      ['p^2 = r^2 - 2*r*x + x^2 + h^2', 'Square out (r − x)²', ['p^2 = r^2 + x^2 + h^2', 'p^2 = r^2 - x^2 + h^2', 'p^2 = r^2 - r*x + x^2 + h^2', 'p^2 = r^2 + 2*r*x + x^2 + h^2']],
-      ['p^2 = q^2 + r^2 - 2*r*x', 'x² + h² = q², the first line', ['p^2 = q^2 + r^2', 'p^2 = r^2 - 2*r*x + h^2', 'p^2 = r^2 - 2*r*x - q^2', 'p^2 = q^2 - r^2 - 2*r*x']],
-      ['x = q*cos(P)', 'In right triangle PDR, cos P = x/q', ['x = q*sin(P)', 'x = r*cos(P)', 'x = cos(P)/q', 'x = p*cos(P)']],
-      ['p^2 = q^2 + r^2 - 2*q*r*cos(P)', 'Put x = q cos P into the line before last', ['p^2 = q^2 + r^2 + 2*q*r*cos(P)', 'p^2 = q^2 + r^2 - q*r*cos(P)', 'p^2 = q^2 + r^2 - 2*q*r*sin(P)', 'p^2 = q^2 + r^2 - 2*r*cos(P)']],
+      ['p^2 = (r - x)^2 + h^2', 'Pythagoras in right triangle QDR, where DQ = r − x', [
+        ['p^2 = (r + x)^2 + h^2', 'p^2 = (r - x)^2 - h^2', 'p^2 = (r + x)^2 - h^2']]],
+      ['p^2 = r^2 - 2*r*x + x^2 + h^2', 'Square out (r − x)²', [
+        ['p^2 = r^2 + 2*r*x + x^2 + h^2', 'p^2 = r^2 - r*x + x^2 + h^2', 'p^2 = r^2 + r*x + x^2 + h^2'],
+        ['p^2 = r^2 + 2*r*x + x^2 + h^2', 'p^2 = r^2 - 2*r*x - x^2 + h^2', 'p^2 = r^2 + 2*r*x - x^2 + h^2']]],
+      ['p^2 = q^2 + r^2 - 2*r*x', 'x² + h² = q², the first line', [
+        ['p^2 = q^2 + r^2 + 2*r*x', 'p^2 = r^2 - q^2 - 2*r*x', 'p^2 = r^2 - q^2 + 2*r*x']]],
+      ['x = q*cos(P)', 'In right triangle PDR, cos P = x/q', [
+        ['x = q*sin(P)', 'x = r*cos(P)', 'x = r*sin(P)'],
+        ['x = q*sin(P)', 'x = cos(P)/q', 'x = sin(P)/q']]],
+      ['p^2 = q^2 + r^2 - 2*q*r*cos(P)', 'Put x = q cos P into the line before last', [
+        ['p^2 = q^2 + r^2 + 2*q*r*cos(P)', 'p^2 = q^2 + r^2 - q*r*cos(P)', 'p^2 = q^2 + r^2 + q*r*cos(P)'],
+        ['p^2 = q^2 + r^2 + 2*q*r*cos(P)', 'p^2 = q^2 + r^2 - 2*q*r*sin(P)', 'p^2 = q^2 + r^2 + 2*q*r*sin(P)']]],
     ],
   },
 };
@@ -345,12 +368,14 @@ function lawProof(rng) {
   const { goal, steps } = LAW_PROOFS[law];
   const i = rng.int(1, steps.length - 1);
   const lines = steps.slice(0, i).map((s) => relabel(s[0], m));
-  const [next0, reason0, slips] = steps[i];
+  const [next0, reason0, crossings] = steps[i];
   const next = relabel(next0, m), reason = relabel(reason0, m);
+  // The crossed slips, and in about half the rows a fifth option: a line
+  // already written, a step back.
   const back = rng.chance(0.5) ? rng.pick(lines) : null;
-  const wrong = [...(back ? [back] : []), ...rng.shuffle(slips.map((e) => relabel(e, m)))].slice(0, 3);
+  const wrong = [...rng.pick(crossings).map((e) => relabel(e, m)), ...(back ? [back] : [])];
   const all = rng.shuffle([next, ...wrong]);
-  const opts = all.map((e, j) => ({ id: ['a', 'b', 'c', 'd'][j], e }));
+  const opts = all.map((e, j) => ({ id: ['a', 'b', 'c', 'd', 'e'][j], e }));
   const g = relabel(goal, m);
   const setup = `Drop the altitude h from ${R} to line ${[P, Q].sort().join('')}, meeting it at D${law === 'cosines' ? `, and let x = ${P}D (negative if D falls beyond ${P}), so D${Q} = ${lawText(relabel('r - x', m))}` : ''}.`;
   return {

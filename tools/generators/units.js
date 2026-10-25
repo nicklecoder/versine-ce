@@ -282,8 +282,18 @@ function estimate(rng, system, kinds) {
     // Every other choice must be at least three times off, so the right one is the only fair answer.
     const off = (v, u) => Math.max(v * SIZE[u] / size, size / (v * SIZE[u]));
     let others = units.filter((u) => u !== right && off(n, u) >= 3).map((u) => [n, u]);
-    // With only two units to the kind (mL and L), the third choice is the same unit a hundred times out.
-    if (others.length < 2) others = [...others, [n * 100, right], [n / 100, right]].filter(([v, u]) => v >= 0.05 && off(v, u) >= 3);
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // With only two units to the kind (mL and L), two slips crossed: the
+    // other unit, and the number a hundred times out, each alone and both.
+    // One slip three ways (4 mL, 400 L, 0.04 L for 4 L) left the key the
+    // choice every other one was a step from.
+    if (units.length === 2) {
+      const other = units.find((u) => u !== right);
+      const ways = [n * 100, n / 100].map((m) => [[m, right], [n, other], [m, other]])
+        .filter((set) => set.every(([v, u]) => v >= 0.05 && off(v, u) >= 3));
+      if (!ways.length) continue;
+      others = rng.pick(ways);
+    }
     if (others.length < 2) continue;
     const options = rng.shuffle([[n, right], ...others.slice(0, 3)]).map(([v, u]) => ({ id: `${plain(v)} ${u}`, label: amt(v, u), v, u }));
     const key = `${plain(n)} ${right}`;

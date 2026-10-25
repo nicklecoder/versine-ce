@@ -210,7 +210,13 @@ function simplest(rng) {
   };
 }
 
-/** The right answer and the slips students make, each a rule swapped for another. */
+/**
+ * The right answer and the slips students make, each a rule swapped for
+ * another: two slips crossed, so the right one is not the option nearest
+ * all the others.
+ *
+ * requiem: catalogue/content/decoys-cross-two-slips
+ */
 function mistakes(rng) {
   const letters = rng.pick([['x'], ['a'], ['x', 'y']]);
   const v = letters[0];
@@ -227,15 +233,18 @@ function mistakes(rng) {
     const a = rng.int(2, 5), n = rng.int(2, 4);
     src = `(${v}^${a})^${n}`;
     right = `${v}${sup(a * n)}`;
-    // Adding the powers, and the outer power written in front -- with or
-    // without also multiplying. Not a^n: x⁶²⁵ for (x⁵)⁴ is nobody's slip.
-    wrong = [`${v}${sup(a + n)}`, `${n}${v}${sup(a)}`, `${n}${v}${sup(a * n)}`];
+    // Adding the powers, and the outer power written in front -- each alone
+    // and both. Not a^n: x⁶²⁵ for (x⁵)⁴ is nobody's slip.
+    wrong = [`${v}${sup(a + n)}`, `${n}${v}${sup(a * n)}`, `${n}${v}${sup(a + n)}`];
     why = `A power of a power multiplies: ${a} × ${n} = ${a * n}.`;
   } else {
     const c = rng.int(2, 5), a = rng.int(2, 4), n = rng.int(2, 3);
     src = `(${c}${v}^${a})^${n}`;
     right = `${c ** n}${v}${sup(a * n)}`;
-    wrong = [`${c}${v}${sup(a * n)}`, `${c * n}${v}${sup(a * n)}`, `${c ** n}${v}${sup(a + n)}`];
+    // The number left alone or multiplied by the power, crossed with the
+    // powers added: each alone and both.
+    const k = rng.chance(0.5) ? c : c * n;
+    wrong = [`${k}${v}${sup(a * n)}`, `${c ** n}${v}${sup(a + n)}`, `${k}${v}${sup(a + n)}`];
     why = `The number is raised too: ${c}${sup(n)} = ${c ** n}. The power of ${v} multiplies: ${a} × ${n} = ${a * n}.`;
   }
   const labels = [...new Set([right, ...wrong])];

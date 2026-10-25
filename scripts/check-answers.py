@@ -8305,40 +8305,33 @@ problems += chance_out_of_range()
 
 
 # requiem: catalogue/content/decoys-cross-two-slips
+# requiem: catalogue/content/decoys-crossed-not-centred
 # A choice whose decoys each change the key in one way and nothing else
 # leaves the key as the option nearest all the others -- the medoid, by edit
 # distance between the labels -- so it can be picked without the
-# mathematics. Logarithms and complex numbers cross two slips instead, and
-# the key is the medoid of a level's choices no more often than about one in
-# four; a level where it is more than 40% has slid back.
-def edit_distance(a: str, b: str) -> int:
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i]
-        for j, cb in enumerate(b, 1):
-            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
-        prev = cur
-    return prev[-1]
+# mathematics. Decoys crossed from two slips put no option in the middle, and
+# the key is the medoid of a level's choices about as often as chance; a
+# level, in any skill, where it is more than 40% of at least 20 measured rows
+# has slid back. The measure, and how fixed menus are found and left out,
+# live in scripts/measure-medoid.py, which reports the same numbers by hand.
+def _load_medoid_measure():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("measure_medoid", Path(__file__).resolve().parent / "measure-medoid.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def key_is_medoid(answer: dict) -> float:
-    """1 when the key is the one option nearest all the others, 1/k when it ties with k."""
-    labels = [o["label"] for o in answer["options"]]
-    total = [sum(edit_distance(a, b) for b in labels) for a in labels]
-    tied = [o["id"] for o, t in zip(answer["options"], total) if t == min(total)]
-    return 1 / len(tied) if answer["value"] in tied else 0.0
-
-
-MEDOID_SKILLS = ("logarithms", "complex")
+MEDOID = _load_medoid_measure()
 for path in sorted(LIB.glob("*.json")):
-    if not path.name.startswith(MEDOID_SKILLS):
+    if path.name in ("manifest.json", "schemas.json"):
         continue
     lib = json.loads(path.read_text())
-    rows = [p["answer"] for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+    rows = MEDOID.rows_written_for(MEDOID.choice_rows(lib))
     if len(rows) >= 20:
-        share = sum(key_is_medoid(a) for a in rows) / len(rows)
+        share = sum(MEDOID.medoid_share(a) for a in rows) / len(rows)
         if share > 0.4:
-            problems.append(f"{lib['skill']} L{lib['level'] + 1}: the key is the medoid of its options in {share:.0%} of {len(rows)} choice rows")
+            problems.append(f"{lib['skill']} L{lib['level'] + 1}: the key is the medoid of its options in {share:.0%} of {len(rows)} choice rows written for the row")
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")

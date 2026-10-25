@@ -361,9 +361,19 @@ function equivalent(rng) {
   const { domain, st } = pickStatement(rng);
   const of = rng.chance(0.65) ? 'original' : 'converse';
   const shown = FORMS[of](st);
-  const forms = of === 'original' ? ['converse', 'inverse', 'contrapositive'] : ['original', 'inverse', 'contrapositive'];
-  const opts = formOptions(rng, domain, st, forms);
   const target = of === 'original' ? 'contrapositive' : 'inverse';
+  // requiem: catalogue/content/decoys-cross-two-slips
+  // The other three forms of the shown sentence put the key in the middle:
+  // the converse and the inverse are each one step from the contrapositive
+  // and two from each other. Instead two slips are crossed on the key: its
+  // parts swapped back (the inverse for the contrapositive, and back), and
+  // one of its two negations left off -- alone and together.
+  const key = FORMS.contrapositive(shown);
+  const side = rng.int(0, 1);
+  const swap = ([a, b]) => [b, a];
+  const oneNot = (c) => c.map((l, i) => (i === side ? not(l) : l));
+  const conds = [key, swap(key), oneNot(key), oneNot(swap(key))];
+  const opts = rng.shuffle(conds.map((cond, k) => ({ k, cond }))).map((o, i) => ({ id: LETTERS[i], form: o.k === 0 ? target : 'slip', cond: o.cond, label: sentence(domain, o.cond) }));
   const want = opts.find((o) => o.form === target).id;
   return {
     prompt: [T.prose(`Which statement is always true exactly when “${bare(sentence(domain, shown))}” is?`)],
@@ -374,7 +384,8 @@ function equivalent(rng) {
     explain: (of === 'original'
       ? `A statement is logically equivalent to its contrapositive: if p always brings q, then without q there can be no p. `
       : `This is the converse of “${bare(sentence(domain, st))}”, and the converse is equivalent to the inverse, its contrapositive. `)
-      + `(${of === 'original' ? 'The converse and the inverse can differ from the statement.' : 'The original statement and its contrapositive can differ from the converse.'}) `
+      + `(${of === 'original' ? 'The inverse keeps the parts in place, and negating only one part says something else: either can differ from the statement.'
+        : 'The contrapositive of the original statement is tied to the original, not to the converse, and negating only one part says something else.'}) `
       + `So “${sentence(domain, FORMS[target](st))}”`,
   };
 }
