@@ -16,12 +16,12 @@
 import { parseExpression, canonical } from './parse.js';
 import { valueAt, lettersIn } from './exact.js';
 import { parseSet, sameSet, formatSet, previewSet, combined, isComplement } from './solutions.js';
-import { parseRoots, sameRoots, formatRoots, rootTexts } from './surds.js';
+import { parseRoots, sameRoots, formatRoots, rootTexts, letterTerms } from './surds.js';
 import { previewOf } from '../ui/express.js';
 import { sameFunction, finished, withoutName, parseNamed } from './equivalent.js';
 import { parseComplex, sameComplex, formatComplex } from './complex.js';
 import { parsePoints, samePoints, formatPoints, previewPoints, partOf } from './points.js';
-import { parseVector, sameVector, formatVector, previewVector } from './vector.js';
+import { parseVector, sameVector, formatVector, previewVector, inexactHint } from './vector.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -613,16 +613,16 @@ defineType({
     const r = parseRoots(raw);
     return r.ok ? r : { ok: false, hint: r.hint };
   },
-  preview(raw) {
-    const r = rootTexts(raw);
+  preview(raw, spec) {
+    const r = rootTexts(raw, spec?.value?.letter ?? 'x');
     if (!r.ok) return { ok: false, error: r.hint };
     if (!r.texts.length) return { ok: true, terms: [{ t: 'prose', v: 'no real solutions' }] };
     const terms = [];
     for (const [i, text] of r.texts.entries()) {
-      const drawn = previewOf(`${r.letter} = ${text}`);
+      const drawn = previewOf(text);
       if (!drawn.ok) return drawn;
       if (i) terms.push({ t: 'prose', v: 'or' });
-      terms.push(...drawn.terms);
+      terms.push(...letterTerms(r.letter), { t: 'op', v: '=' }, ...drawn.terms);
     }
     return { ok: true, terms };
   },
@@ -743,6 +743,7 @@ defineType({
    */
   parse: parseVector,
   preview: previewVector,
+  refuseHint: inexactHint,
   equals: sameVector,
   format: formatVector,
 });

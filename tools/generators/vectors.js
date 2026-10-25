@@ -16,7 +16,7 @@
  */
 import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
-import { cosD, sinD, atanD, four, at4, safeRound, roundedAnswer, roundedText, rootAnswer, rootText } from './trig.js';
+import { cosD, sinD, atanD, acosD, four, at4, safeRound, roundedAnswer, roundedText, rootAnswer, rootText } from './trig.js';
 import { arrowhead } from './curves.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/vectors.js';
 
@@ -171,9 +171,12 @@ function magnitude(rng) {
     const first = fromPoints ? `Its components are ⟨${less(R[0], P[0])}, ${less(R[1], P[1])}⟩ = ${vec(a, b)}. ` : '';
     const simplified = r === 1 ? `√${n} = ${s}` : s === 1 ? `√${n}` : `√${n} = √(${s * s} × ${r}) = ${rootText(s, 1, r)}`;
     return {
-      prompt: [T.prose(`What is the magnitude of ${where}? Give it exactly, in simplest radical form.`)],
+      // Said alike whether or not the length is whole, so the wording never
+      // tells which it is.
+      prompt: [T.prose(`What is the magnitude of ${where}? Give it exactly, with any radical in simplest form.`)],
       text,
-      answer: { ...rootAnswer('x', s, 1, r), requireSimplest: true },
+      // requiem: play/answers/roots-preview-names-the-asked-letter
+      answer: { ...rootAnswer('|v|', s, 1, r), requireSimplest: true },
       visual: null,
       explain: `${first}|v| = √(${a < 0 ? `(${minus(a)})` : a}² + ${b < 0 ? `(${minus(b)})` : b}²) = √(${a * a} + ${b * b}) = ${simplified}. So |v| = ${rootText(s, 1, r)}.`,
     };
@@ -197,7 +200,7 @@ function magnitude(rng) {
     const answerMarks = [{ kind: 'segment', from: [0, 0], to: [win.x1, 0], tone: ASKED, dashed: true },
       { kind: 'text', at: [a / 2, b / 2 + (b > 0 ? 0.8 : -0.8)], label: `θ ≈ ${roundedText(q, 1)}°`, tone: ASKED }];
     return {
-      prompt: [T.prose(`${drawn ? `The vector drawn is ${vec(a, b)}. What` : `What`} is the direction angle of ${drawn ? 'it' : vec(a, b)}, measured counterclockwise from the positive x-axis, in degrees from 0 to 360? Give it to 1 decimal place.`)],
+      prompt: [T.prose(`${drawn ? `The vector drawn is ${vec(a, b)}. What is its direction angle` : `What is the direction angle of ${vec(a, b)}`}, measured counterclockwise from the positive x-axis, in degrees from 0 to 360? Give it to 1 decimal place.`)],
       text: `direction: ${vecA(a, b)} to 1 dp`,
       answer: roundedAnswer(q, 1),
       visual: drawn ? plane(win, arrow([0, 0], tip), answerMarks) : null,
@@ -322,7 +325,7 @@ function scalar(rng) {
       text: `combo: ${p}${vecA(...u)} + ${q}${vecA(...v)}`,
       answer: vectorAnswer(...out),
       visual: null,
-      explain: `${minus(p)}u = ${vec(p * u[0], p * u[1])} and ${minus(q)}v = ${vec(q * v[0], q * v[1])}. Add them: ⟨${more(p * u[0], q * v[0])}, ${more(p * u[1], q * v[1])}⟩ = ${vec(...out)}. So ${name} = ${vec(...out)}.`,
+      explain: `${lead(p)}u = ${vec(p * u[0], p * u[1])} and ${lead(q)}v = ${vec(q * v[0], q * v[1])}. Add them: ⟨${more(p * u[0], q * v[0])}, ${more(p * u[1], q * v[1])}⟩ = ${vec(...out)}. So ${name} = ${vec(...out)}.`,
     };
   }
   for (;;) {
@@ -347,16 +350,24 @@ function scalar(rng) {
 
 const UNIT_TRIPLES = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29], [12, 35, 37], [9, 40, 41]];
 
+// requiem: catalogue/content/unit-vectors-asked-exactly
+// The unit vector itself, a length along, and a length against are 40, 30
+// and 30 of every hundred rows; every one says "exactly", since a length
+// along a vector is a fraction with no ending decimal as often as not.
 function unitVectors(rng) {
   const [p, q, c] = rng.pick(UNIT_TRIPLES);
   const [a0, b0] = rng.chance(0.5) ? [p, q] : [q, p];
   const sa = rng.sign(), sb = rng.sign();
-  if (rng.chance(0.55)) {
-    const m = rng.int(1, 4);
+  // The unit vectors themselves are fewer than the lengths along and
+  // against, and the build keeps distinct rows only, so they are drawn more
+  // often and over more multiples for the built level to come out 40/30/30.
+  const shape = rng.pick(['unit', 'unit', 'unit', 'unit', 'unit', 'unit', 'along', 'along', 'along', 'against', 'against', 'against']);
+  if (shape === 'unit') {
+    const m = rng.int(1, 10);
     const v = [sa * a0 * m, sb * b0 * m], len = c * m;
     const u = [Q(v[0], len), Q(v[1], len)];
     return {
-      prompt: [T.prose(`What is the unit vector in the direction of ${vec(...v)}?`)],
+      prompt: [T.prose(`What is the unit vector in the direction of ${vec(...v)}? Give it exactly.`)],
       text: `unit: ${vecA(...v)}`,
       answer: vectorAnswer(...u),
       visual: null,
@@ -366,16 +377,111 @@ function unitVectors(rng) {
   const v = [sa * a0, sb * b0];
   const L = rng.pick([2 * c, 3 * c, c * rng.int(2, 6), rng.int(2, 30)]);
   if (L === c) return unitVectors(rng);
-  const against = rng.chance(0.25);
+  const against = shape === 'against';
   const s = against ? -1 : 1;
   const out = [Q(s * L * v[0], c), Q(s * L * v[1], c)];
   return {
-    prompt: [T.prose(`What vector has magnitude ${L} and points ${against ? 'in the direction opposite to' : 'in the same direction as'} ${vec(...v)}?`)],
+    prompt: [T.prose(`What vector has magnitude ${L} and points ${against ? 'in the direction opposite to' : 'in the same direction as'} ${vec(...v)}? Give it exactly.`)],
     text: `length ${L} ${against ? 'against' : 'along'} ${vecA(...v)}`,
     answer: vectorAnswer(...out),
     visual: null,
     explain: `${vec(...v)} has length √(${v[0] * v[0]} + ${v[1] * v[1]}) = ${c}, so its unit vector is ${vec(Q(v[0], c), Q(v[1], c))}. Multiply by ${against ? `−${L}` : L}${against ? ' to point the other way' : ''}: ${vec(...out)}. So it is ${vec(...out)}.`,
   };
+}
+
+// --- Dot Product ---------------------------------------------------------------------------
+
+/**
+ * u · v = ac + bd, the angle between two vectors from cos θ = u · v / (|u||v|),
+ * and orthogonality as u · v = 0. Orthogonal, Parallel and Neither are a
+ * fixed menu, the answer drawn first so each is the key a third of the time.
+ */
+// requiem: catalogue/content/dot-product-level
+function dotProduct(rng) {
+  const shape = rng.pick(['dot', 'dot', 'dot', 'angle', 'angle', 'angle', 'which', 'which', 'which', 'k', 'k']);
+  const nz = (span) => { for (;;) { const w = [rng.int(-span, span), rng.int(-span, span)]; if (w[0] || w[1]) return w; } };
+  const dot = (u, v) => u[0] * v[0] + u[1] * v[1];
+  const term = (x, y) => `${x < 0 ? `(${minus(x)})` : x}(${minus(y)})`;
+  const [n1, n2] = rng.pick([['u', 'v'], ['a', 'b'], ['p', 'q']]);
+  if (shape === 'dot') {
+    const u = nz(9), v = nz(9);
+    const d = dot(u, v);
+    return {
+      prompt: [T.prose(`${n1} = ${vec(...u)} and ${n2} = ${vec(...v)}. What is ${n1} · ${n2}?`)],
+      text: `dot: ${vecA(...u)} . ${vecA(...v)}`,
+      answer: { type: 'frac', value: Q(d), requireSimplest: false },
+      visual: null,
+      explain: `Multiply the across parts and the up parts, and add: ${term(u[0], v[0])} + ${term(u[1], v[1])} = ${minus(u[0] * v[0])} + ${u[1] * v[1] < 0 ? `(${minus(u[1] * v[1])})` : u[1] * v[1]} = ${minus(d)}. So ${n1} · ${n2} = ${minus(d)}.`,
+    };
+  }
+  if (shape === 'angle') {
+    for (;;) {
+      const u = nz(8), v = nz(8);
+      const d = dot(u, v), uu = dot(u, u), vv = dot(v, v);
+      const c = d / Math.sqrt(uu * vv);
+      // Not along one line: 0° and 180° are the parallel cases, asked below.
+      if (Math.abs(Math.abs(c) - 1) < 1e-9) continue;
+      const exact = acosD(c);
+      const q = safeRound(exact, 1, acosD(four(c)));
+      if (q === null) continue;
+      return {
+        prompt: [T.prose(`What is the angle between ${vec(...u)} and ${vec(...v)}, in degrees from 0 to 180, to 1 decimal place?`)],
+        text: `angle between: ${vecA(...u)} and ${vecA(...v)} to 1 dp`,
+        answer: roundedAnswer(q, 1),
+        visual: null,
+        explain: `cos θ = u · v / (|u||v|). u · v = ${term(u[0], v[0])} + ${term(u[1], v[1])} = ${minus(d)}, |u| = √${uu} and |v| = √${vv}, so cos θ = ${minus(d)}/√${uu * vv} ≈ ${at4(c)}. θ = cos⁻¹(${at4(c)}) ≈ ${at4(acosD(four(c)))}°. So θ ≈ ${roundedText(q, 1)}°.`,
+      };
+    }
+  }
+  if (shape === 'which') {
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Orthogonal pairs repeat more often than the others, so they are drawn
+    // a little more for each answer to be the key about a third of the time.
+    const kind = rng.pick(['orthogonal', 'orthogonal', 'orthogonal', 'orthogonal', 'parallel', 'parallel', 'parallel', 'neither', 'neither', 'neither']);
+    for (;;) {
+      const u = nz(6);
+      let v;
+      if (kind === 'orthogonal') { const m = rng.sign() * rng.int(1, 3); v = [-m * u[1], m * u[0]]; }
+      else if (kind === 'parallel') {
+        // A whole multiple, or a half when both components are even.
+        const half = rng.chance(0.3) && u.every((x) => x % 2 === 0);
+        const m = rng.sign() * (half ? 0.5 : rng.int(1, 3));
+        v = [m * u[0], m * u[1]];
+      }
+      else v = nz(9);
+      const d = dot(u, v), cr = u[0] * v[1] - u[1] * v[0];
+      const is = d === 0 ? 'orthogonal' : cr === 0 ? 'parallel' : 'neither';
+      if (is !== kind || (u[0] === v[0] && u[1] === v[1])) continue;
+      const why = is === 'orthogonal' ? 'That is 0, so they are at right angles'
+        : is === 'parallel' ? `That is not 0, but ${vec(...v)} is ${qs(Q(v[0] || v[1], u[0] || u[1]))} × ${vec(...u)}, a multiple of it, so they lie along one line`
+          : `That is not 0, so they are not at right angles, and ${vec(...v)} is no multiple of ${vec(...u)}, so they are not along one line`;
+      return {
+        prompt: [T.prose(`Are ${vec(...u)} and ${vec(...v)} orthogonal, parallel, or neither?`)],
+        text: `orthogonal or parallel: ${vecA(...u)} and ${vecA(...v)}`,
+        answer: { type: 'choice', value: is, options: [{ id: 'orthogonal', label: 'Orthogonal' }, { id: 'parallel', label: 'Parallel' }, { id: 'neither', label: 'Neither' }] },
+        visual: null,
+        explain: `The dot product is ${term(u[0], v[0])} + ${term(u[1], v[1])} = ${minus(d)}. ${why}. So they are ${is}.`,
+      };
+    }
+  }
+  for (;;) {
+    // ⟨a, k⟩ · ⟨c, d⟩ = 0: ac + kd = 0, so k = −ac/d.
+    const a = rng.sign() * rng.int(1, 8), c = rng.sign() * rng.int(1, 8), d = rng.sign() * rng.int(1, 8);
+    const k = Q(-a * c, d);
+    if (k.d > 4) continue;
+    const kFirst = rng.chance(0.5);
+    const u = kFirst ? `⟨k, ${minus(a)}⟩` : `⟨${minus(a)}, k⟩`;
+    const v = kFirst ? vec(d, c) : vec(c, d);
+    const uA = kFirst ? `<k, ${a}>` : `<${a}, k>`;
+    const vA = kFirst ? vecA(d, c) : vecA(c, d);
+    return {
+      prompt: [T.prose(`For what value of k are ${u} and ${v} orthogonal?`)],
+      text: `orthogonal k: ${uA} and ${vA}`,
+      answer: { type: 'frac', value: k, requireSimplest: false },
+      visual: null,
+      explain: `Orthogonal means the dot product is 0: ${kFirst ? `${d < 0 ? `(${minus(d)})` : d}k + ${term(a, c)}` : `${term(a, c)} + ${d < 0 ? `(${minus(d)})` : d}k`} = 0, so ${minus(d)}k = ${minus(-a * c)} and k = ${qs(k)}. So k = ${qs(k)}.`,
+    };
+  }
 }
 
 // --- Resultants -------------------------------------------------------------------------------
@@ -388,7 +494,7 @@ const STORIES = [
       const head = rng.pick([['north', 90], ['south', 270]]), flow = rng.pick([['east', 0], ['west', 180]]);
       return { vs: [[boat, head[1]], [current, flow[1]]], unit: 'mph',
         words: `A boat heads due ${head[0]} at ${boat} mph across a river whose current flows due ${flow[0]} at ${current} mph.`,
-        what: ['speed over the ground', 'direction of travel'] };
+        what: ['resultant speed', 'direction of travel'] };
     },
   },
   {
@@ -398,7 +504,7 @@ const STORIES = [
       if (h === w || Math.abs(h - w) === 180) return null;
       return { vs: [[air, h], [wind, w]], unit: 'mph',
         words: `A plane flies at ${air} mph in the direction ${h}°, and a wind blows at ${wind} mph toward ${w}°, both measured counterclockwise from east.`,
-        what: ['speed over the ground', 'direction of travel'] };
+        what: ['resultant speed', 'direction of travel'] };
     },
   },
   {
@@ -413,7 +519,69 @@ const STORIES = [
   },
 ];
 
+/** A bearing as navigators write it: three digits, 060°. */
+const bearing = (b) => `${String(b).padStart(3, '0')}°`;
+
+/**
+ * Two legs or a heading and a wind given as bearings, clockwise from north:
+ * a bearing b is east r sin b and north r cos b, and the resultant's
+ * bearing is found from its east and north parts the same way.
+ */
+// requiem: catalogue/content/resultants-on-bearings
+const BEARING_STORIES = [
+  (rng) => {
+    const d1 = rng.int(4, 40) * 5, d2 = rng.int(4, 40) * 5, b1 = rng.int(0, 71) * 5, b2 = rng.int(0, 71) * 5;
+    return { legs: [[d1, b1], [d2, b2]], unit: 'mi',
+      words: `A ship sails ${d1} mi on a bearing of ${bearing(b1)}, then ${d2} mi on a bearing of ${bearing(b2)}.`,
+      ask: ['How far is it from where it started, in miles', 'On what bearing is it from where it started'] };
+  },
+  (rng) => {
+    const air = rng.int(15, 50) * 10, wind = rng.int(2, 12) * 5, b1 = rng.int(0, 71) * 5, b2 = rng.int(0, 71) * 5;
+    return { legs: [[air, b1], [wind, b2]], unit: 'mph',
+      words: `A plane flies at ${air} mph on a bearing of ${bearing(b1)}, and a wind blows at ${wind} mph toward a bearing of ${bearing(b2)}.`,
+      ask: ['What is its resultant speed, in mph', 'On what bearing does it actually travel'] };
+  },
+];
+
+function bearings(rng) {
+  const want = rng.pick(['magnitude', 'bearing']);
+  for (;;) {
+    const st = rng.pick(BEARING_STORIES)(rng);
+    const [[r1, b1], [r2, b2]] = st.legs;
+    if (b1 === b2 || Math.abs(b1 - b2) === 180) continue;
+    const E = r1 * sinD(b1) + r2 * sinD(b2), N = r1 * cosD(b1) + r2 * cosD(b2);
+    const E4 = r1 * four(sinD(b1)) + r2 * four(sinD(b2)), N4 = r1 * four(cosD(b1)) + r2 * four(cosD(b2));
+    if (Math.hypot(E, N) < 1) continue;
+    const brg = (e, n) => ((Math.atan2(e, n) * 180) / Math.PI + 360) % 360;
+    const exact = want === 'magnitude' ? Math.hypot(E, N) : brg(E, N);
+    const alt = want === 'magnitude' ? Math.hypot(E4, N4) : brg(E4, N4);
+    // requiem: catalogue/content/direction-angle-stated
+    if (want === 'bearing' && (exact < 0.1 || exact > 359.9)) continue;
+    const q = safeRound(exact, 1, alt);
+    if (q === null) continue;
+    const parts = st.legs.map(([r, b]) => `${r} on ${bearing(b)} is ${r} sin ${b}° ≈ ${at4(r * four(sinD(b)))} east and ${r} cos ${b}° ≈ ${at4(r * four(cosD(b)))} north`).join('; ');
+    const ref = atanD(Math.abs(E4 / N4));
+    const place = N4 > 0 && E4 >= 0 ? 'east of north, so the bearing is that angle'
+      : N4 < 0 && E4 >= 0 ? `east of south, so the bearing is 180° − ${at4(ref)}°`
+        : N4 < 0 ? `west of south, so the bearing is 180° + ${at4(ref)}°` : `west of north, so the bearing is 360° − ${at4(ref)}°`;
+    const finish = want === 'magnitude'
+      ? `Its length is √(${sq(E4)} + ${sq(N4)}) ≈ ${at4(Math.hypot(E4, N4))}. So it is ${roundedText(q, 1)} ${st.unit}.`
+      : `From north, tan⁻¹(${at4(Math.abs(E4))}/${at4(Math.abs(N4))}) ≈ ${at4(ref)}° ${place}${N4 > 0 && E4 >= 0 ? '' : ` ≈ ${at4(alt)}°`}. So it is ${roundedText(q, 1)}°.`;
+    const ask = want === 'magnitude' ? `${st.ask[0]}, to 1 decimal place?`
+      : `${st.ask[1]}, in degrees clockwise from north, from 0 to 360, to 1 decimal place?`;
+    return {
+      prompt: [T.prose(`${st.words} ${ask}`)],
+      text: `resultant ${want === 'magnitude' ? 'distance' : 'bearing'}: ${st.legs.map(([r, b]) => `${r} on bearing ${b}`).join('; ')} to 1 dp`,
+      answer: roundedAnswer(q, 1),
+      visual: null,
+      explain: `Break each into east and north parts: ${parts}. Adding, ${at4(E4)} east and ${at4(N4)} north. ${finish}`,
+    };
+  }
+}
+
 function resultants(rng) {
+  // A quarter of the level is on bearings, navigation's own measure.
+  if (rng.chance(0.25)) return bearings(rng);
   const want = rng.pick(['magnitude', 'direction']);
   for (;;) {
     const s = rng.pick(STORIES).make(rng);
@@ -447,7 +615,7 @@ function resultants(rng) {
   }
 }
 
-const CONTENT = [components, magnitude, fromMagnitude, adding, scalar, unitVectors, resultants];
+const CONTENT = [components, magnitude, fromMagnitude, adding, scalar, unitVectors, dotProduct, resultants];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {

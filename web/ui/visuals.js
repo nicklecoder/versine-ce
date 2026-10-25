@@ -176,6 +176,9 @@ export const VISUALS = {
       axes: { type: 'bool' },
       // What each axis measures, { x: 'hours', y: 'km from home' }.
       titles: { type: 'object' },
+      // A polar grid, { ring, spokes }: circles every ring units and spokes
+      // every spokes degrees, in place of the square grid.
+      polar: { type: 'object' },
       marks: { type: 'array', of: { type: 'object' } },
       // Anything that would answer the question is withheld until one is
       // committed, so the renderer never receives it and cannot leak it.

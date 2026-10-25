@@ -15,23 +15,26 @@
 
 export const LEVELS = [
   { name: 'Plot Parametric', slug: 'plot-parametric',
-    blurb: 'Put t into both equations: the point is (x(t), y(t)). Going the other way, solve x(t) for t.',
-    // cos t and sin t at 0°, 90°, 180° and 270° are read off the unit circle.
-    dependsOn: [{ skill: 'unit-circle', level: 2 }] },
+    blurb: 'Put t into both equations: the point is (x(t), y(t)). Going the other way, solve x(t) for t. Two values of t show which way it runs.',
+    // cos t and sin t at 0°, 90°, 180° and 270°, on the axes, are the unit
+    // circle's Special Angles; nothing here goes past them.
+    dependsOn: [{ skill: 'unit-circle', level: 0 }] },
   { name: 'Eliminate the Parameter', slug: 'eliminate-the-parameter',
     blurb: 'Solve one equation for t and substitute it into the other; for cos t and sin t, use cos² t + sin² t = 1.',
     // A cosine and a sine eliminate to an ellipse in standard form.
     dependsOn: [{ skill: 'conics', level: 2 }] },
   { name: 'Parametric Motion', slug: 'parametric-motion',
-    blurb: 'A thrown ball: x = (v cos θ)t and y = h + (v sin θ)t − 16t², in feet and seconds.',
+    blurb: 'A thrown ball: across at v cos θ, up at v sin θ from its height, and gravity takes 16t² feet off in t seconds. It lands where y = 0.',
     // The two speeds are a velocity's components, and the landing time is a
     // root of the height.
     dependsOn: [{ skill: 'vectors', level: 2 }, { skill: 'quadratic-formula', level: 2 }] },
   { name: 'Polar to Rectangular', slug: 'polar-to-rectangular',
-    blurb: 'x = r cos θ and y = r sin θ, exactly, from the unit circle.',
-    dependsOn: [{ skill: 'unit-circle', level: 0 }, { skill: 'radians', level: 1 }] },
+    blurb: 'x = r cos θ and y = r sin θ, exactly, from the unit circle. A negative r goes the opposite way.',
+    // 120°, 300° and 7π/6 are the unit circle's Around the Circle, a
+    // reference angle placed in its quadrant, in degrees or radians.
+    dependsOn: [{ skill: 'unit-circle', level: 2 }, { skill: 'radians', level: 1 }] },
   { name: 'Rectangular to Polar', slug: 'rectangular-to-polar',
-    blurb: 'r = √(x² + y²), and θ by the inverse tangent, put in the quadrant the point is in.',
+    blurb: 'r = √(x² + y²), and θ by the inverse tangent, put in the quadrant the point is in. Half a turn with a negative r, or a whole turn, names the same point.',
     // The same two steps as a vector's magnitude and direction.
     dependsOn: [{ skill: 'vectors', level: 1 }] },
   { name: 'Converting Equations', slug: 'converting-equations',
@@ -57,7 +60,7 @@ export default {
   name: 'Parametric & Polar',
   category: 'vectors-polar',
   glyph: 'r',
-  blurb: 'Parametric curves and motion, eliminating the parameter, polar coordinates both ways, converting equations, and roses, limaçons and circles.',
+  blurb: 'Parametric curves and motion, eliminating the parameter, polar coordinates both ways on a polar grid, converting equations, and roses, limaçons and circles.',
   answerInput: 'pair',
   // Points on the unit circle, ellipses in standard form, a thrown ball's
   // components and landing time, a polar point's r and θ as a vector's

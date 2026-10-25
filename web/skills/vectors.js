@@ -31,14 +31,18 @@ export const LEVELS = [
     blurb: 'k⟨a, b⟩ = ⟨ka, kb⟩: the same direction stretched, or turned round when k is negative.' },
   { name: 'Unit Vectors', slug: 'unit-vectors',
     blurb: 'Divide a vector by its length to get length 1 in the same direction; multiply that by any length you want.' },
+  { name: 'Dot Product', slug: 'dot-product',
+    blurb: '⟨a, b⟩ · ⟨c, d⟩ = ac + bd. It is |u||v| cos θ, so it gives the angle between them, and it is 0 exactly when they are at right angles.' },
   { name: 'Resultants', slug: 'resultants',
-    blurb: 'Forces and velocities add as vectors: break each into components, add, and find the length and direction of the sum.' },
+    blurb: 'Forces and velocities add as vectors: break each into components, add, and find the length and direction of the sum. A bearing b is r sin b east and r cos b north.',
+    // A bearing, clockwise from north, is trig ratios' Elevation & Bearings.
+    dependsOn: [{ skill: 'trig-ratios', level: 7 }] },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [35, 50, 45, 40, 45, 55, 90, 55];
+export const PAR_SECONDS = [35, 50, 45, 40, 45, 55, 50, 90, 60];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
@@ -51,10 +55,12 @@ export default {
   name: 'Vectors',
   category: 'vectors-polar',
   glyph: '→',
-  blurb: 'Component form, magnitude and direction, adding, scaling, unit vectors, and the resultant of forces and velocities.',
+  blurb: 'Component form, magnitude and direction, adding, scaling, unit vectors, the dot product and the angle between vectors, and the resultant of forces, velocities and bearings.',
   answerInput: 'vector',
   // Magnitude from the Pythagorean theorem, direction and components from
   // the trig ratios, and angles past 90° from the unit circle.
   dependsOn: ['pythagoras', 'trig-ratios', 'unit-circle'],
+  // requiem: catalogue/structure/eight-level-guide
+  longerBecause: 'The plan names eight levels, and the dot product is a ninth: the angle between two vectors and whether they are orthogonal come before calculus and physics, and cannot ride along in Resultants, whose forces and bearings are a different technique. Each of the other seven is its own move -- components, length and angle, the way back, adding, scaling, unit length, resultants -- and All Together makes nine.',
   levels: LEVELS,
 };

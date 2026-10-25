@@ -271,6 +271,9 @@
       "titles": {
         "type": "object"
       },
+      "polar": {
+        "type": "object"
+      },
       "marks": {
         "type": "array",
         "of": {

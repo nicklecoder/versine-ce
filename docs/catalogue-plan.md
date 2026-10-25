@@ -324,7 +324,7 @@ With it, Phase 3 is built.
 | `binomial` (Sequences) | Pascal's Triangle · Coefficients by Combinations · A Given Term · Full Expansion | A-APR.5, TEKS P.5F |
 | `systems-2` (Equations) | Line Meets Parabola · How Many Intersections · Three Variables · Three-Variable Word Problems | A-REI.7, TEKS A2.3 |
 | `conics` (Coordinates) | Which Conic · Parabola Focus & Directrix · Ellipses · Hyperbolas | G-GPE.2–3, TEKS P.3F–I |
-| `vectors` (Vectors & Polar) | Components · Magnitude & Direction · Adding · Scalar Multiples · Resultants | TEKS P.4I–K |
+| `vectors` (Vectors & Polar) | Components · Magnitude & Direction · Adding · Scalar Multiples · Dot Product · Resultants | TEKS P.4I–K |
 | `parametric-polar` (Vectors & Polar) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
 
 `trig-ratios` is built, in the plan's eight levels and All Together, which
@@ -620,7 +620,10 @@ Ellipses · Hyperbolas · Writing the Equation · Completing the Square ·
 Match the Graph · All Together. Writing the Equation, Completing the
 Square and Match the Graph are added: an ellipse or hyperbola from its
 center, a vertex and a focus (or both vertices and both foci), the center
-or vertex out of general form, and the equation of a drawn conic. Circles
+or vertex out of general form, and the equation of a drawn conic. Writing
+the Equation also starts from the definition: the foci and the constant
+sum (an ellipse) or difference (a hyperbola) of the distances to them,
+which is 2a (G-GPE.3, TEKS P.3G). Circles
 from general form are not repeated, since circles' Complete the Square for
 Center already asks them; a circle is one of the four answers to Which
 Conic?. Which Conic? depends on circles' Equation of a Circle, Parabola
@@ -638,24 +641,32 @@ category, Vectors & Polar, under Trigonometry: both are worked with cos θ
 and sin θ throughout.
 
 `vectors` is built, as Components · Magnitude & Direction · From Magnitude &
-Direction · Adding & Subtracting · Scalar Multiples · Unit Vectors ·
-Resultants · All Together. Magnitude & Direction builds on the Pythagorean
+Direction · Adding & Subtracting · Scalar Multiples · Unit Vectors · Dot
+Product · Resultants · All Together, nine levels with a declared reason:
+the dot product, the angle between two vectors and orthogonality are a
+technique of their own that calculus and physics use. Magnitude & Direction builds on the Pythagorean
 theorem's distance and trig ratios' Missing Angle, with angles past 90° from
 the unit circle's reference angles; From Magnitude & Direction on trig
 ratios' Missing Side. A vector is typed in its own box as <3, −4>, read as
 ⟨3, −4⟩, with 3i − 4j read too and a round-bracket pair asked again as a
-point. Every direction is counterclockwise from the positive x-axis, 0° to
-360°, and every question says so; an exact length is in simplest radical
-form; unit vectors are built on Pythagorean triples so their components are
-fractions; a rounded component, angle or resultant agrees to 1 dp with its
-trig values copied to 4 places.
+point, in any order and with bracketed coefficients. Every direction is
+counterclockwise from the positive x-axis, 0° to 360°, or a bearing
+clockwise from north, and every question says which; a quarter of
+Resultants is on bearings and depends on trig ratios' Elevation &
+Bearings. An exact length is asked "with any radical in simplest form"
+whether it has one or not, and previews as |v| =; unit vectors are built
+on Pythagorean triples so their components are fractions, every unit
+vector question says "exactly", and a decimal typed for a fraction with no
+ending decimal is asked again; a rounded component, angle or resultant
+agrees to 1 dp with its trig values copied to 4 places.
 
 `parametric-polar` is built, as Plot Parametric · Eliminate the Parameter ·
 Parametric Motion · Polar to Rectangular · Rectangular to Polar · Converting
 Equations · Polar Graphs · All Together. Eliminate the Parameter builds on
-conics' Ellipses, Parametric Motion on vectors' From Magnitude & Direction
-and the quadratic formula, Polar to Rectangular on the unit circle's
-special angles and radians, Rectangular to Polar on vectors' Magnitude &
+conics' Ellipses, Plot Parametric on the unit circle's Special Angles (only
+the angles on the axes), Parametric Motion on vectors' From Magnitude &
+Direction and the quadratic formula, Polar to Rectangular on the unit
+circle's Around the Circle (120°, 300°, 7π/6) and radians, Rectangular to Polar on vectors' Magnitude &
 Direction, and Converting Equations on circles' Equation of a Circle. A
 point goes in the pair box, an eliminated line in the line box as y in
 terms of x, an exact coordinate or r in simplest radical form, an angle or
@@ -663,7 +674,14 @@ a thrown ball's height, distance or time to 1 dp; an eliminated curve, a
 converted equation and a drawn polar graph are chosen from four options
 crossing two slips, and a curve's name from Circle, Cardioid, Limaçon and
 Rose. Every question in degrees says so, and every polar angle is from 0°
-to 360° with r > 0.
+to 360°. Polar to Rectangular gives negative r as well as positive, and
+plots a point on a polar grid (rings and 15° spokes), which drawn polar
+graphs use too; Rectangular to Polar asks r > 0, an exact polar form at a
+special angle in degrees or radians, and another name for one point (a
+negative r half a turn round, or a whole turn). Plot Parametric asks which
+way a curve runs; Parametric Motion asks only times before the ball lands,
+prints the path in half its rows, asks the range and the greatest height,
+and asks which equations model a throw (TEKS P.3C).
 
 ## Category sizes when complete
 

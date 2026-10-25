@@ -482,7 +482,13 @@ function writing(rng) {
   const C = kind === 'ellipse' ? ellipse(rng, rng.pick(E_TRIPLES)) : hyperbola(rng, rng.pick(H_TRIPLES));
   const axis = kind === 'ellipse' ? C.major : C.opens;
   const P = kind === 'ellipse' ? ellipsePoints(C) : hyperbolaPoints(C);
-  const both = rng.chance(0.4);
+  // requiem: catalogue/content/conic-from-its-locus
+  // From the center, a vertex and a focus; from both vertices and both foci;
+  // or from the definition, the foci and the constant sum (an ellipse) or
+  // difference (a hyperbola) of the distances to them, which is 2a.
+  const given = rng.pick(['center', 'center', 'center', 'both', 'both', 'locus', 'locus']);
+  const both = given === 'both';
+  const locus = given === 'locus';
   const side = rng.int(0, 1);
   // Two slips crossed: b² by the other conic's rule, and a² put under the
   // letter the vertex does not lie along.
@@ -497,22 +503,34 @@ function writing(rng) {
   const ids = ['a', 'b', 'c', 'd'];
   const key = ids[order.indexOf(0)];
   const listing = order.map((j, i) => `${ids[i]}: ${opts[j]}`).join(' | ');
-  const given = both
-    ? `vertices ${ptA(...P.vertices[0])} and ${ptA(...P.vertices[1])}; foci ${ptA(...P.foci[0])} and ${ptA(...P.foci[1])}`
-    : `center ${ptA(C.h, C.k)}; vertex ${ptA(...P.vertices[side])}; focus ${ptA(...P.foci[1 - side])}`;
-  const words = both
-    ? `vertices ${listPts(P.vertices)} and foci ${listPts(P.foci)}`
-    : `center (${minus(C.h)}, ${minus(C.k)}), a vertex at ${pt(...P.vertices[side])} and a focus at ${pt(...P.foci[1 - side])}`;
   const rule = kind === 'ellipse' ? `b² = a² − c² = ${C.a * C.a} − ${C.c * C.c} = ${C.b * C.b}` : `b² = c² − a² = ${C.c * C.c} − ${C.a * C.a} = ${C.b * C.b}`;
   const otherRule = kind === 'ellipse' ? 'b² = a² + c², adding where an ellipse takes away' : 'b² = c² + a², adding where a hyperbola takes away';
   const dirTxt = axis === 'x' ? 'to its left or right' : 'above or below it';
+  const told = locus
+    ? `foci ${ptA(...P.foci[0])} and ${ptA(...P.foci[1])}; ${kind === 'ellipse' ? 'sum' : 'difference'} ${2 * C.a}`
+    : both
+      ? `vertices ${ptA(...P.vertices[0])} and ${ptA(...P.vertices[1])}; foci ${ptA(...P.foci[0])} and ${ptA(...P.foci[1])}`
+      : `center ${ptA(C.h, C.k)}; vertex ${ptA(...P.vertices[side])}; focus ${ptA(...P.foci[1 - side])}`;
+  const words = both
+    ? `vertices ${listPts(P.vertices)} and foci ${listPts(P.foci)}`
+    : `center (${minus(C.h)}, ${minus(C.k)}), a vertex at ${pt(...P.vertices[side])} and a focus at ${pt(...P.foci[1 - side])}`;
+  const ask = locus
+    ? (kind === 'ellipse'
+      ? `An ellipse is every point whose distances from ${listPts(P.foci)} add to ${2 * C.a}. Which is its equation?`
+      : `A hyperbola is every point whose distances from ${listPts(P.foci)} differ by ${2 * C.a}. Which is its equation?`)
+    : `${kind === 'ellipse' ? 'An ellipse' : 'A hyperbola'} has ${words}. Which is its equation?`;
+  const start = locus
+    ? `Those two points are the foci. The center is halfway between them, (${minus(C.h)}, ${minus(C.k)}), and they are ${C.c} from it, ${axis === 'x' ? 'to its left and right' : 'above and below it'}, so c = ${C.c}. `
+      + `At a vertex the two distances are ${kind === 'ellipse' ? 'a + c and a − c, which add to 2a' : 'c + a and c − a, which differ by 2a'}, so 2a = ${2 * C.a}, a = ${C.a}, and a² = ${C.a * C.a} goes under ${axis}. `
+      + `For ${kind === 'ellipse' ? 'an ellipse' : 'a hyperbola'} ${rule}.`
+    : `${both ? `The center is halfway between the vertices: (${minus(C.h)}, ${minus(C.k)}). ` : ''}The vertices are ${C.a} from the center, ${dirTxt}, so a = ${C.a} and a² = ${C.a * C.a} goes under ${axis}. `
+      + `The foci are ${C.c} from it, so c = ${C.c}, and for ${kind === 'ellipse' ? 'an ellipse' : 'a hyperbola'} ${rule}.`;
   return {
-    prompt: [T.prose(`${kind === 'ellipse' ? 'An ellipse' : 'A hyperbola'} has ${words}. Which is its equation?`)],
-    text: `conic equation: ${kind}; ${given}; options ${listing}`,
+    prompt: [T.prose(ask)],
+    text: `conic equation: ${kind}; ${told}; options ${listing}`,
     answer: choice(key, order.map((j, i) => [ids[i], pretty(opts[j])])),
     visual: null,
-    explain: `${both ? `The center is halfway between the vertices: (${minus(C.h)}, ${minus(C.k)}). ` : ''}The vertices are ${C.a} from the center, ${dirTxt}, so a = ${C.a} and a² = ${C.a * C.a} goes under ${axis}. `
-      + `The foci are ${C.c} from it, so c = ${C.c}, and for ${kind === 'ellipse' ? 'an ellipse' : 'a hyperbola'} ${rule}. So ${pretty(opts[0])}. `
+    explain: `${start} So ${pretty(opts[0])}. `
       + `The others: ${pretty(opts[1])} takes ${otherRule}; ${pretty(opts[2])} puts a² under ${axis === 'x' ? 'y' : 'x'}; ${pretty(opts[3])} does both.`,
   };
 }
@@ -638,7 +656,7 @@ function matching(rng) {
     text: `conic graph: ${kind}; ${drawn}; options ${listing}`,
     answer: choice(key, order.map((j, i) => [ids[i], pretty(opts[j])])),
     visual: plane(win, curveMarks(C, win), marks),
-    explain: `${why} So ${pretty(opts[0])}. The others: ${pretty(opts[1])} ${turnedWords}; ${pretty(opts[2])} turns the center's signs, centered at (${minus(-C.h)}, ${minus(-C.k)}); ${pretty(opts[3])} does both.`,
+    explain: `${why} So ${pretty(opts[0])}. The others: ${pretty(opts[1])} ${turnedWords}; ${pretty(opts[2])} turns the center's signs, ${kind === 'parabola' ? 'with its vertex at' : 'centered at'} (${minus(-C.h)}, ${minus(-C.k)}); ${pretty(opts[3])} does both.`,
   };
 }
 
