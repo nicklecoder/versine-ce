@@ -28,7 +28,7 @@
 
 export const LEVELS = [
   { name: 'Undo by Adding', slug: 'undo-by-adding',
-    blurb: 'Something was added to x. Take it off both sides.' },
+    blurb: 'Something was added to x or taken from it. Undo it on both sides.' },
   { name: 'Undo by Multiplying', slug: 'undo-by-multiplying',
     blurb: 'x was multiplied or divided. Do the opposite to both sides.' },
   { name: 'Two Steps', slug: 'two-steps',
@@ -37,7 +37,7 @@ export const LEVELS = [
     blurb: 'A minus in front of x, or a negative to undo. Same rule, more care.' },
   {
     name: 'Answers Below Zero', slug: 'answers-below-zero',
-    blurb: 'The answer comes out negative. That is an answer, not a mistake.',
+    blurb: 'Most answers come out negative. That is an answer, not a mistake.',
     // The sign rules are int-muldiv's, and this is the first place in the
     // skill where getting one wrong changes the answer rather than the
     // working.

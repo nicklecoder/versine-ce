@@ -10,6 +10,8 @@ import { drawRatioModel } from './ratiomodel.js';
 import { drawQuantityModel } from './quantitymodel.js';
 import { drawCompareModel } from './comparemodel.js';
 import { drawPlane } from './plane.js';
+import { drawTable } from './table.js';
+import { drawIntervals } from './intervals.js';
 
 /**
  * Visual registry.
@@ -170,10 +172,37 @@ export const VISUALS = {
       xRange: { type: 'array', of: { type: 'number' }, required: true },
       yRange: { type: 'array', of: { type: 'number' }, required: true },
       grid: { type: 'number', min: 0, max: 20 },
+      // false for a figure, an angle or a polygon, that has no coordinates.
+      axes: { type: 'bool' },
+      // What each axis measures, { x: 'hours', y: 'km from home' }.
+      titles: { type: 'object' },
       marks: { type: 'array', of: { type: 'object' } },
       // Anything that would answer the question is withheld until one is
       // committed, so the renderer never receives it and cannot leak it.
       answer: { type: 'array', of: { type: 'object' }, phase: 'answer' },
+    },
+  },
+  // Cells are strings; the one being asked about reads '?', and `fill` is
+  // what goes there once an answer is in.
+  intervals: {
+    schema: {
+      min: { type: 'number', required: true },
+      max: { type: 'number', required: true },
+      rows: { type: 'array', of: { type: 'object' }, required: true },
+      // The set that answers the question, and only its count while asking,
+      // so the picture is its final height before anything is revealed.
+      answer: { type: 'array', of: { type: 'object' }, phase: 'answer' },
+      answerRows: { type: 'int', min: 0, max: 4 },
+    },
+  },
+  table: {
+    schema: {
+      cols: { type: 'array', of: { type: 'string' }, required: true },
+      rows: { type: 'array', of: { type: 'array', of: { type: 'string' } }, required: true },
+      fill: { type: 'string', phase: 'answer' },
+      workingCol: { type: 'string', phase: 'answer' },
+      working: { type: 'array', of: { type: 'string' }, phase: 'answer' },
+      note: { type: 'string' },
     },
   },
   evalmodel: {
@@ -231,6 +260,20 @@ const RENDERERS = {
 
   evalmodel(container, spec, opts) {
     drawEvalModel(container, spec, opts);
+  },
+
+  table(container, spec, opts) {
+    drawTable(container, spec, { reveal: opts.showAnswer, verdict: opts.verdict });
+  },
+
+  intervals(container, spec, opts) {
+    let svg = container.querySelector('svg.iv');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'iv');
+      container.replaceChildren(svg);
+    }
+    drawIntervals(svg, spec, { verdict: opts.verdict });
   },
 
   /** The plane owns an <svg> inside the container, as the number line does. */

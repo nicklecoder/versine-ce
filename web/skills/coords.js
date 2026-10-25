@@ -3,7 +3,7 @@
  *
  * The first skill where an answer is a *place* rather than a quantity, which
  * is the idea the whole of graphing rests on. Reading a point off a grid comes
- * before naming one, because recognising is easier than producing and both
+ * before naming one, because recognizing is easier than producing and both
  * are the same fact.
  *
  * Quadrants get their own level for one reason: the sign pattern is what makes
@@ -23,7 +23,7 @@ export const LEVELS = [
   },
   {
     name: 'Steepness', slug: 'steepness',
-    blurb: 'Up divided by along. A gradient is a rate, and a rate is a ratio.',
+    blurb: 'Up divided by along. The slope is a rate, and a rate is a ratio.',
     // No declared edge to ratio, deliberately, and it is worth saying why
     // because the connection is real and the explain leans on it.
     //

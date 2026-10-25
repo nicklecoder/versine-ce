@@ -10,7 +10,7 @@
  *
  * Filed under Decimals & Percents because rounding is overwhelmingly met on
  * decimals and depends on place value being solid — the whole skill is "which
- * of the two neighbours in this column is it nearer to", which is unanswerable
+ * of the two neighbors in this column is it nearer to", which is unanswerable
  * without knowing what the column counts.
  *
  * Everything here is positive. Rounding a negative is a genuine convention
@@ -62,7 +62,7 @@ export default {
   dependsOn: ['decimals'],
   levels: LEVELS,
 
-  /** The working, a line at a time: which column, which neighbours, which way. */
+  /** The working, a line at a time: which column, which neighbors, which way. */
   lesson(problem) {
     if (problem.visual?.kind !== 'evalmodel') return null;
     const { lines, rules } = problem.visual;

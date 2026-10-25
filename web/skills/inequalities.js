@@ -12,12 +12,13 @@
  * cannot be taught to a student who has never met a negative outside the
  * integer skills, which is the other reason this waited.
  *
- * The answers are whole numbers, not ranges. "x > 4" is the honest answer to
- * an inequality and there is no widget in this app that can take it, so the
- * questions ask for the smallest or largest whole number that works instead.
- * That is not a workaround: it is the reading that catches a student who has
- * solved correctly and then not thought about what the answer means, and it
- * makes the difference between > and ≥ worth something rather than decorative.
+ * The solving levels answer with the solution itself, x > 4, typed and
+ * judged as a set (4 < x is the same answer). They once asked for the
+ * smallest or largest whole number instead, because no answer box could take
+ * a range; but "what is the smallest" told the student which way the sign
+ * pointed before they had worked it out, which in The Flip is the whole
+ * question. Which Numbers Work keeps the integer reading: there, what x > 4
+ * means for its first integer, and why ≥ differs, is the lesson.
  */
 
 export const LEVELS = [
@@ -43,6 +44,15 @@ export const LEVELS = [
     dependsOn: [{ skill: 'int-muldiv', level: 1 }],
   },
   {
+    // The equations-both move with a relation in the middle. Gathering on
+    // the side with more letters keeps the coefficient positive and so never
+    // needs the flip -- which is the cleanest argument there is for which
+    // side to gather on.
+    name: 'Unknowns Both Sides', slug: 'unknowns-both-sides',
+    blurb: 'Letters on both sides. Gather where there are more and the sign never turns.',
+    dependsOn: [{ skill: 'equations', level: 2 }],
+  },
+  {
     name: 'Does It Flip?', slug: 'does-it-flip', kind: 'strategy',
     blurb: 'Sometimes the sign turns and sometimes it does not. What decides is not the minus.',
     // Sits after both cases exist, which is the first point at which
@@ -54,7 +64,7 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [14, 18, 18, 22, 16, 22];
+export const PAR_SECONDS = [14, 18, 18, 22, 28, 16, 24];
 
 /**
  * The runtime definition of this skill: what the student sees and how the

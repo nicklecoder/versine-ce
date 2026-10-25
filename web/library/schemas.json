@@ -265,6 +265,12 @@
         "min": 0,
         "max": 20
       },
+      "axes": {
+        "type": "bool"
+      },
+      "titles": {
+        "type": "object"
+      },
       "marks": {
         "type": "array",
         "of": {
@@ -277,6 +283,72 @@
           "type": "object"
         },
         "phase": "answer"
+      }
+    },
+    "intervals": {
+      "min": {
+        "type": "number",
+        "required": true
+      },
+      "max": {
+        "type": "number",
+        "required": true
+      },
+      "rows": {
+        "type": "array",
+        "of": {
+          "type": "object"
+        },
+        "required": true
+      },
+      "answer": {
+        "type": "array",
+        "of": {
+          "type": "object"
+        },
+        "phase": "answer"
+      },
+      "answerRows": {
+        "type": "int",
+        "min": 0,
+        "max": 4
+      }
+    },
+    "table": {
+      "cols": {
+        "type": "array",
+        "of": {
+          "type": "string"
+        },
+        "required": true
+      },
+      "rows": {
+        "type": "array",
+        "of": {
+          "type": "array",
+          "of": {
+            "type": "string"
+          }
+        },
+        "required": true
+      },
+      "fill": {
+        "type": "string",
+        "phase": "answer"
+      },
+      "workingCol": {
+        "type": "string",
+        "phase": "answer"
+      },
+      "working": {
+        "type": "array",
+        "of": {
+          "type": "string"
+        },
+        "phase": "answer"
+      },
+      "note": {
+        "type": "string"
       }
     },
     "evalmodel": {
@@ -310,7 +382,8 @@
     "var",
     "juxt",
     "group",
-    "prose"
+    "prose",
+    "math"
   ],
   "blankFields": {
     "frac": [
@@ -331,6 +404,14 @@
     "mixed",
     "decimal",
     "expr",
-    "choice"
+    "equivalent",
+    "choice",
+    "linear",
+    "rule",
+    "halfplane",
+    "solutions",
+    "roots",
+    "complex",
+    "pair"
   ]
 }

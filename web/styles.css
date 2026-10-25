@@ -95,7 +95,8 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   font-family: var(--display);
   font-size: .7rem; font-weight: 600;
   letter-spacing: .18em; text-transform: uppercase;
-  color: var(--dim);
+  /* --dim is 3:1 on the cards, too faint for text this small. */
+  color: var(--muted);
 }
 
 .muted { color: var(--muted); }
@@ -215,6 +216,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   min-height: 1.4em;
   font-variant-numeric: tabular-nums;
 }
+/* An unbreakable piece too wide for the card: see renderPrompt. */
+.problem.is-long { font-size: clamp(1.6rem, 6.5vw, 2.5rem); }
+.problem.is-longer { font-size: clamp(1.3rem, 5vw, 1.95rem); }
 .problem .t1 { color: var(--vec-1); }
 .problem .t2 { color: var(--vec-2); }
 .problem .t3 { color: var(--vec-3); }
@@ -244,6 +248,10 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 
 /* ── Answer input ─────────────────────────────────────────────────────── */
 .answer-row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+/* A list of choices takes the whole row, with Check and Why? beneath it.
+   Short labels ("Part A") otherwise left room for the buttons to wrap up
+   beside the list, half-way down it. */
+.answer-slot:has(.choices) { flex-basis: 100%; display: flex; justify-content: center; }
 
 .answer {
   font-family: var(--display); font-weight: 700;
@@ -515,13 +523,15 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   letter-spacing: .1em; text-transform: uppercase;
 }
 .crumb {
-  background: none; border: 0; padding: 0;
+  /* The way back to the map mid-run: tall enough to hit with a thumb, the
+     padding taken back out of the margin so the line does not grow. */
+  background: none; border: 0; padding: 14px 0; margin: -14px 0;
   font: inherit; letter-spacing: inherit; text-transform: inherit;
   color: var(--muted); cursor: pointer;
   transition: color .12s;
 }
 .crumb:hover { color: var(--cool); text-decoration: underline; }
-.crumb.is-here { color: var(--dim); cursor: default; }
+.crumb.is-here { color: var(--text); cursor: default; }
 .crumb-sep { color: var(--line); }
 
 /* ── Daily completion ─────────────────────────────────────────────────── */
@@ -858,7 +868,27 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .frac-box::placeholder { color: var(--dim); opacity: .5; }
 .frac-box.is-right { border-color: var(--grow); }
 .frac-box.is-wrong { border-color: var(--hot); animation: shake .34s ease; }
-.frac-bar { width: 3.6ch; height: 3px; background: var(--cool); border-radius: 2px; }
+.frac-bar { align-self: stretch; height: 3px; background: var(--cool); border-radius: 2px; }
+
+/* ── Ordered pair input ───────────────────────────────────────────────── */
+.pair-input { display: inline-flex; align-items: center; gap: 4px; }
+.pair-mark {
+  font-family: var(--display); font-weight: 700; color: var(--muted);
+  font-size: clamp(1.3rem, 5vw, 1.8rem);
+}
+.pair-box {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(1.2rem, 4.5vw, 1.6rem);
+  width: 4.2ch; text-align: center; padding: 4px 6px;
+  color: var(--text); background: #050b16;
+  border: 2px solid var(--line); border-radius: var(--radius-sm);
+  outline: none; font-variant-numeric: tabular-nums;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pair-box:focus { border-color: var(--cool); box-shadow: 0 0 0 3px rgba(53,214,255,.15); }
+.pair-box::placeholder { color: var(--dim); opacity: .5; }
+.pair-box.is-right { border-color: var(--grow); }
+.pair-box.is-wrong { border-color: var(--hot); animation: shake .34s ease; }
 
 /* Sound toggle: an icon button, sized like the others but square. */
 .sound-toggle { padding: 8px 12px; font-size: 1rem; line-height: 1; }
@@ -991,6 +1021,26 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .eval-row.is-latest .eval-line { color: var(--text); }
 .eval-row.is-answer .eval-line { color: var(--result); }
 
+/* ── Table of values ─────────────────────────────────────────────────── */
+.vtable { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.vtable table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+/* Headers are letters as often as words -- x, y, n, aₙ -- and a capital
+   is a different letter, so they keep the case they were written in. */
+.vtable th {
+  font-family: var(--display); font-size: .74rem; font-weight: 600;
+  letter-spacing: .06em; color: var(--dim);
+  padding: 6px 18px; border-bottom: 1px solid var(--line);
+}
+.vtable td {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(1.05rem, 4vw, 1.4rem);
+  text-align: center; padding: 6px 18px; color: var(--text);
+}
+.vtable tbody tr + tr td { border-top: 1px solid var(--line); }
+.vtable td.is-blank { color: var(--gold); }
+.vtable td.is-answer, .vtable th.is-answer { color: var(--result); }
+.vtable-note { margin: 0; font-size: .85rem; color: var(--muted); text-align: center; }
+
 /* ── Choice input (judgement questions) ───────────────────────────────── */
 .choices { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 460px; }
 .choice {
@@ -1033,6 +1083,9 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
   font-family: var(--body); font-size: 1.1rem; font-weight: 600;
   line-height: 1.5; max-width: 30ch; text-align: center;
 }
+/* In the text colour, not the first term's red: a question set in the red
+   of "Not quite" reads as an error before it has been answered. */
+.problem .t1.situation { color: var(--text); }
 
 /* A level whose library will not load — deliberately not a silent fallback. */
 .load-failed { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; padding: 24px 16px; }
@@ -1159,9 +1212,10 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .root-term .is-blank { color: var(--gold); }
 
 /* ── The x/y plane ────────────────────────────────────────────────────── */
-.pl { display: block; width: 100%; height: auto; overflow: visible; }
+.pl { display: block; max-width: 100%; height: auto; margin-inline: auto; overflow: visible; }
 .pl__grid line { stroke: var(--line); stroke-width: 1; opacity: .45; }
 .pl__axes line { stroke: var(--muted); stroke-width: 1.5; }
+.pl__title { fill: var(--muted); font-size: 11px; font-weight: 600; }
 .pl__ticks text {
   fill: var(--dim); font-family: var(--display); font-size: 10px;
   font-variant-numeric: tabular-nums;
@@ -1170,7 +1224,11 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .pl__mark circle { fill: var(--tone); stroke: var(--tone); stroke-width: 2; }
 .pl__mark circle.is-open { fill: var(--bg); }
 .pl__mark line, .pl__mark polyline { stroke: var(--tone); stroke-width: 2.5; stroke-linecap: round; }
+.pl__mark line.is-dashed, .pl__mark polyline.is-dashed { stroke-dasharray: 7 6; stroke-linecap: butt; }
+.pl__mark polygon.pl__region { fill: var(--tone); fill-opacity: .2; stroke: none; }
 .pl__label { fill: var(--tone); font-family: var(--display); font-size: 11px; font-weight: 700; }
+/* An angle's size, written inside the angle on a figure. */
+.pl__text { font-size: 12.5px; }
 /* Whatever arrives with the answer is drawn in the result colour, so it reads
    as the reply rather than as more of the question. */
 .pl__mark.is-answer { --tone: var(--result); }
@@ -1179,11 +1237,30 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .pl__verdict.is-ok { fill: var(--grow); }
 .pl__verdict.is-bad { fill: var(--hot); }
 
+/* ── Sets on a number line ────────────────────────────────────────────── */
+.iv { display: block; width: 100%; height: auto; overflow: visible; }
+.iv__axis { stroke: var(--muted); stroke-width: 1.5; }
+.iv__tick { stroke: var(--muted); stroke-width: 1; }
+.iv__num {
+  fill: var(--dim); font-family: var(--display); font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.iv__run { stroke-width: 5; stroke-linecap: butt; opacity: .9; }
+.iv__dot { stroke-width: 2.5; }
+.iv__label { font-family: var(--display); font-size: 12px; font-weight: 700; }
+.iv__row.is-answer .iv__run, .iv__row.is-answer .iv__dot { animation: pop .3s ease-out; }
+.iv__verdict { font-size: 13px; font-weight: 700; }
+.iv__verdict.is-ok { fill: var(--grow); }
+.iv__verdict.is-bad { fill: var(--hot); }
+
 /* Variables are italic, as every mathematical typesetter has done since
    the eighteenth century — and it is what tells 2x from 2·x at a glance. */
 .var-term { font-style: italic; }
 /* Brackets drawn as their own spans so they can grow with what they hold. */
 .group-term__b { color: var(--muted); }
+/* What a bracket holds is spaced like the line around it, and stays on one line. */
+.group-term { display: inline-flex; align-items: center; white-space: nowrap; }
+.group-term > span:not(.group-term__b) { display: inline-flex; align-items: center; gap: .28em; }
 /* The small index of a root that is not a square one. */
 .root-term__index { font-size: .5em; align-self: flex-start; margin-right: -.24em; }
 
@@ -1203,10 +1280,17 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
    rather than removed. Nothing goes red until an answer is committed. */
 .free__preview.is-stale { opacity: .45; }
 .free__hint { font-size: .74rem; color: var(--hot); min-height: 1em; }
-.answer--free { width: 12ch; font-size: clamp(1.2rem, 4.5vw, 1.6rem); }
+.free__keys { display: flex; flex-wrap: wrap; justify-content: center; gap: .2rem .8rem; font-size: .74rem; color: var(--muted); margin-bottom: .35rem; }
+.free__key { white-space: nowrap; }
+.free__key kbd { font: inherit; font-family: ui-monospace, monospace; padding: 0 .3em; border: 1px solid var(--line); border-radius: .25em; color: var(--text); }
+.answer--decimal { width: 9ch; max-width: 100%; }
+.answer--free { width: 16ch; max-width: 100%; font-size: clamp(1.2rem, 4.5vw, 1.6rem); }
 
 /* A product written without a sign is set without a gap. */
 .juxt-term { display: inline-flex; align-items: center; gap: .06em; }
+/* An equation inside a sentence: wraps around it, never through it. */
+.math-term { display: inline-flex; align-items: center; gap: .28em; white-space: nowrap; }
+.situation .tail, .math-term .tail { margin-left: -.18em; }
 
 /* An expression answer is drawn from terms, and each term carries its own
    colour — so the answer highlight has to reach inside it, or the reply is
@@ -1243,3 +1327,21 @@ h1, h2, h3, .display { font-family: var(--display); font-weight: 700; letter-spa
 .tile.cat-identities  { border-left: 3px solid color-mix(in srgb, #d946ef 55%, transparent); }
 .tile.cat-probability { border-left: 3px solid color-mix(in srgb, #94a3b8 55%, transparent); }
 .tile.cat-statistics  { border-left: 3px solid color-mix(in srgb, #cbd5e1 55%, transparent); }
+
+/* On a touchscreen the small boxes are tapped, not tabbed between -- iOS's
+   number pad has no / or comma -- so each is a full thumb's height. */
+@media (pointer: coarse) {
+  .frac-box, .pair-box, .mixed-whole { min-height: 44px; }
+}
+
+/* Read aloud, never seen. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* After a third miss, the way to the walkthrough is lit up. */
+.btn.is-nudged { border-color: var(--cool); color: var(--cool); box-shadow: 0 0 0 3px rgba(53,214,255,.15); }
+.keep-together { display: inline-flex; align-items: center; gap: .28em; white-space: nowrap; }
+/* Four figures sit two by two on a phone, not three and one. */
+@media (max-width: 480px) { .summary__grid { grid-template-columns: 1fr 1fr; } }

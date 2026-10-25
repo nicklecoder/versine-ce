@@ -1,6 +1,7 @@
 import { el } from './dom.js';
 import { renderPrompt } from './prompt.js';
 import { previewOf } from './express.js';
+import { getType } from '../math/answer.js';
 
 /**
  * A single box, with the input rendered back as notation above it.
@@ -25,12 +26,25 @@ import { previewOf } from './express.js';
  * keyboard on a phone.
  */
 export function freeInput(spec = {}, opts = {}) {
+  // A type that is not an expression -- a set, an inequality -- draws its own.
+  const draw = (spec.type && getType(spec.type).preview) || previewOf;
   const preview = el('div.free__preview');
   const hint = el('div.free__hint');
+  // requiem: play/answers/symbols-typed-on-a-keyboard
+  // A symbol on no keyboard is typed as its stand-in, and the stand-ins are
+  // shown before anything goes wrong rather than only in a refusal: != for ≠
+  // is not something to guess. The same keys for every problem of the type,
+  // so they say nothing about this answer. Above the box, for the reason the
+  // preview is: below it, a phone's keyboard covers them.
+  const legend = spec.type && getType(spec.type).keys;
+  const keys = legend
+    ? el('div.free__keys', { 'aria-label': 'How to type the symbols' },
+      ...legend.map(([typed, means]) => el('span.free__key', {}, el('kbd', {}, typed), ` ${means}`)))
+    : null;
   const input = el('input.answer.answer--free', {
     type: 'text', inputmode: 'text',
     autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
-    spellcheck: 'false', placeholder: '?', maxlength: 40,
+    spellcheck: 'false', placeholder: '?', maxlength: 80, 'aria-label': 'Answer',
   });
 
   /** The last input that parsed, so a half-typed one does not blank the strip. */
@@ -44,7 +58,7 @@ export function freeInput(spec = {}, opts = {}) {
       lastGood = null;
       return;
     }
-    const result = previewOf(raw);
+    const result = draw(raw);
     if (result.ok) {
       lastGood = result.terms;
       hint.textContent = '';
@@ -57,7 +71,7 @@ export function freeInput(spec = {}, opts = {}) {
   input.addEventListener('input', paint);
 
   return {
-    node: el('div.free', {}, preview, hint, input),
+    node: el('div.free', {}, preview, hint, ...(keys ? [keys] : []), input),
     value: () => input.value,
     clear() { input.value = ''; paint(); },
     focus() { input.focus(); },
@@ -68,7 +82,7 @@ export function freeInput(spec = {}, opts = {}) {
       // Only once an answer is committed does an unreadable input become
       // something worth saying out loud.
       if (state === 'wrong') {
-        const result = previewOf(input.value.trim());
+        const result = draw(input.value.trim());
         hint.textContent = result.ok ? '' : result.error;
       } else {
         hint.textContent = '';

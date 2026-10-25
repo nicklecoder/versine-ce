@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Versine — lines, pairs and graphs</title>
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../styles.css">
+<style>body{padding:24px;font-family:var(--body);max-width:1100px}
+ h1{font-family:var(--display);color:var(--cool);font-size:1.1rem;margin:0 0 4px}
+ .note{color:var(--muted);font-size:.82rem;margin-bottom:16px;max-width:64ch;line-height:1.5}
+ .row{display:grid;grid-template-columns:170px 1fr 1fr;gap:16px;align-items:start;
+      padding:14px 0;border-top:1px solid var(--line)}
+ .k{font-family:var(--display);font-size:.78rem;color:var(--gold);padding-top:18px}
+ h2{font-family:var(--body);font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--dim);margin:0 0 6px}
+ .problem .a{animation:none !important}
+ .box{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:12px;
+      display:flex;flex-direction:column;gap:12px;align-items:center}
+ .vis{width:100%;max-width:340px}</style>
+<h1>Lines and pairs</h1>
+<p class="note">One real problem from each level that answers with a line or an
+  ordered pair, or draws a table or a plane: asking, with the input as the
+  student meets it, and answered, with the student's correct answer typed in
+  and the picture revealed.</p>
+<div id="out"></div>
+<script type="module">
+  import { renderPrompt, answerTerm } from '../ui/prompt.js';
+  import { renderVisual, hasVisual } from '../ui/visuals.js';
+  import { makeAnswerInput } from '../ui/answerinput.js';
+  import { getType } from '../math/answer.js';
+  import { el } from '../ui/dom.js';
+
+  const SKILLS = ['slope', 'linear-eq', 'line-forms', 'linear-models', 'systems', 'proportional', 'functions', 'sequences', 'compound-ineq', 'ineq-graphs'];
+  const manifest = await (await fetch('../library/manifest.json')).json();
+  const out = document.getElementById('out');
+  for (const entry of manifest.levels.filter((l) => SKILLS.includes(l.skill))) {
+    const lib = await (await fetch('../library/' + entry.file)).json();
+    const p = lib.problems[7 % lib.problems.length];
+    const type = getType(p.answer.type);
+    if (type.input === 'choice' && !hasVisual(p.visual)) continue;
+    const side = (answered) => {
+      const box = el('div.box');
+      const prompt = el('div.problem');
+      renderPrompt(prompt, p.prompt, answered ? {
+        blankAs: answerTerm(p.answer.type, p.answer.value), shown: type.format(p.answer.value),
+      } : {});
+      box.append(prompt);
+      if (hasVisual(p.visual)) {
+        const vis = el('div.vis');
+        box.append(vis);
+        // Drawn after it is in the document, since the plane sizes itself to its box.
+        queueMicrotask(() => renderVisual(vis, p.visual, answered
+          ? { showAnswer: true, animateFrom: 1, verdict: 'ok' } : { reveal: 1, animateFrom: 0 }));
+      }
+      if (type.input !== 'choice') {
+        const input = makeAnswerInput(p.answer.type, p.answer, { signed: lib.signed });
+        box.append(input.node);
+        if (answered) {
+          // Type the stored answer the way a student would, box by box.
+          const boxes = input.node.matches('input') ? [input.node] : [...input.node.querySelectorAll('input')];
+          // A pair's brackets belong to the widget, not the boxes; an
+          // expression's are part of what is typed.
+          const raw = type.format(p.answer.value).replace(/−/g, '-');
+          const parts = boxes.length === 2 ? raw.replace(/[()]/g, '').split(/,\s*|\//) : [raw];
+          boxes.forEach((b, i) => { b.value = parts[i] ?? ''; b.dispatchEvent(new Event('input')); });
+          input.setState('right');
+        }
+      }
+      return box;
+    };
+    out.append(el('div.row', {}, el('div.k', {}, `${entry.skill} L${entry.level + 1} ${entry.name}`),
+      el('div', {}, el('h2', {}, 'asking'), side(false)),
+      el('div', {}, el('h2', {}, 'answered'), side(true))));
+  }
+</script>

@@ -27,7 +27,10 @@ function twoTerm(rng, level) {
     case 0: {                                   // one negative, small tables
       const x = rng.int(2, 9);
       const y = rng.int(2, 9);
-      [a, b] = rng.chance(0.5) ? [-x, y] : [x, -y];
+      // A few with no negative at all, so the sign is a decision rather than
+      // something every answer in the level has: when all of them came out
+      // negative, writing a minus first was the whole lesson.
+      [a, b] = rng.chance(0.2) ? [x, y] : rng.chance(0.5) ? [-x, y] : [x, -y];
       op = '×';
       break;
     }
@@ -117,7 +120,7 @@ function chain(rng) {
     text: `${minus(a)} ${ops[0]} ${signed(b)} ${ops[1]} ${signed(c)}`,
     answer: { type: 'int', value: answer },
     visual: model(values, ops, answer),
-    explain: `Count the negatives: ${negatives} of them, so the answer is `
+    explain: `Count the negatives: ${negatives === 0 ? 'there are none' : negatives === 1 ? 'there is one' : `there are ${negatives}`}, so the answer is `
       + `${negatives % 2 === 0 ? 'positive' : 'negative'}. `
       + `Ignoring signs, ${Math.abs(a)} ${ops[0]} ${Math.abs(b)} ${ops[1]} ${Math.abs(c)} `
       + `= ${Math.abs(answer)}, so the answer is ${minus(answer)}.`,
@@ -126,7 +129,7 @@ function chain(rng) {
 /**
  * Where a negative product comes from, and where a negative quotient does.
  *
- * Multiplying gives the total of a loss repeated -- eight pounds owed to each
+ * Multiplying gives the total of a loss repeated -- eight dollars owed to each
  * of five people is −40, and nobody has to be told the sign. Dividing shares
  * a known total change back out over equal steps, which is the reading of
  * −40 ÷ 5 that makes the answer obviously −8 rather than a rule about signs.
@@ -137,24 +140,43 @@ function chain(rng) {
  * keeps its symbols and this level does not pretend otherwise.
  */
 const REPEATS = [
-  { who: 'Someone', each: (n) => `owes £${n}`, over: (k) => `to each of ${k} people`,
-    total: 'What is the total owed, as a change to the balance?', unit: '£',
-    share: (t, k) => `A balance changed by £${t} over ${k} equal payments. What was each?` },
-  { who: 'The temperature', each: (n) => `falls ${n} degrees`,
+  // The question asks for a change, so it says so: "the total owed" is $63
+  // and the change to the balance is −$63, and asking for both at once left
+  // a student who typed 63 marked wrong for answering the first.
+  { who: 'Someone', each: (n) => `pays out $${n}`, over: (k) => `to each of ${k} people`,
+    total: 'By how much does their balance change, in dollars?', unit: '$',
+    share: (t, k) => `A balance changed by ${t.replace(/^(−?)/, '$1$$')} over ${k} equal payments. `
+      + 'What was the change to the balance each time, in dollars?' },
+  // requiem: catalogue/content/units-both-systems
+  // Weather is told in both scales, and kept to falls a day can hold: 5°F an
+  // hour for 9 hours is a cold front, 12° an hour is not weather at all.
+  { who: 'The temperature', each: (n) => `falls ${n}°F`, most: 5,
     over: (k) => `each hour for ${k} hours`,
-    total: 'What is the total change in temperature?', unit: '°',
-    share: (t, k) => `The temperature changed by ${t}° over ${k} equal hours. `
+    total: 'What is the total change in temperature, in °F?', unit: '°',
+    share: (t, k) => `The temperature changed by ${t}°F over ${k} equal hours. `
       + 'What was the change each hour?' },
+  { who: 'The temperature', each: (n) => `falls ${n}°C`, most: 3,
+    over: (k) => `each hour for ${k} hours`,
+    total: 'What is the total change in temperature, in °C?', unit: '°',
+    share: (t, k) => `The temperature changed by ${t}°C over ${k} equal hours. `
+      + 'What was the change each hour?' },
+  // Height, not depth: depth counts downwards, so a diver going down has a
+  // depth that grows, and "the change in depth is −20" was wrong as worded.
   { who: 'A diver', each: (n) => `descends ${n} m`,
     over: (k) => `each minute for ${k} minutes`,
-    total: 'What is the total change in depth?', unit: 'm',
-    share: (t, k) => `A diver's depth changed by ${t} m over ${k} equal minutes. `
+    total: 'What is the total change in their height, in meters?', unit: 'm',
+    share: (t, k) => `A diver's height changed by ${t} m over ${k} equal minutes. `
+      + 'What was the change each minute?' },
+  { who: 'A diver', each: (n) => `descends ${n} ft`,
+    over: (k) => `each minute for ${k} minutes`,
+    total: 'What is the total change in their height, in feet?', unit: 'ft',
+    share: (t, k) => `A diver's height changed by ${t} ft over ${k} equal minutes. `
       + 'What was the change each minute?' },
 ];
 
 function owingAndFalling(rng) {
   const s = rng.pick(REPEATS);
-  const each = rng.int(2, 12);
+  const each = rng.int(2, s.most ?? 12);
   const k = rng.int(2, 9);
   const total = -each * k;
   const dividing = rng.chance(0.4);

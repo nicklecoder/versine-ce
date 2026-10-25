@@ -13,6 +13,8 @@ import * as T from '../terms.js';
 import { LEVELS, LAST_LEVEL, PAR_SECONDS } from '../../web/skills/ratio.js';
 
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+const range = (a, b) => Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
+const ordinal = (k) => ['', '', 'half', 'third', 'quarter', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth'][k];
 
 /** "1 part", "3 parts" -- a unit ratio is common and reads badly pluralised. */
 const parts = (k) => `${k} part${k === 1 ? '' : 's'}`;
@@ -131,7 +133,7 @@ function notInSimplestForm(rng) {
       note: `${parts(a)} to ${b}. Is that already as few parts as it could be?`,
     },
     explain: `${a} : ${b} is not ${A} : ${B} by any whole number of times, so simplify. `
-      + `Both are ${p} : ${q} -- ${a} ÷ ${j} = ${p} and ${A} ÷ ${k} = ${p} -- `
+      + `Both are ${p} : ${q} (${a} ÷ ${j} = ${p} and ${A} ÷ ${k} = ${p}), `
       + `so the missing part is ${askSecond ? `${q} × ${k} = ${B}` : `${p} × ${k} = ${A}`}.`,
   };
 }
@@ -142,7 +144,7 @@ function notInSimplestForm(rng) {
  */
 const SHARES = [
   { items: 'counters', one: 'red', two: 'blue' },
-  { items: 'sweets', one: 'mint', two: 'lemon' },
+  { items: 'candies', one: 'mint', two: 'lemon' },
   { items: 'beads', one: 'wooden', two: 'glass' },
   { items: 'tiles', one: 'plain', two: 'patterned' },
   { items: 'cards', one: 'red', two: 'black' },
@@ -168,28 +170,37 @@ function partAndWhole(rng) {
   const name = first ? s.one : s.two;
 
   return {
+    // Non-breaking spaces round the colon, or a narrow screen wraps the
+    // ratio itself onto two lines.
     prompt: [T.prose(`${s.one[0].toUpperCase()}${s.one.slice(1)} and ${s.two} ${s.items} are in the `
-      + `ratio ${a} : ${b}. There are ${total} ${s.items} altogether. How many are ${name}?`)],
+      + `ratio ${a}\u00a0:\u00a0${b}. There are ${total} ${s.items} altogether. How many are ${name}?`)],
     text: `${a} : ${b} of ${total}, ${first ? 'first' : 'second'} share`,
     answer: { type: 'int', value: want * m },
     visual: {
       kind: 'ratiomodel',
       a, b, to: { a: a * m, b: b * m }, by: `× ${m}, to make ${total} in all`,
-      note: `${parts(a)} to ${b} is ${a + b} parts in all — not ${a} out of ${b}.`,
+      // The note is all the ask-state caption says. "4 parts to 1 is 5 parts
+      // in all" was the step the level is about, given before the answer.
+      note: `${parts(a)} to ${b}. All ${total} ${s.items} fill the bar.`,
     },
-    explain: `${a} : ${b} means ${a + b} equal parts, not ${a} out of ${b}. `
+    explain: `${a} : ${b} means ${a + b} equal parts: ${a} ${s.one} for every ${b} ${s.two}. `
+      + (a < b ? `It is not ${a}/${b} of the ${s.items}, because a ratio compares the parts with `
+        + 'each other, not a part with the whole. ' : '')
       + `${total} ÷ ${a + b} = ${m} in each part, and ${name} is ${want} of them, `
       + `so ${want} × ${m} = ${want * m}. `
-      + `Which is the same as taking ${want}/${a + b} of ${total} -- a share of a total is a `
+      + `Which is the same as taking ${want}/${a + b} of ${total}: a share of a total is a `
       + `fraction of a quantity, and ${want}/${a + b} × ${total} = ${want * m} either way.`,
   };
 }
 
 /** What one is worth, which every other rate question is answered through. */
 const RATES = [
+  // requiem: catalogue/content/units-both-systems
   { many: 'km', per: 'hours', ask: 'How far in one hour?', unit: 'km' },
+  { many: 'miles', per: 'hours', ask: 'How far in one hour?', unit: 'miles' },
   { many: 'pages', per: 'minutes', ask: 'How many in one minute?', unit: 'pages' },
-  { many: 'litres', per: 'tanks', ask: 'How much in one tank?', unit: 'litres' },
+  { many: 'liters', per: 'tanks', ask: 'How much in one tank?', unit: 'liters' },
+  { many: 'gallons', per: 'tanks', ask: 'How much in one tank?', unit: 'gallons' },
   { many: 'words', per: 'lines', ask: 'How many on one line?', unit: 'words' },
   { many: 'grams', per: 'scoops', ask: 'How much in one scoop?', unit: 'grams' },
 ];
@@ -234,30 +245,36 @@ function scaling(rng) {
   if (to === from) to = from + 1;
   const cost = one * from;
   const g = rng.pick(GOODS);
-  const clean = to % from === 0;
+  // A whole number of lots either way: 3 is a third of 9, and dividing the
+  // price by 3 is one step, the same as multiplying it would be.
+  const up = to % from === 0;
+  const down = from % to === 0;
+  const clean = up || down;
+  const by = up ? to / from : from / to;
+  const scaled = up ? `$${cost} × ${by}` : `$${cost} ÷ ${by}`;
 
   return {
-    prompt: [T.prose(`${from} ${g} cost £${cost}. What do ${to} cost?`)],
+    prompt: [T.prose(`${from} ${g} cost $${cost}. What do ${to} cost?`)],
     text: `${cost} for ${from}, then ${to}`,
     answer: { type: 'int', value: one * to },
     visual: {
       kind: 'evalmodel',
       lines: clean
-        ? [`${from} for £${cost}`, `${to} is ${to / from} × ${from}`, `£${cost} × ${to / from}`,
-           `£${one * to}`]
-        : [`${from} for £${cost}`, `£${cost} ÷ ${from} = £${one} each`, `£${one} × ${to}`,
-           `£${one * to}`],
+        ? [`${from} for $${cost}`, up ? `${to} is ${by} × ${from}` : `${to} is ${from} ÷ ${by}`, scaled,
+           `$${one * to}`]
+        : [`${from} for $${cost}`, `$${cost} ÷ ${from} = $${one} each`, `$${one} × ${to}`,
+           `$${one * to}`],
       rules: clean
-        ? [`${to} is a whole number of lots of ${from}`, 'so scale the price the same way',
-           'which comes to']
+        ? [up ? `${to} is a whole number of lots of ${from}` : `${from} is a whole number of lots of ${to}`,
+           'so scale the price the same way', 'which comes to']
         : ['find what one costs', `then take ${to} of them`, 'which comes to'],
       hint: 'Can you get there in one step, or do you need the price of one?',
     },
     explain: clean
-      ? `${to} is exactly ${to / from} lots of ${from}, so the price scales the same way: `
-        + `£${cost} × ${to / from} = £${one * to}.`
-      : `${to} is not a whole number of lots of ${from}, so go through one: `
-        + `£${cost} ÷ ${from} = £${one} each, and £${one} × ${to} = £${one * to}.`,
+      ? (up ? `${to} is exactly ${by} lots of ${from}` : `${to} is ${from} ÷ ${by}, a ${ordinal(by)} of ${from}`)
+        + `, so the price scales the same way: ${scaled} = $${one * to}.`
+      : `${to} and ${from} are not whole numbers of lots of each other, so go through one: `
+        + `$${cost} ÷ ${from} = $${one} each, and $${one} × ${to} = $${one * to}.`,
   };
 }
 
@@ -277,30 +294,35 @@ function scaleOrFindOne(rng) {
   const cost = one * from;
   const g = rng.pick(GOODS);
   // Half the rows a clean multiple, half not, so neither answer is the habit.
+  // The clean half scales down as well as up: 4 of 12 is a third of the
+  // price, one division, which is a scale and not a trip through one.
+  const smaller = range(2, from - 1).filter((t) => from % t === 0);
   const to = rng.chance(0.5)
-    ? from * rng.int(2, 5)
+    ? (smaller.length && rng.chance(0.4) ? rng.pick(smaller) : from * rng.int(2, 5))
     : from * rng.int(1, 4) + rng.int(1, from - 1 || 1);
-  const clean = to % from === 0 && to !== from;
+  const clean = (to % from === 0 || from % to === 0) && to !== from;
 
   return {
-    prompt: [T.prose(`${from} ${g} cost £${cost}. You need ${to} of them.`)],
-    text: `${from} ${g} at £${cost}, need ${to}`,
+    prompt: [T.prose(`${from} ${g} cost $${cost}. You need ${to} of them.`)],
+    text: `${from} ${g} at $${cost}, need ${to}`,
     answer: {
       type: 'choice',
       value: clean ? 'scale' : 'unit',
       options: rng.shuffle([
         { id: 'scale', label: 'Scale the whole thing in one step',
-          note: 'multiply both sides by the same number' },
+          note: 'multiply or divide both by the same number' },
         { id: 'unit', label: 'Find what one costs first',
           note: 'divide down to one, then multiply up' },
       ]),
     },
     visual: null,
     explain: clean
-      ? `${to} is exactly ${to / from} lots of ${from}, so multiplying by ${to / from} gets there `
+      ? (to > from
+        ? `${to} is exactly ${to / from} lots of ${from}, so multiplying by ${to / from} gets there `
+        : `${to} is ${from} ÷ ${from / to}, so dividing by ${from / to} gets there `)
         + `in one step. Dividing down to one first would be an extra step for nothing.`
-      : `${to} is not a whole number of lots of ${from}, so scaling in one step means multiplying `
-        + `by a fraction. Finding what one costs is the shorter way in.`,
+      : `${to} and ${from} are not whole numbers of lots of each other, so scaling in one step `
+        + `means multiplying by a fraction. Finding what one costs is the shorter way in.`,
   };
 }
 

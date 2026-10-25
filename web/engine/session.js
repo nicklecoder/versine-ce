@@ -25,6 +25,7 @@ export class Session {
     this.problem = null;
     this.isRetry = false;
     this.attempts = 0;
+    this.wasExplained = false;
     this.startedAt = 0;
 
     this.served = 0;
@@ -85,6 +86,7 @@ export class Session {
 
     this.problem = problem;
     this.attempts = 0;
+    this.wasExplained = false;
     this.startedAt = performance.now();
     this.served++;
     this.onEvent({ type: 'problem', problem, isRetry: this.isRetry });
@@ -102,23 +104,76 @@ export class Session {
     const spec = this.problem.answer;
     const type = getType(spec.type);
     const parsed = type.parse(raw);
-    if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? type.hint };
+    // The parser's own reason ("a bracket is left open") says more than the
+    // type's general example does.
+    const why = parsed.why && `${parsed.why[0].toUpperCase()}${parsed.why.slice(1)}.`;
+    if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? why ?? type.hint };
+    // A typing the type reads two ways, where the reading it takes cannot be
+    // what this question asks for, is asked again rather than marked: decided
+    // from the question alone, never from whether either reading is right.
+    const unclear = type.refuseHint?.(parsed, spec);
+    if (unclear) return { status: 'invalid', hint: unclear };
 
-    if (!type.equals(parsed.value, spec.value)) return this.#wrong();
+    // requiem: play/answers/accepted-forms-judged
+    // The stored value, or any other form the level lists as accepted:
+    // (x + 3)² and (x + 3)(x + 3) are both a finished factorisation, and
+    // comparing canonical forms alone cannot see that a power is a product.
+    const forms = [spec.value, ...(spec.accept ?? []).map((a) => type.parse(a)).filter((r) => r.ok).map((r) => r.value)];
+    if (!forms.some((v) => type.equals(parsed.value, v))) {
+      // requiem: play/answers/percent-typed-as-decimal
+      // Asked for a percent, 0.34 for 34 is the right amount in the wrong
+      // units: said so, rather than a bare "not quite".
+      if (spec.percent && parsed.value?.d && type.equals({ n: parsed.value.n * 100, d: parsed.value.d }, spec.value)) {
+        return { ...this.#wrong(), hint: `${String(raw).trim()} is the decimal. The question asks for a percent.` };
+      }
+      // A wrong answer a type can name -- the opposite set to the one asked
+      // for -- is told what it is. It is still wrong, and costs the attempt.
+      const missed = type.missHint?.(parsed.value, spec);
+      if (missed) return { ...this.#wrong(), hint: missed };
+      return this.#wrong();
+    }
+
+    // Right value said in a way that does not answer this question, such as
+    // the wrong letter: told why, the same as a form not finished.
+    const said = type.formHint?.(parsed, spec.value);
+    if (said) return { ...this.#wrong(), hint: said };
 
     // Right value, wrong form. Levels that ask for simplest form mean it, and
     // saying so precisely is more use than a bare "not quite".
-    if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value)) {
-      const shown = type.format(parsed.value);
-      return { ...this.#wrong(), hint: `${shown} is right, but it isn't in lowest terms yet.` };
+    // The stored value goes too: a type judged by value reads the finished
+    // form from it.
+    if (spec.requireSimplest && type.isSimplest && !type.isSimplest(parsed.value, parsed, spec.value)) {
+      // Said as typed where the canonical form would already be the finished one.
+      const shown = type.unfinished ? String(raw).trim() : type.format(parsed.value);
+      return { ...this.#wrong(), hint: `${shown} is right, but it isn't ${type.unfinished ?? 'in lowest terms'} yet.` };
+    }
+
+    // requiem: play/answers/rounding-keeps-places
+    // Rounded to a stated number of places, the zeros are part of the answer:
+    // 1.6 is the right number, but "to 2 decimal places" is written 1.60.
+    const places = spec.value?.places;
+    if (places != null && parsed.value.d !== 10 ** places) {
+      const to = places ? `to ${places} decimal place${places === 1 ? '' : 's'}` : 'to the nearest whole number';
+      return { ...this.#wrong(), hint: `${String(raw).trim()} is right, but ${to} it is written ${type.format(spec.value)}.` };
     }
 
     return this.#correct();
   }
 
+  /**
+   * The walkthrough was opened on this problem. It ends on the answer, so
+   * an answer typed after it is solved but not a first try: counting it as
+   * one let a student read every answer and score 100% "first try", and gave
+   * the teacher's view the same false accuracy.
+   */
+  // requiem: play/modes/explained-not-first-try
+  explained() {
+    this.wasExplained = true;
+  }
+
   #correct() {
     const elapsed = performance.now() - this.startedAt;
-    const clean = this.attempts === 0;
+    const clean = this.attempts === 0 && !this.wasExplained;
 
     this.answered++;
     this.solved++;

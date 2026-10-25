@@ -1,5 +1,8 @@
 import { el } from './dom.js';
 import { previewOf } from './express.js';
+import { getType } from '../math/answer.js';
+import { setTerms } from '../math/solutions.js';
+import { rootTerms } from '../math/surds.js';
 
 /**
  * Rendering a problem's prompt.
@@ -112,6 +115,13 @@ const TERMS = {
 
   /** A sentence rather than an expression — strategy levels ask in words. */
   prose: (t) => el(`span.t${t.s ?? 1}.situation`, {}, String(t.v)),
+
+  /**
+   * One equation or expression inside a sentence, kept in one piece. Without
+   * it the prompt wraps wherever a line runs out, and "−3x − 3y = −24" can
+   * end a line on the equals sign and start the next on the answer side.
+   */
+  math: (t) => el('span.math-term', {}, (t.terms ?? []).map(drawTerm)),
 };
 
 export const TERM_KINDS = Object.keys(TERMS);
@@ -203,6 +213,54 @@ export function renderPrompt(node, terms, opts = {}) {
     // Show a marker rather than nothing, so it is obvious on sight.
     return make ? make(t) : el('span.t1.is-unknown', {}, '⚠');
   }));
+  // Punctuation on its own -- the full stop after an equation, a question
+  // mark -- belongs to what it follows. As a flex item of its own it can be
+  // wrapped onto a line by itself, which reads as a stray mark.
+  for (const n of [...node.children]) {
+    const prev = n.previousElementSibling;
+    if (prev && n.classList.contains('situation') && /^[.,;:?!]+$/.test(n.textContent.trim())) {
+      prev.append(el('span.tail', {}, n.textContent.trim()));
+      n.remove();
+    }
+  }
+  // "= ?" at the end goes together: wrapped apart, the blank sat alone on a
+  // line of its own at phone width.
+  const [op, q] = [...node.children].slice(-2);
+  if (op?.classList.contains('op') && q?.classList.contains('q')) {
+    const pair = el('span.keep-together');
+    op.before(pair);
+    pair.append(op, q);
+  }
+  // requiem: play/ui/long-pieces-set-smaller
+  // A bracket or a product set side by side cannot break across a line, so
+  // a long one is set smaller rather than run off the card: (x + 5)(x² − 3x
+  // + 2) is one piece, and so is a piece of maths set by hand, y = −2f(x − 1)
+  // + 5. Measured from the question, so a reveal never resizes.
+  const widest = Math.max(0, ...(terms ?? []).filter((t) => t?.t === 'juxt' || t?.t === 'group' || t?.t === 'math')
+    .map((t) => promptText([t]).length));
+  node.classList.toggle('is-long', widest > 11 && widest <= 16);
+  node.classList.toggle('is-longer', widest > 16);
+  // Drawn maths reads aloud as its pieces -- 4/5 as "4 5", 4n² as "4 n2" --
+  // so a screen reader is given the question in words and skips the drawing.
+  for (const n of node.children) n.setAttribute('aria-hidden', 'true');
+  // Once the blank is filled, it is read filled.
+  const heard = filled && opts.blankAs
+    ? (terms ?? []).flatMap((t) => (t?.t === 'blank' ? [opts.blankAs].flat() : [t]))
+    : terms;
+  if (terms?.length) node.append(el('span.sr-only', {}, spokenText(heard)));
+}
+
+/** The question as it would be read out: 4/5 as "4 over 5", a blank as "blank". */
+export function spokenText(terms) {
+  return promptText(terms)
+    .replace(/\bsqrt\(/g, 'the square root of (')
+    .replace(/\broot(\d+)\(/g, 'root $1 of (')
+    .replace(/\^/g, ' to the power ')
+    .replace(/(\S)\/(\S)/g, '$1 over $2')
+    .replace(/(^|[\s(])[−-](?=\S)/g, '$1minus ')
+    .replace(/ [−-] /g, ' minus ')
+    .replace(/(^|\s)\?(?=\s|$)/g, '$1blank')
+    .replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -216,11 +274,34 @@ export function answerTerm(type, value) {
     // shown is set exactly as their own typing was a moment earlier. Returned
     // as a list rather than wrapped: wrapping made the whole answer as tight
     // as a product, so "5a + 4" lost the spacing its question had.
-    case 'expr': return exprTerms(value);
-    case 'frac': return { t: 'frac', n: value.n, d: value.d };
-    case 'mixed': return value.w !== undefined && value.w !== 0
-      ? { t: 'mixed', w: value.w, n: value.n, d: value.d }
-      : { t: 'frac', n: value?.n ?? value, d: value?.d ?? 1 };
+    case 'expr':
+    case 'equivalent': return exprTerms(value);
+    // A line, a rule and a pair are shown in the notation their own type
+    // writes, which the expression preview can draw: y = 3/4x − 2, 4n − 1, (3, −2).
+    case 'linear':
+    case 'halfplane':
+    case 'rule': return exprTerms(getType(type).format(value).replace(/−/g, '-'));
+    case 'pair':
+    // A decimal is held as an exact {n, d}, so it is written out, not stringified.
+    case 'decimal': return { t: 'num', v: getType(type).format(value) };
+    case 'solutions': return setTerms(value);
+    // As the box previews it: a conjugate pair is its two members, joined by "or".
+    case 'complex': {
+      const box = getType(type);
+      return box.preview(box.format(value)).terms;
+    }
+    case 'roots': return rootTerms(value);
+    // A whole number is drawn as one: 1/2 ÷ 1/16 = 8, not a stacked 8/1.
+    case 'frac': return value.d === 1 ? { t: 'num', v: String(value.n).replace('-', '−') }
+      : { t: 'frac', n: value.n, d: value.d };
+    // Held as one improper fraction, {n: 117, d: 20}, and written out as the
+    // mixed number the level asked for: 5 17/20, not 117/20 again.
+    case 'mixed': {
+      const n = value?.n ?? value, d = value?.d ?? 1;
+      const w = Math.trunc(n / d), rest = Math.abs(n) % d;
+      if (rest === 0) return { t: 'num', v: String(w).replace('-', '−') };
+      return w === 0 ? { t: 'frac', n, d } : { t: 'mixed', w: String(w).replace('-', '−'), n: rest, d };
+    }
     default: return { t: 'num', v: String(value) };
   }
 }
@@ -242,6 +323,7 @@ export function promptText(terms) {
       case 'var': return String(t.v);
       case 'group': return `(${promptText(t.terms)})`;
       case 'juxt': return promptText(t.terms).replace(/ /g, '');
+      case 'math': return ` ${promptText(t.terms)} `;
       case 'op': return ` ${t.v} `;
       case 'blank': return '?';
       case 'prose': return String(t.v);

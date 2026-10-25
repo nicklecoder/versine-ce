@@ -47,9 +47,29 @@ export function topbar({ wide = false } = {}) {
       state.me.role === 'teacher' &&
         el('button.btn.btn--sm.btn--ghost', { onclick: () => go({ name: 'teacher' }) }, 'Console'),
       ...extensionLinks(),
-      el('button.btn.btn--sm.btn--ghost', {
-        onclick: async () => { await api.logout(); location.reload(); },
-      }, 'Sign out')));
+      signOutButton()));
+}
+
+/**
+ * Signing out is immediate and loses an unsaved run, and on a phone the
+ * button sits right under the sound toggle. So the first tap asks, and a
+ * second within a few seconds does it.
+ */
+function signOutButton() {
+  let armed = null;
+  const btn = el('button.btn.btn--sm.btn--ghost', {
+    onclick: async () => {
+      if (!armed) {
+        btn.textContent = 'Sure? Tap again';
+        armed = setTimeout(() => { armed = null; btn.textContent = 'Sign out'; }, 3000);
+        return;
+      }
+      clearTimeout(armed);
+      await api.logout();
+      location.reload();
+    },
+  }, 'Sign out');
+  return btn;
 }
 
 /** Top-bar links an extension added for this person's role (extension-points). */
@@ -349,7 +369,7 @@ function streakCard(skillId) {
         title: !hit ? `${key}: nothing`
           : hit.attempts
             ? `${key}: ${hit.attempts} answered, ${Math.round(accuracy * 100)}% right`
-              + (done ? ' — finished' : ' — practised, not finished')
+              + (done ? ' — finished' : ' — practiced, not finished')
             : `${key}: finished`,
         style: hit && !done
           ? { background: heatColor(accuracy), opacity: 0.3 + Math.min(hit.attempts / 30, 1) * 0.35 }
@@ -365,12 +385,12 @@ function streakCard(skillId) {
       el('div.between', {},
         el('div.eyebrow', {}, 'Finishing streak'),
         el('span.tiny.muted', {},
-          `best ${a.bestStreak} · finished ${a.completedDays} of ${a.practiceDays} days practised`)),
+          `best ${a.bestStreak} · finished ${a.completedDays} of ${a.practiceDays} days practiced`)),
       el('div.streak-headline', {}, el('span.streak-flame', {}, '🔥'), headline),
       el('div.days', {}, cells),
       el('p.tiny.muted', {},
         'A day only counts once you clear the last level against the clock. '
-        + 'Faded squares are days you practised without finishing.'),
+        + 'Faded squares are days you practiced without finishing.'),
       a.levelsCleared.length
         ? el('div.stack--sm', {},
             el('div.eyebrow', {}, 'Levels cleared'),
@@ -591,7 +611,7 @@ export function modeScreen(skillId, level) {
                   + (rec.best[id] ? ` · best ${rec.best[id]}` : '')),
             el('div.clock-note', {}, clockExplanation(clock)))
         : null,
-      el('div.tile__cta', {}, locked ? 'Practise first' : 'Start ›'));
+      el('div.tile__cta', {}, locked ? 'Practice first' : 'Start ›'));
   });
 
   return el('div.shell', {},
@@ -604,6 +624,6 @@ export function modeScreen(skillId, level) {
     pageHead('← Levels', () => go({ name: 'skill', skillId }), levelDef.name, levelDef.blurb),
     warmUpPrompt(skill),
     lessonPrompt(skill, level),
-    el('div.eyebrow', {}, 'How do you want to practise?'),
+    el('div.eyebrow', {}, 'How do you want to practice?'),
     el('div.grid.grid--modes', {}, cards));
 }

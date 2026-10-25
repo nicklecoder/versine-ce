@@ -61,7 +61,7 @@ unlockOnFirstGesture();
   state.me = data.me;
   if (state.me) {
     state.progress = await api.progress();
-    go({ name: state.me.role === 'teacher' ? 'teacher' : 'map' });
+    go({ name: state.me.role === 'teacher' ? 'teacher' : 'map' }, { replace: true });
   } else {
     render();
   }

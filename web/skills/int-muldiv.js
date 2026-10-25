@@ -9,7 +9,7 @@
 export const LEVELS = [
   {
     name: 'Sign Rules', slug: 'sign-rules',
-    blurb: 'One negative flips the answer negative.',
+    blurb: 'One negative flips the answer negative. With none, it stays positive.',
     // Knowing how a negative number behaves comes first.
     dependsOn: [{ skill: 'int-addsub', level: 1 }],
   },
@@ -27,7 +27,7 @@ export const LEVELS = [
     blurb: 'Three at a time — count the negatives.',
     trial: { duration: 180 },
     // Evaluating three terms left to right is the same habit either way.
-    dependsOn: [{ skill: 'int-addsub', level: 5 }],
+    dependsOn: [{ skill: 'int-addsub', level: 6 }],
   },
   { name: 'All Together', slug: 'all-together',  blurb: 'Everything mixed, with no warning which is coming. '
     + 'Clear this against the clock to finish the skill for the day.' },

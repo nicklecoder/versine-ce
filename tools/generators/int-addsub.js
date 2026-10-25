@@ -117,18 +117,41 @@ function threeTerm(rng) {
  * into and taken out of -- and using the wrong verb for the wrong object is
  * what makes a word problem read as a translation exercise.
  */
+// requiem: catalogue/content/us-notation
+// A balance below zero is written −$5, as a bank statement writes it: "$−5"
+// puts the sign inside the amount, which no one does.
+const money = (v) => (v < 0 ? `−$${-v}` : `$${v}`);
+
+// The diver's number is a height measured from the surface, negative below
+// it. A depth counts downwards, so "rises 10 m from −1 m: what depth?" with
+// the answer 9 put the diver in the air, and a careful student who knew what
+// depth means typed the right depth and was marked wrong. Every diver row
+// now says what its number is, and the diver never leaves the water.
 const SITUATIONS = [
-  { noun: 'The temperature', at: (v) => `${minus(v)}°C`, now: 'What is it now?',
+  // requiem: catalogue/content/units-both-systems
+  // Weather in both scales: a US forecast reads °F, and below zero happens in
+  // either one (−10°F is an ordinary Minnesota morning).
+  { noun: 'The temperature', it: 'it', at: (v) => `${minus(v)}°C`, now: 'What is it now?',
     change: (n, up) => `${up ? 'rises' : 'falls'} ${n} degrees`,
     moved: (up) => (up ? 'risen' : 'fallen') },
-  { noun: 'The lift', at: (v) => `floor ${minus(v)}`, now: 'Which floor is it on now?',
+  { noun: 'The temperature', it: 'it', at: (v) => `${minus(v)}°F`, now: 'What is it now?',
+    change: (n, up) => `${up ? 'rises' : 'falls'} ${n} degrees`,
+    moved: (up) => (up ? 'risen' : 'fallen') },
+  { noun: 'The elevator', it: 'it', at: (v) => `floor ${minus(v)}`, now: 'Which floor is it on now?',
     change: (n, up) => `goes ${up ? 'up' : 'down'} ${n} floors`,
     moved: (up) => (up ? 'gone up' : 'gone down') },
-  { noun: 'The account', at: (v) => `£${minus(v)}`, now: 'What is the balance now?',
-    change: (n, up) => (up ? `has £${n} paid in` : `has £${n} taken out`),
+  { noun: 'The account', it: 'it', at: money, now: 'What is the balance now, in dollars?',
+    change: (n, up) => (up ? `has $${n} deposited` : `has $${n} withdrawn`),
     moved: (up) => (up ? 'gone up' : 'gone down') },
-  { noun: 'The diver', at: (v) => `${minus(v)} m`, now: 'What depth are they at now?',
+  { noun: 'The diver', it: 'they', underwater: true,
+    lead: 'Heights are measured from the surface, negative below it. ',
+    at: (v) => `${minus(v)} m`, now: 'What is their height now?',
     change: (n, up) => `${up ? 'rises' : 'descends'} ${n} m`,
+    moved: (up) => (up ? 'risen' : 'descended') },
+  { noun: 'The diver', it: 'they', underwater: true,
+    lead: 'Heights are measured from the surface, negative below it. ',
+    at: (v) => `${minus(v)} ft`, now: 'What is their height now?',
+    change: (n, up) => `${up ? 'rises' : 'descends'} ${n} ft`,
     moved: (up) => (up ? 'risen' : 'descended') },
 ];
 
@@ -142,17 +165,29 @@ function situations(rng) {
   // negative number means, a third of whose rows never show one, is a level
   // about addition with a story on it.
   if (start > 0 && end > 0) return situations(rng);
+  if (s.underwater && (start > 0 || end > 0)) return situations(rng);
   const askEnd = rng.chance(0.6);
-  const sentence = askEnd
+  const has = s.it === 'they' ? 'have' : 'has';
+  const sentence = (s.lead ?? '') + (askEnd
     ? `${s.noun} is at ${s.at(start)}, then ${s.change(Math.abs(delta), delta > 0)}. ${s.now}`
     : `${s.noun} was at ${s.at(start)} and is now at ${s.at(end)}. `
-      + `How far has it ${s.moved(delta > 0)}?`;
+      + `How far ${has} ${s.it} ${s.moved(delta > 0)}?`);
   const answer = askEnd ? end : Math.abs(delta);
   const line = askEnd
     ? [{ from: 0, to: start, label: minus(start) },
        { from: start, to: end, label: `${delta > 0 ? '+' : '−'}${Math.abs(delta)}` }]
     : [{ from: 0, to: start, label: minus(start) },
        { from: start, to: end, label: '?' }];
+  // requiem: catalogue/content/explain-true-for-row
+  // The change is end − start, and its sign is the direction: −18 − (−8) is
+  // −10, a fall of 10, not "= 10". The question asks how far, so the answer
+  // is the size of that change. Subtracting a negative is named only where
+  // one is subtracted, which is when the move starts below zero.
+  const D = Math.abs(delta);
+  const gap = `The change is end minus start: ${minus(end)} − ${signed(start)} = ${minus(delta)}`
+    + (start < 0 ? `, since subtracting ${minus(start)} adds ${-start}` : '')
+    + `. The sign says which way it went, and the question asks how far, so ${s.it} ${has} `
+    + `${s.moved(delta > 0)} ${D}. Counting the gap on the line gives the same ${D}.`;
 
   return {
     prompt: [T.prose(sentence)],
@@ -170,9 +205,66 @@ function situations(rng) {
       ? `Start at ${minus(start)} and move ${delta > 0 ? 'up' : 'down'} `
         + `${Math.abs(delta)}: ${minus(start)} ${delta > 0 ? '+' : '−'} ${Math.abs(delta)} `
         + `= ${minus(end)}.`
-      : `From ${minus(start)} to ${minus(end)} is ${minus(end)} − ${signed(start)} = `
-        + `${Math.abs(delta)}. Counting the gap on the line gives the same `
-        + `${Math.abs(delta)}, which is why subtracting a negative adds.`,
+      : gap,
+  };
+}
+
+/**
+ * Absolute value, three ways: of one number, of a difference, and as the
+ * distance between two points on the line.
+ *
+ * The order trap is built in rather than left to chance. −12 is less than
+ * −3, but it is further from zero, and a student who reads |−12| as "small
+ * because negative" has confused size with position -- so one number in
+ * every pair is negative, and the explanation says which is further out.
+ */
+function absoluteValue(rng) {
+  const shape = rng.pick(['one', 'one', 'difference', 'apart', 'apart']);
+  if (shape === 'one') {
+    const a = rng.int(1, 30) * (rng.chance(0.7) ? -1 : 1);
+    const v = Math.abs(a);
+    return {
+      prompt: T.asks(T.num(`|${minus(a)}|`, 1)),
+      text: `|${minus(a)}|`,
+      answer: { type: 'int', value: v },
+      visual: {
+        kind: 'numberline', ...niceBounds([a, 0]), answer: a,
+        steps: [{ from: 0, to: a, label: '?' }],
+      },
+      explain: a < 0
+        ? `${minus(a)} is ${v} steps to the left of zero. Absolute value counts the steps and `
+          + `ignores the direction, so |${minus(a)}| = ${v}.`
+        : `${a} is ${v} steps to the right of zero, so |${a}| = ${v}.`,
+    };
+  }
+  let a = rng.nonZero(-15, 15), b = rng.nonZero(-15, 15);
+  while (a === b || (a > 0 && b > 0)) { a = rng.nonZero(-15, 15); b = rng.nonZero(-15, 15); }
+  const v = Math.abs(a - b);
+  if (shape === 'difference') {
+    return {
+      prompt: T.asks(T.num('|', 1), T.num(minus(a), 1), T.op('−'), T.num(signed(b), 2), T.num('|', 1)),
+      text: `|${minus(a)} − ${signed(b)}|`,
+      answer: { type: 'int', value: v },
+      visual: {
+        kind: 'numberline', ...niceBounds([a, b, 0]), answer: a,
+        steps: [{ from: b, to: a, label: '?' }],
+      },
+      explain: `Work inside the bars first: ${minus(a)} − ${signed(b)} = ${minus(a - b)}. `
+        + `Then take the distance from zero, so |${minus(a - b)}| = ${v}.`,
+    };
+  }
+  return {
+    prompt: [T.prose(`How far apart are ${minus(a)} and ${minus(b)} on the number line?`)],
+    text: `distance from ${minus(a)} to ${minus(b)}`,
+    answer: { type: 'int', value: v },
+    visual: {
+      kind: 'numberline', ...niceBounds([a, b, 0]), answer: b,
+      steps: [{ from: a, to: b, label: '?' }],
+    },
+    explain: `The distance between two numbers is the absolute value of their difference: `
+      + `|${minus(b)} − ${signed(a)}| = |${minus(b - a)}| = ${v}.`
+      + (a * b < 0 ? ` Across zero that is ${Math.abs(a)} on one side and ${Math.abs(b)} on the other, `
+        + `${Math.abs(a)} + ${Math.abs(b)} = ${v}.` : ` Counting along the line gives the same ${v}.`),
   };
 }
 
@@ -180,9 +272,10 @@ function situations(rng) {
 
   /** @param {import('../engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
-  // Level 4 is Above and Below Zero, level 5 is Chains.
+  // Level 4 is Above and Below Zero, 5 Absolute Value, 6 Chains.
   const build = (lv) => (lv === 4 ? situations(rng)
-    : lv === 5 ? threeTerm(rng)
+    : lv === 5 ? absoluteValue(rng)
+    : lv === 6 ? threeTerm(rng)
     : twoTerm(rng, lv));
   if (level >= LAST_LEVEL) {
     // Mixed review: pick any earlier level at random, so they can't settle

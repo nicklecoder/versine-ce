@@ -15,7 +15,7 @@ import { LEVELS, LAST_LEVEL, PAR_SECONDS } from '../../web/skills/frac-mixed.js'
 import * as T from '../terms.js';
 /** A denominator worth drawing: small enough that the bars stay readable. */
 const denominator = (rng, composite = false) =>
-  rng.pick(composite ? [4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20]
+  rng.pick(composite ? [4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 22, 24, 25, 26, 27, 28]
                      : [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 20]);
 /**
  * A leftover that leaves the fraction as a book would print it — or, when the
@@ -34,7 +34,7 @@ function toMixed(rng, requireSimplest) {
   // On the simplify level the leftover must actually reduce, or there is
   // nothing to practise. Everywhere else the given fraction reads as printed.
   const d = denominator(rng, requireSimplest);
-  const whole = rng.int(1, 9);
+  const whole = rng.int(1, requireSimplest ? 12 : 9);
   const rest = leftover(rng, d, requireSimplest);
   const improper = frac(whole * d + rest, d);
   const answer = requireSimplest ? reduce(improper) : improper;
@@ -48,7 +48,7 @@ function toMixed(rng, requireSimplest) {
       kind: 'wholesmodel', direction: 'toMixed',
       improper, whole, rest, d,
     },
-    explain: `${d} goes into ${improper.n} ${whole} time${whole === 1 ? '' : 's'} `
+    explain: `${d} goes into ${improper.n} ${whole === 1 ? 'once' : `${whole} times`} `
       + `with ${rest} left over, so ${format(improper)} is ${whole} ${rest}/${d}.`
       + (requireSimplest && gcd(rest, d) > 1
         ? ` The leftover ${rest}/${d} simplifies to ${format(reduce(frac(rest, d)))}, `
@@ -72,7 +72,7 @@ function toImproper(rng) {
       kind: 'wholesmodel', direction: 'toImproper',
       improper, whole, rest, d,
     },
-    explain: `Each whole is ${d}/${d}, so ${whole} wholes are ${whole * d}/${d}. `
+    explain: `Each whole is ${d}/${d}, so ${whole === 1 ? '1 whole is' : `${whole} wholes are`} ${whole * d}/${d}. `
       + `Add the ${rest}/${d} already there: ${format(improper)}.`,
   };
 }
@@ -106,21 +106,37 @@ function exactlyWhole(rng) {
  * The situations are written so that no surface feature gives it away: you
  * have to think about what is being done with the number.
  */
+//
+// requiem: catalogue/strategy/no-surface-cue
+// The number is given in either form, at random, so "keep it" and "convert
+// it" are each the right move about half the time on both sides: the form
+// the question happens to use is not the answer. Multiplying by a plain
+// whole number is left out. 3 × 2 8/15 really can be done as 6 + 24/15, and
+// keying "improper" there marked a sound method wrong; the improper form is
+// needed when the other number is a whole and a bit too, or is the divisor.
 const SITUATIONS = [
-  { text: 'You need to multiply {mixed} by 3.', want: 'improper',
-    why: 'Multiplying wants a single fraction — you cannot multiply the whole and the part separately.' },
-  { text: 'You need to divide {mixed} by 2.', want: 'improper',
-    why: 'Dividing wants a single fraction, so it can be flipped and multiplied.' },
-  { text: 'You need to work out {mixed} × {mixed2}.', want: 'improper',
-    why: 'Two mixed numbers multiplied together must both become single fractions first.' },
-  { text: 'You are telling someone how much juice is left in the jug.', want: 'mixed',
-    why: 'A mixed number is the one a person can picture. Nobody imagines {improper} of a jug.' },
-  { text: 'You want to know roughly how big {improper} is, at a glance.', want: 'mixed',
-    why: 'The whole number tells you the size immediately; {improper} makes you stop and work it out.' },
-  { text: 'You need to say whether {improper} is more than 3.', want: 'mixed',
-    why: 'Once it is written as a whole and a bit, the comparison is immediate.' },
-  { text: 'You need to write {mixed} as the answer to a word problem about lengths.', want: 'mixed',
-    why: 'A measurement is reported the way a person would read it.' },
+  { text: 'You need to work out {x} × {m2}.', want: 'improper',
+    why: 'With two mixed numbers, multiplying wholes by wholes and parts by parts gives the wrong '
+      + 'answer (2 1/2 × 2 1/2 is 6 1/4, not 4 1/4), so both become single fractions first.' },
+  { text: 'You need to work out {x} ÷ {m2}.', want: 'improper',
+    why: 'Dividing by a whole and a bit cannot be done in pieces. Both become single fractions, '
+      + 'so the second can be flipped and multiplied.' },
+  { text: 'You need to work out {k} ÷ {x}.', want: 'improper',
+    why: 'You cannot share {k} out over the whole and the part of the divisor separately. '
+      + 'As a single fraction it can be flipped: {k} × {flip}.' },
+  // requiem: catalogue/content/units-both-systems
+  // One measurement in cups and one in meters, so neither system is the only
+  // one a mixed number is read in.
+  { text: 'There are {x} cups of flour left, and you are telling someone how much.', want: 'mixed',
+    why: 'A mixed number is the one a person can picture: {mixed} cups. Nobody imagines '
+      + '{improper} of a cup.' },
+  { text: 'You want to know roughly how big {x} is, at a glance.', want: 'mixed',
+    why: 'The whole number tells you the size immediately: {mixed} is a bit more than {w}. '
+      + '{improper} makes you stop and work it out.' },
+  { text: 'You need to say whether {x} is more than {t}.', want: 'mixed',
+    why: 'As {mixed}, the whole number answers it at once.' },
+  { text: 'You need to give {x} m as the answer to a word problem about lengths.', want: 'mixed',
+    why: 'A measurement is reported the way a person would read it: {mixed} m.' },
 ];
 /** Which form suits the job? */
 function whichForm(rng) {
@@ -130,11 +146,24 @@ function whichForm(rng) {
   const improper = frac(whole * d + rest, d);
   const mixedText = `${whole} ${rest}/${d}`;
   const improperText = format(improper);
-  const situation = rng.pick(SITUATIONS);
+  // A side at a time: three situations want the top-heavy form and four the
+  // mixed one, and the answers should not lean.
+  const side = rng.pick(['improper', 'mixed']);
+  const situation = rng.pick(SITUATIONS.filter((s) => s.want === side));
+  const givenMixed = rng.chance(0.5);
+  const d2 = denominator(rng);
+  const m2 = `${rng.int(1, 4)} ${leftover(rng, d2, false)}/${d2}`;
   const fill = (t) => t
-    .replace(/\{mixed2\}/g, `1 1/${d}`)
+    .replace(/\{x\}/g, givenMixed ? mixedText : improperText)
+    .replace(/\{m2\}/g, m2)
+    .replace(/\{k\}/g, String(whole + 4))
+    .replace(/\{flip\}/g, `${improper.d}/${improper.n}`)
+    .replace(/\{t\}/g, String(whole + (rng.chance(0.5) ? 0 : 1)))
+    .replace(/\{w\}/g, String(whole))
     .replace(/\{mixed\}/g, mixedText)
     .replace(/\{improper\}/g, improperText);
+  // The option for the form already on the page keeps it, rather than
+  // offering to "convert" 4 7/9 into 4 7/9.
   return {
     prompt: [T.prose(fill(situation.text))],
     text: fill(situation.text),
@@ -142,9 +171,9 @@ function whichForm(rng) {
       type: 'choice',
       value: situation.want,
       options: rng.shuffle([
-        { id: 'improper', label: `Convert to ${improperText}`,
+        { id: 'improper', label: givenMixed ? `Convert to ${improperText}` : `Keep it as ${improperText}`,
           note: 'a single top-heavy fraction' },
-        { id: 'mixed', label: `Convert to ${mixedText}`,
+        { id: 'mixed', label: givenMixed ? `Keep it as ${mixedText}` : `Convert to ${mixedText}`,
           note: 'a whole number and a fraction' },
       ]),
     },
@@ -277,19 +306,31 @@ function mixedArithmetic(rng) {
       kind: 'evalmodel', lines, rules,
       hint: 'What has to happen before these can be combined?',
     },
-    explain: (converted.length
+    explain: ((converted.length
       ? converted.map((f) => `${f.text} is ${topHeavy(f.value)}`).join(' and ') + '. '
       : '')
       + (times
         ? `${improperLine} = ${topHeavy(raw)}`
         : `Over ${nths(work.common)} that is ${topHeavy(work.left)} ${op} `
           + `${topHeavy(work.right)} = ${topHeavy(raw)}`)
-      + `, which is ${asMixed(value)}. `
-      + (times
-        ? 'Multiplying and dividing need the top-heavy form — there is no way to '
-          + 'multiply the wholes and the parts separately and get the right answer.'
-        : 'Adding and subtracting could be done by keeping the wholes apart, but the '
-          + 'top-heavy form never needs a borrow, which is why it is the safer habit.')
+      + (asMixed(value) === topHeavy(raw) ? '. '
+        : value.n === raw.n && value.d === raw.d ? `, which is ${asMixed(value)}. `
+        : `, which simplifies to ${asMixed(value)}. `)
+      // requiem: catalogue/content/explain-true-for-row
+      // Splitting into wholes and parts goes wrong only when both sides have a
+      // part, or the part is in the divisor: 3 × 2 8/15 = 6 + 24/15 is sound.
+      + (!times
+        ? 'Adding and subtracting could be done by keeping the wholes apart, but the '
+          + 'top-heavy form never needs a borrow, which is why it is the safer habit.'
+        : (op === '×' ? (x.form === 'whole' || y.form === 'whole') : y.form === 'whole')
+          ? `With a whole number ${op === '×' ? 'in it' : 'to divide by'}, the whole and the part `
+            + 'could be done separately too, but the top-heavy form works the same way every time.'
+          : (op === '×' ? x.form === 'mixed' && y.form === 'mixed' : y.form === 'mixed')
+            ? (op === '×'
+              ? 'Two wholes and a bit need the top-heavy form: multiplying wholes by wholes and '
+                + 'parts by parts gives the wrong answer.'
+              : 'Dividing by a whole and a bit needs the top-heavy form, so it can be flipped.')
+            : '')
       // Dividing by something under one makes the answer bigger, which looks
       // like a mistake until it is named. It is the same fact frac-muldiv's
       // "how many fit" level is built on, and it is worth saying again the
@@ -297,15 +338,23 @@ function mixedArithmetic(rng) {
       + (op === '÷' && y.value.n < y.value.d
         ? ` Dividing by something less than one makes the answer bigger: there are `
           + `${asMixed(value)} lots of ${y.text} in ${x.text}.`
-        : ''),
+        : '')).replace(/ {2,}/g, ' ').trim(),
   };
 }
+
+/**
+ * Where lowest terms are demanded, the question says so. Only the level blurb
+ * did, which is read once, and in the timed mixed level a correct 34/8 was
+ * refused with nothing on screen to say why.
+ */
+const lowest = (answer, terms) => (answer.requireSimplest
+  ? [T.prose('In lowest terms:'), ...terms] : terms);
 
 function build(rng, level, requireSimplest) {
   if (level === 5) {
     const p = mixedArithmetic(rng);
     return {
-      prompt: T.asks(...p.promptTerms),
+      prompt: lowest(p.answer, T.asks(...p.promptTerms)),
       text: p.text,
       answer: p.answer,
       visual: p.visual,
@@ -313,13 +362,15 @@ function build(rng, level, requireSimplest) {
     };
   }
   if (level === 6) return whichForm(rng);
+  // Simplify Too is about the leftover, and only the way into a mixed number
+  // has one: half its rows used to go the other way, with nothing to simplify.
   const make = level === 1 ? toImproper
     : level === 2 ? exactlyWhole
-    : level === 0 ? (r) => toMixed(r, requireSimplest)
+    : level === 0 || level === 4 ? (r) => toMixed(r, requireSimplest)
     : rng.chance(0.5) ? (r) => toMixed(r, requireSimplest) : toImproper;
   const p = make(rng);
   return {
-    prompt: T.asks(...p.promptTerms),
+    prompt: lowest(p.answer, T.asks(...p.promptTerms)),
     text: p.text,
     answer: p.answer,
     parSeconds: PAR_SECONDS[level],

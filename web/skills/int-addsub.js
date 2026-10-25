@@ -18,11 +18,19 @@
 export const LEVELS = [
   { name: 'First Steps', slug: 'first-steps',           blurb: 'Positive second number. Find your feet on the line.' },
   { name: 'Adding Negatives', slug: 'adding-negatives',      blurb: 'Adding a negative walks you backwards.' },
-  { name: 'Subtracting Negatives', slug: 'subtracting-negatives', blurb: 'The tricky one: two minus signs make a plus.' },
+  { name: 'Subtracting Negatives', slug: 'subtracting-negatives', blurb: 'The tricky one: subtracting a negative adds. Some take away a positive, so look first.' },
   { name: 'Mixed Integers', slug: 'mixed-integers',        blurb: 'Both operations, both signs, bigger numbers.' },
   {
     name: 'Above and Below Zero', slug: 'above-and-below-zero',
     blurb: 'Temperatures, floors, balances. The same line, with something on it.',
+  },
+  {
+    // How far from zero, and how far apart. The second is the one that
+    // matters later: the distance from −4 to 6 is |6 − (−4)|, which is the
+    // subtraction this skill teaches with a reason attached, and it is the
+    // distance formula's first appearance in one dimension.
+    name: 'Absolute Value', slug: 'absolute-value',
+    blurb: 'How far from zero, whichever side. Then how far apart two numbers are.',
   },
   {
     name: 'Chains', slug: 'chains',
@@ -38,7 +46,7 @@ export const LEVELS = [
 /** The last level is always the mixed review: it draws from every level before it. */
 export const LAST_LEVEL = LEVELS.length - 1;
 
-export const PAR_SECONDS = [11, 12, 14, 12, 20, 20, 16];
+export const PAR_SECONDS = [11, 12, 14, 12, 20, 14, 20, 16];
 
 /**
  * The runtime definition of this skill: what the student sees and how the

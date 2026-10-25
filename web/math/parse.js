@@ -38,6 +38,8 @@ function tokenize(src) {
     .replace(/[×·]/g, '*')
     .replace(/÷/g, '/')
     .replace(/\*\*/g, '^')       // Python's spelling
+    // A phone keyboard offers ² and ³, and x² is what x^2 means.
+    .replace(/[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (m) => `^${m.length > 1 ? '(' : ''}${[...m].map((c) => '-0123456789'['⁻⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)]).join('')}${m.length > 1 ? ')' : ''}`)
     ;
 
   while (i < s.length) {
@@ -57,7 +59,18 @@ function tokenize(src) {
     if (isAlpha(c)) {
       let j = i;
       while (j < s.length && isAlpha(s[j])) j++;
-      tokens.push({ k: 'name', v: s.slice(i, j).toLowerCase(), at: i });
+      // Letters side by side are a product, as they are on paper: 6ab is
+      // 6·a·b and xy^2 is x·y², the power on the last letter alone. So a run
+      // is split into single letters, except where a name the parser knows
+      // -- sqrt, pi -- starts, which is taken whole.
+      const run = s.slice(i, j).toLowerCase();
+      const names = [...Object.keys(FUNCTIONS), ...CONSTANTS].filter((n) => n.length > 1)
+        .sort((a, b) => b.length - a.length);
+      for (let k = 0; k < run.length;) {
+        const name = names.find((n) => run.startsWith(n, k)) ?? run[k];
+        tokens.push({ k: 'name', v: name, at: i + k });
+        k += name.length;
+      }
       i = j;
       continue;
     }
@@ -134,7 +147,9 @@ class Parser {
       const inner = this.expr();
       if (!this.at(')')) throw new SyntaxError('a bracket is left open');
       this.next();
-      return inner;
+      // Remembered for drawing only: (−2a)(3b) set side by side loses its
+      // meaning without them, and canonical() never looks.
+      return inner.t === 'bin' || inner.t === 'neg' ? { ...inner, paren: true } : inner;
     }
     if (tok.k === 'name') {
       this.next();
@@ -197,39 +212,96 @@ export function parseExpression(src) {
  * them apart.
  */
 export function canonical(node) {
+  const [negative, body] = signed(node);
+  return negative ? `-(${body})` : body;
+}
+
+/** Whether a string's brackets all close within it: -(a)+-(b) is not -( … ). */
+function balanced(t) {
+  let depth = 0;
+  for (const c of t) {
+    depth += c === '(' ? 1 : c === ')' ? -1 : 0;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+// requiem: play/answers/signs-lifted-out
+/**
+ * A node's canonical body, with its sign lifted out to the front.
+ *
+ * Signs are pulled out of products and double negations before anything is
+ * sorted, because the parser reads `−2x` as (−2)·x and `3 − 2x` as 3 minus
+ * 2·x, and those must agree: a student who writes −2x + 3 for 3 − 2x has
+ * written the same expression, and refusing it once was a real bug.
+ *
+ * @returns {[boolean, string]}
+ */
+function signed(node) {
   switch (node.t) {
     case 'num': {
       // 2 and 2.0 and 2.00 are one number; 0.50 and 0.5 likewise.
       const v = node.v.includes('.')
         ? node.v.replace(/0+$/, '').replace(/\.$/, '')
         : node.v;
-      return v.replace(/^0+(?=\d)/, '');
+      return [false, v.replace(/^0+(?=\d)/, '')];
     }
-    case 'var': return node.v;
-    case 'const': return node.v;
-    case 'neg': return `-(${canonical(node.a)})`;
-    case 'call': return `${node.fn}(${node.args.map(canonical).join(',')})`;
+    case 'var': return [false, node.v];
+    case 'const': return [false, node.v];
+    case 'neg': {
+      const [negative, body] = signed(node.a);
+      return [!negative, body];
+    }
+    case 'call': return [false, `${node.fn}(${node.args.map(canonical).join(',')})`];
     case 'bin': {
-      if (node.op === '+' || node.op === '-' || node.op === '*') {
-        const join = node.op === '*' ? '*' : '+';
+      if (node.op === '*') {
+        const parts = [];
+        let negative = false;
+        const gather = (n) => {
+          if (n.t === 'bin' && n.op === '*') { gather(n.a); gather(n.b); return; }
+          const [neg, body] = signed(n);
+          if (neg) negative = !negative;
+          parts.push(body);
+        };
+        gather(node);
+        parts.sort();
+        return [negative, `(${parts.join('*')})`];
+      }
+      if (node.op === '+' || node.op === '-') {
         const parts = [];
         const gather = (n, negated) => {
-          if (n.t === 'bin' && join === '+' && (n.op === '+' || n.op === '-')) {
+          if (n.t === 'bin' && (n.op === '+' || n.op === '-')) {
             gather(n.a, negated);
             gather(n.b, n.op === '-' ? !negated : negated);
-          } else if (n.t === 'bin' && n.op === '*' && join === '*') {
-            gather(n.a, false); gather(n.b, false);
+          } else if (n.t === 'neg') {
+            gather(n.a, !negated);
           } else {
-            const c = canonical(n);
-            parts.push(negated ? `-(${c})` : c);
+            const [neg, body] = signed(n);
+            parts.push(neg !== negated ? `-(${body})` : body);
           }
         };
         gather(node, false);
+        // A sum's sign is lifted out too: −(x + 6) and −x − 6 are one sum,
+        // as −(2x) and −2x are one product. Of the sum and its negation, the
+        // spelling with fewer negative terms is kept (the lesser string at a
+        // tie), so a sum and its negation always land on the same body.
+        const flip = (t) => (t.startsWith('-(') && t.endsWith(')') && balanced(t.slice(2, -1)) ? t.slice(2, -1) : `-(${t})`);
+        const flipped = parts.map(flip).sort();
         parts.sort();
-        return `(${parts.join(join)})`;
+        const negatives = (ps) => ps.filter((t) => t.startsWith('-(')).length;
+        const lift = negatives(flipped) < negatives(parts)
+          || (negatives(flipped) === negatives(parts) && flipped.join('+') < parts.join('+'));
+        return lift ? [true, `(${flipped.join('+')})`] : [false, `(${parts.join('+')})`];
       }
-      return `(${canonical(node.a)}${node.op}${canonical(node.b)})`;
+      // A quotient's sign comes out the same way a product's does: −4/x²,
+      // −(4/x²) and 4/(−x²) are one answer.
+      if (node.op === '/') {
+        const [na, a] = signed(node.a);
+        const [nb, b] = signed(node.b);
+        return [na !== nb, `(${a}/${b})`];
+      }
+      return [false, `(${canonical(node.a)}${node.op}${canonical(node.b)})`];
     }
-    default: return '?';
+    default: return [false, '?'];
   }
 }

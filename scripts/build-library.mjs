@@ -109,6 +109,19 @@ for (const skill of SKILLS) {
 }
 const { makeRng } = await import(join(ROOT, 'web/engine/rng.js'));
 const { getType, TYPE_IDS } = await import(join(ROOT, 'web/math/answer.js'));
+
+/**
+ * Whether an answer value holds a negative number anywhere: an integer, a
+ * fraction's numerator, or either half of a pair. Walked rather than read
+ * from one field, so a new value shape cannot quietly report "never
+ * negative" and hand a level the keyboard with no minus on it.
+ */
+function hasNegative(v) {
+  if (typeof v === 'number') return v < 0;
+  if (!v || typeof v !== 'object') return false;
+  if ('n' in v && 'd' in v) return v.n < 0;
+  return Object.values(v).some(hasNegative);
+}
 const { VISUALS } = await import(join(ROOT, 'web/ui/visuals.js'));
 const { TERM_KINDS, BLANK_FIELDS } = await import(join(ROOT, 'web/ui/prompt.js'));
 
@@ -155,11 +168,9 @@ function buildLevel(skill, level) {
       ...p,
       answer: {
         ...p.answer,
-        // Acceptable surface forms. Today every answer type has exactly one
-        // canonical rendering, so this is a single entry; it exists as a list
-        // because expression answers will have several (factored as well as
-        // expanded) and the format should not have to change then.
-        accept: [type.format(p.answer.value)],
+        // Acceptable surface forms: the answer's own rendering first, then
+        // any others the generator lists -- (x + 3)(x + 3) beside (x + 3)².
+        accept: [...new Set([type.format(p.answer.value), ...(p.answer.accept ?? [])])],
       },
     });
     sinceNew = 0;
@@ -173,11 +184,7 @@ function buildLevel(skill, level) {
   // keyboard an iPhone offers. It is a property of the LEVEL, deliberately:
   // choosing per problem would change the keyboard exactly when the answer is
   // negative, and a student would read the answer off the keyboard.
-  const signed = problems.some((p) => {
-    const v = p.answer.value;
-    const n = v && typeof v === 'object' ? v.n : v;
-    return typeof n === 'number' && n < 0;
-  });
+  const signed = problems.some((p) => hasNegative(p.answer.value));
   return {
     skill: skill.id,
     level,

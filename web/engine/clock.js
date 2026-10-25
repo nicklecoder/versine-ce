@@ -57,7 +57,7 @@ export function clockFor(levelDef, progress, skillId, level) {
     .find((s) => s.skillId === skillId && s.level === level);
 
   if (stat && stat.attempts >= SEED_SAMPLE && stat.medianSeconds) {
-    // Keep up the pace you practised at and you pass exactly.
+    // Keep up the pace you practiced at and you pass exactly.
     return { duration: tidy(stat.medianSeconds * target, target), target,
              source: 'seeded', runs: 0, reference };
   }
@@ -73,7 +73,7 @@ export function clockExplanation(clock) {
       return `Set from your last ${clock.runs} time trial${clock.runs === 1 ? '' : 's'} `
         + 'on this level — it moves as you do.';
     case 'seeded':
-      return 'Set from the pace you practised at. It adjusts after your first trial.';
+      return 'Set from the pace you practiced at. It adjusts after your first trial.';
     default:
       return `Practise this level first — ${clock.need - (clock.have ?? 0)} more answers `
         + 'and the clock can be set from your own pace.';

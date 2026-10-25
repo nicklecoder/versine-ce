@@ -74,3 +74,20 @@ export const mount = (node, ...children) => {
 /** Format a signed integer with a proper minus sign, in parentheses if negative. */
 export const signed = (n) => (n < 0 ? `(−${Math.abs(n)})` : String(n));
 export const minus = (n) => (n < 0 ? `−${Math.abs(n)}` : String(n));
+
+/**
+ * Widen a small answer box to what has been typed into it. The fraction,
+ * mixed and pair boxes are a few characters wide at rest, and a real answer
+ * such as −109 over 132 overflowed them, so a student could not see what
+ * they had typed. Digits are tabular, so a character is one `ch`; the 16px
+ * is the box's padding and border.
+ */
+export function fitToContent(input, atRest) {
+  const fit = () => {
+    const chars = Math.max(atRest, input.value.length + 0.4);
+    input.style.width = `calc(${chars}ch + 16px)`;
+  };
+  input.addEventListener('input', fit);
+  fit();
+  return fit;
+}

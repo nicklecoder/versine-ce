@@ -16,6 +16,7 @@ Usage: python3 scripts/check-library.py [--floor N]
 Exits non-zero, with reasons, if anything would break a run.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -52,7 +53,7 @@ TERM_FIELDS = {
     "num": ("v",), "frac": ("n", "d"), "mixed": ("w", "n", "d"),
     "op": ("v",), "blank": (), "prose": ("v",),
     "pow": ("b", "e"), "root": ("v",),
-    "var": ("v",), "group": (), "juxt": (),
+    "var": ("v",), "group": (), "juxt": (), "math": (),
 }
 
 
@@ -95,7 +96,7 @@ def check_terms(terms, where, path, out):
     was perfectly good.
     """
     NESTED = {"frac": ("n", "d"), "pow": ("b", "e"), "root": ("c", "v"),
-              "group": ("terms",), "juxt": ("terms",)}
+              "group": ("terms",), "juxt": ("terms",), "math": ("terms",)}
     for i, term in enumerate(terms):
         at = f"{where}: {path}[{i}]"
         if not isinstance(term, dict):
@@ -204,6 +205,27 @@ if "--floor" in sys.argv:
 problems: list[str] = []
 
 
+BOX_LENGTH = {"int": 7, "decimal": 12}
+
+
+# requiem: catalogue/content/us-notation
+# What a student reads is written for a US classroom: dollars and cents, and
+# US spelling. A pound sign or a "metre" is a second thing to decode on top
+# of the maths, and one generator slipping back would otherwise go unseen.
+NOT_US = re.compile(
+    r"£|€|\bpence\b|\b(?:centi|milli|kilo)?metres?\b|\b(?:milli)?litres?\b|\bcolours?\b"
+    r"|\bcentres?\b|\bneighbours?\b|\bfavourites?\b|\bgrey\b|\bsweets\b|\btrolley\b"
+    r"|\bthe lift\b|\ba lift\b|\brecognis(?:e|ed|es|ing)\b|\bmaths\b",
+    re.I)
+
+
+def read_aloud(row):
+    """Every string a student sees: the prompt, picture, explanation and choices."""
+    seen = {k: row.get(k) for k in ("prompt", "visual", "explain")}
+    seen["options"] = (row.get("answer") or {}).get("options")
+    return json.dumps(seen, ensure_ascii=False)
+
+
 def fail(msg: str) -> None:
     problems.append(msg)
 
@@ -268,6 +290,12 @@ for entry in levels:
             fail(f"{where}: answer has no accepted forms")
         elif any(not isinstance(a, str) or not a.strip() for a in accept):
             fail(f"{where}: an accepted form is empty or not a string")
+        # requiem: catalogue/library/answer-fits-its-box
+        # The number boxes stop typing at a length (web/ui/answerinput.js): an
+        # answer longer than that could never be entered.
+        room = BOX_LENGTH.get(ans.get("type"))
+        if room and isinstance(accept, list) and accept and len(str(accept[0]).replace("\u2212", "-")) > room:
+            fail(f"{where}: {accept[0]} is longer than the {room} characters its box takes")
         if ans.get("type") == "choice":
             opts = ans.get("options") or []
             ids = [o.get("id") for o in opts if isinstance(o, dict)]
@@ -279,6 +307,8 @@ for entry in levels:
             fail(f"{where}: parSeconds is not a positive number")
         check_prompt(row.get("prompt"), where, problems)
         check_visual(row.get("visual"), where, problems)
+        if m := NOT_US.search(read_aloud(row)):
+            fail(f"{where}: {m[0]!r} is not US notation or spelling")
     checked += len(rows)
 
 if problems:

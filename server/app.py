@@ -257,7 +257,7 @@ def validate_new_user(pin: str, icon: str, accent: str) -> None:
     if icon not in ICONS:
         raise HTTPException(400, "Pick one of the offered icons")
     if accent not in ACCENTS:
-        raise HTTPException(400, "Pick one of the offered colours")
+        raise HTTPException(400, "Pick one of the offered colors")
 
 
 def insert_user(conn, *, name: str, pin: str, role: str, icon: str, accent: str):

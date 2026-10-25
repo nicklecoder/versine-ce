@@ -7,7 +7,9 @@ import { parseExpression } from '../math/parse.js';
  * was typed. That is deliberate and is the whole value of the preview: typing
  * `2^1/2` shows `2¹⁄2` with the exponent bound tightly, which is how it was
  * read, whether or not the student expected it. Redundant brackets they typed
- * disappear, and brackets they omitted appear.
+ * disappear, and brackets they omitted appear. The one exception is factors
+ * set side by side, where a bracket is never redundant: without it (2a)(3b)
+ * would draw as one term, 2a3b.
  *
  * Nothing here evaluates. `4/8` draws as `4/8` and `2+3` as `2+3`. A preview
  * that simplified would do the student's work and hand back the answer, and it
@@ -39,6 +41,14 @@ export function termsFor(node) {
     case 'const': return [{ t: 'var', v: node.v === 'pi' ? 'π' : node.v }];
 
     case 'neg':
+      // A negative number is one thing, −24, not an operator and a number:
+      // drawn apart, a line can break between them.
+      if (node.a.t === 'num') return [{ t: 'num', v: `−${node.a.v}` }];
+      // And a minus on a letter or a power is set against it, −n² and not
+      // − n², which in a bracket or at the start reads as a stray sign.
+      if (node.a.t === 'var' || (node.a.t === 'bin' && node.a.op === '^')) {
+        return [{ t: 'juxt', terms: [{ t: 'op', v: '−' }, ...child(node.a, 3)] }];
+      }
       return [{ t: 'op', v: '−' }, ...child(node.a, 3)];
 
     case 'call':
@@ -64,8 +74,21 @@ export function termsFor(node) {
       // Juxtaposition is drawn as juxtaposition: 2x was typed without a times
       // sign, so it gains neither a sign nor the gap that separates the parts
       // of a sum.
+      // requiem: play/answers/side-by-side-keeps-brackets
+      // A bracket typed around a factor is kept, though: −2a³ and 3b⁶ side
+      // by side with nothing between would read as one term.
       if (node.op === '*' && node.implicit) {
-        return [{ t: 'juxt', terms: [...left, ...right] }];
+        // And so is one round a number that follows something: 2(3) is not 23.
+        // requiem: play/answers/power-bracket-on-base
+        // A power of a number keeps its bracket on the base, where it was
+        // typed: 500(1.04)ˣ, not 500(1.04ˣ).
+        const kept = (side, terms) => (side.paren && terms.length && terms[0].t !== 'group' ? wrap(terms) : terms);
+        const digitFirst = (terms) => terms[0]?.t === 'num'
+          || (terms[0]?.t === 'pow' && digitFirst(terms[0].b)) || (terms[0]?.t === 'juxt' && digitFirst(terms[0].terms));
+        let after = kept(node.b, right);
+        if (after[0]?.t === 'pow' && digitFirst(after[0].b)) after = [{ ...after[0], b: wrap(after[0].b) }, ...after.slice(1)];
+        else if (digitFirst(after)) after = wrap(after);
+        return [{ t: 'juxt', terms: [...kept(node.a, left), ...after] }];
       }
       const sign = node.op === '*'
         ? { t: 'op', v: '×' }
@@ -92,6 +115,19 @@ function flatten(node) {
  * @returns {{ok:true, terms:Array}|{ok:false, error:string}}
  */
 export function previewOf(src) {
+  // An equation is two expressions either side of one equals sign, drawn
+  // side by side: a line is typed as y = 2x − 3, and the preview should show
+  // it as typed rather than give up at the "=". An inequality is the same
+  // with a different sign between, and <= is drawn as the ≤ it means.
+  const sides = String(src).split(/(<=|>=|≤|≥|<|>|=)/);
+  if (sides.length === 3) {
+    const left = previewOf(sides[0]);
+    const right = previewOf(sides[2]);
+    if (!left.ok) return left;
+    if (!right.ok) return right;
+    const sign = { '<=': '≤', '>=': '≥' }[sides[1]] ?? sides[1];
+    return { ok: true, terms: [...left.terms, { t: 'op', v: sign }, ...right.terms] };
+  }
   const parsed = parseExpression(src);
   if (!parsed.ok) return parsed;
   return { ok: true, terms: termsFor(parsed.ast) };

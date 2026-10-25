@@ -76,14 +76,30 @@ function cutDown(rng, composite) {
     ? multiplier(rng, base.d, [4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20])
     : multiplier(rng, base.d, [2, 3, 5, 7, 11]);
   const big = frac(base.n * k, base.d * k);
+  // All the Way Down says to keep going until nothing divides both, so its
+  // explanation does that, a prime at a time, and then names the one-step
+  // route. Dividing by the GCF at once, as it used to, skipped the very
+  // process the level is named for.
+  const primes = [];
+  for (let m = k, p = 2; m > 1; p++) while (m % p === 0) { primes.push(p); m /= p; }
+  let at = big;
+  const chain = primes.map((p) => {
+    at = frac(at.n / p, at.d / p);
+    return `÷ ${p} gives ${format(at)}`;
+  });
   return {
-    prompt: T.asks(T.frac(big.n, big.d, 1)),
+    // The question says what it wants: "10/12 = ?" alone has 10/12 as a
+    // true answer, which the level refuses.
+    prompt: [T.prose('In lowest terms:'), ...T.asks(T.frac(big.n, big.d, 1))],
     text: `${format(big)} in lowest terms`,
     answer: { type: 'frac', value: base, requireSimplest: true },
     visual: { kind: 'equivmodel', from: big, to: base, reveal: 'to' },
-    explain: `${k} divides both ${big.n} and ${big.d}`
-      + (composite ? ', and a smaller factor would leave more to do' : '') + '. '
-      + `${big.n} ÷ ${k} = ${base.n} and ${big.d} ÷ ${k} = ${base.d}, so ${format(base)}.`,
+    explain: composite
+      ? `Divide top and bottom by anything they share, and keep going: ${format(big)} `
+        + `${chain.join(', then ')}. Only 1 divides both ${base.n} and ${base.d}, so stop at `
+        + `${format(base)}. Dividing by ${k}, the greatest common factor, does it in one step.`
+      : `${k} divides both ${big.n} and ${big.d}. `
+        + `${big.n} ÷ ${k} = ${base.n} and ${big.d} ÷ ${k} = ${base.d}, so ${format(base)}.`,
   };
 }
 /**

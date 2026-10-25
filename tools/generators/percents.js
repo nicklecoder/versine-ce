@@ -24,7 +24,7 @@ function outOfHundred(rng) {
   const p = rng.int(2, 99);
   const r = reduce({ n: p, d: 100 });
   return {
-    prompt: [T.prose(`${p}% of a whole, as a fraction in lowest terms.`),
+    prompt: [T.prose(`Write ${p}% as a fraction in lowest terms.`),
              T.frac(null, r.d, 2)],
     text: `${p}% = ?/${r.d}`,
     answer: { type: 'int', value: r.n },
@@ -34,7 +34,8 @@ function outOfHundred(rng) {
       rules: ['percent means hundredths', 'in lowest terms'],
       hint: 'A hundred of what?',
     },
-    explain: `${p}% is ${p} out of 100, which simplifies to ${r.n}/${r.d}.`,
+    explain: `${p}% is ${p} out of 100, `
+      + (r.d === 100 ? `and ${p}/100 is already in lowest terms.` : `which simplifies to ${r.n}/${r.d}.`),
   };
 }
 
@@ -69,12 +70,12 @@ function percentOf(rng) {
     visual: {
       kind: 'evalmodel',
       lines: [`${p}% of ${base}`, `${p}/100 × ${base}`,
-              `${base} ÷ 100 = ${base / 100}, then × ${p}`, String(value)],
+              `${base} ÷ 100 = ${show(dec(base, 2))}, then × ${p}`, String(value)],
       rules: ['percent means hundredths', 'one percent first', 'then that many'],
       hint: 'A hundred of what, this time?',
     },
-    explain: `One percent of ${base} is ${base / 100}, so ${p}% is `
-      + `${p} × ${base / 100} = ${value}.`,
+    explain: `One percent of ${base} is ${show(dec(base, 2))}, so ${p}% is `
+      + `${p} × ${show(dec(base, 2))} = ${value}.`,
   };
 }
 
@@ -91,8 +92,8 @@ function whatPercent(rng) {
     visual: {
       kind: 'evalmodel',
       lines: [`${part} out of ${base}`, `${part}/${base}`,
-              `× 100 to make it hundredths`, `${p}%`],
-      rules: ['write the part over the whole', 'percent is per hundred', 'so'],
+              `${part}/${base} × 100`, `${p}%`],
+      rules: ['write the part over the whole', 'percent is per hundred, so × 100', 'which gives'],
       hint: 'Which number is the whole here?',
     },
     explain: `${part} out of ${base} is ${part}/${base}. Multiplying by 100 turns `
@@ -160,7 +161,7 @@ function byWhatPercent(rng) {
       hint: 'The difference is easy. A percentage of what, though?',
     },
     explain: `The change is ${delta}. A percentage needs a whole to be a percentage `
-      + `*of*, and it is the original ${base}, not the ${now}: ${delta}/${base} = ${p}%. `
+      + `of, and it is the original ${base}, not the ${now}: ${delta}/${base} = ${p}%. `
       + `Dividing by ${now} instead would answer a different question.`,
   };
 }
@@ -169,10 +170,10 @@ function byWhatPercent(rng) {
  * The original, recovered from the figure after the change.
  *
  * The wrong move is to take the percent back off, and it is wrong in the
- * expensive direction: £60 after a 20% rise is not £60 − 20% = £48, it is
- * £50, because the 20% was of the smaller number. Saying so in the explain
+ * expensive direction: $60 after a 20% rise is not $60 − 20% = $48, it is
+ * $50, because the 20% was of the smaller number. Saying so in the explain
  * is the whole level -- this is the point at which "a hundred of WHAT" stops
- * being a slogan and costs someone eight pounds.
+ * being a slogan and costs someone eight dollars.
  */
 function workingBackwards(rng) {
   const p = rng.pick([5, 10, 12, 15, 20, 25, 30, 40, 50, 60, 75, 80]);
@@ -182,7 +183,8 @@ function workingBackwards(rng) {
   const factor = up ? 100 + p : 100 - p;
   const now = (base * factor) / 100;
   if (!Number.isInteger(now) || now <= 0) return workingBackwards(rng);
-  const naive = up ? now - (now * p) / 100 : now + (now * p) / 100;
+  // In hundredths, so 80% off 324 is 64.8 and not 64.80000000000001.
+  const naive = show(dec(up ? now * 100 - now * p : now * 100 + now * p, 2));
 
   return {
     prompt: [T.prose(`After ${up ? 'a rise' : 'a fall'} of ${p}% it is ${now}. `
@@ -191,14 +193,18 @@ function workingBackwards(rng) {
     answer: { type: 'int', value: base },
     visual: {
       kind: 'evalmodel',
-      lines: [`${now} is ${factor}% of the original`, `1% is ${now} ÷ ${factor}`,
-              `100% is ${now} ÷ ${factor} × 100`, String(base)],
+      // The first line is the question as asked. "672 is 112% of the
+      // original" is the step the level exists to teach, and it was on
+      // screen before the student had answered.
+      lines: [`after ${up ? 'a rise' : 'a fall'} of ${p}% it is ${now}`,
+              `${now} is ${factor}% of the original`,
+              `1% is ${now} ÷ ${factor} = ${show(dec(base, 2))}`, `100% is ${base}`],
       rules: ['name what the new figure is a percent OF', 'find one percent',
               'then a hundred of them'],
       hint: 'The new figure is what percent of the old one?',
     },
     explain: `The ${p}% was of the original, not of ${now}, so ${now} is ${factor}% of `
-      + `what you want. One percent is ${now} ÷ ${factor} = ${now / factor}, so 100% is `
+      + `what you want. One percent is ${now} ÷ ${factor} = ${show(dec(base, 2))}, so 100% is `
       + `${base}. Taking ${p}% ${up ? 'off' : 'on to'} ${now} instead gives ${naive}, `
       + `which is wrong — that is ${p}% of the wrong number.`,
   };
