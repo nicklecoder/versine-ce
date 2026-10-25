@@ -23,6 +23,7 @@ export function fracInput(spec, opts = {}) {
   // for the full keyboard and accepts the extra tap.
   const box = (cls, placeholder, signable = false) => el(`input.frac-box.${cls}`, {
     'aria-label': signable ? 'Numerator' : 'Denominator',
+    // requiem: catalogue/library/answer-typeable-in-its-boxes
     type: 'text', inputmode: signable && opts.signed ? 'text' : 'numeric', maxlength: 4,
     autocomplete: 'off', spellcheck: 'false', placeholder,
     oninput: (e) => {

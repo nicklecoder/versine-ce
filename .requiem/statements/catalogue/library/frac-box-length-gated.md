@@ -2,7 +2,7 @@
 id: frac-box-length-gated
 namespace: catalogue/library
 kind: question
-status: proposed
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-25T07:15:35.026723645Z

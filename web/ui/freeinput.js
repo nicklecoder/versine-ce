@@ -44,6 +44,7 @@ export function freeInput(spec = {}, opts = {}) {
   const input = el('input.answer.answer--free', {
     type: 'text', inputmode: 'text',
     autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
+    // requiem: catalogue/library/answer-typeable-in-its-boxes
     spellcheck: 'false', placeholder: '?', maxlength: 80, 'aria-label': 'Answer',
   });
 

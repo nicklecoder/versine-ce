@@ -38,6 +38,7 @@ function intInput(spec, opts = {}) {
   // different phones should meet the same app.
   const input = el('input.answer', {
     type: 'text', inputmode: opts.signed ? 'text' : 'numeric',
+    // requiem: catalogue/library/answer-typeable-in-its-boxes
     pattern: '-?[0-9]*', maxlength: 7,
     autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', placeholder: '?', 'aria-label': 'Answer',
     oninput: () => {
