@@ -16,6 +16,7 @@ Usage: python3 scripts/check-library.py [--floor N]
 Exits non-zero, with reasons, if anything would break a run.
 """
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -209,6 +210,75 @@ problems: list[str] = []
 
 BOX_LENGTH = {"int": 7, "decimal": 12}
 
+# requiem: catalogue/library/answer-typeable-in-its-boxes
+# Every answer widget stops typing at a length, set in web/ui/: the int box
+# at 7 and the decimal box at 12 (answerinput.js), each fraction box at 4,
+# a minus among the top's (fracinput.js), the mixed number's whole, top and
+# bottom at 3 each (mixedinput.js), each coordinate of a pair at 7
+# (pairinput.js), and the free box at 80 (freeinput.js). An answer is
+# typeable when its shortest accepted writing fits every box it goes into.
+FRAC_BOX, MIXED_BOX, PAIR_BOX, FREE_BOX = 4, 3, 7, 80
+
+
+def _reduced(f):
+    n, d = int(f["n"]), int(f["d"])
+    if d < 0:
+        n, d = -n, -d
+    g = math.gcd(n, d) or 1
+    return n // g, d // g
+
+
+def _decimal_text(n, d):
+    """The exact decimal for n/d, or None when it does not terminate."""
+    k, dd = 0, d
+    for p in (2, 5):
+        while dd % p == 0:
+            dd //= p
+    if dd != 1:
+        return None
+    while (10 ** k) % d:
+        k += 1
+    digits = abs(n) * (10 ** k // d)
+    whole, frac = divmod(digits, 10 ** k)
+    text = str(whole) + (("." + str(frac).rjust(k, "0").rstrip("0")) if frac else "")
+    return ("-" if n < 0 else "") + text
+
+
+def too_wide(ans):
+    """Why this answer cannot be typed in the boxes its type offers, or None."""
+    kind = ans.get("type")
+    value = ans.get("value")
+    accept = ans.get("accept") if isinstance(ans.get("accept"), list) else []
+    written = [str(a).replace("\u2212", "-") for a in accept]
+    if kind in BOX_LENGTH:
+        room = BOX_LENGTH[kind]
+        if written and min(len(a) for a in written) > room:
+            return f"{accept[0]} is longer than the {room} characters its box takes"
+    elif kind == "frac" and isinstance(value, dict):
+        n, d = _reduced(value)
+        if len(str(n)) > FRAC_BOX or len(str(d)) > FRAC_BOX:
+            shown = str(n) if d == 1 else f"{n}/{d}"
+            return f"{shown} does not fit the fraction boxes' {FRAC_BOX} characters a box"
+    elif kind == "mixed" and isinstance(value, dict):
+        n, d = _reduced(value)
+        whole, rest = divmod(n, d)
+        parts = [whole] if rest == 0 else ([whole] if whole else []) + [rest, d]
+        if n < 0 or any(len(str(p)) > MIXED_BOX for p in parts):
+            return f"{accept[0] if accept else value} does not fit the mixed boxes' {MIXED_BOX} characters a box"
+    elif kind == "pair" and isinstance(value, dict):
+        for axis in ("x", "y"):
+            n, d = _reduced(value[axis])
+            forms = [str(n) if d == 1 else f"{n}/{d}"]
+            if (dec := _decimal_text(n, d)) is not None:
+                forms.append(dec)
+            if min(len(f) for f in forms) > PAIR_BOX:
+                return f"{axis} = {forms[0]} is longer than the {PAIR_BOX} characters its box takes"
+    elif kind != "choice":
+        # Every other type is typed into the free box.
+        if written and min(len(a) for a in written) > FREE_BOX:
+            return f"{accept[0]} is longer than the {FREE_BOX} characters the box takes"
+    return None
+
 
 # requiem: catalogue/content/us-notation
 # What a student reads is written for a US classroom: dollars and cents, and
@@ -293,11 +363,11 @@ for entry in levels:
         elif any(not isinstance(a, str) or not a.strip() for a in accept):
             fail(f"{where}: an accepted form is empty or not a string")
         # requiem: catalogue/library/answer-fits-its-box
-        # The number boxes stop typing at a length (web/ui/answerinput.js): an
-        # answer longer than that could never be entered.
-        room = BOX_LENGTH.get(ans.get("type"))
-        if room and isinstance(accept, list) and accept and len(str(accept[0]).replace("\u2212", "-")) > room:
-            fail(f"{where}: {accept[0]} is longer than the {room} characters its box takes")
+        # requiem: catalogue/library/answer-typeable-in-its-boxes
+        # A box that stops typing short of the answer makes the problem
+        # impossible to get right while looking fine.
+        if why := too_wide(ans):
+            fail(f"{where}: {why}")
         if ans.get("type") == "choice":
             opts = ans.get("options") or []
             ids = [o.get("id") for o in opts if isinstance(o, dict)]
