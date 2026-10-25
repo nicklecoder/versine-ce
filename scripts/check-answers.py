@@ -1874,6 +1874,22 @@ def repeated_until(a, f, every, reach) -> Fraction:
     return steps * int(every)
 
 
+def rounded_to(v: float, places) -> Fraction:
+    return Fraction(Decimal(repr(v)).quantize(Decimal(1).scaleb(-int(places or 0)), rounding=ROUND_HALF_UP))
+
+
+# requiem: catalogue/content/e-met-before-ln
+# e and Continuous Growth is worked by calculator from the story's numbers:
+# P(1 + r/n)^(nt) compounded n times a year, P e^(rt) continuously, and a
+# model a e^(kt) read for its rate k, its factor e^k each step, and its value.
+def compounded_n(p, r, n, t, places) -> Fraction:
+    return rounded_to(int(p) * (1 + int(r) / 100 / int(n)) ** (int(n) * int(t)), places)
+
+
+def compounded_e(p, r, t, places) -> Fraction:
+    return rounded_to(int(p) * math.exp(int(r) / 100 * int(t)), places)
+
+
 def table_kind(text: str) -> str:
     ys = [Fraction(v) for v in text.split(", ")]
     gaps = {b - a for a, b in zip(ys, ys[1:])}
@@ -1899,6 +1915,12 @@ BY_RULE += (
     (re.compile(r"^repeated until: ([\d.]+) times ([\d.]+) every (\d+) reach ([\d.]+)$"), repeated_until),
     (re.compile(r"^asymptote: (.+)$"), offset_of),
     (re.compile(r"^y-intercept: (.+)$"), lambda src: model_at(src, 0)),
+    (re.compile(r"^compounded: (\d+) at (\d+) (\d+) times for (\d+) to (\d) dp$"), compounded_n),
+    (re.compile(r"^continuous: (\d+) at (\d+) for (\d+) to (\d) dp$"), compounded_e),
+    (re.compile(r"^continuous rate: \d+e\^\((-?[\d.]+)t\)$"), lambda k: abs(Fraction(k)) * 100),
+    (re.compile(r"^continuous factor: \d+e\^\((-?[\d.]+)t\) to (\d) dp$"), lambda k, places: rounded_to(math.exp(float(k)), places)),
+    (re.compile(r"^continuous value: (\d+)e\^\((-?[\d.]+)t\) at (\d+) to the nearest whole$"),
+     lambda a, k, t: rounded_to(int(a) * math.exp(float(k) * int(t)), 0)),
 )
 
 
@@ -7428,7 +7450,9 @@ for path in sorted(LIB.glob("poly-functions-*.json")):
 # pairs of Fractions with i * i = -1 built in, so i^27, a product, a sum or
 # a quotient comes out as a real and an imaginary part with nothing rounded.
 # A quadratic's complex roots come from its own discriminant, whose square
-# root must be exact, as the conjugate pair -b/2a +- (sqrt(-D)/2a)i.
+# root must be exact, as the conjugate pair -b/2a +- (sqrt(-D)/2a)i. A square
+# root of a negative is i times a real root, made so before it is multiplied,
+# which is the one way sqrt(-4)*sqrt(-9) comes out -6.
 
 class Cx:
     def __init__(self, re, im=0):
@@ -7479,13 +7503,46 @@ class Cx:
         return Cx(1) / out if k < 0 else out
 
 
+def cx_real_root(x) -> complex:
+    """The principal square root of a real number: i times the root of its size when negative."""
+    x = float(x)
+    return 1j * math.sqrt(-x) if x < 0 else complex(math.sqrt(x))
+
+
 def cx_eval(src: str) -> Cx:
     py = src.replace("^", "**")
-    py = re.sub(r"(\d)\s*(?=[i(])", r"\1*", py)
-    py = re.sub(r"\)\s*(?=[i(\d])", ")*", py)
-    py = re.sub(r"i\s*(?=[(\d])", "i*", py)
+    py = re.sub(r"(\d)\s*(?=[i(]|sqrt)", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[i(\d]|sqrt)", ")*", py)
+    py = re.sub(r"(?<!sqrt)i\s*(?=[(\d]|sqrt)", "i*", py)
     py = re.sub(r"(?<![\w.])(\d+)", r"F(\1)", py)
-    return Cx.of(eval(py, {"__builtins__": {}, "F": Fraction, "i": Cx(0, 1)}))  # noqa: S307
+    if "sqrt" not in py:
+        return Cx.of(eval(py, {"__builtins__": {}, "F": Fraction, "i": Cx(0, 1)}))  # noqa: S307
+    # A root of a negative is i times a real root, taken before anything else
+    # is done with it, so sqrt(-4)*sqrt(-9) is 2i * 3i = -6. Worked in floating
+    # point, since a root is rarely whole, and read back as exact parts.
+    z = complex(eval(py, {"__builtins__": {}, "F": Fraction, "i": 1j, "sqrt": cx_real_root}))  # noqa: S307
+    parts = [Fraction(v).limit_denominator(1000) for v in (z.real, z.imag)]
+    assert all(abs(float(q) - v) < 1e-9 for q, v in zip(parts, (z.real, z.imag))), f"{src} is not exact"
+    return Cx(*parts)
+
+
+def cx_float(src: str) -> complex:
+    py = re.sub(r"(?<![\w.])(\d+)", r"F(\1)", src.replace("^", "**"))
+    return complex(eval(py, {"__builtins__": {}, "F": Fraction, "i": 1j, "sqrt": cx_real_root}))  # noqa: S307
+
+
+# requiem: catalogue/content/negative-roots-made-i-first
+def cx_negative_root(n, listing: str) -> str:
+    """The option equal to sqrt(-n), with the square pulled out: k*i*sqrt(m), m squarefree."""
+    want = cx_real_root(-int(n))
+
+    def fits(body):
+        m = re.search(r"sqrt\((\d+)\)", body)
+        assert m, f"{body} has no root"
+        squarefree = all(int(m[1]) % (f * f) for f in range(2, int(m[1])))
+        return abs(cx_float(body) - want) < 1e-9 and squarefree
+
+    return rf_pick(listing, fits)
 
 
 def cx_value(src: str) -> tuple:
@@ -7529,6 +7586,7 @@ COMPLEX_RULES = (
 
 CHOICE_RULES += (
     (re.compile(r"^nature of roots: (.+) = 0; options (.+)$"), cx_nature),
+    (re.compile(r"^root of negative: sqrt\(-(\d+)\); options (.+)$"), cx_negative_root),
 )
 
 # --- Logarithms -----------------------------------------------------------------
@@ -7565,39 +7623,42 @@ def lg_exponents(q: Fraction) -> dict:
 
 
 def lg_num(s: str) -> tuple:
-    """A log's argument as (r, t), the number r * e^t."""
+    """A log's argument as (r, t, q), the number (r * e^t)^(1/q)."""
     s = s.replace(" ", "")
-    if s == "e":
-        return Fraction(1), Fraction(1)
-    if s == "sqrt(e)":
-        return Fraction(1), Fraction(1, 2)
-    m = re.fullmatch(r"root\(e,(\d+)\)", s)
+    m = re.fullmatch(r"(1/)?(?:sqrt\((.+)\)|root\((.+),(\d+)\))", s)
     if m:
-        return Fraction(1), Fraction(1, int(m[1]))
+        r, t, q = lg_num(m[2] or m[3])
+        if m[1]:
+            r, t = 1 / r, -t
+        return r, t, q * (2 if m[2] else int(m[4]))
+    if s == "e":
+        return Fraction(1), Fraction(1), 1
     m = re.fullmatch(r"(1/)?e\^\(?(-?\d+)\)?", s)
     if m:
-        return Fraction(1), Fraction(int(m[2])) * (-1 if m[1] else 1)
+        return Fraction(1), Fraction(int(m[2])) * (-1 if m[1] else 1), 1
     m = re.fullmatch(r"(\d+)\^\(?(-?\d+)\)?", s)
     if m:
-        return Fraction(int(m[1])) ** int(m[2]), Fraction(0)
-    return Fraction(s), Fraction(0)
+        return Fraction(int(m[1])) ** int(m[2]), Fraction(0), 1
+    return Fraction(s), Fraction(0), 1
 
 
 def lg_base(name: str, digits) -> object:
     return "e" if name == "ln" else 10 if name == "log" else int(digits)
 
 
-def lg_exact(base, r: Fraction, t: Fraction) -> Fraction:
+def lg_exact(base, ex: dict, t: Fraction) -> Fraction:
+    """log to base of the number whose prime exponents are ex, times e^t."""
+    ex = {p: k for p, k in ex.items() if k}
     if base == "e":
-        assert r == 1, f"ln of {r} e^{t} is not exact"
+        assert not ex, f"ln of {ex} e^{t} is not exact"
         return t
     assert t == 0, "e in a log that is not ln"
-    if r == 1:
+    if not ex:
         return Fraction(0)
-    fb, fr = lg_exponents(Fraction(base)), lg_exponents(r)
-    assert set(fb) == set(fr), f"log_{base}({r}) is not exact"
-    ratios = {Fraction(fr[p], fb[p]) for p in fb}
-    assert len(ratios) == 1, f"log_{base}({r}) is not exact"
+    fb = lg_exponents(Fraction(base))
+    assert set(fb) == set(ex), f"log_{base} of {ex} is not exact"
+    ratios = {Fraction(ex[p]) / fb[p] for p in fb}
+    assert len(ratios) == 1, f"log_{base} of {ex} is not exact"
     return ratios.pop()
 
 
@@ -7615,15 +7676,18 @@ def lg_terms(expr: str) -> list:
 def lg_value(expr: str) -> Fraction:
     by_base = {}
     for k, base, arg in lg_terms(expr):
-        r, t = lg_num(arg)
-        r0, t0 = by_base.get(base, (Fraction(1), Fraction(0)))
-        by_base[base] = (r0 * r ** k, t0 + t * k)
-    return sum((lg_exact(b, r, t) for b, (r, t) in by_base.items()), Fraction(0))
+        r, t, q = lg_num(arg)
+        ex0, t0 = by_base.get(base, ({}, Fraction(0)))
+        ex = dict(ex0)
+        for p, n in lg_exponents(r).items():
+            ex[p] = ex.get(p, 0) + Fraction(n * k, q)
+        by_base[base] = (ex, t0 + t * k / q)
+    return sum((lg_exact(b, ex, t) for b, (ex, t) in by_base.items()), Fraction(0))
 
 
 def lg_float(base, arg: str) -> float:
-    r, t = lg_num(arg)
-    natural = math.log(r) + float(t)
+    r, t, q = lg_num(arg)
+    natural = (math.log(r) + float(t)) / q
     return natural if base == "e" else natural / math.log(base)
 
 
@@ -7698,6 +7762,28 @@ def lg_condense(expr: str, listing: str) -> str:
     return rf_pick(listing, fits)
 
 
+def lg_logs_at(body: str, at: dict) -> float:
+    """A sum of logs of letters, ln(x)^2 and all, by calculator at the point."""
+    py = re.sub(r"log_(\d+)\(", r"L(\1,", body)
+    py = re.sub(r"(?<![a-z_])log\(", "L(10,", py)
+    py = re.sub(r"(?<![a-z_])ln\(", "L(E,", py).replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=L\()", r"\1*", py)
+    env = {"L": lambda b, v: math.log(v) / math.log(b), "E": math.e, **{k: float(v) for k, v in at.items()}}
+    return eval(py, {"__builtins__": {}}, env)  # noqa: S307
+
+
+def lg_expand(name: str, digits, arg: str, listing: str) -> str:
+    base = lg_base(name, digits)
+    letters = sorted(set(re.findall(r"[a-z]", arg)))
+    points = [dict(zip(letters, p.values())) for p in LG_POINTS]
+    calc = math.e if base == "e" else base
+
+    def fits(body):
+        return all(abs(lg_logs_at(body, at) - math.log(float(lg_monomial(arg, at))) / math.log(calc)) < 1e-9 for at in points)
+
+    return rf_pick(listing, fits)
+
+
 def lg_which(b, v, listing: str) -> str:
     want = math.log(int(v)) / math.log(int(b))
     calc = {"ln": math.log, "log": math.log10}
@@ -7711,13 +7797,30 @@ def lg_which(b, v, listing: str) -> str:
 def lg_exp_exact(base, exponent, v) -> Fraction:
     c = rf_poly(exponent or "x")
     assert len(c) == 2, "not linear"
-    e = lg_exact(int(base), Fraction(v), Fraction(0))
+    e = lg_exact(int(base), lg_exponents(Fraction(v)), Fraction(0))
     return (e - c[0]) / c[1]
 
 
 def lg_exp_rounded(k, base, a, v, places) -> Fraction:
     ln_b = 1.0 if base == "e" else math.log(int(base))
     return lg_rounded(math.log(int(v) / int(k or 1)) / (int(a or 1) * ln_b), int(places))
+
+
+# requiem: catalogue/content/unlike-bases-by-logs
+def lg_unlike(b1, e1, b2, e2, places) -> Fraction:
+    """B1^(px + q) = B2^(rx + s): ln of both sides is linear in x."""
+    (q, p), (s, r) = (rf_poly(e or "x") for e in (e1, e2))
+    l1, l2 = math.log(int(b1)), math.log(int(b2))
+    return lg_rounded((float(s) * l2 - float(q) * l1) / (float(p) * l1 - float(r) * l2), int(places))
+
+
+# requiem: catalogue/content/growth-solved-for-time
+def lg_growth_time(a, factor, every, rate, v, places) -> Fraction:
+    """A * B^(t/h) = V, or A * e^(kt) = V, solved for t."""
+    grown = math.log(Fraction(int(v), int(a)))
+    t = grown / float(Fraction(rate)) if rate else (every or 1) * grown / math.log(Fraction(factor))
+    assert t > 0, f"{a} never reaches {v}"
+    return lg_rounded(t, int(places))
 
 
 def lg_side(side: str) -> tuple:
@@ -7758,11 +7861,14 @@ BY_RULE += (
     (re.compile(r"^change of base: log_(\d+)\((\d+)\) to (\d) dp$"), lg_change),
     (re.compile(r"^exp eq: (?:(\d+)\*)?(\d+|e)\^(?:x|\((\d+)x\)) = (\d+) to (\d) dp$"), lg_exp_rounded),
     (re.compile(r"^exp eq: (\d+)\^(?:x|\((.+)\)) = (\d+(?:/\d+)?)$"), lg_exp_exact),
+    (re.compile(r"^exp eq: (\d+)\^(?:x|\((.+?)\)) = (\d+)\^(?:x|\((.+?)\)) to (\d) dp$"), lg_unlike),
+    (re.compile(r"^exp context: (\d+)\*(?:\(([\d./]+)\)\^(?:t|\(t/(\d+)\))|e\^\(([\d.]+)t\)) = (\d+) to (\d) dp$"), lg_growth_time),
 )
 
 CHOICE_RULES += (
     (re.compile(r"^log form: (.+?); options (.+)$"), lg_form),
     (re.compile(r"^condense: (.+?); options (.+)$"), lg_condense),
+    (re.compile(r"^expand: (log_(\d+)|log|ln)\((.+?)\); options (.+)$"), lg_expand),
     (re.compile(r"^change of base: log_(\d+)\((\d+)\); options (.+)$"), lg_which),
 )
 
@@ -8022,6 +8128,43 @@ for path in sorted(LIB.glob("*.json")):
 for line in unread:
     problems.append(f"{line} -- no rule re-derives this answer")
 problems += chance_out_of_range()
+
+
+# requiem: catalogue/content/decoys-cross-two-slips
+# A choice whose decoys each change the key in one way and nothing else
+# leaves the key as the option nearest all the others -- the medoid, by edit
+# distance between the labels -- so it can be picked without the
+# mathematics. Logarithms and complex numbers cross two slips instead, and
+# the key is the medoid of a level's choices no more often than about one in
+# four; a level where it is more than 40% has slid back.
+def edit_distance(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def key_is_medoid(answer: dict) -> float:
+    """1 when the key is the one option nearest all the others, 1/k when it ties with k."""
+    labels = [o["label"] for o in answer["options"]]
+    total = [sum(edit_distance(a, b) for b in labels) for a in labels]
+    tied = [o["id"] for o, t in zip(answer["options"], total) if t == min(total)]
+    return 1 / len(tied) if answer["value"] in tied else 0.0
+
+
+MEDOID_SKILLS = ("logarithms", "complex")
+for path in sorted(LIB.glob("*.json")):
+    if not path.name.startswith(MEDOID_SKILLS):
+        continue
+    lib = json.loads(path.read_text())
+    rows = [p["answer"] for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+    if len(rows) >= 20:
+        share = sum(key_is_medoid(a) for a in rows) / len(rows)
+        if share > 0.4:
+            problems.append(f"{lib['skill']} L{lib['level'] + 1}: the key is the medoid of its options in {share:.0%} of {len(rows)} choice rows")
 
 if problems:
     print(f"{len(problems)} wrong answer(s):")

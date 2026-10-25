@@ -1,5 +1,5 @@
 {
-  "built": 611,
+  "built": 613,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -228,6 +228,7 @@
       "doubling-and-half-life",
       "linear-or-exponential",
       "the-asymptote",
+      "e-and-continuous-growth",
       "all-together"
     ],
     "transformations-f": [
@@ -760,6 +761,7 @@
       "all-together"
     ],
     "complex": [
+      "square-roots-of-negatives",
       "powers-of-i",
       "add-and-subtract",
       "multiply",
@@ -1861,9 +1863,13 @@
       "dependsOn": [
         "exponents",
         "polynomials",
-        "quadratic-formula"
+        "quadratic-formula",
+        "roots"
       ],
       "levels": {
+        "square-roots-of-negatives": [
+          "roots"
+        ],
         "powers-of-i": [
           "exponents"
         ],
@@ -1895,6 +1901,7 @@
           "exponents"
         ],
         "evaluate": [
+          "exponential",
           "rational-exponents"
         ],
         "product-quotient-power": [
@@ -1911,7 +1918,7 @@
       }
     }
   },
-  "sources": "acdbddee1961493601f9a933ca28d5dff51b7ce2ea8bc61a16f5648106cf2517",
+  "sources": "78fe40ad9eb44de0a06fe3dce525fbed9e4a219f74fb5fab071f490cf313125e",
   "levels": [
     {
       "skill": "int-addsub",
@@ -3716,12 +3723,22 @@
     {
       "skill": "exponential",
       "level": 7,
+      "slug": "e-and-continuous-growth",
+      "name": "e and Continuous Growth",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "exponential-7.json"
+    },
+    {
+      "skill": "exponential",
+      "level": 8,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "exponential-7.json"
+      "file": "exponential-8.json"
     },
     {
       "skill": "transformations-f",
@@ -7896,8 +7913,8 @@
     {
       "skill": "complex",
       "level": 0,
-      "slug": "powers-of-i",
-      "name": "Powers of i",
+      "slug": "square-roots-of-negatives",
+      "name": "Square Roots of Negatives",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7906,8 +7923,8 @@
     {
       "skill": "complex",
       "level": 1,
-      "slug": "add-and-subtract",
-      "name": "Add & Subtract",
+      "slug": "powers-of-i",
+      "name": "Powers of i",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7916,8 +7933,8 @@
     {
       "skill": "complex",
       "level": 2,
-      "slug": "multiply",
-      "name": "Multiply",
+      "slug": "add-and-subtract",
+      "name": "Add & Subtract",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7926,8 +7943,8 @@
     {
       "skill": "complex",
       "level": 3,
-      "slug": "conjugates-and-divide",
-      "name": "Conjugates & Divide",
+      "slug": "multiply",
+      "name": "Multiply",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7936,8 +7953,8 @@
     {
       "skill": "complex",
       "level": 4,
-      "slug": "complex-roots",
-      "name": "Complex Roots of Quadratics",
+      "slug": "conjugates-and-divide",
+      "name": "Conjugates & Divide",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
@@ -7946,12 +7963,22 @@
     {
       "skill": "complex",
       "level": 5,
+      "slug": "complex-roots",
+      "name": "Complex Roots of Quadratics",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-5.json"
+    },
+    {
+      "skill": "complex",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "complex-5.json"
+      "file": "complex-6.json"
     },
     {
       "skill": "logarithms",
@@ -7968,7 +7995,7 @@
       "level": 1,
       "slug": "evaluate",
       "name": "Evaluate",
-      "count": 397,
+      "count": 478,
       "exhaustive": true,
       "signed": true,
       "file": "logarithms-1.json"

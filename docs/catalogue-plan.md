@@ -489,23 +489,36 @@ Inequalities on compound inequalities' Either Side and quadratic
 equations' By Factoring. Graphs are drawn with every whole-number height
 in the window listed, and the checker reads them from those heights.
 
-`complex` is built, in the plan's five levels and All Together. Powers of
-i depends on exponents' Multiplying Powers and Zero and Negative, Add &
-Subtract on polynomials' Adding, Multiply on Binomial Times Binomial,
-Conjugates & Divide on Special Products, and Complex Roots of Quadratics
-on the quadratic formula's The Discriminant. Answers are the new
-`complex` type, judged by exact real and imaginary parts rather than by
-`expr` or `equivalent`, neither of which knows that i² is −1.
+`complex` is built, in the plan's five levels, Square Roots of Negatives
+before them, and All Together. Square Roots of Negatives depends on roots'
+Pulling Out Squares, Powers of i on exponents' Multiplying Powers and Zero
+and Negative, Add & Subtract on polynomials' Adding, Multiply on Binomial
+Times Binomial, Conjugates & Divide on Special Products, and Complex Roots
+of Quadratics on the quadratic formula's The Discriminant. Answers are the
+new `complex` type, judged by exact real and imaginary parts rather than by
+`expr` or `equivalent`, neither of which knows that i² is −1. Every root of
+a negative is made an i before it is multiplied, so √−4 · √−9 = −6; a root
+that is not whole, √−18 = 3i√2, is a choice, since the box takes no root.
 
 `logarithms` is built, in the plan's six levels and All Together. Log as
 Exponent depends on exponents' Zero and Negative, Evaluate on rational
-exponents' Negative Fractional Powers, Product, Quotient & Power on
-exponents' Dividing Powers and Power of a Power, Solve Exponential
-Equations on solving equations' Two Steps and exponential functions'
-Doubling and Half-Life, and Solve Log Equations on quadratic equations'
-By Factoring and radical equations' Extraneous Roots. ln & Change of
-Base builds on this skill's own Evaluate. Exact answers are fractions;
-rounded ones are decimals to the places the question names.
+exponents' Negative Fractional Powers and exponential functions' e and
+Continuous Growth (Evaluate is where ln, the log to base e, is first
+used), Product, Quotient & Power on exponents' Dividing Powers and Power of
+a Power, Solve Exponential Equations on solving equations' Two Steps and
+exponential functions' Doubling and Half-Life and e and Continuous Growth,
+whose models its time-to-grow stories (F-LE.4) solve for t, and Solve Log
+Equations on quadratic equations' By Factoring and radical equations'
+Extraneous Roots. ln & Change of Base builds on this skill's own Evaluate.
+Exact answers are fractions; rounded ones are decimals to the places the
+question names. Product, Quotient & Power both condenses and expands, and
+every choice's decoys cross two misreadings, so the key is not the option
+nearest all the others.
+
+`exponential` gained e and Continuous Growth for this, as its ninth level
+with a `longerBecause`: e as what compounding ever more often tends to,
+then P(1 + r/n)^(nt), P·e^(rt), and a·e^(kt) read for its rate, its factor
+each step and its value.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
