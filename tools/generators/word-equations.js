@@ -84,13 +84,29 @@ const STORIES = [
     const d = rng.int(2, 9), total = 2 * rng.int(8, 30) + d;
     return { story: `Two numbers add up to ${total}. One is ${d} more than the other. Which equation gives `
       + 'the smaller number, n?', right: `n + (n + ${d}) = ${total}`,
-    // Crossed: only one of the numbers added, and "more" read as less.
-    wrong: [`n + ${d} = ${total}`, `n + (n - ${d}) = ${total}`, `n - ${d} = ${total}`],
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Crossed: "d more" given to both numbers, and "more" read as less.
+    // Leaving one number out instead made both of those decoys shorter, and
+    // the key was the longest option across the level (41%).
+    wrong: [`(n + ${d}) + (n + ${d}) = ${total}`, `n + (n - ${d}) = ${total}`, `(n - ${d}) + (n - ${d}) = ${total}`],
     why: `The smaller is n, so the larger is n + ${d}, and together they make ${total}: n + (n + ${d}) = ${total}.` };
   },
   (rng) => {
     const k = rng.int(2, 6), add = rng.int(2, 12), n = rng.int(1, 12);
     const times = ['Twice', 'Three times', 'Four times', 'Five times', 'Six times'][k - 2];
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Asked both ways, with the bracket and without, so the right equation
+    // is the one with the bracket only half the time and its length says
+    // nothing.
+    if (add !== k && rng.chance(0.5)) {
+      const t = k * n + add;
+      return { story: `${add} more than ${times.toLowerCase().replace('twice', 'two times')} a number is ${t}. Which equation says that?`,
+        right: `${k}n + ${add} = ${t}`,
+        // Crossed: a bracket put in, and the two numbers in each other's places.
+        wrong: [`${k}(n + ${add}) = ${t}`, `${add}n + ${k} = ${t}`, `${add}(n + ${k}) = ${t}`],
+        why: `"${add} more than ${k} times a number" multiplies the number alone, then adds ${add}: no bracket. `
+          + `${k}n + ${add} = ${t}.` };
+    }
     return { story: `${times} the sum of a number and ${add} is ${k * (n + add)}. Which equation says that?`,
       right: `${k}(n + ${add}) = ${k * (n + add)}`,
       // Crossed: the bracket dropped, and the two numbers in each other's places.
@@ -107,6 +123,21 @@ const STORIES = [
     const p = 2 * w + 2 * (w + more);
     // requiem: catalogue/content/units-both-systems
     const u = rng.pick(['cm', 'inches']);
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // The area is asked as often as the perimeter, so the right equation is
+    // the longer pair as often as the shorter.
+    // Not where a decoy balances at the width too (2 by 3 has area 6, and
+    // 2w + 2(w − 1) is 6 at w = 2): then two options are right.
+    const A0 = w * (w + more);
+    if (rng.chance(0.5) && ![2 * w + 2 * (w + more), w * (w - more), 2 * w + 2 * (w - more)].includes(A0)) {
+      const A = A0, sq = u === 'cm' ? 'cm²' : 'square inches';
+      return { story: `A rectangle is ${more} ${more === 1 && u === 'inches' ? 'inch' : u} longer than it is wide, and its area is ${A} ${sq}. Which `
+        + 'equation gives the width, w?', right: `w(w + ${more}) = ${A}`,
+      // Crossed: the perimeter for the area, and "longer" read as shorter.
+      wrong: [`2w + 2(w + ${more}) = ${A}`, `w(w - ${more}) = ${A}`, `2w + 2(w - ${more}) = ${A}`],
+      why: `The length is w + ${more}. The area is the width times the length: w(w + ${more}) = ${A}. `
+        + `2w + 2(w + ${more}) would be its perimeter.` };
+    }
     return { story: `A rectangle is ${more} ${more === 1 && u === 'inches' ? 'inch' : u} longer than it is wide, and its perimeter is ${p} ${u}. Which `
       + 'equation gives the width, w?', right: `2w + 2(w + ${more}) = ${p}`,
     // Crossed: the area for the perimeter, and "longer" read as shorter.
@@ -127,8 +158,11 @@ const STORIES = [
     const less = rng.int(2, 9), n = rng.int(less + 1, 20), k = rng.int(2, 5);
     return { story: `${less} less than ${k} times a number is ${k * n - less}. Which equation says that?`,
       right: `${k}n - ${less} = ${k * n - less}`,
-      // Crossed: the subtraction turned round, and a bracket put in.
-      wrong: [`${less} - ${k}n = ${k * n - less}`, `${k}(n - ${less}) = ${k * n - less}`, `${k}(${less} - n) = ${k * n - less}`],
+      // requiem: catalogue/content/identity-decoys-are-misconceptions
+      // Crossed: the subtraction turned round, and the two numbers in each
+      // other's places. A bracket crossed with the turn gave k(L − n), which
+      // no one reading the sentence writes.
+      wrong: [`${less} - ${k}n = ${k * n - less}`, `${less}n - ${k} = ${k * n - less}`, `${k} - ${less}n = ${k * n - less}`],
       why: `"${less} less than ${k} times a number" starts from ${k}n and takes ${less} away: `
         + `${k}n − ${less} = ${k * n - less}.` };
   },

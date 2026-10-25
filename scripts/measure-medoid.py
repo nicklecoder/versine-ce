@@ -17,10 +17,17 @@ Outside -- has a medoid set by its wording, and what matters there is that
 the key moves among its options, not where the decoys sit. check-answers.py
 loads this file and fails a level above 40% on at least 20 measured rows.
 
+The fixed menus left out here are measured another way (menu_keys): every
+option of a menu should be the key in some rows, and check-answers.py fails
+a level where one offered in 50 rows or more never is.
+
 Usage: python scripts/measure-medoid.py [skill ...] [--over 0.4]
+       python scripts/measure-medoid.py [skill ...] --menus
   With no skills, every library. --over lists only levels above that share.
-  Exits 1 when --over is given and some level is above it.
+  Exits 1 when --over is given and some level is above it. --menus lists
+  each level's menu options offered in 50 rows or more and never the key.
 """
+# requiem: catalogue/content/fixed-menu-key-moves
 # requiem: catalogue/content/decoys-crossed-not-centred
 # requiem: catalogue/content/decoys-cross-two-slips
 import json
@@ -91,6 +98,16 @@ def rows_written_for(rows: list[dict]) -> list[dict]:
     "It will most likely get closer to the theoretical probability" in a
     level that asks that question beside others.
     """
+    stock, keys = stock_labels(rows), keys_by_label_set(rows)
+    return [p["answer"] for p in rows
+            if len(keys[frozenset(o["label"] for o in p["answer"]["options"])]) == 1
+            and sum(o["label"] not in stock for o in p["answer"]["options"]) >= 3]
+
+
+def stock_labels(rows: list[dict]) -> set:
+    """Labels in a third or more of the rows, or of the rows sharing a
+    question's shape (the text before the first ':' or ';') where that shape
+    has 20 rows or more."""
     def stock_in(group: list[dict]) -> set:
         seen: dict[str, int] = {}
         for p in group:
@@ -99,17 +116,52 @@ def rows_written_for(rows: list[dict]) -> list[dict]:
         return {label for label, n in seen.items() if n >= len(group) / 3}
 
     shapes: dict[str, list] = {}
-    keys: dict[frozenset, set] = {}
     for p in rows:
         shapes.setdefault(re.split(r"[:;]", p["text"])[0], []).append(p)
-        keys.setdefault(frozenset(o["label"] for o in p["answer"]["options"]), set()).add(key_label(p["answer"]))
     stock = stock_in(rows)
     for group in shapes.values():
         if len(group) >= 20:
             stock |= stock_in(group)
-    return [p["answer"] for p in rows
-            if len(keys[frozenset(o["label"] for o in p["answer"]["options"])]) == 1
-            and sum(o["label"] not in stock for o in p["answer"]["options"]) >= 3]
+    return stock
+
+
+def keys_by_label_set(rows: list[dict]) -> dict[frozenset, set]:
+    """Each set of option labels in the rows, and the labels it was keyed by."""
+    keys: dict[frozenset, set] = {}
+    for p in rows:
+        keys.setdefault(frozenset(o["label"] for o in p["answer"]["options"]), set()).add(key_label(p["answer"]))
+    return keys
+
+
+# requiem: catalogue/content/fixed-menu-key-moves
+def menu_keys(rows: list[dict]) -> dict[str, tuple[int, int]]:
+    """For each label of a level's fixed menus, how many rows offer it and in
+    how many it is the key.
+
+    A menu label is a stock label (see stock_labels: They are the same, Not
+    enough, the five likelihood words) or a label of a label set the level
+    keys more than one way (Up 3 / Down 3 / Left 3 / Right 3). Options written
+    for their row are left out: a decoy made for one row is never its key, and
+    that is not a tell. A menu label that is never the key is one: a student
+    can strike it without reading the question.
+    """
+    menu = stock_labels(rows)
+    for labels, keyed in keys_by_label_set(rows).items():
+        if len(keyed) > 1:
+            menu |= labels
+    out: dict[str, list] = {}
+    for p in rows:
+        key = key_label(p["answer"])
+        for label in {o["label"] for o in p["answer"]["options"]} & menu:
+            seen = out.setdefault(label, [0, 0])
+            seen[0] += 1
+            seen[1] += label == key
+    return {label: (n, k) for label, (n, k) in out.items()}
+
+
+def all_choice_rows(lib: dict) -> list[dict]:
+    """A library's choice problems with two or more options."""
+    return [p for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 2]
 
 
 def choice_rows(lib: dict) -> list[dict]:
@@ -127,7 +179,22 @@ def measure(path: Path):
             mean(medoid_share), mean(lambda a: 1 / len(a["options"])), mean(outlier_share), mean(longest_share))
 
 
+def never_keyed(lib: dict, least: int = 50) -> list[tuple[str, int]]:
+    """A level's menu labels offered in `least` rows or more and never the key."""
+    return sorted((label, n) for label, (n, k) in menu_keys(all_choice_rows(lib)).items() if n >= least and k == 0)
+
+
 def main(argv):
+    if "--menus" in argv:
+        # Each level's menu labels never keyed, and each menu label's share of the keys.
+        argv = [a for a in argv if a != "--menus"]
+        for f in sorted(LIB.glob("*-[0-9]*.json")):
+            if argv and f.stem.rsplit("-", 1)[0] not in argv:
+                continue
+            lib = json.loads(f.read_text())
+            for label, n in never_keyed(lib):
+                print(f"{lib['skill']} L{lib['level']} {lib['levelName']}: {label!r} offered in {n} rows, never the key")
+        return 0
     over = None
     if "--over" in argv:
         k = argv.index("--over")

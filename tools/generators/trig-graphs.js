@@ -271,6 +271,9 @@ function shiftWorks(s, base, dir, q) {
   });
 }
 
+/** A shift size some phase-shift row can key: n/d of π with n of 1 to 3 and d of 3 to 12, under π. */
+const KEYABLE = (q) => [1, 2, 3].some((n) => [3, 4, 6, 8, 12].some((d) => q.n * d === n * q.d && n < d));
+
 function phaseShift(rng) {
   for (;;) {
     const b = rng.pick([B(1), B(1), B(2), B(2), B(3), B(4)]);
@@ -287,7 +290,18 @@ function phaseShift(rng) {
     // The slips are the direction and the size, crossed: the other way, the
     // wrong size (b × h read as the shift, or with b = 1 the shift doubled or
     // halved), and both -- never a lift up or down.
-    const wrongSize = b.n === 1 ? (rng.chance(0.5) ? Q(2 * size.n, size.d) : Q(size.n, 2 * size.d)) : trap;
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // With b > 1 the wrong size is b × h (the number inside read as the
+    // shift, as it is written expanded) or h ÷ b (b divided out of a shift
+    // already factored), each more often on the form that invites it: with
+    // b × h alone, the key was the smaller size in every such row.
+    // Either way the wrong size must be one some row keys (π/24 or 3π/2,
+    // never a shift here, would be struck unread), so a slip that lands
+    // outside the shifts asked gives way to the other, or the row is redrawn.
+    let divided = b.n !== 1 && rng.chance(expanded ? 0.25 : 0.75);
+    if (b.n !== 1 && !KEYABLE(divided ? Q(size.n, b.n * size.d) : trap)) divided = !divided;
+    const wrongSize = b.n === 1 ? (rng.chance(0.5) ? Q(2 * size.n, size.d) : Q(size.n, 2 * size.d)) : divided ? Q(size.n, b.n * size.d) : trap;
+    if (!KEYABLE(wrongSize)) continue;
     const options = [[dir, size], [other, size], [dir, wrongSize], [other, wrongSize]];
     const valid = options.filter(([d, q]) => shiftWorks(s, base, d, q));
     if (valid.length !== 1) continue;
@@ -304,7 +318,9 @@ function phaseShift(rng) {
       visual: null,
       explain: `${expanded ? `Factor b out of the inside first: ${fn}(${inner(s, true)}) = ${factored}. ` : ''}`
         + `In ${fn}(${b.n === 1 ? '' : 'b('}x − h${b.n === 1 ? '' : ')'}) the wave moves h to the right, and here h = ${piText(H.n, H.d)}, so it moves ${piText(size.n, size.d)} to the ${dir}. `
-        + `(${expanded ? `The ${piText(K.n, K.d)} is b × h, not the shift: divide it by ${b.n}.` : `A minus inside moves the wave right, the opposite of how it reads, and by exactly ${piText(size.n, size.d)}, not twice or half that.`}) So ${shiftLabel(dir, size)}.`,
+        + `(${b.n === 1 ? `A minus inside moves the wave right, the opposite of how it reads, and by exactly ${piText(size.n, size.d)}, not twice or half that.`
+          : divided ? `${expanded ? `Divide ${piText(K.n, K.d)} by ${b.n} once` : `Factored, the number in the brackets is already the shift`}: ${piText(size.n, size.d)}, not ${piText(wrongSize.n, wrongSize.d)}.`
+            : expanded ? `The ${piText(K.n, K.d)} is b × h, not the shift: divide it by ${b.n}.` : `Factored, the number in the brackets is already the shift: it is not multiplied by ${b.n}.`}) So ${shiftLabel(dir, size)}.`,
     };
   }
 }

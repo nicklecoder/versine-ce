@@ -185,7 +185,11 @@ const LAW_OPTIONS = [
 ];
 
 function whichLaw(rng) {
-  const kind = rng.pick(['AAS', 'ASA', 'SSA', 'SAS', 'SSS', 'right']);
+  // requiem: catalogue/content/fixed-menu-key-moves
+  // The law is drawn first, a third each, and then the pattern that calls
+  // for it. Drawn evenly among the six patterns, three of them sines, the
+  // right-triangle ratios were the key in 16% of rows and sines in half.
+  const kind = rng.pick([['right'], ['AAS', 'ASA', 'SSA'], ['SAS', 'SSS']][rng.int(0, 2)]);
   const n = () => rng.int(4, 30), t = () => rng.int(25, 75);
   let given, want, law, why;
   if (kind === 'right') {

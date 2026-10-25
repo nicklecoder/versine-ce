@@ -456,20 +456,35 @@ function wholeSd(rng, lo, hi) {
 function sdLevel(rng) {
   const mode = rng.pick(['find', 'find', 'find', 'compare', 'change']);
   if (mode === 'change') {
-    const k = rng.int(2, 9), times = rng.chance(0.5);
+    // requiem: catalogue/content/fixed-menu-key-moves
+    // Some rows ask the same of the mean, which an added number does move:
+    // asked only of the standard deviation, "it becomes sd + k" was never
+    // the key and could be struck unread. Weighted so stays, plus and times
+    // are each keyed about a third of the time.
+    const [of, times] = rng.pick([['sd', false], ['sd', false], ['mean', false], ['mean', false], ['sd', true], ['mean', true]]);
+    const k = rng.int(2, 9);
     // requiem: catalogue/content/choice-labels-distinct
     // 2 + 2 and 2 × 2 are both 4, which would print one option twice.
-    const sd = k === 2 ? rng.int(3, 9) : rng.int(2, 9);
-    const want = times ? 'times' : 'same';
-    const opts = [{ id: 'same', label: `It stays ${sd}` }, { id: 'plus', label: `It becomes ${sd + k}` }, { id: 'times', label: `It becomes ${sd * k}` }];
+    const v = of === 'mean' ? rng.int(k === 2 ? 3 : 2, 40) : k === 2 ? rng.int(3, 9) : rng.int(2, 9);
+    const want = times ? 'times' : of === 'mean' ? 'plus' : 'same';
+    // requiem: catalogue/content/decoys-crossed-not-centred
+    // Bare numbers: worded "It stays v" beside two "It becomes ...", the two
+    // that change were each other's nearest and the medoid whenever the key
+    // changed, two rows in three.
+    const opts = [{ id: 'same', label: `${v}` }, { id: 'plus', label: `${v + k}` }, { id: 'times', label: `${v * k}` }];
+    const name = of === 'sd' ? 'standard deviation' : 'mean';
     return {
-      prompt: [T.prose(`A data set has a standard deviation of ${sd}. Every value is ${times ? `multiplied by ${k}` : `increased by ${k}`}. What happens to the standard deviation?`)],
-      text: `sd change: sd ${sd}, ${times ? 'times' : 'plus'} ${k}; options same, plus, times`,
+      prompt: [T.prose(`A data set has a ${name} of ${v}. Every value is ${times ? `multiplied by ${k}` : `increased by ${k}`}. What is the ${name} now?`)],
+      text: `${of} change: ${of} ${v}, ${times ? 'times' : 'plus'} ${k}; options same, plus, times`,
       answer: { type: 'choice', value: want, options: opts },
       visual: null,
-      explain: times
-        ? `Multiplying every value by ${k} stretches every distance from the mean by ${k} too, so the spread becomes ${k} × ${sd} = ${sd * k}. (The mean is multiplied as well, but the spread is about distances.) So it becomes ${sd * k}.`
-        : `Adding ${k} to every value slides the whole set along: the mean goes up by ${k}, and every distance from it stays the same. (The center moves; the spread does not.) So it stays ${sd}.`,
+      explain: of === 'mean'
+        ? (times
+          ? `Multiplying every value by ${k} multiplies their total by ${k}, and the count stays, so the mean becomes ${k} × ${v} = ${v * k}. So it becomes ${v * k}.`
+          : `Adding ${k} to every value adds ${k} × the count to the total, and dividing by the count again leaves ${k} more: ${v} + ${k} = ${v + k}. (The center moves; the spread would not.) So it becomes ${v + k}.`)
+        : times
+          ? `Multiplying every value by ${k} stretches every distance from the mean by ${k} too, so the spread becomes ${k} × ${v} = ${v * k}. (The mean is multiplied as well, but the spread is about distances.) So it becomes ${v * k}.`
+          : `Adding ${k} to every value slides the whole set along: the mean goes up by ${k}, and every distance from it stays the same. (The center moves; the spread does not.) So it stays ${v}.`,
     };
   }
   if (mode === 'compare') {

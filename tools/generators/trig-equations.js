@@ -659,6 +659,42 @@ function quadraticType(rng) {
         explain: `${q.work} In one turn, ${listed(perWords)}. ${q.trap} So ${soText(xs, false)}.`,
       };
     }
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // Two factors: two slips crossed, one factor's solutions dropped and the
+    // other's misread (its sign flipped, or the wrong quadrants) -- alone and
+    // together -- so the key is not the full set the others are each a piece
+    // of. Drawn one slip at a time, the key was the medoid in 38% of rows.
+    if (sets.length === 2) {
+      const i = rng.pick([0, 1].filter((k) => sets[k].length && !sets[k].every((x) => sets[1 - k].includes(x))));
+      if (i !== undefined) {
+        const j = 1 - i, [f, v] = q.conds[j];
+        const misread = rng.shuffle([solveDeg(f, neg(v)), ...wrongSets(f, v)].map((s) => union(s)))
+          .find((s) => s.length && !sameSet(s, sets[j]) && !sameSet(union(sets[i], s), xs) && !sameSet(s, sets[i]) && !sameSet(union(sets[i], s), sets[j]));
+        // The misread set replaces the factor's own, or is taken as well (both
+        // signs of a root, or more quadrants than it has): replaced, the key
+        // was the longest option in most rows, so most take it as well.
+        const more = misread ? misread.filter((x) => !xs.includes(x)) : [];
+        const extra = more.length > 0 && rng.chance(0.8);
+        if (misread) {
+          const crossed = extra
+            ? [union(sets[j]), union(...sets, more), union(sets[j], more)]
+            : [union(sets[j]), union(sets[i], misread), misread];
+          const all = [xs, ...crossed];
+          if (all.every((s, a) => s.length && all.every((t, b) => b <= a || !sameSet(s, t)))) {
+            const c = setChoice(rng, xs, crossed);
+            if (c) {
+              return {
+                prompt: [T.prose(`Solve ${q.show} for 0 ≤ x < 2π.`)],
+                text: `solve radians: ${q.ascii}; options ${c.key}`,
+                answer: c.answer,
+                visual: null,
+                explain: `${q.work} In one turn, ${listed(perWords)}. ${q.trap} So ${soText(xs, true)}.`,
+              };
+            }
+          }
+        }
+      }
+    }
     // Wrong: one factor alone, one root with its sign flipped.
     const wrong = [];
     if (sets.length > 1) sets.forEach((s, i) => wrong.push(union(...sets.filter((_, j) => j !== i))));
