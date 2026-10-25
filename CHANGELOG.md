@@ -13,6 +13,26 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Vectors** (`vectors`), a new skill in a new category, Vectors & Polar,
+under Trigonometry, in eight levels: Components, Magnitude & Direction,
+From Magnitude & Direction, Adding & Subtracting, Scalar Multiples, Unit
+Vectors, Resultants and All Together. A vector is found from its initial
+and terminal points or read off a drawn arrow, and a point from a vector
+and the other end; its magnitude is exact in simplest radical form and its
+direction an angle to 1 dp, counterclockwise from the positive x-axis from
+0° to 360°; components come from a length and an angle, in plain numbers
+or a kicked ball, a pulled sled or a drone; vectors add and subtract,
+drawn tip to tail or not, and scale, alone or as au + bv, with k found from
+a multiple; a unit vector, and a vector of a given length along or against
+another, comes out in fractions; and a boat in a current, a plane in a wind
+or two forces on a crate give a resultant speed or direction. A new
+answer box takes vectors as <3, −4> for ⟨3, −4⟩, fractions and decimals
+alike, and 3i − 4j; a pair in round brackets is asked again with the hint
+to use angle brackets. `scripts/check-answers.py` works every vector out
+again component by component in exact fractions, every length from its
+squares, and every rounded value twice, exactly and from 4-place trig
+values, and holds each drawn arrow, leg and sum to the vectors in its text.
+
 **Conic Sections** (`conics`), a new skill under Coordinates, in eight
 levels: Which Conic?, Parabola Focus & Directrix, Ellipses, Hyperbolas,
 Writing the Equation, Completing the Square, Match the Graph and All

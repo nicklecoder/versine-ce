@@ -453,12 +453,12 @@ for (const skill of SKILLS) {
     const r = sets.parse(raw);
     if (!r.ok || r.value.parts.length) fail.push(`solutions: "${raw}" was not read as no solution`);
   }
-  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'], complex: ['i', '+-'] };
+  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'], complex: ['i', '+-'], vector: ['<3, -4>'] };
   for (const [id, typed] of Object.entries(shown)) {
     const keys = (getType(id).keys ?? []).map(([t]) => t);
     for (const t of typed) if (!keys.includes(t)) fail.push(`${id}: the box does not show how to type ${t}`);
   }
-  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)'], ['complex', '2 +- 3i']]) {
+  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)'], ['complex', '2 +- 3i'], ['vector', '<3, -4>']]) {
     if (!getType(id).parse(sample).ok) fail.push(`${id}: the shown spelling "${sample}" is refused`);
   }
 }
@@ -557,6 +557,38 @@ for (const skill of SKILLS) {
   if (!play(three, `(${x}, ${y})`).hint?.includes('3 coordinates')) fail.push('points: a pair for (x, y, z) was not told it needs 3 coordinates');
 }
 
+// requiem: play/answers/vector-typed-in-angle-brackets
+// The vector box reads <a, b> and the angle brackets themselves, each
+// component a whole number, a fraction or a decimal compared exactly, and
+// ai + bj; a pair in round brackets is a point, so it is asked again with
+// the hint to use angle brackets, not marked; and the order of the
+// components matters.
+{
+  const box = getType('vector');
+  const want = box.parse('<3, -4>').value;
+  for (const raw of ['<3,-4>', '⟨3, −4⟩', '〈3, -4〉', ' < 3 , -4 > ', '3i - 4j', '3i-4j', '<6/2, -4.0>']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, want)) fail.push(`vector: "${raw}" was not read as ⟨3, −4⟩`);
+  }
+  if (box.equals(box.parse('<-4, 3>').value, want)) fail.push('vector: ⟨−4, 3⟩ was taken for ⟨3, −4⟩');
+  if (!box.equals(box.parse('<3/5, -0.8>').value, box.parse('<0.6, -4/5>').value)) fail.push('vector: 3/5 and 0.6 were not one component');
+  if (!box.equals(box.parse('-j').value, box.parse('<0, -1>').value)) fail.push('vector: −j was not read as ⟨0, −1⟩');
+  for (const raw of ['(3, -4)', '3, -4', '<3>', '<3, -4, 1>', '<a, b>', '']) {
+    if (box.parse(raw).ok) fail.push(`vector: "${raw}" was read as a vector`);
+  }
+  if (!box.parse('(3, -4)').hint?.includes('angle brackets')) fail.push('vector: (3, −4) was not told to use angle brackets');
+  if (box.format(want) !== '⟨3, −4⟩') fail.push(`vector: ⟨3, −4⟩ shown as "${box.format(want)}"`);
+
+  const skill = SKILLS.find((s) => s.id === 'vectors');
+  const row = libOf(skill, 0).problems.find((q) => q.answer.type === 'vector');
+  const s = new Session({ skill, level: 0, mode: MODES.practice, onEvent() {} });
+  s.deal = () => row;
+  s.start();
+  const [a, b] = row.answer.accept[0].replace(/[⟨⟩]/g, '').replace(/−/g, '-').split(', ');
+  const round = s.submit(`(${a}, ${b})`);
+  if (round.status !== 'invalid') fail.push(`vector: (${a}, ${b}) for ${row.answer.accept[0]} was ${round.status}, not invalid`);
+  if (s.submit(`<${a}, ${b}>`).status !== 'correct') fail.push(`vector: <${a}, ${b}> for ${row.answer.accept[0]} was not correct`);
+}
 
 // requiem: play/answers/set-comma-after-not-equal
 // requiem: play/answers/set-all-but-points-shown

@@ -1,5 +1,5 @@
 {
-  "built": 648,
+  "built": 656,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -691,6 +691,16 @@
       "general-solutions",
       "multiple-angles",
       "quadratic-type",
+      "all-together"
+    ],
+    "vectors": [
+      "components",
+      "magnitude-and-direction",
+      "from-magnitude-and-direction",
+      "adding-and-subtracting",
+      "scalar-multiples",
+      "unit-vectors",
+      "resultants",
       "all-together"
     ],
     "domain-range": [
@@ -1698,6 +1708,23 @@
         ]
       }
     },
+    "vectors": {
+      "dependsOn": [
+        "pythagoras",
+        "trig-ratios",
+        "unit-circle"
+      ],
+      "levels": {
+        "magnitude-and-direction": [
+          "pythagoras",
+          "trig-ratios",
+          "unit-circle"
+        ],
+        "from-magnitude-and-direction": [
+          "trig-ratios"
+        ]
+      }
+    },
     "domain-range": {
       "dependsOn": [
         "functions",
@@ -2050,7 +2077,7 @@
       }
     }
   },
-  "sources": "a91c454b49869afcbf303c9b0a4fc55d7abdfdf040ca9f5628e59a24e022e1af",
+  "sources": "fbdfae6eb980e13af5580432c78ed4c162166829bdfb6147cb832d79db65bdbc",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7531,6 +7558,86 @@
       "exhaustive": false,
       "signed": true,
       "file": "trig-equations-6.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 0,
+      "slug": "components",
+      "name": "Components",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-0.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 1,
+      "slug": "magnitude-and-direction",
+      "name": "Magnitude & Direction",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "vectors-1.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 2,
+      "slug": "from-magnitude-and-direction",
+      "name": "From Magnitude & Direction",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-2.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 3,
+      "slug": "adding-and-subtracting",
+      "name": "Adding & Subtracting",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-3.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 4,
+      "slug": "scalar-multiples",
+      "name": "Scalar Multiples",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-4.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 5,
+      "slug": "unit-vectors",
+      "name": "Unit Vectors",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-5.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 6,
+      "slug": "resultants",
+      "name": "Resultants",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "vectors-6.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-7.json"
     },
     {
       "skill": "domain-range",

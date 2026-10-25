@@ -324,8 +324,8 @@ With it, Phase 3 is built.
 | `binomial` (Sequences) | Pascal's Triangle · Coefficients by Combinations · A Given Term · Full Expansion | A-APR.5, TEKS P.5F |
 | `systems-2` (Equations) | Line Meets Parabola · How Many Intersections · Three Variables · Three-Variable Word Problems | A-REI.7, TEKS A2.3 |
 | `conics` (Coordinates) | Which Conic · Parabola Focus & Directrix · Ellipses · Hyperbolas | G-GPE.2–3, TEKS P.3F–I |
-| `vectors` (TBD) | Components · Magnitude & Direction · Adding · Scalar Multiples · Resultants | TEKS P.4I–K |
-| `parametric-polar` (TBD) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
+| `vectors` (Vectors & Polar) | Components · Magnitude & Direction · Adding · Scalar Multiples · Resultants | TEKS P.4I–K |
+| `parametric-polar` (Vectors & Polar) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
 
 `trig-ratios` is built, in the plan's eight levels and All Together, which
 makes nine; the skill says why with `longerBecause`. Calculator answers round
@@ -606,13 +606,27 @@ Rows about foci, a directrix or asymptotes carry the graph, which the
 checker holds to the equation read back as a polynomial; rows about
 vertices carry none, since the vertices could be read off it.
 
-`vectors` and `parametric-polar` are TEKS-only and come last; they need a
-category, perhaps under Trigonometry.
+`vectors` and `parametric-polar` are TEKS-only and come last, in a new
+category, Vectors & Polar, under Trigonometry: both are worked with cos θ
+and sin θ throughout.
+
+`vectors` is built, as Components · Magnitude & Direction · From Magnitude &
+Direction · Adding & Subtracting · Scalar Multiples · Unit Vectors ·
+Resultants · All Together. Magnitude & Direction builds on the Pythagorean
+theorem's distance and trig ratios' Missing Angle, with angles past 90° from
+the unit circle's reference angles; From Magnitude & Direction on trig
+ratios' Missing Side. A vector is typed in its own box as <3, −4>, read as
+⟨3, −4⟩, with 3i − 4j read too and a round-bracket pair asked again as a
+point. Every direction is counterclockwise from the positive x-axis, 0° to
+360°, and every question says so; an exact length is in simplest radical
+form; unit vectors are built on Pythagorean triples so their components are
+fractions; a rounded component, angle or resultant agrees to 1 dp with its
+trig values copied to 4 places.
 
 ## Category sizes when complete
 
 Functions 9, Equations 9, Expressions 8, Coordinates 8, Powers 7; everything
-else under 6. `logarithms` is filed under Powers (a logarithm is an exponent)
+else under 6, Vectors & Polar 2. `logarithms` is filed under Powers (a logarithm is an exponent)
 and `linear-models` under Coordinates to keep Functions under the cap.
 
 ## Sources

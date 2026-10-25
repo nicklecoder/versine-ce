@@ -414,6 +414,7 @@
     "roots",
     "complex",
     "points",
+    "vector",
     "pair"
   ]
 }

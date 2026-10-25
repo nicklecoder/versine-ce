@@ -9083,6 +9083,182 @@ for path in sorted(LIB.glob("conics-*.json")):
                     problems.append(f"{where}: the revealed line {mk['from']}–{mk['to']} is not a directrix or asymptote")
 
 
+# ── Vectors ─────────────────────────────────────────────────────────────
+# A vector is read back from the text, <3, -4>, and every answer is worked
+# again here: a vector component by component in exact fractions, a point
+# by adding the components back, a length as the sum of the squares under a
+# root, a unit vector by dividing by that length, which must come out
+# whole. An angle or a rounded component goes by the calculator twice, once
+# exactly and once from its trig values copied to 4 places, and the two must
+# round alike.
+VC_NUM = r"-?\d+(?:/\d+)?"
+VC_VEC = rf"<({VC_NUM}), ({VC_NUM})>"
+VC_PT = rf"\(({VC_NUM}), ({VC_NUM})\)"
+
+
+def vc_q(*parts):
+    return tuple(Fraction(p) for p in parts)
+
+
+def vc_unit_length(a, b) -> int:
+    """|<a, b>|, which a unit-vector row only asks of a vector whose length is whole."""
+    n = Fraction(a) ** 2 + Fraction(b) ** 2
+    assert n.denominator == 1, f"<{a}, {b}> has a fractional square length"
+    return whole_root(int(n))
+
+
+def vc_unit(a, b):
+    L = vc_unit_length(a, b)
+    return vc_q(a, b)[0] / L, vc_q(a, b)[1] / L
+
+
+def vc_along(L, way, a, b):
+    s = 1 if way == "along" else -1
+    ux, uy = vc_unit(a, b)
+    return s * int(L) * ux, s * int(L) * uy
+
+
+def vc_scale(k, a, b):
+    k = Fraction(k)
+    return k * Fraction(a), k * Fraction(b)
+
+
+def vc_combo(p, a, b, q, c, d):
+    p, q = int(p), int(q)
+    return p * Fraction(a) + q * Fraction(c), p * Fraction(b) + q * Fraction(d)
+
+
+def vc_find_k(wa, wb, a, b) -> Fraction:
+    k1, k2 = Fraction(wa) / Fraction(a), Fraction(wb) / Fraction(b)
+    assert k1 == k2, f"<{wa}, {wb}> is not a multiple of <{a}, {b}>"
+    return k1
+
+
+def vc_placed(x: float, y: float, ref: float) -> float:
+    """The direction from its reference angle, by the quadrant (x, y) points into."""
+    if x > 0 and y >= 0:
+        return ref
+    if x < 0 and y >= 0:
+        return 180 - ref
+    if x < 0:
+        return 180 + ref
+    return 360 - ref
+
+
+def vc_direction(a, b, places) -> Fraction:
+    a, b = float(Fraction(a)), float(Fraction(b))
+    exact = math.degrees(math.atan2(b, a)) % 360
+    ref = math.degrees(math.atan(abs(b / a)))
+    return trig_agree(exact, vc_placed(a, b, round(ref, 4)), int(places))
+
+
+def vc_component(which, r, theta, places) -> Fraction:
+    fn = math.cos if which == "x" else math.sin
+    v = fn(math.radians(int(theta)))
+    return trig_agree(int(r) * v, int(r) * round(v, 4), int(places))
+
+
+def vc_resultant(want, listing, places) -> Fraction:
+    forces = [(int(r), int(t)) for r, t in re.findall(r"(\d+) at (\d+)", listing)]
+    assert len(forces) == 2, listing
+    x = sum(r * math.cos(math.radians(t)) for r, t in forces)
+    y = sum(r * math.sin(math.radians(t)) for r, t in forces)
+    x4 = sum(r * round(math.cos(math.radians(t)), 4) for r, t in forces)
+    y4 = sum(r * round(math.sin(math.radians(t)), 4) for r, t in forces)
+    if want == "magnitude":
+        return trig_agree(math.hypot(x, y), math.hypot(x4, y4), int(places))
+    return trig_agree(math.degrees(math.atan2(y, x)) % 360, math.degrees(math.atan2(y4, x4)) % 360, int(places))
+
+
+VECTOR_RULES = (
+    (re.compile(rf"^vector (?:drawn )?from {VC_PT} to {VC_PT}$"),
+     lambda x1, y1, x2, y2: (Fraction(x2) - Fraction(x1), Fraction(y2) - Fraction(y1))),
+    (re.compile(rf"^(?:add|drawn sum): {VC_VEC} \+ {VC_VEC}$"),
+     lambda a, b, c, d: (Fraction(a) + Fraction(c), Fraction(b) + Fraction(d))),
+    (re.compile(rf"^subtract: {VC_VEC} - {VC_VEC}$"),
+     lambda a, b, c, d: (Fraction(a) - Fraction(c), Fraction(b) - Fraction(d))),
+    (re.compile(rf"^scale: ({VC_NUM}) times {VC_VEC}$"), vc_scale),
+    (re.compile(rf"^combo: (-?\d+){VC_VEC} \+ (-?\d+){VC_VEC}$"), vc_combo),
+    (re.compile(rf"^unit: {VC_VEC}$"), vc_unit),
+    (re.compile(rf"^length (\d+) (along|against) {VC_VEC}$"), vc_along),
+)
+
+PAIR_RULES += (
+    (re.compile(rf"^end of {VC_VEC} from {VC_PT}$"),
+     lambda a, b, x, y: (Fraction(x) + Fraction(a), Fraction(y) + Fraction(b))),
+    (re.compile(rf"^start of {VC_VEC} to {VC_PT}$"),
+     lambda a, b, x, y: (Fraction(x) - Fraction(a), Fraction(y) - Fraction(b))),
+)
+
+RADICAL_RULES += (
+    (re.compile(rf"^magnitude: {VC_VEC}$"), lambda a, b: int(Fraction(a) ** 2 + Fraction(b) ** 2)),
+    (re.compile(rf"^magnitude from {VC_PT} to {VC_PT}$"),
+     lambda x1, y1, x2, y2: int((Fraction(x2) - Fraction(x1)) ** 2 + (Fraction(y2) - Fraction(y1)) ** 2)),
+)
+
+BY_RULE += (
+    (re.compile(rf"^direction: {VC_VEC} to (\d) dp$"), vc_direction),
+    (re.compile(r"^component: (x|y) of (\d+) at (\d+) degrees to (\d) dp$"), vc_component),
+    (re.compile(r"^resultant (magnitude|direction): (.+) to (\d) dp$"), vc_resultant),
+    (re.compile(rf"^find k: {VC_VEC} = k{VC_VEC}$"), vc_find_k),
+)
+
+
+def vc_arrow(marks, tail, tip) -> bool:
+    """A shaft from tail to tip and a head whose point is the tip."""
+    tail, tip = [float(c) for c in tail], [float(c) for c in tip]
+    shaft = any(mk["kind"] == "segment" and mk["from"] == tail and mk["to"] == tip for mk in marks)
+    head = any(mk["kind"] == "path" and len(mk["points"]) == 3 and mk["points"][1] == tip for mk in marks)
+    return shaft and head
+
+
+# A drawn vector is the one the text names: the arrow runs from its tail to
+# its tip with the head at the tip, and once answered the legs are labelled
+# with its components, the sum is drawn from the tail of u to the tip of v,
+# and a direction is labelled with the answer.
+def vc_check_drawings() -> None:
+    for path in sorted(LIB.glob("vectors-*.json")):
+        lib = json.loads(path.read_text())
+        for i, p in enumerate(lib["problems"]):
+            vis = p.get("visual")
+            if not vis:
+                continue
+            where = f"vectors L{lib['level'] + 1} row {i}"
+            text, marks, shown = p["text"], vis["marks"], vis.get("answer", [])
+            if m := re.match(rf"^vector drawn from {VC_PT} to {VC_PT}$", text):
+                P, R = vc_q(m[1], m[2]), vc_q(m[3], m[4])
+                if not vc_arrow(marks, P, R):
+                    problems.append(f"{where}: no arrow from {P} to {R}")
+                # The legs go across from the tail and then up to the tip,
+                # each labelled with its component.
+                corner = [float(R[0]), float(P[1])]
+                legs = sorted((mk["from"], mk["to"], mk.get("label", "").replace("−", "-")) for mk in shown if mk["kind"] == "segment")
+                want = sorted([([float(c) for c in P], corner, str(R[0] - P[0])), (corner, [float(c) for c in R], str(R[1] - P[1]))])
+                if legs != want:
+                    problems.append(f"{where}: the legs are {legs}, not {want}")
+            elif m := re.match(rf"^drawn sum: {VC_VEC} \+ {VC_VEC}$", text):
+                u, v = vc_q(m[1], m[2]), vc_q(m[3], m[4])
+                tip = (u[0] + v[0], u[1] + v[1])
+                if not (vc_arrow(marks, (0, 0), u) and vc_arrow(marks, u, tip)):
+                    problems.append(f"{where}: u and v are not drawn tip to tail")
+                if not vc_arrow(shown, (0, 0), tip):
+                    problems.append(f"{where}: the revealed sum does not run to {tip}")
+            elif m := re.match(rf"^direction: {VC_VEC} to (\d) dp$", text):
+                if not vc_arrow(marks, (0, 0), vc_q(m[1], m[2])):
+                    problems.append(f"{where}: no arrow from the origin to <{m[1]}, {m[2]}>")
+                axis = [mk for mk in shown if mk["kind"] == "segment"]
+                if len(axis) != 1 or axis[0]["from"] != [0, 0] or axis[0]["to"][1] != 0 or axis[0]["to"][0] <= 0:
+                    problems.append(f"{where}: the angle is not measured from the positive x-axis")
+                said = [mk["label"] for mk in shown if mk["kind"] == "text"]
+                if said != [f"θ ≈ {p['answer']['accept'][0]}°"]:
+                    problems.append(f"{where}: θ is labelled {said}")
+            else:
+                problems.append(f"{where}: a drawing no rule holds to its text")
+
+
+vc_check_drawings()
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -9241,6 +9417,21 @@ for path in sorted(LIB.glob("*.json")):
                             problems.append(f"{where}: coordinate {c} is not in lowest terms")
             continue
 
+        # requiem: play/answers/vector-typed-in-angle-brackets
+        # A vector: worked out again component by component and compared
+        # exactly, each component stored in lowest terms.
+        if answer["type"] == "vector":
+            rule = next((r for r in VECTOR_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = tuple(Fraction(c) for c in rule[1](*rule[0].match(text).groups()))
+                v = answer["value"]
+                if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
+                    problems.append(f"{where}: {text} is {want}, not {v}")
+                for c in (v["x"], v["y"]):
+                    if c["d"] <= 0 or math.gcd(c["n"], c["d"]) != 1:
+                        problems.append(f"{where}: component {c} is not in lowest terms")
+            continue
 
         # requiem: catalogue/content/complex-judged-exactly
         # A complex number: worked out again in exact complex arithmetic and

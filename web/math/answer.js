@@ -21,6 +21,7 @@ import { previewOf } from '../ui/express.js';
 import { sameFunction, finished, withoutName, parseNamed } from './equivalent.js';
 import { parseComplex, sameComplex, formatComplex } from './complex.js';
 import { parsePoints, samePoints, formatPoints, previewPoints, partOf } from './points.js';
+import { parseVector, sameVector, formatVector, previewVector } from './vector.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -720,6 +721,30 @@ defineType({
   refuseHint: (parsed, spec) => (spec.value.dim && parsed.value.dim && parsed.value.dim !== spec.value.dim
     ? `Each point here has ${spec.value.dim} coordinates, like ${spec.value.dim === 3 ? '(2, −1, 3)' : '(3, −2)'}.` : null),
   missHint: (v, spec) => (partOf(v, spec.value) ? 'Those points are right, but the curves meet in more places than that.' : null),
+});
+
+// requiem: play/answers/vector-typed-in-angle-brackets
+defineType({
+  id: 'vector',
+  input: 'free',
+  hint: 'Write the vector in angle brackets, like <3, −4>.',
+  keys: [['<3, -4>', '⟨3, −4⟩']],
+  /**
+   * A vector in component form, ⟨a, b⟩, typed with < and > since angle
+   * brackets are on no keyboard. Each component is compared exactly, so
+   * ⟨3/5, −4/5⟩ and ⟨0.6, −0.8⟩ agree, and 3i − 4j is read as ⟨3, −4⟩.
+   * (3, −4) in round brackets is a point, refused with the hint to use
+   * angle brackets rather than marked. web/math/vector.js has every form.
+   *
+   * The preview draws the vector in angle brackets as typed, fractions
+   * stacked, so a student sees < and > become ⟨ and ⟩.
+   *
+   * Value: { x, y }, each a fraction { n, d }.
+   */
+  parse: parseVector,
+  preview: previewVector,
+  equals: sameVector,
+  format: formatVector,
 });
 
 defineType({
