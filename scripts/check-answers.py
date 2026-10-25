@@ -8234,7 +8234,39 @@ def sr_which_sum(has: str, listing: str) -> str:
     return rf_pick(listing, lambda body: converges(body) == (has == "has sum"))
 
 
+def sr_sigma_writes(listing, last, options):
+    # The series shown is walked out in full from its terms; each option's
+    # sigma is written out by putting every k into its rule, and the one
+    # whose terms are the series' terms, all of them in order, is the key.
+    ts = sr_nums(listing)
+    geometric = ts[1] - ts[0] != ts[2] - ts[1]
+    whole = sr_to(ts[0], sr_step(ts, geometric), geometric, Fraction(last))
+
+    def writes(body):
+        lo, hi, src = re.fullmatch(r"(\d+)\.\.(\d+) of (.+)", body).groups()
+        return [evaluate(src, "k", k) for k in range(int(lo), int(hi) + 1)] == whole
+    return rf_pick(options, writes)
+
+
+def sr_sigma_scaled(hi, total, times, plus):
+    # Some sequence with that sum, any one: 1, 2, 3, ... and a last term that
+    # makes the total. The new sum is then added up term by term.
+    n = int(hi)
+    seq = [Fraction(k) for k in range(1, n)]
+    seq.append(Fraction(total) - sum(seq))
+    return sum(int(times) * a + int(plus) for a in seq)
+
+
+def sr_sigma_constant(lo, hi, c):
+    # A rule with no k: every k from lo to hi puts the same number in, so
+    # the terms are listed one per k and added.
+    return sum([Fraction(c)] * len(range(int(lo), int(hi) + 1)))
+
+
 BY_RULE += (
+    (re.compile(r"^sigma: k=(\d+)\.\.(\d+) of (-?\d+)$"), sr_sigma_constant),
+    (re.compile(r"^sigma scale: k=1\.\.(\d+), sum (-?\d+), times (-?\d+), plus (-?\d+)$"), sr_sigma_scaled),
+    (re.compile(r"^takings: (\d+) first, (\d+) percent, (\d+) months$"), sr_salary),
     (re.compile(r"^arith sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, False)),
     (re.compile(r"^arith sum: (\d+) terms, first (\S+), last (\S+)$"), sr_ends),
     (re.compile(r"^arith sum: (\d+) terms, first (\S+), difference (\S+)$"),
@@ -8271,6 +8303,7 @@ BY_RULE += (
 
 CHOICE_RULES += (
     (re.compile(r"^sigma which: k=(\d+)\.\.(\d+) of (.+?); options (.+)$"), sr_which_sigma),
+    (re.compile(r"^sigma write: (.+) to (\S+); options (.+)$"), sr_sigma_writes),
     (re.compile(r"^infinite which: (has sum|no sum); options (.+)$"), sr_which_sum),
 )
 
@@ -8433,6 +8466,149 @@ BY_RULE += (
 EXPR_RULES += (
     (re.compile(r"^expand: (\(.+\)\^\d+)$"), bn_expanded),
 )
+
+# The worked text is checked as well as the answer. Pascal's triangle is
+# drawn as rows above the asked one, which must be the triangle's own rows,
+# numbered as they are, with the asked row held back and its number shown as
+# the two above added. C(n, k) is cancelled before it is multiplied: from the
+# smaller of k and n - k, each factor of j! dividing a factor on top, and what
+# is left multiplying to the triangle's number. An expansion is worked term
+# by term, and each worked term must be the product's term with its power. A
+# chance one minus a single case must have that case's chance right.
+
+BN_SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹−", "0123456789-")
+
+
+def bn_row_text(cell: str) -> list:
+    return [int(v) for v in cell.replace(" ", " ").split()]
+
+
+# requiem: catalogue/visuals/pascal-rows-above-the-asked
+def bn_table(text: str, vis: dict, answer) -> str:
+    m = re.match(r"^pascal next: ([\d, ]+); number (\d+)$", text)
+    if m:
+        given = [int(v) for v in m[1].split(", ")]
+        asked, k = len(given), int(m[2]) - 1
+        if BN_TRI[asked - 1] != given:
+            return f"{m[1]} is not a row"
+    else:
+        m = re.match(r"^coefficient: a(?:\^\d+)?b(\^\d+)? in \(a \+ b\)\^(\d+)$", text)
+        if not m:
+            return "has a triangle it should not"
+        asked, k = int(m[2]), int((m[1] or "^1")[1:])
+    rows = vis["rows"]
+    if [r[0] for r in rows] != [str(i) for i in range(asked - len(rows) + 1, asked + 1)]:
+        return f"rows numbered {[r[0] for r in rows]}, not up to {asked}"
+    if rows[-1][1] != "?" or any(bn_row_text(r[1]) != BN_TRI[int(r[0])] for r in rows[:-1]):
+        return "draws a row that is not the triangle's, or shows the asked row"
+    if bn_row_text(vis["fill"]) != BN_TRI[asked]:
+        return f"holds back {vis['fill']}, not row {asked}"
+    above = BN_TRI[asked - 1]
+    if vis["working"][:-1] != [""] * (len(rows) - 1) or vis["working"][-1] != f"{above[k - 1]} + {above[k]} = {answer}":
+        return f"works {vis['working'][-1]}, not the two above number {k + 1} of row {asked}"
+    if BN_TRI[asked][k] != answer:
+        return f"asks number {k + 1} of row {asked}, which is not {answer}"
+    return "ok"
+
+
+# requiem: catalogue/content/choose-cancels-the-smaller
+def bn_choose_work(n: int, k: int, explain: str) -> str:
+    j = min(k, n - k)
+    if j != k and f"C({n}, {k}) = C({n}, {j})" not in explain:
+        return f"works C({n}, {j}) without saying it is C({n}, {k})"
+    m = re.search(r"\(([\d × ]+)\)/\(([\d × ]+)\)\. Cancel before multiplying: (.+), leaving ([\d × ,]+?)(?: = ([\d,]+))?\. So", explain)
+    if not m:
+        return "does not cancel before multiplying"
+    top = [int(v) for v in m[1].split(" × ")]
+    if top != list(range(n, n - j, -1)) or m[2] != " × ".join(str(i) for i in range(j, 0, -1)):
+        return f"works {m[1]} over {m[2]}, not the {j} biggest factors over {j}!"
+    unused, unders, quotients = list(top), [], []
+    for f, under, q in re.findall(r"(\d+)/(\([\d × ]+\)|\d+) = (\d+)", m[3]):
+        ds = [int(v) for v in under.strip("()").split(" × ")]
+        if int(f) not in unused or Fraction(int(f), math.prod(ds)) != int(q):
+            return f"cancels {f}/{under} = {q}"
+        unused.remove(int(f))
+        unders += ds
+        quotients.append(int(q))
+    if sorted(unders) != list(range(2, j + 1)):
+        return f"cancels {sorted(unders)}, not 2 to {j}"
+    left = [int(v) for v in m[4].replace(",", "").split(" × ")]
+    rest = sorted(v for v in unused + quotients if v != 1)
+    if sorted(left) != rest and not (len(left) == 1 and len(rest) <= 1):
+        return f"leaves {left}, not {rest}"
+    if math.prod(left) != BN_TRI[n][k] or (m[5] and int(m[5].replace(",", "")) != BN_TRI[n][k]):
+        return f"leaves {left}, whose product is not C({n}, {k})"
+    return "ok"
+
+
+def bn_term_value(src: str):
+    """−240x⁴, x³y², 81 as (coefficient, letters)."""
+    m = re.fullmatch(r"(-?)(\d*)((?:[a-z]\d*)*)", src.translate(BN_SUP).replace(" ", ""))
+    assert m and (m[2] or m[3]), f"cannot read {src}"
+    return (-1 if m[1] else 1) * int(m[2] or 1), bn_letters(re.sub(r"([a-z])(\d+)", r"\1^\2", m[3]))
+
+
+def bn_full_work(src: str, explain: str) -> str:
+    m = re.search(r"Term by term, signs and all: (.+?)\. So it is", explain)
+    if not m:
+        return "does not work its terms"
+    terms = sorted(bn_power(src).items(), key=lambda kv: (-dict(kv[0]).get("x", 0), dict(kv[0]).get("y", 0)))
+    said = m[1].split("; ")
+    if len(said) != len(terms):
+        return f"works {len(said)} terms, not {len(terms)}"
+    for part, (key, coef) in zip(said, terms):
+        steps = part.split(" = ")
+        if bn_term_value(steps[-1]) != (coef, key):
+            return f"works a term as {steps[-1]}"
+        if len(steps) == 3:
+            nums = re.sub(r"[a-z][⁰¹²³⁴⁵⁶⁷⁸⁹]*", "", steps[1]).translate(BN_SUP).replace("(", "").replace(")", "").replace(",", "")
+            if math.prod(int(v) for v in nums.split(" × ")) != coef:
+                return f"multiplies {steps[1]} to {coef}"
+    return "ok"
+
+
+# requiem: catalogue/content/complement-leads
+def bn_complement_work(text: str, explain: str, answer: Fraction) -> str:
+    m = re.match(r"^binomial chance: n (\d+), p (\d+/\d+), (at least|at most) (\d+); \w+$", text)
+    if not m:
+        return "ok"
+    n, p, how, k = int(m[1]), Fraction(m[2]), m[3], int(m[4])
+    if not ((how == "at least" and k == 1) or (how == "at most" and k == n - 1)):
+        return "ok"
+    w = re.search(r"1 − \((\d+)/(\d+)\)([⁰¹²³⁴⁵⁶⁷⁸⁹]+) = 1 − (\d+)/(\d+) = (\d+)/(\d+)", explain)
+    if not w:
+        return "does not lead with one minus the case left out"
+    base, e = Fraction(int(w[1]), int(w[2])), int(w[3].translate(BN_SUP))
+    if base != (1 - p if how == "at least" else p) or e != n:
+        return f"takes ({base})^{e}, not the chance of the one case left out"
+    if Fraction(int(w[4]), int(w[5])) != base ** e or int(w[6]) != int(w[5]) - int(w[4]) or w[7] != w[5]:
+        return "has its subtraction wrong"
+    if Fraction(int(w[6]), int(w[7])) != answer:
+        return f"works {w[6]}/{w[7]}, not the answer"
+    return "ok"
+
+
+for path in sorted(LIB.glob("binomial-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"binomial L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i} ({p['text']})"
+        verdicts = []
+        vis = p.get("visual")
+        if vis:
+            verdicts.append(bn_table(p["text"], vis, p["answer"]["value"]) if vis.get("kind") == "table" else f"draws a {vis.get('kind')}")
+        elif p["text"].startswith("pascal next:") or re.match(r"^coefficient: a", p["text"]):
+            verdicts.append("draws no triangle")
+        m = re.match(r"^choose: (\d+), (\d+)$", p["text"])
+        if m:
+            verdicts.append(bn_choose_work(int(m[1]), int(m[2]), p["explain"]))
+        m = re.match(r"^expand: (\(.+\)\^\d+)$", p["text"])
+        if m:
+            verdicts.append(bn_full_work(m[1], p["explain"]))
+        if p["text"].startswith("binomial chance:"):
+            a = p["answer"]["value"]
+            verdicts.append(bn_complement_work(p["text"], p["explain"], Fraction(a["n"], a["d"]) if isinstance(a, dict) else Fraction(a)))
+        for v in verdicts:
+            if v != "ok":
+                problems.append(f"{where}: {v}")
 
 
 # --- Systems of Equations II ------------------------------------------------------
@@ -8698,6 +8874,40 @@ def s2_numbers(total, more, times):
     return found
 
 
+def s2_pairs(orders):
+    """Three items priced two at a time: each row two of them, solved as a system."""
+    rows = [o.split(" for ") for o in orders.split("; ")]
+    M = [[int(v) for v in left.split()] for left, _ in rows]
+    assert all(sorted(r) == [0, 1, 1] for r in M) and len({tuple(r) for r in M}) == 3, f"pairs: {orders} is not three different pairs"
+    sol = s2_solve(M, [Fraction(int(total), 100) for _, total in rows])
+    assert sol is not None and all(v > 0 for v in sol), f"pairs: {orders} has no one price list"
+    return [tuple(sol)]
+
+
+def s2_batches(text):
+    """Whole batches of three kinds from what was used, every count tried."""
+    rows = {}
+    for part in text.split("; "):
+        m = re.match(r"^(flour|sugar|eggs) (\d+) (\d+) (\d+) for (\d+)$", part)
+        assert m, f"batches: cannot read {part}"
+        rows[m[1]] = ([int(m[2]), int(m[3]), int(m[4])], int(m[5]))
+    assert set(rows) == {"flour", "sugar", "eggs"}, f"batches: {text}"
+    eqs = list(rows.values())
+    flour, used = rows["flour"]
+    assert all(flour), f"batches: every batch takes flour, {text}"
+    found = []
+    for a in range(used // flour[0] + 1):
+        for b in range((used - flour[0] * a) // flour[1] + 1):
+            rest = used - flour[0] * a - flour[1] * b
+            if rest % flour[2]:
+                continue
+            c = rest // flour[2]
+            if all(r[0] * a + r[1] * b + r[2] * c == t for r, t in eqs):
+                found.append((a, b, c))
+    assert len(found) == 1, f"batches: {text} has {found}"
+    return found
+
+
 # Each rule with the number of coordinates its points have, which an answer
 # of none must carry too.
 POINT_RULES = (
@@ -8707,6 +8917,8 @@ POINT_RULES = (
     (re.compile(r"^coins: (\d+) coins; (\d+) cents; dimes (\d+) more than nickels$"), s2_coins, 3),
     (re.compile(r"^snacks: (.+)$"), s2_snacks, 3),
     (re.compile(r"^numbers: sum (-?\d+); second (\d+) more than first; third (\d+) times first$"), s2_numbers, 3),
+    (re.compile(r"^pairs: (.+)$"), s2_pairs, 3),
+    (re.compile(r"^batches: (.+)$"), s2_batches, 3),
 )
 
 BY_RULE += (
@@ -8717,6 +8929,99 @@ CHOICE_RULES += (
     (re.compile(r"^how many(?: circle| flat)?: (.+; .+)$"), s2_count),
     (re.compile(r"^how many3: (.+; .+; .+)$"), s2_how_many3),
 )
+
+
+def s2_off_curve(poly, x, y):
+    """How far (x, y) is from the curve poly = 0, to first order: |F| over the gradient's length."""
+    f = sum(float(c) * x ** i * y ** j for (i, j), c in poly.items())
+    fx = sum(float(c) * i * x ** (i - 1) * y ** j for (i, j), c in poly.items() if i)
+    fy = sum(float(c) * j * x ** i * y ** (j - 1) for (i, j), c in poly.items() if j)
+    g = math.hypot(fx, fy)
+    return abs(f) / g if g > 1e-9 else (0.0 if abs(f) < 1e-9 else math.inf)
+
+
+def s2_picture(text, visual, value):
+    """What is wrong with a meeting picture, or None: it must draw both curves of
+    the text, each stretch on one of them and inside the window, ended on the
+    window's edge unless it closes on itself, and mark exactly the answer's
+    points -- all of it withheld until answered."""
+    if visual.get("marks"):
+        return "draws something while the question is open"
+    polys = [s2_equation(e) for e in text[len("meet: "):].split("; ")]
+    (x0, x1), (y0, y1) = visual["xRange"], visual["yRange"]
+    if not (x0 <= 0 <= x1 and y0 <= 0 <= y1):
+        return "has a window without the origin"
+    drawn = [False, False]
+    for mk in visual["answer"]:
+        if mk["kind"] != "path":
+            continue
+        pts = mk["points"]
+        if any(not (x0 - 0.051 <= x <= x1 + 0.051 and y0 - 0.051 <= y <= y1 + 0.051) for x, y in pts):
+            return f"runs a curve outside the window at {pts[0]}"
+        on = [k for k, p in enumerate(polys) if all(s2_off_curve(p, x, y) <= 0.08 for x, y in pts)]
+        if not on:
+            worst = max(pts, key=lambda q: min(s2_off_curve(p, *q) for p in polys))
+            return f"draws a curve off both equations, at {worst}"
+        for k in on:
+            drawn[k] = True
+        # requiem: catalogue/visuals/curves-split-at-window
+        edge = lambda q: min(abs(q[0] - x0), abs(q[0] - x1), abs(q[1] - y0), abs(q[1] - y1)) <= 0.051
+        closed = math.dist(pts[0], pts[-1]) <= 0.11
+        if not closed and not (edge(pts[0]) and edge(pts[-1])):
+            return f"ends a curve inside the window, at {pts[0]} or {pts[-1]}"
+        if any(math.dist(p, q) > 1.5 for p, q in zip(pts, pts[1:])):
+            return "joins two stretches of a curve with a straight line"
+    if not all(drawn):
+        return "leaves one of the two curves out"
+    marked = sorted((round(mk["at"][0], 1), round(mk["at"][1], 1)) for mk in visual["answer"] if mk["kind"] == "point")
+    want = sorted((round(float(as_fraction(c[0])), 1), round(float(as_fraction(c[1])), 1)) for c in value["pts"])
+    if marked != want:
+        return f"marks {marked}, not the meeting points {want}"
+    for mk in visual["answer"]:
+        if mk["kind"] == "point" and "label" in mk:
+            x, y = (Fraction(str(v)) for v in mk["at"])
+            if mk["label"] != f"({x}, {y})".replace("-", "−"):
+                return f"labels {mk['at']} as {mk['label']}"
+    return None
+
+
+# requiem: catalogue/visuals/meeting-picture-on-reveal
+# requiem: catalogue/content/prices-answered-in-dollars
+# Every picture of where two curves meet draws the two curves the text
+# names and marks the points the answer gives, and nothing before the answer.
+# A price answer is held as dollars and written as dollars: a question that
+# asks for dollars has a money answer, and only one that asks does.
+for path in sorted(LIB.glob("systems-2-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"systems-2 L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        if p.get("visual"):
+            if not p["text"].startswith("meet: "):
+                problems.append(f"{where}: a picture on a row that is not where two curves meet")
+            else:
+                wrong = s2_picture(p["text"], p["visual"], p["answer"]["value"])
+                if wrong:
+                    problems.append(f"{where}: the picture {wrong}")
+        elif p["text"].startswith("meet: "):
+            problems.append(f"{where}: where two curves meet, drawn nowhere")
+        prompt = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+        if p["answer"]["type"] == "points":
+            money = bool(p["answer"]["value"].get("money"))
+            if money != ("in dollars" in prompt):
+                problems.append(f"{where}: asks {'for' if 'in dollars' in prompt else 'for no'} dollars but its answer is {'money' if money else 'not money'}")
+            if money and not re.fullmatch(r"\((?:\$\d+\.\d\d, ){2}\$\d+\.\d\d\)", p["answer"]["accept"][0]):
+                problems.append(f"{where}: a price answer written {p['answer']['accept'][0]}")
+            # Every total in a store's story is in its prompt, as a price.
+            if p["text"].startswith(("snacks: ", "pairs: ")):
+                for cents in re.findall(r" for (\d+)", p["text"]):
+                    if f"${int(cents) // 100}.{int(cents) % 100:02d}" not in prompt:
+                        problems.append(f"{where}: the total {cents}¢ is not in the question")
+            if p["text"].startswith("batches: "):
+                for part in p["text"][len("batches: "):].split("; "):
+                    kind, *_, total = part.split()
+                    said = {"flour": "cups of flour", "sugar": "cups of sugar", "eggs": "eggs"}[kind]
+                    if f"used {total} {said}" not in prompt and f", {total} {said}" not in prompt and f"and {total} {said}" not in prompt \
+                            and not (total == "1" and f"1 {said[:-1] if kind == 'eggs' else said.replace('cups', 'cup')}" in prompt):
+                        problems.append(f"{where}: {total} {said} used is not in the question")
 
 
 # --- Inverses: Log Functions -----------------------------------------------------
@@ -8767,16 +9072,20 @@ def il_inverse(f, listing):
     for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
         g = il_float(label)
         ok = True
-        for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0):
+        # Only x in f's domain: log_2(x - 5) takes no x below 5. At least
+        # four are always left, and every y = f(x) is in f's range.
+        xs = [x for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0, 15.5, 23.0) if fn(x) == fn(x)]
+        assert len(xs) >= 4, f"{f}: too few x in its domain"
+        for x in xs:
             try:
                 back = g(fn(x))                        # f⁻¹(f(x)) = x, for every x
                 ok &= back == back and abs(back - x) < 1e-9
             except (ValueError, ZeroDivisionError, OverflowError):
                 ok = False
-        for y in (13.0, 40.0, 97.5):                   # f(f⁻¹(y)) = y, for y in f's range
+        for y in (fn(x) for x in xs):                  # f(f⁻¹(y)) = y, for y in f's range
             try:
                 there = fn(g(y))
-                ok &= there == there and abs(there - y) < 1e-9 * y
+                ok &= there == there and abs(there - y) < 1e-9 * max(1, abs(y))
             except (ValueError, ZeroDivisionError, OverflowError):
                 ok = False
         if ok:
@@ -9602,6 +9911,258 @@ def pp_check_drawings() -> None:
 
 pp_check_drawings()
 
+
+# --- Logarithms: Log Functions -------------------------------------------------
+# requiem: catalogue/content/log-functions-in-logarithms
+# Each function is read from its ASCII text and evaluated -- exactly in
+# fractions where it can be, so 3 - 2^(-100) stays below 3 -- and every answer
+# is found from the values alone: a crossing by bisection where the function
+# passes the height, a range from the values near each edge of the domain and
+# far out, a direction from the values in order, a reflection by mapping the
+# points of one graph and testing them on the other, a stretch from the ratio
+# of two logs, and a drawn graph from the equation every point of it fits.
+
+def lf_log(b, v):
+    if not v > 0:
+        return float("nan")
+    if isinstance(v, Fraction):
+        return (math.log(v.numerator) - math.log(v.denominator)) / math.log(b)
+    return math.log(v) / math.log(b)
+
+
+def lf_pow(a, e):
+    if isinstance(e, Fraction) and e.denominator == 1 and abs(e) <= 2000:
+        return Fraction(a) ** e
+    try:
+        v = float(a) ** float(e)
+    except OverflowError:
+        return float("nan")
+    # A float too small to survive being added to a whole number (10^(-40.5)
+    # + 3 is 3.0) would put the edge of a range in it: left out, as unknown.
+    return float("nan") if abs(v) < 1e-12 or math.isinf(v) else v
+
+
+def lf_float(src):
+    """log_3(x - 2) + 1, -2^(x - 1) + 3, 3*log_(1/2)(-x) as a function of x."""
+    py = re.sub(r"log_\((\d+)/(\d+)\)\(", r"_log(\1/\2, ", src)
+    py = re.sub(r"log_(\d+)\(", r"_log(\1, ", py)
+    py = re.sub(r"(\d)(x)", r"\1*\2", py)
+    py = re.sub(r"(\d+|\([^()]*\))\^(x|\([^()]*\))", r"_pow(\1, \2)", py)
+    assert "^" not in py, f"unread power in {src}"
+    code = compile(py, "<log function>", "eval")
+
+    def f(x):
+        try:
+            v = eval(code, {"__builtins__": {}, "_log": lf_log, "_pow": lf_pow}, {"x": x})  # noqa: S307
+        except (OverflowError, ZeroDivisionError, ValueError):
+            return float("nan")
+        return v if v == v else float("nan")
+    return f
+
+
+LF_GRID = [Fraction(k, 16) for k in range(-40 * 16, 40 * 16 + 1)]
+LF_TOL = Fraction(1, 10 ** 12)
+
+
+def lf_ok(v):
+    return isinstance(v, (int, Fraction)) or (isinstance(v, float) and math.isfinite(v))
+
+
+def lf_cross(f, height):
+    """The one x where f passes the height, found by bisection on a fine grid."""
+    xs = [Fraction(k, 256) for k in range(-20 * 256, 20 * 256)] + [Fraction(20 + j) for j in range(2000)]
+    roots, prev = [], None
+    for x in xs:
+        v = f(x)
+        if not lf_ok(v):
+            prev = None
+            continue
+        d = v - height
+        if d == 0:
+            roots.append(Fraction(x))
+        elif prev is not None and prev[1] != 0 and (prev[1] < 0) != (d < 0):
+            lo, hi = prev[0], x
+            for _ in range(80):
+                mid = (lo + hi) / 2
+                if (f(mid) - height < 0) == (prev[1] < 0):
+                    lo = mid
+                else:
+                    hi = mid
+            roots.append(Fraction(float(lo)).limit_denominator(1000))
+        prev = (x, d)
+    roots = sorted(set(roots))
+    assert len(roots) == 1, f"passes {height} at {roots}"
+    q = roots[0]
+    assert abs(f(q) - height) < 1e-9, f"{q} is not where it passes {height}"
+    return q
+
+
+def lf_x_intercept(src):
+    return lf_cross(lf_float(src), 0)
+
+
+def lf_height(src, y):
+    return (lf_cross(lf_float(src), Fraction(y)), Fraction(y))
+
+
+def lf_range(src):
+    """Every height f reaches: its values on a grid, near each edge of its
+    domain (approached by halving, in fractions), and far out, joined where
+    the value between two samples lies between theirs."""
+    f = lf_float(src)
+    xs = set(LF_GRID)
+    for a, b in zip(LF_GRID, LF_GRID[1:]):
+        if lf_ok(f(a)) != lf_ok(f(b)):
+            inside, outside = (a, b) if lf_ok(f(a)) else (b, a)
+            for i in range(300):
+                mid = (inside + outside) / 2
+                if lf_ok(f(mid)):
+                    inside = mid
+                else:
+                    outside = mid
+                if i % 10 == 9:
+                    xs.add(inside)
+    xs.update(s * Fraction(2) ** j for j in range(1, 11) for s in (1, -1))
+    xs.update(s * Fraction(10) ** j for j in range(3, 61) for s in (1, -1))
+    pts = [(x, f(x)) for x in sorted(xs)]
+    spans = []
+    for (x0, v0), (x1, v1) in zip(pts, pts[1:]):
+        if lf_ok(v0) and lf_ok(v1):
+            m = f((x0 + x1) / 2)
+            lo, hi = sorted((v0, v1))
+            if lf_ok(m) and lo - LF_TOL <= m <= hi + LF_TOL:
+                spans.append((lo, hi))
+    return on_grid({y for y in DR_Y if any(lo <= y <= hi for lo, hi in spans)}, DR_Y)
+
+
+def lf_direction(src, listing):
+    f = lf_float(src)
+    vals = [v for v in (f(x) for x in LF_GRID) if lf_ok(v)]
+    steps = [b - a for a, b in zip(vals, vals[1:])]
+    assert len(vals) > 20 and (all(s > 0 for s in steps) or all(s < 0 for s in steps)), f"{src} does not run one way"
+    want = "rises" if steps[0] > 0 else "falls"
+    ids = {label.strip(): oid for oid, label in re.findall(r"(\w): ([^|]+)", listing)}
+    return ids[want]
+
+
+LF_MIRRORS = {"x-axis": lambda x, y: (x, -y), "y-axis": lambda x, y: (-x, y),
+              "y = x": lambda x, y: (y, x), "origin": lambda x, y: (-x, -y)}
+
+
+def lf_reflected(g_src, f_src, listing):
+    f, g = lf_float(f_src), lf_float(g_src)
+    pts = [(x, f(x)) for x in LF_GRID[::8]]
+    pts = [(x, y) for x, y in pts if lf_ok(y) and 1e-6 < abs(y) < 40]
+    assert len(pts) > 10, f"too few points of {f_src}"
+    fits = []
+    for oid, name in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
+        ok = True
+        for x, y in pts:
+            X, Y = LF_MIRRORS[name](x, y)
+            there = g(X)
+            ok &= lf_ok(there) and abs(there - Y) < 1e-9 * max(1, abs(Y))
+        if ok:
+            fits.append(oid)
+    assert len(fits) == 1, f"{g_src} from {f_src}: {fits}"
+    return fits[0]
+
+
+def lf_stretch(to, frm):
+    r = [lf_log(int(to), x) / lf_log(int(frm), x) for x in (7.0, 13.0, 0.3)]
+    q = Fraction(r[0]).limit_denominator(20)
+    assert all(abs(v - float(q)) < 1e-12 for v in r), f"log_{to}/log_{frm} is not one number: {r}"
+    return q
+
+
+def lf_same(a_src, b_src):
+    a, b = lf_float(a_src), lf_float(b_src)
+    xs = [x for x in LF_GRID[::5] if lf_ok(a(x)) or lf_ok(b(x))]
+    return bool(xs) and all(lf_ok(a(x)) and lf_ok(b(x)) and abs(a(x) - b(x)) < 1e-9 for x in xs)
+
+
+def lf_which(drawn, listing):
+    good = [oid for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing) if lf_same(drawn, label)]
+    assert len(good) == 1, f"{drawn}: {good} are it"
+    return good[0]
+
+
+PAIR_RULES += (
+    (re.compile(r"^log point at height: (.+); y = (-?\d+)$"), lf_height),
+)
+
+BY_RULE += (
+    (re.compile(r"^log x-intercept: (.+)$"), lf_x_intercept),
+    (re.compile(r"^stretch factor: log_(\d+)\(x\) from log_(\d+)\(x\)$"), lf_stretch),
+    (re.compile(r"^stretched log meets: (\d+\*log_\d+\(x\)) = (-?\d+)$"), lambda src, y: lf_cross(lf_float(src), Fraction(y))),
+)
+
+SET_RULES += (
+    (re.compile(r"^log range: (.+)$"), lf_range),
+    (re.compile(r"^power range: (.+)$"), lf_range),
+    # The domain of f⁻¹ is the range of f: f⁻¹ takes exactly what f gives out.
+    (re.compile(r"^inverse domain: f\(x\) = (.+)$"), lf_range),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^rises or falls: (.+); options (a: rises \| b: falls)$"), lf_direction),
+    (re.compile(r"^reflected: (.+) from (.+); options (.+)$"), lf_reflected),
+    (re.compile(r"^which graph: drawn (.+?); options (.+)$"), lf_which),
+)
+
+
+def lf_drawn_functions(text):
+    """The functions a row's picture draws, read from its text."""
+    m = re.match(r"^reflect shifted: \(\S+, \S+\) on base (\d+) plus (-?\d+)$", text)
+    if m:
+        b, k = m[1], int(m[2])
+        return [f"{b}^x + {k}" if k >= 0 else f"{b}^x - {-k}", f"log_{b}(x - {k})" if k >= 0 else f"log_{b}(x + {-k})"]
+    m = re.match(r"^reflect onto (?:log|power): \(\S+, \S+\) on base (\d+)$", text)
+    if m:
+        return [f"{m[1]}^x", f"log_{m[1]}(x)"]
+    m = re.match(r"^reflected: (.+) from (.+); options", text)
+    if m:
+        return [m[1], m[2]]
+    m = re.match(r"^(?:log x-intercept|log point at height|log range|power range|inverse domain: f\(x\) =|log domain|log asymptote"
+                 r"|rises or falls|which graph: drawn):? (.+?)(?:; .*)?$", text)
+    if m:
+        return [m[1]]
+    return None
+
+
+def lf_on(f, x, y):
+    """(x, y) is within 1/1000 of the graph of f, across or up: next to an
+    asymptote the curve is so steep that x rounded to four places moves its
+    height a long way, so the heights f takes over x ± 1/1000, nearer x
+    ever more closely, must reach y."""
+    steps = [Fraction(j, 20000) for j in range(-20, 21)] + [s * Fraction(1, 10 ** k) for k in range(5, 13) for s in (1, -1)]
+    near = [v for v in (f(x + d) for d in steps) if lf_ok(v)]
+    return bool(near) and min(near) - 1e-3 <= y <= max(near) + 1e-3
+
+
+# Every curve drawn is one the text names, and the graph a student reads to
+# choose its equation, drawn while asking, is the key's.
+for path in sorted(LIB.glob("logarithms-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        v = p.get("visual")
+        if not v or v.get("kind") != "plane":
+            continue
+        where = f"logarithms L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        srcs = lf_drawn_functions(p["text"])
+        if srcs is None:
+            problems.append(f"{where}: a graph no rule reads: {p['text']}")
+            continue
+        fns = [lf_float(s) for s in srcs]
+        on = lambda f, mk: all(lf_on(f, Fraction(x).limit_denominator(10 ** 6), y) for x, y in mk["points"])
+        curves = [mk for mk in v["marks"] + v["answer"] if mk["kind"] == "path"]
+        if not curves:
+            problems.append(f"{where}: a plane with no curve")
+        for mk in curves:
+            if not any(on(f, mk) for f in fns):
+                problems.append(f"{where}: a curve drawn is none of {srcs}")
+        if p["text"].startswith("which graph:"):
+            shown = [mk for mk in v["marks"] if mk["kind"] == "path"]
+            if not shown or not all(on(fns[0], mk) for mk in shown):
+                problems.append(f"{where}: the graph shown while asking is not {srcs[0]}")
 
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one

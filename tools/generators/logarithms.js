@@ -805,7 +805,503 @@ function logEquation(rng) {
   }
 }
 
-const CONTENT = [asExponent, evaluate, laws, changeBase, expEquation, logEquation];
+// --- Log Functions -----------------------------------------------------------
+//
+// requiem: catalogue/content/log-functions-in-logarithms
+// y = log_b x as a function: the inverse of bˣ, through (1, 0) and (b, 1),
+// taking only positive numbers and giving every real one. Swapping a point's
+// coordinates is one shape among many, so most rows need the log itself: where
+// the graph meets a height or the x-axis, its domain, range and asymptote, which
+// way it runs, how a sign or a factor moves it, and which equation a drawn graph
+// is. Every text is ASCII, log_3(x - 2) + 1 and 2^(x - 1), which check-answers.py
+// evaluates in floating point to find each answer its own way.
+
+const LFX = { ...SUP, '+': '⁺', x: 'ˣ', y: 'ʸ' };
+/** 2ˣ, 2ˣ⁻³: the base with its exponent raised. */
+const powF = (b, e) => `${b}${e.replace(/\s/g, '').replace(/[-+xy\d]/g, (c) => LFX[c])}`;
+/** A whole power of b as { n, d }: 2⁻² = 1/4. */
+const powB = (b, e) => (e >= 0 ? { n: b ** e, d: 1 } : { n: 1, d: b ** -e });
+const addQ = (p, k) => ({ n: p.n + k * p.d, d: p.d });
+const fq = (q) => fx(q.n, q.d);
+const ptQ = (x, y) => `(${fq(x)}, ${fq(y)})`;
+const Q1 = (n) => ({ n, d: 1 });
+const num = (q) => q.n / q.d;
+/** x − 2, x + 3, x: what the log takes, shifted h to the right. */
+const inX = (h, fancy = true) => (h === 0 ? 'x' : `x ${h > 0 ? (fancy ? '−' : '-') : '+'} ${Math.abs(h)}`);
+/** + 1, − 2, or nothing. */
+const plusK = (k, fancy = true) => (k === 0 ? '' : ` ${k > 0 ? '+' : (fancy ? '−' : '-')} ${Math.abs(k)}`);
+/** log₃(x − 2) + 1, or log₃ x. */
+const logS = (b, h = 0, k = 0) => `${L(b, inX(h))}${plusK(k)}`;
+/** log_3(x - 2) + 1, as the text writes it. */
+const logA = (b, h = 0, k = 0) => `log_${b}(${inX(h, false)})${plusK(k, false)}`;
+const logFn = (b, h = 0, k = 0) => (x) => (x > h ? Math.log(x - h) / Math.log(b) + k : NaN);
+/** 3 right and 2 down. */
+function moved(h, k) {
+  const parts = [];
+  if (h) parts.push(`${Math.abs(h)} ${h > 0 ? 'right' : 'left'}`);
+  if (k) parts.push(`${Math.abs(k)} ${k > 0 ? 'up' : 'down'}`);
+  return parts.join(' and ');
+}
+
+const LF_LINE = 'var(--vec-1)';
+const LF_OTHER = 'var(--vec-2)';
+const LF_ASKED = 'var(--gold)';
+
+/** A window around these points, at least `min` wide each way, both axes in it. */
+function lfWindow(xs, ys, { square = false, min = 8 } = {}) {
+  let x0 = Math.floor(Math.min(0, ...xs)) - 1, x1 = Math.ceil(Math.max(0, ...xs)) + 1;
+  let y0 = Math.floor(Math.min(0, ...ys)) - 1, y1 = Math.ceil(Math.max(0, ...ys)) + 1;
+  if (square) { x0 = y0 = Math.min(x0, y0); x1 = y1 = Math.max(x1, y1); }
+  const grow = (lo, hi) => {
+    const need = min - (hi - lo);
+    return need > 0 ? [lo - Math.floor(need / 2), hi + Math.ceil(need / 2)] : [lo, hi];
+  };
+  [x0, x1] = grow(x0, x1);
+  [y0, y1] = grow(y0, y1);
+  return { xRange: [x0, x1], yRange: [y0, y1] };
+}
+
+/**
+ * y = f(x) as the polylines inside the window, each ending on its edge, found
+ * by bisection: near its asymptote a log leaves through the bottom, and a
+ * sample kept past the edge would run the line beyond the frame.
+ */
+// requiem: catalogue/visuals/curves-split-at-window
+function lfCurves(f, W, tone = LF_LINE) {
+  const [x0, x1] = W.xRange, [y0, y1] = W.yRange;
+  const inside = (y) => Number.isFinite(y) && y >= y0 && y <= y1;
+  const edge = (xIn, xOut) => {
+    for (let i = 0; i < 50; i++) {
+      const mid = (xIn + xOut) / 2;
+      if (inside(f(mid))) xIn = mid; else xOut = mid;
+    }
+    return xIn;
+  };
+  // Where a stretch ends on the edge, next to an asymptote, a curve is so
+  // steep that x needs six places for the point to be on it.
+  const point = (x, places = 4) => [+x.toFixed(places), +Math.max(y0, Math.min(y1, f(x))).toFixed(4)];
+  const n = 240, out = [];
+  let run = [], prev = null;
+  for (let i = 0; i <= n; i++) {
+    const x = x0 + ((x1 - x0) * i) / n;
+    const now = inside(f(x));
+    if (now && prev !== null && !inside(f(prev))) run.push(point(edge(x, prev), 6));
+    if (now) run.push(point(x));
+    if (!now && prev !== null && inside(f(prev))) { run.push(point(edge(prev, x), 6)); out.push(run); run = []; }
+    prev = x;
+  }
+  out.push(run);
+  return out.filter((r) => r.length > 1).map((points) => ({ kind: 'path', points, tone }));
+}
+const lfDot = (x, y, label, tone = LF_ASKED) => ({ kind: 'point', at: [+x.toFixed(4), +y.toFixed(4)], tone, ...(label ? { label } : {}) });
+const lfV = (x, W, label) => ({ kind: 'segment', from: [x, W.yRange[0]], to: [x, W.yRange[1]], dashed: true, tone: LF_ASKED, label });
+const lfH = (y, W, label) => ({ kind: 'segment', from: [W.xRange[0], y], to: [W.xRange[1], y], dashed: true, tone: LF_ASKED, label });
+function lfDiag(W) {
+  const lo = Math.max(W.xRange[0], W.yRange[0]), hi = Math.min(W.xRange[1], W.yRange[1]);
+  return { kind: 'segment', from: [lo, lo], to: [hi, hi], dashed: true, tone: LF_ASKED, label: 'y = x' };
+}
+/** Everything drawn once answered: the question needs no picture to be asked. */
+const revealed = (W, answer) => ({ kind: 'plane', ...W, grid: 1, marks: [], answer });
+/** The graph of log_b(x − h) + k with its asymptote, and any points to mark. */
+function logGraph(b, h, k, dots = [], { xs = [], ys = [] } = {}) {
+  const W = lfWindow([h - 1, h + b + 1, ...xs, ...dots.map((d) => d[0])], [k - 4, k + 3, ...ys, ...dots.map((d) => d[1])]);
+  return revealed(W, [...lfCurves(logFn(b, h, k), W), lfV(h, W, `x = ${minus(h)}`),
+    ...dots.map(([x, y, label]) => lfDot(x, y, label))]);
+}
+
+const GRAPH_BASES = [2, 2, 3, 3, 4, 5];
+
+/** A point of bˣ (or bˣ + k) and the point of its inverse it reflects to. */
+function lfReflect(rng) {
+  const b = rng.pick(GRAPH_BASES), top = { 2: 3, 3: 2, 4: 1, 5: 1 }[b];
+  if (rng.chance(0.5)) {
+    const e = rng.int(-1, top), k = rng.nonZero(-4, 4);
+    const v = powB(b, e), y = addQ(v, k), E = Q1(e);
+    const W = lfWindow([e, num(y), k], [e, num(y), k], { square: true });
+    return {
+      prompt: [T.prose(`f(x) = ${b}ˣ${plusK(k)}. The point ${ptQ(E, y)} is on the graph of f. Which point must be on the graph of f⁻¹?`)],
+      text: `reflect shifted: (${e}, ${Qs(y)}) on base ${b} plus ${k}`,
+      answer: { type: 'pair', value: { x: y, y: E } },
+      visual: revealed(W, [...lfCurves((x) => b ** x + k, W), ...lfCurves(logFn(b, k, 0), W, LF_OTHER), lfDiag(W),
+        lfDot(e, num(y), ptQ(E, y), LF_LINE), lfDot(num(y), e, ptQ(y, E))]),
+      explain: `f(${minus(e)}) = ${fq(v)}${plusK(k)} = ${fq(y)}, so f⁻¹(${fq(y)}) = ${minus(e)}: f⁻¹, here ${logS(b, k)}, sends each output back to its input. `
+        + `So the graph of f⁻¹ is the graph of f reflected in y = x, and ${ptQ(E, y)} becomes ${ptQ(y, E)}.`,
+    };
+  }
+  const e = rng.int(-2, top), v = powB(b, e), E = Q1(e), toLog = rng.chance(0.5);
+  const [from, to] = toLog ? [[E, v], [v, E]] : [[v, E], [E, v]];
+  const said = toLog ? `y = ${b}ˣ` : `y = ${L(b, 'x')}`, other = toLog ? `y = ${L(b, 'x')}` : `y = ${b}ˣ`;
+  const W = lfWindow([e, num(v)], [e, num(v)], { square: true });
+  return {
+    prompt: [T.prose(`The point ${ptQ(...from)} is on the graph of ${said}. Which point must be on the graph of ${other}?`)],
+    text: `${toLog ? 'reflect onto log' : 'reflect onto power'}: (${Qs(from[0])}, ${Qs(from[1])}) on base ${b}`,
+    answer: { type: 'pair', value: { x: to[0], y: to[1] } },
+    visual: revealed(W, [...lfCurves((x) => b ** x, W), ...lfCurves(logFn(b), W, LF_OTHER), lfDiag(W),
+      lfDot(num(from[0]), num(from[1]), ptQ(...from), LF_LINE), lfDot(num(to[0]), num(to[1]), ptQ(...to))]),
+    explain: `${L(b, 'x')} is the inverse of ${b}ˣ: ${b}${sup(e)} = ${fq(v)} says the same as ${L(b, Qs(v))} = ${minus(e)}. `
+      + `So the two graphs are reflections of each other in y = x, and each point's coordinates swap: ${ptQ(...from)} becomes ${ptQ(...to)}.`,
+  };
+}
+
+/** Where log_b(x − h) + k = 0, written as a power. */
+function lfIntercept(rng) {
+  for (;;) {
+    const b = rng.pick(GRAPH_BASES), h = rng.int(-4, 4), k = rng.pick([-2, -1, -1, 0, 1, 1, 2]);
+    if (b ** Math.abs(k) > 16) continue;
+    const p = powB(b, -k), x = addQ(p, h);
+    const solve = k === 0
+      ? `${L(b, inX(h))} = 0, and a log is 0 only at 1, since ${b}⁰ = 1: ${inX(h)} = 1`
+      : `${L(b, inX(h))} = ${minus(-k)}, and as a power, ${inX(h)} = ${b}${sup(-k)} = ${fq(p)}`;
+    return {
+      prompt: [T.prose(`At what x does the graph of y = ${logS(b, h, k)} cross the x-axis?`)],
+      text: `log x-intercept: ${logA(b, h, k)}`,
+      answer: fa(x.n, x.d),
+      visual: logGraph(b, h, k, [[num(x), 0, `(${fq(x)}, 0)`]]),
+      explain: `It crosses the x-axis where y = 0: ${k ? `${logS(b, h, k)} = 0, so ` : ''}${solve}${h ? `, and x = ${fq(p)}${plusK(h)}` : ''}. So it crosses at x = ${fq(x)}.`,
+    };
+  }
+}
+
+/** The point at a given height: log_b b = 1 and log_b 1 = 0 make the key points. */
+function lfHeight(rng) {
+  for (;;) {
+    const b = rng.pick(GRAPH_BASES), h = rng.int(-4, 4), k = rng.int(-3, 3);
+    const j = rng.pick([0, 1, 1, 1, 2, -1]);
+    if (b ** Math.abs(j) > 16) continue;
+    const Y = k + j, p = powB(b, j), x = addQ(p, h);
+    const key = j === 1 || j === 0;
+    const from = j === 1 ? `(${b}, 1)` : '(1, 0)';
+    return {
+      prompt: [T.prose(`The graph of y = ${logS(b, h, k)} passes through one point with y-coordinate ${minus(Y)}. Which point?`)],
+      text: `log point at height: ${logA(b, h, k)}; y = ${Y}`,
+      answer: { type: 'pair', value: { x, y: Q1(Y) } },
+      visual: logGraph(b, h, k, [[num(x), Y, ptQ(x, Q1(Y))]]),
+      explain: `${logS(b, h, k)} = ${minus(Y)}${k ? ` means ${L(b, inX(h))} = ${minus(j)}` : ''}. As a power, ${inX(h)} = ${b}${sup(j)} = ${fq(p)}${h ? `, so x = ${fq(x)}` : ''}. `
+        + (key && (h || k) ? `It is the point ${from} of y = ${L(b, 'x')}, where ${j === 1 ? `${L(b, String(b))} = 1` : `${L(b, '1')} = 0`}, moved ${moved(h, k)}. ` : '')
+        + `So the point is ${ptQ(x, Q1(Y))}.`,
+    };
+  }
+}
+
+const ALL_REAL = [{ lo: null, loIn: false, hi: null, hiIn: false }];
+
+/** The range of a log or a power, and the domain of an inverse as the range of f. */
+function lfRange(rng) {
+  const kind = rng.pick(['log', 'log', 'power', 'power', 'power', 'inverse of power', 'inverse of power', 'inverse of log']);
+  const b = rng.pick([2, 2, 3, 3, 4, 5, 10]), k = rng.int(-5, 5), h = rng.chance(0.5) ? 0 : rng.nonZero(-4, 4);
+  if (kind === 'log' || kind === 'inverse of log') {
+    const inv = kind === 'inverse of log';
+    const why = `${L(b, 'x')} gives every real number: it falls without end as x comes down to 0 and keeps rising, slowly, forever, since ${L(b, `${b}ⁿ`)} = n for any n, however big or negative. `
+      + `${h || k ? `Moving it ${moved(h, k)} leaves it reaching every height. ` : ''}`;
+    return {
+      prompt: [T.prose(inv ? `f(x) = ${logS(b, h, k)}. What is the domain of f⁻¹(x)? Write it with x.` : `What is the range of y = ${logS(b, h, k)}? Write it with y.`)],
+      text: inv ? `inverse domain: f(x) = ${logA(b, h, k)}` : `log range: ${logA(b, h, k)}`,
+      answer: { type: 'solutions', value: { letter: inv ? 'x' : 'y', parts: ALL_REAL } },
+      visual: logGraph(b, h, k),
+      explain: inv
+        ? `f⁻¹ takes back whatever f gives out, so the domain of f⁻¹ is the range of f. ${why}So f⁻¹(x) = ${powF(b, k === 0 ? 'x' : `x${k > 0 ? '-' : '+'}${Math.abs(k)}`)}${plusK(h)} takes every number: its domain is all real numbers.`
+        : `${why}So the range is all real numbers.`,
+    };
+  }
+  const flip = kind === 'power' && rng.chance(0.35);
+  const ex = h === 0 ? 'x' : `x${h > 0 ? '-' : '+'}${Math.abs(h)}`;
+  const shown = `${flip ? '−' : ''}${powF(b, ex)}${plusK(k)}`;
+  const ascii = `${flip ? '-' : ''}${b}^${h === 0 ? 'x' : `(${inX(h, false)})`}${plusK(k, false)}`;
+  const part = flip ? { lo: null, loIn: false, hi: Q1(k), hiIn: false } : { lo: Q1(k), loIn: false, hi: null, hiIn: false };
+  const f = (x) => (flip ? -1 : 1) * b ** (x - h) + k;
+  const W = lfWindow([-4, 4], [k - 3, k + 3]);
+  const visual = revealed(W, [...lfCurves(f, W), lfH(k, W, `y = ${minus(k)}`)]);
+  const pos = `${powF(b, ex)} is always positive and takes every positive value${h ? ` (the ${minus(-h)} in the power only slides it sideways)` : ''}`;
+  if (kind === 'inverse of power') {
+    return {
+      prompt: [T.prose(`f(x) = ${shown}. What is the domain of f⁻¹(x)? Write it with x.`)],
+      text: `inverse domain: f(x) = ${ascii}`,
+      answer: { type: 'solutions', value: { letter: 'x', parts: [{ lo: Q1(k), loIn: false, hi: null, hiIn: false }] } },
+      visual,
+      explain: `f⁻¹ takes back whatever f gives out, so the domain of f⁻¹ is the range of f. ${pos}, so f(x) > ${minus(k)}. `
+        + `The same comes out of f⁻¹(x) = ${logS(b, k, h)}, whose log needs ${inX(k)} > 0. So the domain of f⁻¹ is x > ${minus(k)}.`,
+    };
+  }
+  return {
+    prompt: [T.prose(`What is the range of y = ${shown}? Write it with y.`)],
+    text: `power range: ${ascii}`,
+    answer: { type: 'solutions', value: { letter: 'y', parts: [part] } },
+    visual,
+    explain: `${pos}${flip ? `, so with the minus sign in front it is always negative: −${powF(b, ex)} < 0` : ''}. `
+      + `${k ? `${k > 0 ? 'Adding' : 'Taking away'} ${Math.abs(k)} moves every value ${k > 0 ? 'up' : 'down'}. ` : ''}So the range is y ${flip ? '<' : '>'} ${minus(k)}.`,
+  };
+}
+
+const LOG_BASES = [2, 2, 3, 3, 4, 5, 10];
+
+/** The domain, or the vertical asymptote, of the log of a line. */
+// requiem: catalogue/content/log-domain-of-a-line
+function lfDomain(rng, shape) {
+  const b = rng.pick(LOG_BASES);
+  const kind = rng.pick(['up', 'up', 'down']);
+  const k = rng.chance(0.5) ? 0 : rng.nonZero(-5, 5);
+  const outside = k ? plusK(k, false) : '', outsideF = plusK(k);
+  let m, n;
+  do { m = rng.pick([1, 1, 1, 2, 3, 4]); n = rng.nonZero(-9, 9); } while (gcd(m, n) !== 1);
+  if (kind === 'down') m = -m;
+  const inner = kind === 'down' ? `${n} - ${m === -1 ? '' : -m}x` : lin(m, n), innerF = kind === 'down' ? `${minus(n)} − ${m === -1 ? '' : -m}x` : lin(m, n, true);
+  const edge = { n: -n * Math.sign(m), d: Math.abs(m) };
+  const edgeF = fq(edge);
+  const steps = Math.abs(m) === 1
+    ? (kind === 'down' ? `${minus(n)} > x` : `x > ${minus(-n)}`)
+    : `${kind === 'down' ? `${minus(n)} > ${-m}x` : `${m}x > ${minus(-n)}`}, so ${kind === 'down' ? `${edgeF} > x` : `x > ${edgeF}`}`;
+  const set = kind === 'down' ? `x < ${edgeF}` : `x > ${edgeF}`;
+  const e = num(edge);
+  const W = lfWindow([e - 5, e + 5], [k - 4, k + 4]);
+  const f = (x) => (m * x + n > 0 ? Math.log(m * x + n) / Math.log(b) + k : NaN);
+  const visual = revealed(W, [...lfCurves(f, W), lfV(e, W, `x = ${edgeF}`)]);
+  const shift = k ? `The ${minus(k)} outside the log moves the graph ${k > 0 ? 'up' : 'down'} and leaves the domain alone. ` : '';
+  if (shape === 'domain') {
+    return {
+      prompt: [T.prose(`What is the domain of f(x) = ${lname(b)}(${innerF})${outsideF}? Write it with x.`)],
+      text: `log domain: log_${b}(${inner})${outside}`,
+      answer: { type: 'solutions', value: { letter: 'x', parts: [kind === 'down'
+        ? { lo: null, loIn: false, hi: edge, hiIn: false } : { lo: edge, loIn: false, hi: null, hiIn: false }] } },
+      visual,
+      explain: `A log takes only positive numbers, so ${innerF} > 0: ${steps}. ${shift}So the domain is ${set}.`,
+    };
+  }
+  return {
+    prompt: [T.prose(`The graph of y = ${lname(b)}(${innerF})${outsideF} has a vertical asymptote, the line x = a. What is a?`)],
+    text: `log asymptote: log_${b}(${inner})${outside}`,
+    answer: fa(edge.n, edge.d),
+    visual,
+    explain: `${L(b, 'x')} falls without end as x comes down to 0, so the graph runs down the line where the inside of the log is 0: ${innerF} = 0 at x = ${edgeF}. `
+      + `${k ? `The ${minus(k)} outside moves the graph ${k > 0 ? 'up' : 'down'}, which leaves a vertical line where it was. ` : ''}So a = ${edgeF}.`,
+  };
+}
+
+/**
+ * Which way it runs: a base below 1, a minus sign in front and −x inside
+ * each turn it over, a factor or a shift does not. The answer is drawn first
+ * and the function built to fit, so rises and falls are half each.
+ */
+// requiem: catalogue/content/fixed-menu-key-moves
+function lfRises(rng) {
+  const rises = rng.chance(0.5);
+  for (;;) {
+    const b = rng.pick([2, 3, 4, 5, 10]);
+    const small = rng.chance(0.35), neg = rng.chance(0.45), mirror = rng.chance(0.35);
+    const c = rng.chance(0.25) ? rng.int(2, 4) : 1, k = rng.chance(0.4) ? rng.nonZero(-4, 4) : 0;
+    const up = (!small) !== neg !== mirror;
+    if (up !== rises) continue;
+    const name = small ? 'log_b' : lname(b);
+    const front = `${neg ? '−' : ''}${c > 1 ? `${c} ` : ''}`;
+    const shown = `${front}${mirror ? `${name}(−x)` : `${name} x`}${plusK(k)}${small ? `, where b = 1/${b},` : ''}`;
+    const ascii = `${neg ? '-' : ''}${c > 1 ? `${c}*` : ''}log_${small ? `(1/${b})` : b}(${mirror ? '-x' : 'x'})${plusK(k, false)}`;
+    const steps = [small
+      ? `With b = 1/${b}, less than 1, log_b x falls: (1/${b})ʸ shrinks as y grows, so a bigger x needs a smaller y (log_b 1 = 0, log_b ${b} = −1, log_b ${b * b} = −2). It is −${L(b, 'x')} by change of base, since ${L(b, `1/${b}`)} = −1.`
+      : `${L(b, 'x')} rises, since its base ${b} is more than 1: ${L(b, '1')} = 0, ${L(b, String(b))} = 1, ${L(b, String(b * b))} = 2.`];
+    let dir = !small;
+    const way = (d) => (d ? 'a rise' : 'a fall');
+    if (mirror) { steps.push(`Taking the log of −x reflects it in the y-axis, so it takes only x < 0, and ${way(dir)} becomes ${way(!dir)} read left to right.`); dir = !dir; }
+    if (neg) { steps.push(`The minus sign in front reflects it in the x-axis, which turns ${way(dir)} into ${way(!dir)}.`); dir = !dir; }
+    if (c > 1 || k) steps.push(`${c > 1 ? `The ${c} in front stretches it` : ''}${c > 1 && k ? ' and the' : k ? 'The' : ''}${k ? ` ${minus(k)} moves it ${k > 0 ? 'up' : 'down'}` : ''}, which leaves the direction alone.`);
+    const f = (x) => {
+      const v = mirror ? -x : x, base = small ? 1 / b : b;
+      return v > 0 ? (neg ? -1 : 1) * c * (Math.log(v) / Math.log(base)) + k : NaN;
+    };
+    const W = lfWindow(mirror ? [-9, 0] : [0, 9], [k - 5, k + 5]);
+    return {
+      prompt: [T.prose(`Read from left to right, does the graph of y = ${shown} rise or fall?`)],
+      text: `rises or falls: ${ascii}; options a: rises | b: falls`,
+      answer: { type: 'choice', value: rises ? 'a' : 'b', options: [{ id: 'a', label: 'It rises' }, { id: 'b', label: 'It falls' }] },
+      visual: revealed(W, lfCurves(f, W)),
+      explain: `${steps.join(' ')} So it ${rises ? 'rises' : 'falls'}.`,
+    };
+  }
+}
+
+/**
+ * The four reflections, of a log or of a power: in the x-axis (a minus sign
+ * in front), the y-axis (−x inside), y = x (the inverse) and through the
+ * origin (both signs). The key is drawn first, a quarter each.
+ */
+// requiem: catalogue/content/fixed-menu-key-moves
+function lfMirror(rng) {
+  const key = rng.int(0, 3);
+  const b = rng.pick([2, 3, 4, 5, 10]), fromLog = rng.chance(0.5);
+  const lg = (neg, inside) => [`${neg ? '-' : ''}log_${b}(${inside ? '-x' : 'x'})`, `${neg ? '−' : ''}${inside ? `${lname(b)}(−x)` : L(b, 'x')}`,
+    (x) => { const v = inside ? -x : x; return v > 0 ? (neg ? -1 : 1) * Math.log(v) / Math.log(b) : NaN; }];
+  const pw = (neg, inside) => [`${neg ? '-' : ''}${b}^${inside ? '(-x)' : 'x'}`, `${neg ? '−' : ''}${b}${inside ? '⁻ˣ' : 'ˣ'}`,
+    (x) => (neg ? -1 : 1) * b ** (inside ? -x : x)];
+  const F = fromLog ? lg(false, false) : pw(false, false);
+  const G = [fromLog ? lg(true, false) : pw(true, false), fromLog ? lg(false, true) : pw(false, true),
+    fromLog ? pw(false, false) : lg(false, false), fromLog ? lg(true, true) : pw(true, true)][key];
+  const [px, py] = fromLog ? [b, 1] : [1, b];
+  const moves = [[px, -py], [-px, py], [py, px], [-px, -py]][key];
+  const p = `(${minus(px)}, ${minus(py)})`, q = `(${minus(moves[0])}, ${minus(moves[1])})`;
+  const why = [
+    `Every height is negated: (x, y) on the graph of y = ${F[1]} becomes (x, −y), so ${p} becomes ${q}.`,
+    `x is replaced by −x, so the height y = ${F[1]} has at x, y = ${G[1]} has at −x: (x, y) becomes (−x, y), and ${p} becomes ${q}.`,
+    `y = ${G[1]} is the inverse of y = ${F[1]}, so each point's coordinates swap: (x, y) becomes (y, x), and ${p} becomes ${q}.`,
+    `x is replaced by −x and the height is negated, so (x, y) becomes (−x, −y), and ${p} becomes ${q}: both reflections at once, which is the reflection through the origin.`,
+  ][key];
+  const labels = ['Reflected in the x-axis', 'Reflected in the y-axis', 'Reflected in the line y = x', 'Reflected through the origin'];
+  const W = { xRange: [-7, 7], yRange: [-7, 7] };
+  const mirror = [lfH(0, W, 'x-axis'), lfV(0, W, 'y-axis'), lfDiag(W), lfDot(0, 0, 'origin')][key];
+  return {
+    prompt: [T.prose(`How is the graph of y = ${G[1]} made from the graph of y = ${F[1]}?`)],
+    text: `reflected: ${G[0]} from ${F[0]}; options a: x-axis | b: y-axis | c: y = x | d: origin`,
+    answer: { type: 'choice', value: optionIds[key], options: labels.map((label, i) => ({ id: optionIds[i], label })) },
+    visual: revealed(W, [...lfCurves(F[2], W), ...lfCurves(G[2], W, LF_OTHER), mirror]),
+    explain: `${why} So it is ${labels[key].toLowerCase()}.`,
+  };
+}
+
+const STRETCH_BASES = [[2, 4], [2, 8], [2, 16], [3, 9], [3, 27], [4, 2], [8, 2], [16, 2], [9, 3], [27, 3],
+  [4, 8], [8, 4], [4, 16], [16, 4], [9, 27], [27, 9], [10, 100], [100, 10], [5, 25], [25, 5]];
+
+/** A vertical stretch: c log_b x, and change of base as one. */
+function lfStretch(rng) {
+  if (rng.chance(0.5)) {
+    const [from, to] = rng.pick(STRETCH_BASES);
+    // log_from(to) = m/n in lowest terms.
+    const r = Math.log(to) / Math.log(from);
+    const n = [1, 2, 3, 4].find((d) => Math.abs(r * d - Math.round(r * d)) < 1e-9), m = Math.round(r * n);
+    return {
+      prompt: [T.prose(`The graph of y = ${L(to, 'x')} is the graph of y = ${L(from, 'x')} with every height multiplied by the same number. What is that number?`)],
+      text: `stretch factor: log_${to}(x) from log_${from}(x)`,
+      answer: fa(n, m),
+      visual: null,
+      explain: `By change of base, ${L(to, 'x')} = ${L(from, 'x')} / ${L(from, String(to))}, and ${L(from, String(to))} = ${fx(m, n)}, since ${from} to the power ${fx(m, n)} is ${to}. `
+        + `Dividing every height by ${fx(m, n)} multiplies it by ${fx(n, m)}: a vertical ${n > m ? 'stretch' : 'shrink'}. (At x = ${to}, ${L(to, String(to))} = 1 and ${L(from, String(to))} = ${fx(m, n)}, and ${fx(m, n)} × ${fx(n, m)} = 1.) So the number is ${fx(n, m)}.`,
+    };
+  }
+  for (;;) {
+    const c = rng.int(2, 4), b = rng.pick([2, 3, 4, 5, 10]), j = rng.pick([-2, -1, 1, 2, 2, 3]);
+    if (b ** Math.abs(j) > 1000) continue;
+    const Y = c * j, p = powB(b, j);
+    return {
+      prompt: [T.prose(`The graph of y = ${c} ${L(b, 'x')} is the graph of y = ${L(b, 'x')} stretched vertically by a factor of ${c}. At what x does it reach a height of ${minus(Y)}?`)],
+      text: `stretched log meets: ${c}*log_${b}(x) = ${Y}`,
+      answer: fa(p.n, p.d),
+      visual: null,
+      explain: `${c} ${L(b, 'x')} = ${minus(Y)}, so ${L(b, 'x')} = ${minus(Y)}/${c} = ${minus(j)}, and as a power, x = ${b}${sup(j)} = ${fq(p)}. `
+        + `The stretch multiplies heights and leaves x alone: the point ${ptQ(p, Q1(j))} of y = ${L(b, 'x')} becomes ${ptQ(p, Q1(Y))}. So x = ${fq(p)}.`,
+    };
+  }
+}
+
+/**
+ * Which equation is drawn: the shift inside the log read as its sign slip,
+ * crossed with the shift outside it. All four sign pairs are drawn, so each
+ * label of a set is its key a quarter of the time.
+ */
+// requiem: catalogue/content/fixed-menu-key-moves
+function lfWhich(rng) {
+  const b = rng.pick([2, 2, 3]), H = rng.int(1, 4), K = rng.int(1, 3);
+  const h = rng.chance(0.5) ? H : -H, k = rng.chance(0.5) ? K : -K;
+  const opts = [[h, k], [-h, k], [h, -k], [-h, -k]].map(([s, t]) => [logA(b, s, t), `y = ${logS(b, s, t)}`]);
+  const W = lfWindow([h - 2, h + 9], [k - 5, k + 4]);
+  const order = rng.shuffle([0, 1, 2, 3]);
+  return {
+    prompt: [T.prose('Which equation is graphed?')],
+    text: `which graph: drawn ${logA(b, h, k)}; options ${order.map((j, i) => `${optionIds[i]}: ${opts[j][0]}`).join(' | ')}`,
+    answer: { type: 'choice', value: optionIds[order.indexOf(0)], options: order.map((j, i) => ({ id: optionIds[i], label: opts[j][1] })) },
+    visual: { kind: 'plane', ...W, grid: 1, marks: lfCurves(logFn(b, h, k), W), answer: [
+      lfV(h, W, `x = ${minus(h)}`), lfDot(h + 1, k, `(${minus(h + 1)}, ${minus(k)})`), lfDot(h + b, k + 1, `(${minus(h + b)}, ${minus(k + 1)})`)] },
+    explain: `The graph runs down beside the line x = ${minus(h)}, where the inside of the log is 0: so the inside is ${inX(h)}, not ${inX(-h)}. `
+      + `It passes through (${minus(h + 1)}, ${minus(k)}), where the inside is 1 and the log is 0, so ${minus(k)} is what is added outside; and through (${minus(h + b)}, ${minus(k + 1)}), where the inside is ${b} and the log is 1. `
+      + `So the graph is y = ${logS(b, h, k)}.`,
+  };
+}
+
+/**
+ * The inverse, as a choice. Each set of four options is the menu of four
+ * functions, one keying each option -- 2ˣ + 3, 2ˣ − 3, 2ˣ⁻³ and 2ˣ⁺³ all
+ * share log₂(x ∓ 3) and log₂ x ∓ 3 -- so neither the options nor where the
+ * number sits (inside the log or outside it) says which is right: only
+ * undoing the steps in the reverse order does. The two slips crossed are the
+ * order (undoing the last step first, or the first) and the direction (× for
+ * ÷, + for −).
+ */
+// requiem: catalogue/content/decoys-cross-two-slips
+// requiem: catalogue/content/log-inverse-menus-keyed-four-ways
+function lfInverse(rng) {
+  const b = rng.pick([2, 2, 3, 3, 4, 5, 10]), Lx = L(b, 'x'), Ly = `${lname(b)} y`, la = `log_${b}`;
+  const menu = rng.pick(['shift-log', 'shift-power', 'scale-log', 'scale-power']);
+  const k = rng.nonZero(-6, 6), c = rng.int(2, 5), K = Math.abs(k);
+  const pe = (s) => powF(b, `x${s > 0 ? '+' : '-'}${K}`);     // 2ˣ⁺³ for s = 1
+  const pa = (s) => `${b}^(x ${s > 0 ? '+' : '-'} ${K})`;
+  const wrong = (opt) => `(${opt} undoes the steps in the wrong order.)`;
+  let f, fF, opts, key, why;
+  if (menu === 'shift-log') {
+    opts = [[`${la}(x${plusK(-k, false)})`, L(b, inX(k))], [`${la}(x${plusK(k, false)})`, L(b, inX(-k))],
+      [`${la}(x)${plusK(-k, false)}`, `${Lx}${plusK(-k)}`], [`${la}(x)${plusK(k, false)}`, `${Lx}${plusK(k)}`]];
+    if (rng.chance(0.5)) {
+      f = `${b}^x${plusK(k, false)}`; fF = `${b}ˣ${plusK(k)}`; key = 0;
+      why = `Write y = ${fF} and swap x and y: x = ${b}ʸ${plusK(k)}. ${k > 0 ? `Take ${K} away` : `Add ${K}`} first, ${b}ʸ = ${inX(k)}, then the power, as a log: y = ${opts[0][1]}. ${wrong(opts[2][1])}`;
+    } else {
+      f = pa(-Math.sign(k)); fF = pe(-Math.sign(k)); key = 3;
+      why = `Write y = ${fF} and swap x and y: x = ${b} to the power y${plusK(-k)}. The log undoes the power first, y${plusK(-k)} = ${Lx}, and then y = ${opts[3][1]}. `
+        + `(The ${minus(-k)} is inside the power, so it is undone after the log, outside it: ${opts[1][1]} puts it back inside.)`;
+    }
+  } else if (menu === 'shift-power') {
+    opts = [[pa(-Math.sign(k)), pe(-Math.sign(k))], [pa(Math.sign(k)), pe(Math.sign(k))],
+      [`${b}^x${plusK(-k, false)}`, `${b}ˣ${plusK(-k)}`], [`${b}^x${plusK(k, false)}`, `${b}ˣ${plusK(k)}`]];
+    if (rng.chance(0.5)) {
+      f = `${la}(x)${plusK(k, false)}`; fF = `${Lx}${plusK(k)}`; key = 0;
+      why = `Write y = ${fF} and swap x and y: x = ${Ly}${plusK(k)}. ${k > 0 ? `Take ${K} away` : `Add ${K}`} first, ${Ly} = ${inX(k)}, then the log, as a power: y = ${opts[0][1]}. ${wrong(opts[2][1])}`;
+    } else {
+      f = `${la}(x${plusK(-k, false)})`; fF = L(b, inX(k)); key = 3;
+      why = `Write y = ${fF} and swap x and y: x = ${L(b, inX(k).replace('x', 'y'))}. The power undoes the log first, ${inX(k).replace('x', 'y')} = ${b}ˣ, and then y = ${opts[3][1]}. `
+        + `(The ${minus(-k)} is inside the log, so it is undone after the power, outside it: ${opts[1][1]} puts it back inside.)`;
+    }
+  } else if (menu === 'scale-log') {
+    opts = [[`${la}(x/${c})`, L(b, `x/${c}`)], [`${la}(${c}x)`, `${lname(b)}(${c}x)`], [`${la}(x)/${c}`, `(${Lx})/${c}`], [`${c}*${la}(x)`, `${c} ${Lx}`]];
+    key = rng.int(0, 3);
+    [f, fF, why] = [
+      [`${c}*${b}^x`, `${c} · ${b}ˣ`, `x = ${c} · ${b}ʸ. Undo the ×${c} first, ${b}ʸ = x/${c}, then the power: y = ${opts[0][1]}. ${wrong(opts[2][1])}`],
+      [`${b}^x/${c}`, `${b}ˣ/${c}`, `x = ${b}ʸ/${c}. Undo the ÷${c} first, ${b}ʸ = ${c}x, then the power: y = ${opts[1][1]}. ${wrong(opts[3][1])}`],
+      [`${b}^(${c}x)`, powF(b, `${c}x`), `x = ${b} to the power ${c}y. The log undoes the power first, ${c}y = ${Lx}, then divide by ${c}: y = ${opts[2][1]}. ${wrong(opts[0][1])}`],
+      [`${b}^(x/${c})`, `${b}^(x/${c})`, `x = ${b} to the power y/${c}. The log undoes the power first, y/${c} = ${Lx}, then multiply by ${c}: y = ${opts[3][1]}. ${wrong(opts[1][1])}`],
+    ][key];
+    why = `Write y = ${fF} and swap x and y: ${why}`;
+  } else {
+    opts = [[`${b}^(x/${c})`, `${b}^(x/${c})`], [`${b}^(${c}x)`, powF(b, `${c}x`)], [`${b}^x/${c}`, `${b}ˣ/${c}`], [`${c}*${b}^x`, `${c} · ${b}ˣ`]];
+    key = rng.int(0, 3);
+    [f, fF, why] = [
+      [`${c}*${la}(x)`, `${c} ${Lx}`, `x = ${c} ${Ly}. Undo the ×${c} first, ${Ly} = x/${c}, then the log, as a power: y = ${opts[0][1]}. ${wrong(opts[2][1])}`],
+      [`${la}(x)/${c}`, `(${Lx})/${c}`, `x = (${Ly})/${c}. Undo the ÷${c} first, ${Ly} = ${c}x, then the log, as a power: y = ${opts[1][1]}. ${wrong(opts[3][1])}`],
+      [`${la}(${c}x)`, `${lname(b)}(${c}x)`, `x = ${lname(b)}(${c}y). The power undoes the log first, ${c}y = ${b}ˣ, then divide by ${c}: y = ${opts[2][1]}. ${wrong(opts[0][1])}`],
+      [`${la}(x/${c})`, L(b, `x/${c}`), `x = ${L(b, `y/${c}`)}. The power undoes the log first, y/${c} = ${b}ˣ, then multiply by ${c}: y = ${opts[3][1]}. ${wrong(opts[1][1])}`],
+    ][key];
+    why = `Write y = ${fF} and swap x and y: ${why}`;
+  }
+  const order = rng.shuffle([0, 1, 2, 3]);
+  return {
+    prompt: [T.prose(`f(x) = ${fF}. Which is f⁻¹(x)?`)],
+    text: `log inverse: f(x) = ${f}; options ${order.map((j, i) => `${optionIds[i]}: ${opts[j][0]}`).join(' | ')}`,
+    answer: { type: 'choice', value: optionIds[order.indexOf(key)], options: order.map((j, i) => ({ id: optionIds[i], label: opts[j][1] })) },
+    visual: null,
+    explain: `${why} So f⁻¹(x) = ${opts[key][1]}.`,
+  };
+}
+
+// requiem: catalogue/content/one-input-per-level
+// Each question shape keeps one box, and the question says which: "which
+// point" a pair, "at what x", "what is a" and "what number" a number, "write
+// it with x/y" a set, and "which", "how" or "rise or fall" a choice.
+const LOG_FN_SHAPES = [
+  [lfReflect, 10], [lfIntercept, 9], [lfHeight, 9], [lfRange, 9], [(rng) => lfDomain(rng, 'domain'), 9],
+  [(rng) => lfDomain(rng, 'asymptote'), 8], [lfRises, 9], [lfMirror, 8], [lfStretch, 8], [lfWhich, 9], [lfInverse, 12],
+];
+function logFunctions(rng) {
+  let r = rng.int(1, LOG_FN_SHAPES.reduce((s, [, w]) => s + w, 0));
+  for (const [make, w] of LOG_FN_SHAPES) {
+    r -= w;
+    if (r <= 0) return make(rng);
+  }
+  throw new Error('unreachable');
+}
+
+const CONTENT = [asExponent, evaluate, laws, changeBase, expEquation, logEquation, logFunctions];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {

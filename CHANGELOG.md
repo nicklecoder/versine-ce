@@ -77,6 +77,60 @@ turned round. It depends on logarithms' Log as Exponent, so Inverse
 Functions now opens after Logarithms. `scripts/check-answers.py` samples a
 log's domain, finds its asymptote from two values of what it takes the log
 of, and picks the inverse that composes with the function to give x back.
+**Series, reworked.** Every answer now fits the fraction box; 586 rows were
+too wide to type, such as 1 + … + 200 and salaries in the hundreds of
+thousands. Working Backward's count of terms is a quadratic that factors at
+By Factoring's size once its common factor is divided out, and the
+explanation factors it. Sigma Notation now asks writing a series in sigma,
+as a choice of four sigmas spelled "Σ from k = 1 to 10 of (2k + 1)" whose
+wrong options cross a slip at each limit, and the sum rules Σc = nc,
+Σc·aₖ = cΣaₖ, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6. Finite
+geometric sums stay hand-sized, every geometric sum is worked in
+a₁(1 − rⁿ)/(1 − r), and the pay-rise story becomes a shop's monthly
+takings. `scripts/check-answers.py` writes each sigma option out term by
+term and checks a scaled sum on a concrete sequence.
+
+**Systems of Equations II**: explanations show the substitution before
+simplifying, a fraction cleared, and every elimination step, and the
+line-and-circle count is by the discriminant rather than a distance formula
+never taught. Line Meets Parabola, Line Meets Circle and Two Curves draw both
+curves and their meeting points once answered. Two Curves adds circle and
+x² − y² = B, and two circles, solved by taking x² out; the word problems add
+paired prices and a bakery's batches, true three-equation systems; prices
+are keyed in dollars. The `points` box reads they don't meet, no
+intersection, DNE, a trailing period, braces, spaced coordinates,
+x = 2, y = −1, z = 3, and dollar signs, and its hints say parentheses.
+
+**Binomial Theorem**: C(n, k) is worked from the smaller of k and n − k and
+cancelled before multiplying (C(16, 14) = C(16, 2) = 16 × 15/2 = 120).
+Pascal's Triangle draws the rows above the asked one, the asked row held
+back until answered. Explanations say factors, not brackets, and name the
+term by its power. At least 1 and at most n − 1 are worked as one minus the
+case left out. Full Expansion reaches fifth and sixth powers (52 of 176
+rows, from 18 of 142), works each term out, and has a 105-second par;
+coefficients and probability denominators stay hand-sized.
+
+**Logarithms** has a new level before All Together, Log Functions: y =
+log_b x as the inverse of y = bˣ and its reflection in y = x; where a
+shifted log crosses the x-axis or reaches a height, through the key points
+(1, 0) and (b, 1); the range of a log or a power, and the domain of an
+inverse as the range of its function; the domain and vertical asymptote of
+the log of a line; whether a log rises or falls, a base below 1, a minus in
+front and −x inside each turning it over; the four reflections (x-axis,
+y-axis, y = x, through the origin); a vertical stretch, log₄ x as log₂ x
+times 1/2 among them; which equation a drawn graph is; and the inverse of
+an exponential or a log as a choice, each set of four options keyed by four
+functions so where the number sits gives nothing away. Most rows draw the
+graph once answered, with its asymptote and the points asked for; the
+matching rows draw it while asking. It depends on inverse functions' Graph
+Reflection, and Logarithms now builds on Inverse Functions rather than the
+other way round, the order US courses teach them in: the level was briefly
+in Inverse Functions, which made that skill wait for Logarithms.
+`scripts/check-answers.py` reads each function from its text and finds
+every answer from its values: crossings by bisection, ranges from the
+values near each edge of the domain and far out, a reflection by mapping
+one graph's points onto the other, and checks every curve drawn lies on
+the function the question names.
 
 **Systems of Equations II** (`systems-2`), a new skill under Equations, in
 eight levels: Line Meets Parabola, How Many Intersections, Line Meets

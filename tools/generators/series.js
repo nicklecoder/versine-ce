@@ -35,16 +35,30 @@ const div = (p, q) => Q(p.n * q.d, p.d * q.n);
 const pw = (p, k) => (k >= 0 ? Q(p.n ** k, p.d ** k) : Q(p.d ** -k, p.n ** -k));
 const isInt = (p) => p.d === 1;
 const big = (p) => Math.abs(p.n) > 999999 || p.d > 99999;
+// requiem: catalogue/library/frac-answer-fits-its-boxes
+// The fraction box takes four characters on top, a minus among them, and
+// four below (web/ui/fracinput.js): an answer wider than that cannot be typed.
+const fits = (p) => String(p.n).length <= 4 && String(p.d).length <= 4;
 /** ASCII, for the text: -3/4. */
 const qa = (p) => (p.d === 1 ? String(p.n) : `${p.n}/${p.d}`);
-/** Prose: −3/4. */
-const qs = (p) => (p.d === 1 ? commas(p.n) : `${minus(p.n)}/${p.d}`);
+/** Prose: −3/4, with comma thousands top and bottom: 1,533/256. */
+const qs = (p) => (p.d === 1 ? commas(p.n) : `${commas(p.n)}/${commas(p.d)}`);
 /** A whole number as US prose writes it: −12,500. */
 const commas = (n) => minus(n).replace(/\d{4,}/, (m) => Number(m).toLocaleString('en-US'));
 /** In brackets when negative or a fraction, for a product: 3(−2), 5(1/2). */
 const qb = (p) => (p.n < 0 || p.d !== 1 ? `(${qs(p)})` : qs(p));
+/** In brackets when a fraction, for the top of a division: (5/3)/(1 − 1/3). */
+const qf = (p) => (p.d !== 1 ? `(${qs(p)})` : qs(p));
 const answer = (p) => ({ type: 'frac', value: Q(p.n, p.d), requireSimplest: false });
 
+/** A fraction whose bottom divides a power of 10, as an exact decimal: −0.331. */
+function dec(p) {
+  let k = 0;
+  while ((10 ** k) % p.d !== 0) if (++k > 9) throw new Error(`${qa(p)} does not end`);
+  const N = Math.abs(p.n) * (10 ** k / p.d);
+  const whole = Math.floor(N / 10 ** k), part = String(N % 10 ** k).padStart(k, '0').replace(/0+$/, '');
+  return `${p.n < 0 ? '−' : ''}${commas(whole)}${part ? `.${part}` : ''}`;
+}
 /** A list of terms, as prose: 5, 2, −1, −4. */
 const listed = (ts) => ts.map(qs).join(', ');
 /** A term after a plus sign: 4, (−3). */
@@ -110,6 +124,7 @@ function arithmetic(rng) {
     }[form];
     const ts = arithTerms(a, d, N), l = ts[N - 1];
     const { S, said } = paired(N, a, l);
+    if (!fits(S)) return arithmetic(rng);
     return {
       prompt: [T.prose(`Find the sum of ${words}.`)],
       text: `arith sum: ${al(ts.slice(0, 3))} to ${qa(l)}; ${form}`,
@@ -123,7 +138,7 @@ function arithmetic(rng) {
     const n = rng.int(8, 40);
     const ts = arithTerms(a, d, n), l = ts[n - 1];
     const { S, said } = paired(n, a, l);
-    if (big(S)) continue;
+    if (!fits(S)) continue;
     const nth = `The last term is a${sub_(n)} = a₁ + ${n - 1}d = ${qs(a)} + ${n - 1}(${qs(d)}) = ${qs(l)}.`;
     if (kind === 'first') {
       return {
@@ -176,13 +191,14 @@ function geoSeed(rng, wholeShare = 0.55) {
 }
 
 /** The working of a₁(1 − rⁿ)/(1 − r). */
+// requiem: catalogue/content/series-one-geometric-form
 function geoWork(a, r, n) {
   const rn = pw(r, n), top = sub(Q(1), rn), bot = sub(Q(1), r);
   const S = div(mul(a, top), bot);
   return {
     S,
-    said: `S${sub_(n)} = a₁(1 − rⁿ)/(1 − r) = ${qs(a)}(1 − ${qb(r)}${sup(n)})/(1 − ${qb(r)}). `
-      + `${qb(r)}${sup(n)} = ${qs(rn)}, so this is ${qs(a)}(${qs(top)})/(${qs(bot)}) = ${qs(S)}.`,
+    said: `S${sub_(n)} = a₁(1 − rⁿ)/(1 − r) = ${qs(a)}(1 − ${qb(r)}${sup(n)})/(1 − ${tsum(r)}). `
+      + `${qb(r)}${sup(n)} = ${qs(rn)}, so this is ${qs(a)}(${qs(top)})/${qb(bot)} = ${qs(S)}.`,
   };
 }
 
@@ -193,7 +209,11 @@ function geometric(rng) {
     const n = rng.int(4, isInt(r) ? (Math.abs(r.n) >= 4 ? 6 : 9) : 8);
     const ts = geoTerms(a, r, n), l = ts[n - 1];
     const { S, said } = geoWork(a, r, n);
-    if (big(S) || ts.some(big) || (!isInt(r) && Math.abs(r.n) > r.d && n > 6)) continue;
+    // requiem: catalogue/content/series-hand-sized
+    // rⁿ small enough to work by hand, and a total the box takes with a
+    // bottom under 100.
+    const rn = pw(r, n);
+    if (!fits(S) || S.d >= 100 || ts.some(big) || rn.d > 256 || Math.abs(rn.n) > 3125) continue;
     if (kind === 'first') {
       return {
         prompt: [T.prose(`Find the sum of the first ${n} terms of the geometric sequence ${listed(ts.slice(0, 3))}, ….`)],
@@ -263,8 +283,103 @@ function sigmaRule(rng, kind) {
   return { p: { c, r, s }, src: geoRule(c, r, s), bracket: false };
 }
 
+/** A rule as a choice label spells it: (2k + 1), 3(2)ᵏ⁻¹. */
+const ruleLabel = (rule) => (rule.bracket ? `(${previewText(rule.src)})` : previewText(rule.src));
+
+/** Σc = nc, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6, worked for one n. */
+const sumK = (n) => ({ v: (n * (n + 1)) / 2, said: `Σk = n(n + 1)/2 = ${n}(${n + 1})/2 = ${commas((n * (n + 1)) / 2)}` });
+const sumK2 = (n) => ({ v: (n * (n + 1) * (2 * n + 1)) / 6, said: `Σk² = n(n + 1)(2n + 1)/6 = ${n}(${n + 1})(${2 * n + 1})/6 = ${commas((n * (n + 1) * (2 * n + 1)) / 6)}` });
+
+/** The sum rules: a constant, a number times a sum, Σk and Σk². */
+// requiem: catalogue/content/sigma-sum-rules-asked
+function sumRules(rng, kind) {
+  if (kind === 'const') {
+    const lo = rng.pick([1, 1, 1, 0, 2, 3]), hi = lo + rng.int(4, 30), c = rng.pick([2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, -2, -3, -4, -5, -6, -8]);
+    const n = hi - lo + 1, S = Q(n * c);
+    return {
+      prompt: [T.prose('Evaluate'), T.sigma(`k = ${lo}`, hi, body(String(c), false)), T.prose('.')],
+      text: `sigma: k=${lo}..${hi} of ${c}`,
+      answer: answer(S),
+      visual: null,
+      explain: `The rule has no k in it, so every term is ${minus(c)}. k runs from ${lo} to ${hi}, which is ${hi} − ${lo} + 1 = ${n} terms, and Σc = nc = ${n}(${minus(c)}) = ${qs(S)}. So the sum is ${qs(S)}.`,
+    };
+  }
+  if (kind === 'scale') {
+    for (;;) {
+      const n = rng.int(6, 30), V = rng.pick([-1, 1, 1, 1]) * rng.int(5, 90), c = rng.pick([2, 3, 4, 5, 6, 10, -2, -3, -4]), b = rng.pick([0, 0, 1, 2, 3, 5, -1, -2, -4]);
+      const S = Q(c * V + b * n);
+      if (!fits(S)) continue;
+      const a = T.letter('aₖ');
+      const times = { t: 'juxt', terms: [T.num(minus(c)), a] };
+      const rule = b === 0 ? [times] : [T.group([times, T.op(b < 0 ? '−' : '+'), T.num(Math.abs(b))])];
+      const shown = `${minus(c)}aₖ${b === 0 ? '' : ` ${b < 0 ? '−' : '+'} ${Math.abs(b)}`}`;
+      return {
+        prompt: [T.prose('If'), T.sigma('k = 1', n, [a]), T.prose(`= ${minus(V)}, what is`), T.sigma('k = 1', n, rule), T.prose('?')],
+        text: `sigma scale: k=1..${n}, sum ${V}, times ${c}, plus ${b}`,
+        answer: answer(S),
+        visual: null,
+        explain: `The ${minus(c)} multiplies every term, so it comes out of the sum: Σ${c < 0 ? `(${minus(c)}aₖ)` : `${c}aₖ`} = ${minus(c)}Σaₖ = ${minus(c)}(${minus(V)}) = ${commas(c * V)}. `
+          + (b === 0 ? '' : `The ${Math.abs(b)} ${b < 0 ? 'taken from' : 'added to'} each of the ${n} terms is Σ${b < 0 ? `(${minus(b)})` : b} = ${n}(${minus(b)}) = ${commas(b * n)}, so Σ(${shown}) = ${commas(c * V)} ${b < 0 ? '−' : '+'} ${commas(Math.abs(b * n))} = ${qs(S)}. `)
+          + `So the sum is ${qs(S)}.`,
+    };
+    }
+  }
+  if (kind === 'sumk') {
+    const sq = rng.chance(0.4), n = sq ? rng.int(5, 30) : rng.int(10, 140);
+    const { v, said } = sq ? sumK2(n) : sumK(n);
+    return {
+      prompt: [T.prose('Evaluate'), T.sigma('k = 1', n, body(sq ? 'k^2' : 'k', false)), T.prose('.')],
+      text: `sigma: k=1..${n} of ${sq ? 'k^2' : 'k'}`,
+      answer: answer(Q(v)),
+      visual: null,
+      explain: `${sq ? 'The squares 1 + 4 + 9 + …' : 'The whole numbers 1 + 2 + 3 + …'} up to ${sq ? `${n}² = ${commas(n * n)}` : n}: ${said}. So the sum is ${commas(v)}.`,
+    };
+  }
+  // rules: split a polynomial rule into its sums.
+  for (;;) {
+    const quadratic = rng.chance(0.7);
+    const p = quadratic ? rng.pick([1, 1, 2, 3, -1, -2]) : 0, q = rng.pick(quadratic ? [0, 1, 2, -1, -2, -3, 4] : [2, 3, 4, 5, 6, -2, -3, -4]), c = rng.pick([0, 1, 2, 3, 5, -1, -2, -4]);
+    if (quadratic ? q === 0 && c === 0 : c === 0) continue;
+    const n = quadratic ? rng.int(5, 15) : rng.int(10, 40);
+    const src = polyK(p, q, c);
+    const k1 = sumK(n), k2 = sumK2(n);
+    const S = Q(p * k2.v + q * k1.v + c * n);
+    if (!fits(S)) continue;
+    const parts = [[p, 'Σk²', k2.v], [q, 'Σk', k1.v], [c, `Σ${Math.abs(c)}`, null]].filter(([m]) => m !== 0);
+    const split = parts.map(([m, what], i) => `${i === 0 ? (m < 0 ? '−' : '') : m < 0 ? ' − ' : ' + '}${Math.abs(m) === 1 || what.startsWith('Σ') && !what.includes('k') ? '' : Math.abs(m)}${what}`).join('');
+    const vals = parts.map(([m, , v], i) => {
+      const term = v === null ? `${n}(${Math.abs(m)})` : Math.abs(m) === 1 ? commas(v) : `${Math.abs(m)}(${commas(v)})`;
+      return `${i === 0 ? (m < 0 ? '−' : '') : m < 0 ? ' − ' : ' + '}${term}`;
+    }).join('');
+    const said = [p !== 0 ? `${k2.said}` : '', q !== 0 ? `${k1.said}` : '', c !== 0 ? `Σ${Math.abs(c)} = ${n}(${Math.abs(c)}) = ${n * Math.abs(c)}` : ''].filter(Boolean);
+    return {
+      prompt: [T.prose('Evaluate'), T.sigma('k = 1', n, body(src, true)), T.prose('.')],
+      text: `sigma: k=1..${n} of ${src}`,
+      answer: answer(S),
+      visual: null,
+      explain: `Split it with the sum rules, each number in front coming out of its sum: Σ(${previewText(src)}) = ${split}. `
+        + `For k = 1 to ${n}, ${said.length > 1 ? `${said.slice(0, -1).join(', ')} and ${said[said.length - 1]}` : said[0]}. `
+        + `So it is ${vals} = ${qs(S)}.`,
+    };
+  }
+}
+
+/** pk² + qk + c in ASCII: 3k^2 - 2k + 5. */
+function polyK(p, q, c) {
+  const out = [];
+  const put = (m, x) => {
+    if (m === 0) return;
+    const mag = Math.abs(m) === 1 && x ? '' : String(Math.abs(m));
+    out.push(out.length === 0 ? `${m < 0 ? '-' : ''}${mag}${x}` : `${m < 0 ? '-' : '+'} ${mag}${x}`);
+  };
+  put(p, 'k^2'); put(q, 'k'); put(c, '');
+  return out.join(' ');
+}
+
 function sigma(rng) {
-  const kind = rng.pick(['lin', 'lin', 'lin', 'geo', 'geo', 'sq', 'sq', 'count', 'count', 'which', 'which', 'which']);
+  const kind = rng.pick(['lin', 'lin', 'geo', 'geo', 'sq', 'count', 'count', 'which', 'which', 'write', 'write', 'write', 'const', 'scale', 'scale', 'sumk', 'sumk', 'rules', 'rules']);
+  if (['const', 'scale', 'sumk', 'rules'].includes(kind)) return sumRules(rng, kind);
+  if (kind === 'write') return writeSigma(rng);
   if (kind === 'count') {
     const lo = rng.int(0, 9), hi = lo + rng.int(3, 40);
     const rule = sigmaRule(rng, rng.pick(['lin', 'lin', 'sq', 'geo']));
@@ -277,8 +392,9 @@ function sigma(rng) {
     };
   }
   // requiem: catalogue/content/sigma-read-not-typed
-  // Writing a sum in sigma notation is asked by choosing the series a sigma
-  // writes out: Σ is read here, never typed.
+  // Reading a sigma is asked by choosing the series it writes out, and
+  // writing one by choosing among four sigmas (writeSigma): Σ is read here,
+  // never typed.
   if (kind === 'which') {
     for (;;) {
       const rk = rng.pick(['lin', 'lin', 'geo']);
@@ -309,7 +425,7 @@ function sigma(rng) {
     const hi = lo + (kind === 'lin' ? rng.int(4, 29) : kind === 'sq' ? rng.int(3, 6) : rng.int(3, 7));
     const ts = Array.from({ length: hi - lo + 1 }, (_, i) => ruleAt(kind, rule.p, lo + i));
     const S = sumOf(ts);
-    if (big(S) || ts.some(big)) continue;
+    if (!fits(S) || S.d >= 100 || ts.some(big)) continue;
     const n = hi - lo + 1;
     let how;
     if (kind === 'lin') {
@@ -318,7 +434,7 @@ function sigma(rng) {
     } else if (kind === 'geo') {
       const r = rule.p.r;
       how = `The terms are ${listed(ts.slice(0, 3))}, …: a geometric series of ${n} terms with first term ${qs(ts[0])} and ratio ${qs(r)}. `
-        + `S = ${qs(ts[0])}(1 − ${qb(r)}${sup(n)})/(1 − ${qb(r)}) = ${qs(S)}.`;
+        + `S = ${qs(ts[0])}(1 − ${qb(r)}${sup(n)})/(1 − ${tsum(r)}) = ${qs(S)}.`;
     } else {
       how = `Neither arithmetic nor geometric, so write the ${n} terms out and add: ${added(ts)} = ${qs(S)}.`;
     }
@@ -329,6 +445,49 @@ function sigma(rng) {
       visual: null,
       explain: `${how} So the sum is ${qs(S)}.`,
     };
+  }
+}
+
+// requiem: catalogue/content/sigma-written-as-a-choice
+// Writing a series in sigma notation: four sigmas for one written-out
+// series, as one-line labels spelled Σ from k = 1 to 10 of (2k + 1), since a
+// choice label is a plain string and cannot stack its limits.
+function writeSigma(rng) {
+  for (;;) {
+    const rk = rng.pick(['lin', 'lin', 'geo']);
+    const rule = sigmaRule(rng, rk);
+    const lo = rk === 'geo' ? (rule.p.s === 1 ? 1 : rng.pick([0, 1])) : rng.pick([1, 1, 1, 0, 2]);
+    const hi = lo + rng.int(rk === 'geo' ? 4 : 5, rk === 'geo' ? 6 : 14);
+    const at = (k) => ruleAt(rk, rule.p, k);
+    const last = at(hi);
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // Two slips crossed, one at each limit, alone and together. At the
+    // bottom: starting a term early (or late, from habit, at 1 for a series
+    // from 0). At the top: the last term written as the top number, the
+    // count of terms written there when k does not start at 1, or the last
+    // term's power read as k when the power is k − 1.
+    const lo2 = lo === 0 ? 1 : lo - 1;
+    let hi2, why2;
+    if (rk === 'lin' && isInt(last) && last.n > 0 && last.n <= 99 && last.n !== hi && last.n !== hi + 1 && last.n !== hi - 1) {
+      hi2 = last.n; why2 = `${last.n} is the last term, not the last value of k`;
+    } else if (lo !== 1) {
+      hi2 = hi - lo + 1; why2 = `there are ${hi - lo + 1} terms, but k starts at ${lo}, so it ends at ${hi}`;
+    } else if (rk === 'geo' && rule.p.s === 1) {
+      hi2 = hi - 1; why2 = `the last term's power is ${hi - 1}, but the power is k − 1, so k = ${hi}`;
+    } else {
+      hi2 = hi - 1; why2 = `stopping at k = ${hi - 1} leaves off the last term, ${qs(last)}`;
+    }
+    if (hi2 < lo2 + 2) continue;
+    const runs = [[lo, hi], [lo2, hi], [lo, hi2], [lo2, hi2]];
+    const ts = Array.from({ length: hi - lo + 1 }, (_, i) => at(lo + i));
+    if (ts.some(big) || runs.some(([p, q]) => [p, q].some((k) => big(at(k))))) continue;
+    const opts = runs.map(([p, q]) => [`${p}..${q} of ${rule.src}`, `Σ from k = ${p} to ${q} of ${ruleLabel(rule)}`]);
+    const why1 = lo2 < lo ? `starting at k = ${lo2} adds ${qs(at(lo2))} in front` : `starting at k = ${lo2} leaves off the first term, ${qs(at(lo))}`;
+    const ask = choice([T.prose(`Which writes ${added(ts.slice(0, 3), true, last)} in sigma notation?`)],
+      `sigma write: ${al(ts.slice(0, 3))} to ${qa(last)}`, opts,
+      `Each option has the rule ${previewText(rule.src)}; what differs is where k starts and stops. k = ${lo} gives the first term, ${qs(at(lo))}, and k = ${hi} gives the last, ${qs(last)}. `
+        + `(${why1[0].toUpperCase()}${why1.slice(1)}, and ${why2}.) So it is ${opts[0][1]}.`);
+    if (ask) return ask(rng);
   }
 }
 
@@ -348,7 +507,7 @@ const wholeStart = (rng, r) => Q(rng.pick([1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -2, -3
 
 function infiniteSays(a, r) {
   const S = div(a, sub(Q(1), r));
-  return { S, said: `Since −1 < ${qs(r)} < 1, the terms shrink toward 0 and the sum settles: S = a₁/(1 − r) = ${qs(a)}/(1 − ${qb(r)}) = ${qs(a)}/(${qs(sub(Q(1), r))}) = ${qs(S)}.` };
+  return { S, said: `Since −1 < ${qs(r)} < 1, the terms shrink toward 0 and the sum settles: S = a₁/(1 − r) = ${qf(a)}/(1 − ${tsum(r)}) = ${qf(a)}/(${qs(sub(Q(1), r))}) = ${qs(S)}.` };
 }
 
 /** 0.(27) or 0.1(6): the digits before and inside the repeat. */
@@ -378,7 +537,7 @@ function repeating(rng) {
     text: `repeating: 0.${lead}(${block})`,
     answer: answer(value),
     visual: null,
-    explain: `The repeating part has first term ${terms[0]} = ${qs(a)} and ratio ${qs(r)}, so it adds to ${qb(a)}/(1 − ${qs(r)}) = ${qs(div(a, sub(Q(1), r)))}.`
+    explain: `The repeating part has first term ${terms[0]} = ${qs(a)} and ratio ${qs(r)}, so it adds to ${qf(a)}/(1 − ${qs(r)}) = ${qs(div(a, sub(Q(1), r)))}.`
       + `${lead ? ` Add the 0.${lead} in front: ${qs(Q(Number(lead), ten))} + ${qs(div(a, sub(Q(1), r)))} = ${qs(value)}.` : ''} So ${shown} = ${qs(value)}.`,
   };
 }
@@ -418,14 +577,14 @@ function infinite(rng) {
   if (kind === 'back') {
     const r = Q(...rng.pick(SHRINK)), a = Q(rng.pick([1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30]) * rng.pick([1, r.d]));
     const S = div(a, sub(Q(1), r));
-    if (big(S) || S.d > 20) return infinite(rng);
+    if (!fits(S) || S.d > 20) return infinite(rng);
     if (rng.chance(0.5)) {
       return {
         prompt: [T.prose(`An infinite geometric series has sum ${qs(S)} and common ratio ${qs(r)}. What is its first term?`)],
         text: `infinite first: sum ${qa(S)}, r ${qa(r)}`,
         answer: answer(a),
         visual: null,
-        explain: `S = a₁/(1 − r), so a₁ = S(1 − r) = ${qb(S)}(1 − ${qb(r)}) = ${qs(S)} · ${qb(sub(Q(1), r))} = ${qs(a)}. So the first term is ${qs(a)}.`,
+        explain: `S = a₁/(1 − r), so a₁ = S(1 − r) = ${qb(S)}(1 − ${tsum(r)}) = ${qs(S)} · ${qb(sub(Q(1), r))} = ${qs(a)}. So the first term is ${qs(a)}.`,
       };
     }
     return {
@@ -433,7 +592,7 @@ function infinite(rng) {
       text: `infinite ratio: first ${qa(a)}, sum ${qa(S)}`,
       answer: answer(r),
       visual: null,
-      explain: `S = a₁/(1 − r), so 1 − r = a₁/S = ${qs(a)}/${qb(S)} = ${qs(div(a, S))}, and r = 1 − ${qb(div(a, S))} = ${qs(r)}. It is between −1 and 1, as it must be for a sum. So the ratio is ${qs(r)}.`,
+      explain: `S = a₁/(1 − r), so 1 − r = a₁/S = ${qs(a)}/${qb(S)} = ${qs(div(a, S))}, and r = 1 − ${tsum(div(a, S))} = ${qs(r)}. It is between −1 and 1, as it must be for a sum. So the ratio is ${qs(r)}.`,
     };
   }
   // requiem: catalogue/content/no-sum-asked-as-choice
@@ -471,7 +630,7 @@ function context(rng) {
       answer: answer(Q(S)),
       visual: null,
       explain: `The rows make an arithmetic series: ${first} + ${first + more} + ${first + 2 * more} + … for ${rows} terms. The back row has ${first} + ${rows - 1} × ${more} = ${last} seats. `
-        + `Paired front with back, S = ${rows}(${first} + ${last})/2 = ${S.toLocaleString('en-US')}. So there are ${S.toLocaleString('en-US')} seats.`,
+        + `Paired front with back, S = ${rows}(${first} + ${last})/2 = ${commas(S)}. So there are ${commas(S)} seats.`,
     };
   }
   if (kind === 'stack') {
@@ -497,12 +656,13 @@ function context(rng) {
       answer: answer(Q(S)),
       visual: null,
       explain: `The weeks make an arithmetic series: ${first} + ${first + more} + ${first + 2 * more} + … for ${weeks} terms. Week ${weeks} saves ${first} + ${weeks - 1} × ${more} = $${last}. `
-        + `S = ${weeks}(${first} + ${last})/2 = ${S.toLocaleString('en-US')}. So ${who} has saved $${S.toLocaleString('en-US')}.`,
+        + `S = ${weeks}(${first} + ${last})/2 = ${commas(S)}. So ${who} has saved $${commas(S)}.`,
     };
   }
   if (kind === 'growing') {
     const first = rng.pick([1, 2, 3, 5]), times = rng.pick([2, 2, 3]), days = rng.int(5, times === 2 ? 14 : 9);
     const S = (first * (times ** days - 1)) / (times - 1);
+    if (!fits(Q(S))) return context(rng);
     const who = rng.pick(NAMES);
     const word = times === 2 ? 'twice' : 'three times';
     return {
@@ -511,21 +671,30 @@ function context(rng) {
       answer: answer(Q(S)),
       visual: null,
       explain: `The days make a geometric series: ${first} + ${first * times} + ${first * times * times} + … for ${days} terms, ratio ${times}. `
-        + `S = ${first}(1 − ${times}${sup(days)})/(1 − ${times}) = ${first}(${times ** days} − 1)/${times - 1} = ${S.toLocaleString('en-US')}. So ${who} has saved ${S.toLocaleString('en-US')}¢.`,
+        + `S = ${first}(1 − ${times}${sup(days)})/(1 − ${times}) = ${first}(${commas(1 - times ** days)})/(${minus(1 - times)}) = ${commas(S)}. So ${who} has saved ${commas(S)}¢.`,
     };
   }
   if (kind === 'salary') {
-    const pct = rng.pick([10, 20]), years = rng.int(3, 5), pay = rng.int(2, 6) * 10000;
+    // Whole dollars every month: the first a multiple of 10 (or 5) to the
+    // power of the months after it, and the total small enough to type.
+    const pct = rng.pick([10, 20]), months = rng.int(3, 5), first = rng.int(4, 12) * 250;
     const r = Q(100 + pct, 100);
-    const ts = geoTerms(Q(pay), r, years);
+    const ts = geoTerms(Q(first), r, months);
     const S = sumOf(ts);
+    if (!ts.every(isInt) || !fits(S)) return context(rng);
+    const rn = pw(r, months);
+    const who = rng.pick(['food truck', 'lemonade stand', 'bakery', 'bike shop']);
+    // requiem: catalogue/content/series-one-geometric-form
+    // requiem: catalogue/content/worked-steps-exact
+    // The taught form, a₁(1 − rⁿ)/(1 − r), with every decimal exact.
     return {
-      prompt: [T.prose(`A job pays $${pay.toLocaleString('en-US')} in its first year, and the pay rises ${pct}% each year. How many dollars does it pay in all over ${years} years?`)],
-      text: `salary: ${pay} first, ${pct} percent, ${years} years`,
+      prompt: [T.prose(`A ${who} takes in $${commas(first)} in its first month, and each month it takes in ${pct}% more than the month before. How many dollars does it take in over its first ${months} months?`)],
+      text: `takings: ${first} first, ${pct} percent, ${months} months`,
       answer: answer(S),
       visual: null,
-      explain: `Rising ${pct}% multiplies the pay by ${(100 + pct) / 100} each year, so the years make a geometric series: ${ts.map((t) => (t.n / t.d).toLocaleString('en-US')).join(' + ')}, ratio ${(100 + pct) / 100}. `
-        + `S = ${pay.toLocaleString('en-US')}(${(100 + pct) / 100}${sup(years)} − 1)/(${(100 + pct) / 100} − 1) = ${(S.n / S.d).toLocaleString('en-US')}. So it pays $${(S.n / S.d).toLocaleString('en-US')} in all.`,
+      explain: `Rising ${pct}% multiplies the takings by ${dec(r)} each month, so the months make a geometric series: ${ts.map(qs).join(' + ')}, ratio ${dec(r)}. `
+        + `S = a₁(1 − rⁿ)/(1 − r) = ${commas(first)}(1 − ${dec(r)}${sup(months)})/(1 − ${dec(r)}). ${dec(r)}${sup(months)} = ${dec(rn)}, so this is ${commas(first)}(${dec(sub(Q(1), rn))})/(${dec(sub(Q(1), r))}) = ${commas(first)}(${dec(div(sub(Q(1), rn), sub(Q(1), r)))}) = ${qs(S)}. `
+        + `So it takes in $${qs(S)} in all.`,
     };
   }
   if (kind === 'pendulum') {
@@ -558,7 +727,7 @@ function context(rng) {
       text: `ball: ${qa(h)} drop, ${qa(r)} rebound; ${unit}`,
       answer: answer(S),
       visual: null,
-      explain: `It falls ${qs(h)} ${unit}, then each bounce goes up and comes back down the same height. The heights it rises are ${qs(mul(h, r))} + ${qs(mul(h, mul(r, r)))} + …, an infinite geometric series with ratio ${qs(r)}, adding to ${qs(mul(h, r))}/(1 − ${qs(r)}) = ${qs(up)}. `
+      explain: `It falls ${qs(h)} ${unit}, then each bounce goes up and comes back down the same height. The heights it rises are ${qs(mul(h, r))} + ${qs(mul(h, mul(r, r)))} + …, an infinite geometric series with ratio ${qs(r)}, adding to ${qf(mul(h, r))}/(1 − ${qs(r)}) = ${qs(up)}. `
         + `Up and down doubles that: ${qs(h)} + 2(${qs(up)}) = ${qs(S)}. So it travels ${qs(S)} ${unit}.`,
     };
   }
@@ -581,23 +750,32 @@ function backward(rng) {
   const kind = rng.pick(['count-a', 'count-a', 'count-a', 'count-a', 'count-g', 'count-g', 'count-g', 'count-g', 'diff', 'diff', 'diff', 'first', 'first', 'first', 'sn', 'sn', 'sn', 'sn', 'sn', 'sn']);
   if (kind === 'count-a') {
     for (;;) {
-      const a = rng.int(-6, 15), d = rng.int(1, 8), n = rng.int(5, 25);
+      const a = rng.int(-6, 15), d = rng.pick([1, 1, 2, 2, 2, 3, 4, 4, 5, 6]), n = rng.int(5, 25);
       const S = (n * (2 * a + (n - 1) * d)) / 2;
       if (S <= 0) continue;
       // The partial sums must reach S for the first time at n.
       let s = 0, first = 0;
       for (let k = 1; k <= n; k++) { s += a + (k - 1) * d; if (s === S && !first) first = k; }
       if (first !== n) continue;
+      // requiem: catalogue/content/count-of-terms-factors-by-hand
+      // n(2a + (n − 1)d)/2 = S: dn² + (2a − d)n − 2S = 0, its common factor
+      // divided out, and kept to what quadratic-eq's By Factoring factors:
+      // a leading coefficient up to 3 and a constant up to 150.
+      const g = gcd(gcd(d, Math.abs(2 * a - d)), 2 * S);
+      const [A, B, C] = [d / g, (2 * a - d) / g, (-2 * S) / g];
+      if (A > 3 || Math.abs(C) > 150) continue;
+      // A(n − N)(n − m) with m = −B/A − N: the second factor is An + (B + AN).
+      const M = B + A * n, other = Q(-M, A);
       const ts = arithTerms(Q(a), Q(d), 3);
-      // n(2a + (n − 1)d)/2 = S: dn² + (2a − d)n − 2S = 0.
-      const B = 2 * a - d;
+      const lead = (k) => (k === 1 ? '' : String(k));
       return {
-        prompt: [T.prose(`How many terms of the arithmetic series ${added(ts, true)} add up to ${S}?`)],
+        prompt: [T.prose(`How many terms of the arithmetic series ${added(ts, true)} add up to ${commas(S)}?`)],
         text: `terms to sum: ${al(ts)} make ${S}`,
         answer: answer(Q(n)),
         visual: null,
-        explain: `With a₁ = ${minus(a)} and d = ${d}, Sₙ = n(2a₁ + (n − 1)d)/2 = n(${minus(2 * a)} + ${d}(n − 1))/2 = ${S}. Multiplied out, ${d === 1 ? '' : d}n²${B === 0 ? '' : ` ${B < 0 ? '−' : '+'} ${Math.abs(B) === 1 ? '' : Math.abs(B)}n`} − ${2 * S} = 0, `
-          + `whose roots are n = ${n} and n = ${qs(Q(-B - d * n, d))}. A count of terms cannot be negative. So ${n} terms add up to ${S}.`,
+        explain: `With a₁ = ${minus(a)} and d = ${d}, Sₙ = n(2a₁ + (n − 1)d)/2 = n(${minus(2 * a)} + ${d}(n − 1))/2 = ${commas(S)}. `
+          + `Multiplied out, ${quad(d, 2 * a - d, -2 * S)} = 0${g === 1 ? '' : `; divided by ${g}, ${quad(A, B, C)} = 0`}. `
+          + `It factors as (n − ${n})(${lead(A)}n ${M < 0 ? '−' : '+'} ${Math.abs(M)}) = 0, so n = ${n} or n = ${qs(other)}. A count of terms cannot be negative. So ${n} terms add up to ${commas(S)}.`,
       };
     }
   }
@@ -605,14 +783,16 @@ function backward(rng) {
     for (;;) {
       const a = rng.pick([1, 2, 3, 4, 5, 6, 7]), r = rng.pick([2, 2, 3, 3, 4, 5]), n = rng.int(3, r === 2 ? 11 : 7);
       const S = (a * (r ** n - 1)) / (r - 1);
-      if (S > 200000) continue;
+      if (S > 30000) continue;
       const ts = geoTerms(Q(a), Q(r), 3);
       return {
-        prompt: [T.prose(`How many terms of the geometric series ${added(ts, true)} add up to ${S.toLocaleString('en-US')}?`)],
+        prompt: [T.prose(`How many terms of the geometric series ${added(ts, true)} add up to ${commas(S)}?`)],
         text: `terms to sum: ${al(ts)} make ${S}`,
         answer: answer(Q(n)),
         visual: null,
-        explain: `Sₙ = ${a}(${r}ⁿ − 1)/(${r} − 1) = ${S}, so ${r}ⁿ − 1 = ${(S * (r - 1)) / a} and ${r}ⁿ = ${r ** n} = ${r}${sup(n)}. So ${n} terms add up to ${S.toLocaleString('en-US')}.`,
+        // requiem: catalogue/content/series-one-geometric-form
+        // The taught form, a₁(1 − rⁿ)/(1 − r), read backward.
+        explain: `Sₙ = a₁(1 − rⁿ)/(1 − r) = ${a}(1 − ${r}ⁿ)/(${minus(1 - r)}) = ${commas(S)}, so 1 − ${r}ⁿ = ${commas(S)}(${minus(1 - r)})/${a} = ${commas(1 - r ** n)} and ${r}ⁿ = ${commas(r ** n)} = ${r}${sup(n)}. So ${n} terms add up to ${commas(S)}.`,
       };
     }
   }
@@ -623,20 +803,20 @@ function backward(rng) {
       if (!Number.isInteger(S) || S === 0) continue;
       if (kind === 'diff') {
         return {
-          prompt: [T.prose(`An arithmetic series has ${n} terms, first term ${minus(a)} and sum ${minus(S)}. What is its common difference?`)],
+          prompt: [T.prose(`An arithmetic series has ${n} terms, first term ${commas(a)} and sum ${commas(S)}. What is its common difference?`)],
           text: `find difference: ${n} terms, first ${a}, sum ${S}`,
           answer: answer(Q(d)),
           visual: null,
-          explain: `Sₙ = n(a₁ + aₙ)/2, so ${minus(S)} = ${n}(${minus(a)} + a${sub_(n)})/2 and the last term is a${sub_(n)} = 2(${minus(S)})/${n} − ${signedP(a)} = ${minus(a + (n - 1) * d)}. `
-            + `From ${minus(a)} to ${minus(a + (n - 1) * d)} is ${n - 1} steps of d: ${n - 1}d = ${minus((n - 1) * d)}. So the common difference is ${minus(d)}.`,
+          explain: `Sₙ = n(a₁ + aₙ)/2, so ${commas(S)} = ${n}(${commas(a)} + a${sub_(n)})/2 and the last term is a${sub_(n)} = 2(${commas(S)})/${n} − ${signedP(a)} = ${commas(a + (n - 1) * d)}. `
+            + `From ${commas(a)} to ${commas(a + (n - 1) * d)} is ${n - 1} steps of d: ${n - 1}d = ${commas((n - 1) * d)}. So the common difference is ${commas(d)}.`,
         };
       }
       return {
-        prompt: [T.prose(`An arithmetic series has ${n} terms, common difference ${minus(d)} and sum ${minus(S)}. What is its first term?`)],
+        prompt: [T.prose(`An arithmetic series has ${n} terms, common difference ${commas(d)} and sum ${commas(S)}. What is its first term?`)],
         text: `find first: ${n} terms, difference ${d}, sum ${S}`,
         answer: answer(Q(a)),
         visual: null,
-        explain: `Sₙ = n(2a₁ + (n − 1)d)/2, so 2a₁ + (n − 1)d = 2Sₙ/n = 2(${minus(S)})/${n} = ${minus((2 * S) / n)}. Here (n − 1)d = ${n - 1}(${minus(d)}) = ${minus((n - 1) * d)}, so 2a₁ = ${minus((2 * S) / n)} − ${signedP((n - 1) * d)} = ${minus(2 * a)}. So the first term is ${minus(a)}.`,
+        explain: `Sₙ = n(2a₁ + (n − 1)d)/2, so 2a₁ + (n − 1)d = 2Sₙ/n = 2(${commas(S)})/${n} = ${commas((2 * S) / n)}. Here (n − 1)d = ${n - 1}(${commas(d)}) = ${commas((n - 1) * d)}, so 2a₁ = ${commas((2 * S) / n)} − ${signedP((n - 1) * d)} = ${commas(2 * a)}. So the first term is ${commas(a)}.`,
       };
     }
   }
@@ -663,16 +843,24 @@ function backward(rng) {
     answer: answer(Q(v)),
     visual: null,
     explain: `The first ${n} terms add to S${sub_(n)} and the first ${n - 1} to S${sub_(n - 1)}, so a${sub_(n)} is what S${sub_(n)} has that S${sub_(n - 1)} does not: `
-      + `S${sub_(n)} = ${minus(at(n))}, S${sub_(n - 1)} = ${minus(at(n - 1))}, and ${minus(at(n))} − ${at(n - 1) < 0 ? `(${minus(at(n - 1))})` : at(n - 1)} = ${minus(v)}. So a${sub_(n)} = ${minus(v)}.`,
+      + `S${sub_(n)} = ${commas(at(n))}, S${sub_(n - 1)} = ${commas(at(n - 1))}, and ${commas(at(n))} − ${signedP(at(n - 1))} = ${commas(v)}. So a${sub_(n)} = ${commas(v)}.`,
   };
 }
-const signedP = (a) => (a < 0 ? `(${minus(a)})` : String(a));
+const signedP = (a) => (a < 0 ? `(${commas(a)})` : commas(a));
+/** An² + Bn + C as prose: 2n² + 13n − 819. */
+function quad(A, B, C) {
+  const tail = (k, x) => (k === 0 ? '' : ` ${k < 0 ? '−' : '+'} ${Math.abs(k) === 1 && x ? '' : commas(Math.abs(k))}${x}`);
+  return `${A === 1 ? '' : A}n²${tail(B, 'n')}${tail(C, '')}`;
+}
 
 const CONTENT = [arithmetic, geometric, sigma, infinite, context, backward];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
-  const p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
+  let p;
+  // requiem: catalogue/library/frac-answer-fits-its-boxes
+  do p = CONTENT[level >= LAST_LEVEL ? rng.int(0, LAST_LEVEL - 1) : level](rng);
+  while (p.answer.type === 'frac' && !fits(p.answer.value));
   p.parSeconds = PAR_SECONDS[level];
   return p;
 }

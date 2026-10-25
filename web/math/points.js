@@ -7,9 +7,12 @@
  * coordinate a whole number, a fraction or a decimal compared exactly. Where
  * the curves do not meet, none or no solution is the empty set, as the
  * solutions box reads it. A point is ordered, so (3, 4) is not (4, 3), and
- * every point of one answer has the same number of coordinates.
+ * every point of one answer has the same number of coordinates. One point
+ * may be said letter by letter, x = 2, y = −1, z = 3, in that order; the set
+ * may be in braces; a price may carry its dollar sign.
  *
- * Value: { dim, pts }, pts a sorted list of points, each a list of {n, d}.
+ * Value: { dim, pts, money? }, pts a sorted list of points, each a list of
+ * {n, d}; money says the coordinates are dollars, written $4.50.
  */
 import { previewOf } from '../ui/express.js';
 
@@ -21,12 +24,21 @@ const reduce = (n, d) => {
 };
 
 // requiem: catalogue/content/none-offered-on-every-row
-// The prompt says "or none if they do not meet", so the box reads it that way.
-const NOTHING = /^(?:(?:there (?:is|are) )?(?:no (?:real )?(?:solutions?|points?)|none|no answer)|they do not meet|nothing|empty( set)?|∅|\{\s*\})$/;
+// The prompt says "or none if they do not meet", so the box reads it that
+// way, and the other ways a student says the same: they don't meet, no
+// intersection, DNE.
+const NOTHING = new RegExp('^(?:(?:there (?:is|are) )?(?:no (?:real )?(?:solutions?|points?(?: of intersection)?|intersections?(?: points?)?|meeting points?)|none|no answer)'
+  + "|(?:they )?(?:do not|don't|dont|never|cannot|can't) (?:meet|intersect|cross)"
+  + '|nothing|empty(?: set)?|∅|\\{\\s*\\}|dne|does not exist|d\\.n\\.e)$');
 
-/** A coordinate: −3, 5/2, 0.25. */
+/**
+ * A coordinate: −3, 5/2, 0.25, and a price as dollars, $4.50, where a story
+ * asks for one. A space after the sign or around the slash is read past:
+ * ( - 1/2 , 5/2 ).
+ */
 function coordinate(text) {
-  const s = text.trim().replace(/[−–—]/g, '-');
+  const s = text.trim().replace(/[−–—]/g, '-').replace(/^([+-]?)\s*\$\s*/, '$1')
+    .replace(/^([+-])\s+/, '$1').replace(/\s*\/\s*/, '/');
   let m = s.match(/^([+-]?\d+)\/(\d+)$/);
   if (m) return +m[2] === 0 ? null : reduce(parseInt(m[1], 10), parseInt(m[2], 10));
   m = s.match(/^([+-]?)(\d*)(?:\.(\d+))?$/);
@@ -35,6 +47,12 @@ function coordinate(text) {
   const n = parseInt(m[2] || '0', 10) * d + (m[3] ? parseInt(m[3], 10) : 0);
   return reduce(m[1] === '-' ? -n : n, d);
 }
+
+// requiem: play/answers/points-read-as-written
+// One point said letter by letter, in the question's order: x = 2, y = −1, z = 3.
+const NUM = '([^,;=()]+?)';
+const SEP = '(?: ?[,;] ?| and | )';
+const LETTERED = new RegExp(`^x ?= ?${NUM}${SEP}y ?= ?${NUM}(?:${SEP}z ?= ?${NUM})?$`);
 
 const cmp = (p, q) => {
   for (let i = 0; i < p.length; i++) {
@@ -49,22 +67,29 @@ const cmp = (p, q) => {
  * @returns {{ok: true, value: {dim: number|null, pts: Array}, texts: string[][]} | {ok: false, hint: string}}
  */
 export function parsePoints(raw) {
-  const s = String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
-  if (!s) return { ok: false, hint: 'Give each point in brackets, like (3, −2).' };
-  if (NOTHING.test(s.replace(/[.!]$/, ''))) return { ok: true, value: { dim: null, pts: [] }, texts: [] };
+  let s = String(raw).trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!s) return { ok: false, hint: 'Give each point in parentheses, like (3, −2).' };
+  // A sentence's period is not part of the answer: (1, 2), (3, 4).
+  s = s.replace(/ ?[.!]+$/, '');
+  if (NOTHING.test(s)) return { ok: true, value: { dim: null, pts: [] }, texts: [] };
+  // Braces around the points, as a set is written: {(1, 2), (3, 4)}.
+  const braced = s.match(/^\{(.*)\}$/);
+  if (braced) s = braced[1].trim();
+  const lettered = s.match(LETTERED);
+  if (lettered) s = `(${lettered.slice(1).filter((c) => c !== undefined).join(', ')})`;
   const groups = [...s.matchAll(/\(([^()]*)\)/g)];
   // Between the points: commas, semicolons, and or or.
   const between = s.replace(/\([^()]*\)/g, ' ').replace(/\b(?:and|or)\b|[,;]/g, ' ').trim();
   if (!groups.length || between) {
     return { ok: false, hint: /[a-z]\s*=/.test(s)
-      ? 'Write each point as its coordinates in brackets, like (3, −2), not as x = 3.'
-      : 'Give each point in brackets, like (3, −2), or none if there are none.' };
+      ? 'Write each point as its coordinates in parentheses, like (3, −2), or one point as x = 3, y = −2, in that order.'
+      : 'Give each point in parentheses, like (3, −2), or none if there are none.' };
   }
   const pts = [], texts = [];
   for (const [, inside] of groups) {
     const parts = inside.split(',');
     const coords = parts.map(coordinate);
-    if (parts.length < 2 || coords.some((c) => !c)) return { ok: false, hint: 'Each point is numbers in brackets with commas between, like (3, −2).' };
+    if (parts.length < 2 || coords.some((c) => !c)) return { ok: false, hint: 'Each point is numbers in parentheses with commas between, like (3, −2).' };
     pts.push(coords);
     texts.push(parts.map((p) => p.trim()));
   }
@@ -84,11 +109,21 @@ export function samePoints(a, b) {
 }
 
 const coordText = (c) => (c.d === 1 ? String(c.n) : `${c.n}/${c.d}`).replace('-', '−');
+// requiem: catalogue/content/prices-answered-in-dollars
+/** A price in dollars and cents, $4.50 or $0.75, as a store writes it. */
+const dollarText = (c) => {
+  const cents = Math.round((Math.abs(c.n) * 100) / c.d);
+  return `${c.n < 0 ? '−' : ''}$${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, '0')}`;
+};
 
-/** (−3, 4), (3, 4) · none */
+/**
+ * (−3, 4), (3, 4) · none · ($4.50, $1.00, $0.75) for prices, where the
+ * value says its coordinates are dollars.
+ */
 export function formatPoints(v) {
   if (!v.pts.length) return 'none';
-  return v.pts.map((p) => `(${p.map(coordText).join(', ')})`).join(', ');
+  const one = v.money ? dollarText : coordText;
+  return v.pts.map((p) => `(${p.map(one).join(', ')})`).join(', ');
 }
 
 /** The typed points drawn as written, a fraction stacked, nothing worked out. */
@@ -101,10 +136,18 @@ export function previewPoints(raw) {
     if (i) terms.push({ t: 'prose', v: 'and' });
     const inside = [];
     for (const [j, c] of coords.entries()) {
-      const drawn = previewOf(c);
+      // A dollar sign is drawn on the number it belongs to: $4.50.
+      const dollar = c.match(/^([+\-−]?)\s*\$\s*(.*)$/);
+      const drawn = previewOf((dollar ? `${dollar[1]}${dollar[2]}` : c).replace(/^([+\-−])\s+/, '$1'));
       if (!drawn.ok) return drawn;
       if (j) inside.push({ t: 'prose', v: ',' });
-      inside.push(...drawn.terms);
+      if (dollar && drawn.terms.length === 1 && drawn.terms[0].t === 'num') {
+        const v = drawn.terms[0].v;
+        inside.push({ t: 'num', v: v.startsWith('−') ? `−$${v.slice(1)}` : `$${v}` });
+      } else {
+        if (dollar) inside.push({ t: 'prose', v: '$' });
+        inside.push(...drawn.terms);
+      }
     }
     terms.push({ t: 'group', terms: inside });
   }

@@ -7,9 +7,8 @@
  * y again. Composing checks it: f(f⁻¹(x)) = x and f⁻¹(f(x)) = x. Only a
  * one-to-one function has an inverse, so a parabola has to be cut to half
  * of itself first, and the graph of f⁻¹ is the graph of f reflected in the
- * line y = x: every point (a, b) becomes (b, a). So y = log_b x is the
- * reflection of y = bˣ: it takes only positive numbers, and its graph runs
- * down beside the vertical line where what it takes the log of is 0.
+ * line y = x: every point (a, b) becomes (b, a). Logarithms takes this up
+ * next, as y = log_b x, the inverse of y = bˣ.
  */
 
 export const LEVELS = [
@@ -33,17 +32,12 @@ export const LEVELS = [
   { name: 'Graph Reflection', slug: 'graph-reflection',
     blurb: 'The graph of f⁻¹ is the graph of f reflected in y = x: the point (a, b) becomes (b, a).',
     dependsOn: [{ skill: 'functions', level: 3 }] },
-  // requiem: catalogue/content/log-functions-in-inverses
-  { name: 'Log Functions', slug: 'log-functions',
-    blurb: 'y = log₂ x is the inverse of 2ˣ, its graph the reflection in y = x: it takes only positive numbers, and runs down beside the line where its inside is 0.',
-    // log_b v = e read as b^e = v is logarithms' Log as Exponent.
-    dependsOn: [{ skill: 'logarithms', level: 0 }] },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [35, 60, 50, 50, 40, 50, 50];
+export const PAR_SECONDS = [35, 60, 50, 50, 40, 50];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
@@ -56,10 +50,12 @@ export default {
   name: 'Inverse Functions',
   category: 'functions',
   glyph: 'f⁻¹',
-  blurb: 'Undoing a function: its values, its formula, checking by composing, cutting a parabola to half, the reflection in y = x, and log₂ x as the inverse of 2ˣ.',
+  blurb: 'Undoing a function: its values, its formula, checking by composing, cutting a parabola to half, and the graph reflected in y = x.',
   answerInput: 'expr',
   // Notation and graphs from functions; composing from composition; cube
-  // roots from roots; a log as an exponent from logarithms.
-  dependsOn: ['functions', 'equations', 'composition', 'quadratic-graphs', 'roots', 'logarithms'],
+  // roots from roots. Logarithms is not among them: log_b x as the inverse
+  // of bˣ is taught there, after this skill.
+  // requiem: catalogue/content/log-functions-in-logarithms
+  dependsOn: ['functions', 'equations', 'composition', 'quadratic-graphs', 'roots'],
   levels: LEVELS,
 };

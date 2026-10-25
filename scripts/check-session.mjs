@@ -522,14 +522,34 @@ for (const skill of SKILLS) {
   if (box.equals(box.parse('(4, 3), (4, -3)').value, want)) fail.push('points: (4, 3) was taken for (3, 4)');
   if (box.equals(box.parse('(3, 4)').value, want)) fail.push('points: one of two points was taken for both');
   if (!box.equals(box.parse('(1/2, -0.25)').value, box.parse('(0.5, -1/4)').value)) fail.push('points: 1/2 and 0.5 were not one coordinate');
-  for (const raw of ['none', 'no points', 'They do not meet.', 'no solution', 'no real solutions']) {
+  for (const raw of ['none', 'no points', 'They do not meet.', 'no solution', 'no real solutions',
+    "they don't meet", 'do not meet', 'no intersection', 'DNE', 'They never intersect.', '{}']) {
     const r = box.parse(raw);
     if (!r.ok || r.value.pts.length) fail.push(`points: "${raw}" was not read as no points`);
   }
-  for (const raw of ['x = 3, y = 4', '3, 4', '(3, 4', '(3)']) {
+  // requiem: play/answers/points-read-as-written
+  // A sentence's period, set braces, spaces inside a point, and one point
+  // said letter by letter in the question's order are read as the points.
+  for (const [raw, said] of [['(-3, 4), (3, 4).', '(−3, 4), (3, 4)'], ['{(3, 4), (-3, 4)}', '(−3, 4), (3, 4)'],
+    ['( - 1/2 , 5/2 )', '(−1/2, 5/2)'], ['x = 2, y = −1, z = 3', '(2, −1, 3)'], ['x=3 and y=4', '(3, 4)'],
+    ['($4.50, $1, $0.75)', '(9/2, 1, 3/4)']]) {
+    const r = box.parse(raw);
+    if (!r.ok || box.format(r.value) !== said) fail.push(`points: "${raw}" was not read as ${said}`);
+  }
+  for (const raw of ['y = 4, x = 3', 'x = 3', '3, 4', '(3, 4', '(3)', '(1 2, 3)']) {
     if (box.parse(raw).ok) fail.push(`points: "${raw}" was read as points`);
   }
-  if (!box.parse('x = 3, y = 4').hint?.includes('brackets')) fail.push('points: x = 3, y = 4 was not told to use brackets');
+  if (!box.parse('y = 4, x = 3').hint?.includes('in that order')) fail.push('points: y = 4, x = 3 was not told the order');
+  // requiem: catalogue/content/us-notation
+  // Every hint says parentheses, the US word, never brackets; prices are written in dollars.
+  for (const raw of ['', 'y = 4, x = 3', '3, 4', '(3)']) {
+    const hint = box.parse(raw).hint ?? '';
+    if (/bracket/i.test(hint) || !/parentheses/.test(hint)) fail.push(`points: the hint for "${raw}" is "${hint}"`);
+  }
+  if (/bracket/i.test(box.hint)) fail.push('points: the box hint says brackets');
+  const price = { dim: 3, money: true, pts: [[{ n: 9, d: 2 }, { n: 1, d: 1 }, { n: 3, d: 4 }]] };
+  if (box.format(price) !== '($4.50, $1.00, $0.75)') fail.push(`points: a price answer was written ${box.format(price)}`);
+  if (!box.equals(box.parse('($4.50, $1.00, $0.75)').value, price) || !box.equals(box.parse('(4.5, 1, .75)').value, price)) fail.push('points: prices typed in dollars were not the price answer');
 
   const skill = SKILLS.find((s) => s.id === 'systems-2');
   const at = (slug) => skill.levels.findIndex((l) => l.slug === slug);
@@ -547,11 +567,21 @@ for (const skill of SKILLS) {
   const cases = [
     [two, `${p2}, ${p1}`, 'correct'], [two, `${p1} and ${p2}`, 'correct'], [two, p1, 'wrong'], [two, 'none', 'wrong'],
     [none, 'none', 'correct'], [none, 'They do not meet', 'correct'], [none, '(0, 0)', 'wrong'],
-    [three, `(${x}, ${y}, ${z})`, 'correct'], [three, `(${x}, ${y})`, 'invalid'], [three, `x = ${x}, y = ${y}, z = ${z}`, 'invalid'],
+    [three, `(${x}, ${y}, ${z})`, 'correct'], [three, `(${x}, ${y})`, 'invalid'], [three, `x = ${x}, y = ${y}, z = ${z}`, 'correct'],
+    [three, `{(${x}, ${y}, ${z})}.`, 'correct'], [three, `x = ${x}, y = ${y}`, 'invalid'], [none, 'no intersection', 'correct'], [none, 'DNE', 'correct'],
   ];
   for (const [row, raw, want] of cases) {
     const r = play(row, raw);
     if (r.status !== want) fail.push(`points: "${raw}" for ${row.answer.accept[0]} was ${r.status}, not ${want}`);
+  }
+  // requiem: catalogue/content/prices-answered-in-dollars
+  // A price answer, given with its dollar signs or without, is right.
+  const shop = libOf(skill, at('three-variable-word-problems')).problems.find((q) => q.answer.value.money);
+  if (!shop) fail.push('points: no word problem asks for prices in dollars');
+  else {
+    for (const raw of [shop.answer.accept[0], shop.answer.accept[0].replace(/\$/g, '')]) {
+      if (play(shop, raw).status !== 'correct') fail.push(`points: the prices "${raw}" were not right for ${shop.answer.accept[0]}`);
+    }
   }
   if (!play(two, p1).hint?.includes('more places')) fail.push('points: one of two meeting points was not told there are more');
   if (!play(three, `(${x}, ${y})`).hint?.includes('3 coordinates')) fail.push('points: a pair for (x, y, z) was not told it needs 3 coordinates');

@@ -737,7 +737,6 @@
       "check-by-composing",
       "restrict-the-domain",
       "graph-reflection",
-      "log-functions",
       "all-together"
     ],
     "radical-eq": [
@@ -811,6 +810,7 @@
       "ln-and-change-of-base",
       "exponential-equations",
       "log-equations",
+      "log-functions",
       "all-together"
     ],
     "series": [
@@ -1808,7 +1808,6 @@
         "composition",
         "equations",
         "functions",
-        "logarithms",
         "quadratic-graphs",
         "roots"
       ],
@@ -1830,9 +1829,6 @@
         ],
         "graph-reflection": [
           "functions"
-        ],
-        "log-functions": [
-          "logarithms"
         ]
       }
     },
@@ -2021,6 +2017,7 @@
         "equations",
         "exponential",
         "exponents",
+        "inverses",
         "quadratic-eq",
         "radical-eq",
         "rational-exponents"
@@ -2043,6 +2040,9 @@
         "log-equations": [
           "quadratic-eq",
           "radical-eq"
+        ],
+        "log-functions": [
+          "inverses"
         ]
       }
     },
@@ -2119,7 +2119,7 @@
       }
     }
   },
-  "sources": "cbf0c076c93c79d34f27a554e0afe4baa524d121384f3347fdeb99806d609d14",
+  "sources": "9e24d356cc65ec78e795646aad9935032f58a1a727e3eeb391beee3cd11581d2",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7954,22 +7954,12 @@
     {
       "skill": "inverses",
       "level": 5,
-      "slug": "log-functions",
-      "name": "Log Functions",
-      "count": 1000,
-      "exhaustive": false,
-      "signed": true,
-      "file": "inverses-5.json"
-    },
-    {
-      "skill": "inverses",
-      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "inverses-6.json"
+      "file": "inverses-5.json"
     },
     {
       "skill": "radical-eq",
@@ -8534,12 +8524,22 @@
     {
       "skill": "logarithms",
       "level": 6,
+      "slug": "log-functions",
+      "name": "Log Functions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-6.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "logarithms-6.json"
+      "file": "logarithms-7.json"
     },
     {
       "skill": "series",
@@ -8616,7 +8616,7 @@
       "level": 0,
       "slug": "pascals-triangle",
       "name": "Pascal's Triangle",
-      "count": 165,
+      "count": 121,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-0.json"
@@ -8626,7 +8626,7 @@
       "level": 1,
       "slug": "coefficients-by-combinations",
       "name": "Coefficients by Combinations",
-      "count": 300,
+      "count": 285,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-1.json"
@@ -8646,7 +8646,7 @@
       "level": 3,
       "slug": "full-expansion",
       "name": "Full Expansion",
-      "count": 142,
+      "count": 176,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-3.json"
@@ -8666,7 +8666,7 @@
       "level": 5,
       "slug": "binomial-probability",
       "name": "Binomial Probability",
-      "count": 266,
+      "count": 255,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-5.json"
