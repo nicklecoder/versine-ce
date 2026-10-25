@@ -108,6 +108,11 @@ export class Session {
     // type's general example does.
     const why = parsed.why && `${parsed.why[0].toUpperCase()}${parsed.why.slice(1)}.`;
     if (!parsed.ok) return { status: 'invalid', hint: parsed.hint ?? why ?? type.hint };
+    // A typing the type reads two ways, where the reading it takes cannot be
+    // what this question asks for, is asked again rather than marked: decided
+    // from the question alone, never from whether either reading is right.
+    const unclear = type.refuseHint?.(parsed, spec);
+    if (unclear) return { status: 'invalid', hint: unclear };
 
     // requiem: play/answers/accepted-forms-judged
     // The stored value, or any other form the level lists as accepted:

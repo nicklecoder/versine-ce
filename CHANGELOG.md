@@ -16,28 +16,47 @@ anyone who wants a known version, and these notes say what changed either way.
 **Logarithms**, a new skill under Powers, in seven levels: Log as Exponent
 (the power form of a log chosen, or the log form of a power), Evaluate
 (whole, negative and fractional answers, log for base 10 and ln for base
-e), Product, Quotient & Power (combine, then evaluate, or condense into
-one log against options that misuse a law), ln & Change of Base (a log
-found to 2 or 3 decimal places, which quotient equals it, and a base
-raised to its own log), Solve Exponential Equations (exactly when both
-sides are powers of one base, otherwise rounded), Solve Log Equations
+e, roots of powers of 10 and of e among them), Product, Quotient & Power
+(combine, then evaluate, condense into one log, or expand one log into
+several), ln & Change of Base (a log found to 2 or 3 decimal places, which
+quotient equals it, and a base raised to its own log), Solve Exponential
+Equations (exactly when both sides are powers of one base, otherwise
+rounded, with unlike bases such as 2ˣ = 3ˣ⁻¹, and the time a story takes
+to double, halve or grow continuously to an amount), Solve Log Equations
 (rows with one solution, two, and none, every prompt allowing for none),
-then All Together. `check-answers.py` finds an exact log from prime
-factors, combining logs to one base into one product first, and solves a
-log equation by clearing it into a polynomial whose zeros it keeps only
-where every log in the question is of a positive number.
+then All Together. Every choice crosses two misreadings -- base and
+exponent swapped and the number raised by the base, a number in front left
+as a factor and a sum read as the log of a sum -- so the right option is
+never simply the one nearest all the others, which `check-answers.py` now
+measures for this skill and complex numbers. It finds an exact log from
+prime factors, combining logs to one base into one product first, and
+solves a log equation by clearing it into a polynomial whose zeros it keeps
+only where every log in the question is of a positive number.
 
-**Complex Numbers**, a new skill under Powers, in six levels: Powers of i,
+**Complex Numbers**, a new skill under Powers, in seven levels: Square
+Roots of Negatives (√−n as i√n, and √−4 · √−9 = −6, not 6), Powers of i,
 Add & Subtract, Multiply, Conjugates & Divide, Complex Roots of Quadratics
 (a conjugate pair, and which kind of roots a discriminant gives), then All
 Together. Answers go in a new `complex` box, which reads a + bi into exact
 real and imaginary parts: 3 − 2i, −2i + 3 and (6 − 4i)/2 are one answer,
-the last right but not finished, and a pair is typed 2 +- 3i or both
-written out. A power of i left in an answer is refused with a hint rather
-than marked wrong, and one root of a pair typed alone is told the other is
-its conjugate. The box's key guide shows i and +-. `check-answers.py`
-works each question out again in exact complex arithmetic over fractions,
-and a quadratic's roots from its own discriminant.
+the last right but not finished, and a pair is typed 2 +- 3i or +/-, or
+both written out, named or not (x = 2 + 3i or x = 2 − 3i). +- is ± only
+with the signs touching: 3 + -2i is 3 − 2i, and 3+-2i on a question with
+one answer is asked again rather than marked. It also reads capitals,
+one bracket round the whole, a minus before a bracket and a bracketed
+coefficient, 3 + (−2)i. A power of i or a root left in an answer is
+refused with a hint rather than marked wrong, and one root of a pair
+typed alone is told the other is its conjugate. The box's key guide shows
+i and +-. `check-answers.py` works each question out again in exact
+complex arithmetic over fractions, a root of a negative as i times a real
+root, and a quadratic's roots from its own discriminant.
+
+**Exponential Functions** gains e and Continuous Growth before All
+Together, its ninth level: $1 at 100% compounded more and more often tends
+to e, then compounding n times a year, continuously as P·eʳᵗ, and a·eᵏᵗ
+read for its continuous rate, its factor each step and its value. It is
+the skill's one level that rounds, each question naming its places, and
+logarithms' ln levels now depend on it.
 
 **Polynomial Functions**, a new skill under Functions, in six levels:
 Zeros & Multiplicity (every zero, one zero's multiplicity, and whether

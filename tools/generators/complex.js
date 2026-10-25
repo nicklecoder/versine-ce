@@ -52,17 +52,110 @@ const CYCLE = [Z(1, 0), Z(0, 1), Z(-1, 0), Z(0, -1)];
 const cyc = (n) => CYCLE[((n % 4) + 4) % 4];
 const powWord = (n) => show(cyc(n));
 
+// --- Square Roots of Negatives ----------------------------------------------
+
+/** n as k²·m with m squarefree: [k, m]. */
+function pulled(n) {
+  let k = 1, m = n;
+  for (let f = 2; f * f <= m; f++) while (m % (f * f) === 0) { m /= f * f; k *= f; }
+  return [k, m];
+}
+const SQUAREFREE = [2, 3, 5, 6, 7, 10, 11];
+/** k√m in prose with an i: 3i√2, i√7, −3√2. */
+const surdI = (k, m, withI = true, neg = false) => `${neg ? '−' : ''}${k === 1 ? '' : k}${withI ? 'i' : ''}√${m}`;
+const surdA = (k, m, withI = true, neg = false) => `${neg ? '-' : ''}${k === 1 ? '' : `${k}*`}${withI ? 'i*' : ''}sqrt(${m})`;
+
+/** √−n² worked out: √−36 = √36 · √−1 = 6i. */
+const rootI = (n) => (n === 1 ? '√−1 = i' : `√−${n * n} = √${n * n} · √−1 = ${n}i`);
+
+// requiem: catalogue/content/negative-roots-made-i-first
+function negativeRoots(rng) {
+  const kind = rng.pick(['perfect', 'perfect', 'plus', 'plus', 'over', 'trap', 'trap', 'which', 'which']);
+  if (kind === 'perfect') {
+    // √−n² or k√−n²: a perfect square under the minus.
+    const n = rng.int(1, 15), k = rng.pick([1, 1, 1, 2, 3, 4, 5, -1, -2, -3]);
+    const src = `${k === 1 ? '' : k === -1 ? '-' : k}sqrt(-${n * n})`;
+    return worked(src, Z(0, k * n),
+      n === 1 ? `i is √−1${k === 1 ? '' : `, and ${minus(k)} × i = ${show(Z(0, k))}`}.`
+        : `i is √−1, so √−${n * n} = √${n * n} · √−1 = ${n}i${k === 1 ? '' : `, and ${minus(k)} × ${n}i = ${show(Z(0, k * n))}`}.`);
+  }
+  if (kind === 'plus' || kind === 'over') {
+    // a ± √−n², and (a ± √−n²)/k as the quadratic formula leaves it.
+    for (;;) {
+      const n = rng.int(1, 12), s = rng.pick([1, -1]);
+      if (kind === 'plus') {
+        const a = rng.nonZero(-12, 12);
+        const src = `${a} ${s > 0 ? '+' : '-'} sqrt(-${n * n})`;
+        return worked(src, Z(a, s * n),
+          `${rootI(n)}. That leaves a real part and an imaginary part, a + bi.`, 'Write in the form a + bi:');
+      }
+      const k = rng.pick([2, 2, 3, 4]), a = rng.int(-8, 8) * k;
+      if (n % k !== 0 && rng.chance(0.7)) continue;
+      const z = { re: Q(a, k), im: Q(s * n, k) };
+      const src = `(${a} ${s > 0 ? '+' : '-'} sqrt(-${n * n}))/${k}`;
+      return worked(src, z,
+        `${rootI(n)}, so the top is ${show(Z(a, s * n))}. Divide each part by ${k}.`, 'Write in the form a + bi:');
+    }
+  }
+  if (kind === 'trap') {
+    // √−a · √−b: each made an i first, never √(ab).
+    for (;;) {
+      const form = rng.pick(['both', 'both', 'both', 'one', 'square']);
+      if (form === 'square') {
+        // (√−n)² = −n, not n.
+        const n = rng.int(2, 30), k = rng.pick([1, 1, 2, 3]);
+        const src = `(${k === 1 ? '' : k}sqrt(-${n}))^2`;
+        return worked(src, Z(-k * k * n, 0),
+          `Make the root an i first: ${k === 1 ? '' : k}√−${n} = ${k === 1 ? '' : k}i√${n}. Squaring it: ${k === 1 ? '' : `${k}² · `}i² · (√${n})² = ${k === 1 ? '' : `${k * k} · `}(−1) · ${n} = ${minus(-k * k * n)}. Squaring a square root of a negative gives a negative, not ${k * k * n}.`);
+      }
+      const a = rng.int(2, 50), b = rng.int(2, 50);
+      const r = Math.round(Math.sqrt(a * b));
+      if (r * r !== a * b || a === b && rng.chance(0.5)) continue;
+      if (form === 'one') {
+        // √−a · √b = i√(ab).
+        const src = `sqrt(-${a})*sqrt(${b})`;
+        return worked(src, Z(0, r),
+          `Make the root of the negative an i first: √−${a} = i√${a}. Then i√${a} · √${b} = i√${a * b} = ${r}i.`);
+      }
+      const src = `sqrt(-${a})*sqrt(-${b})`;
+      return worked(src, Z(-r, 0),
+        `Make each root an i first: √−${a} = i√${a} and √−${b} = i√${b}. Then i√${a} · i√${b} = i² √${a * b} = −${r}. `
+        + `Not √${a * b} = ${r}: √a · √b = √(ab) only holds when a and b are not both negative.`);
+    }
+  }
+  // which: √−n with a square inside but not a square, chosen. The slips are
+  // a lost i (√−n read as −√n) and a square left unrooted (18 = 9 · 2 giving
+  // 9√2), each alone and both together.
+  for (;;) {
+    const m = rng.pick(SQUAREFREE), k = rng.int(2, 7), n = k * k * m;
+    if (n > 300) continue;
+    const [kk, mm] = pulled(n);
+    const opts = [[true, false], [false, false], [true, true], [false, true]].map(([withI, unrooted]) => {
+      const c = unrooted ? kk * kk : kk;
+      return [surdA(c, mm, withI, !withI), surdI(c, mm, withI, !withI)];
+    });
+    const order = rng.shuffle([0, 1, 2, 3]);
+    return {
+      prompt: [T.prose(`Which is √−${n} in simplest form?`)],
+      text: `root of negative: sqrt(-${n}); options ${order.map((j, i) => `${optionIds[i]}: ${opts[j][0]}`).join(' | ')}`,
+      answer: { type: 'choice', value: optionIds[order.indexOf(0)], options: order.map((j, i) => ({ id: optionIds[i], label: opts[j][1] })) },
+      visual: null,
+      explain: `√−1 is i, so √−${n} = i√${n}, an imaginary number, not a negative one. Then pull out the square: ${n} = ${kk * kk} · ${mm}, and √${kk * kk} = ${kk}. So √−${n} = ${surdI(kk, mm)}.`,
+    };
+  }
+}
+
 // --- Powers of i -----------------------------------------------------------
 
 function powers(rng) {
-  const kind = rng.pick(['one', 'one', 'one', 'negative', 'product', 'sum']);
+  const kind = rng.pick(['one', 'one', 'negative', 'negative', 'product', 'quotient', 'sum']);
   if (kind === 'one') {
-    const n = rng.int(2, 99), r = n % 4;
+    const n = rng.int(5, 250), r = n % 4;
     return worked(`i^${n}`, cyc(n),
       `The powers of i repeat every 4: i, −1, −i, 1. ${n} = 4 × ${Math.floor(n / 4)} + ${r}, and i⁴ = 1, so i${sup(n)} = i${sup(r)}${r === 0 ? ' = 1' : r === 1 ? ' = i' : ` = ${powWord(r)}`}.`);
   }
   if (kind === 'negative') {
-    const n = rng.int(1, 30), up = 4 * Math.ceil(n / 4);
+    const n = rng.int(1, 150), up = 4 * Math.ceil(n / 4);
     return worked(`i^(-${n})`, cyc(-n),
       `Adding a multiple of 4 to the power does not change it, since i⁴ = 1: −${n} + ${up} = ${up - n}, so i${sup(-(n))} = i${sup(up - n)} = ${powWord(up - n)}.`);
   }
@@ -70,6 +163,11 @@ function powers(rng) {
   if (kind === 'product') {
     return worked(`i^${a}*i^${b}`, cyc(a + b),
       `Multiplying adds the powers: i${sup(a + b)}. ${a + b} = 4 × ${Math.floor((a + b) / 4)} + ${(a + b) % 4}, so it is ${powWord(a + b)}.`);
+  }
+  if (kind === 'quotient') {
+    if (a === b) return powers(rng);
+    return worked(`i^${a}/i^${b}`, cyc(a - b),
+      `Dividing subtracts the powers: i${sup(a - b)}. ${a - b < 0 ? `Adding a multiple of 4 does not change it, since i⁴ = 1: ${a - b} + ${4 * Math.ceil((b - a) / 4)} = ${a - b + 4 * Math.ceil((b - a) / 4)}, so it is ${powWord(a - b)}.` : `${a - b} = 4 × ${Math.floor((a - b) / 4)} + ${(a - b) % 4}, so it is ${powWord(a - b)}.`}`);
   }
   const z = { re: Q(cyc(a).re.n + cyc(b).re.n), im: Q(cyc(a).im.n + cyc(b).im.n) };
   return worked(`i^${a} + i^${b}`, z,
@@ -105,21 +203,23 @@ function addSub(rng) {
 const timesZ = (a, b, c, d) => Z(a * c - b * d, a * d + b * c);
 
 function multiply(rng) {
-  const kind = rng.pick(['two', 'two', 'two', 'byI', 'square']);
-  const a = rng.int(-7, 7), b = nz(rng, -7, 7);
+  const kind = rng.pick(['two', 'two', 'two', 'two', 'byI', 'byI', 'byI', 'square', 'square', 'square']);
+  // Both real parts nonzero: a bare bi is the byI kind, multiplied part by part.
+  const R = kind === 'square' ? 10 : 7;
+  const a = nz(rng, -R, R), b = nz(rng, -R, R);
   if (kind === 'byI') {
     const k = nz(rng, -6, 6);
     const z = timesZ(0, k, a, b);
     const ki = show(Z(0, k));
     return worked(`${ki === 'i' ? 'i' : ascii(Z(0, k))}${br(a, b)}`, z,
-      `Multiply each part by ${ki}: ${ki} × ${minus(a)} = ${show(Z(0, k * a))}, and ${ki} × ${show(Z(0, b))} = ${minus(k * b)}i² = ${minus(-k * b)}, since i² = −1. Collect, real part first.`);
+      `Multiply each part by ${ki}: ${ki} × ${after(minus(a))} = ${show(Z(0, k * a))}, and ${ki} × ${after(show(Z(0, b)))} = ${minus(k * b)}i² = ${minus(-k * b)}, since i² = −1. Collect, real part first.`);
   }
   if (kind === 'square') {
     const z = timesZ(a, b, a, b);
     return worked(`${br(a, b)}^2`, z,
       `(a + bi)² = a² + 2abi + b²i², and i² = −1: ${sq(a)} + 2(${minus(a)})(${minus(b)})i − ${b * b} = ${minus(a * a - b * b)} ${2 * a * b < 0 ? '−' : '+'} ${Math.abs(2 * a * b)}i.`);
   }
-  const c = rng.int(-7, 7), d = nz(rng, -7, 7);
+  const c = nz(rng, -7, 7), d = nz(rng, -7, 7);
   const z = timesZ(a, b, c, d);
   return worked(`${br(a, b)}${br(c, d)}`, z,
     `Multiply out as binomials: ${minus(a * c)} ${a * d < 0 ? '−' : '+'} ${Math.abs(a * d)}i ${b * c < 0 ? '−' : '+'} ${Math.abs(b * c)}i ${b * d < 0 ? '−' : '+'} ${Math.abs(b * d)}i². `
@@ -135,12 +235,12 @@ function quotient(a, b, c, d) {
 }
 
 function divide(rng) {
-  const kind = rng.pick(['conj', 'product', 'divide', 'divide', 'divide', 'real']);
+  const kind = rng.pick(['conj', 'conj', 'product', 'product', 'divide', 'divide', 'real', 'real']);
   const a = rng.int(-8, 8), b = nz(rng, -8, 8);
   if (kind === 'conj') {
     const z = Z(a, -b);
     return {
-      prompt: [T.prose('What is the complex conjugate of'), ...drawn(ascii(Z(a, b))), T.prose('?')],
+      prompt: [T.prose(`What is the complex conjugate of ${show(Z(a, b))}?`)],
       text: `conjugate: ${ascii(Z(a, b))}`,
       answer: answer(z),
       visual: null,
@@ -161,7 +261,7 @@ function divide(rng) {
       if (m > 25) continue;
       return worked(`${k}/${br(c, d)}`, z,
         `Multiply top and bottom by the conjugate ${brF(c, -d)}: the bottom becomes ${sq(c)} + ${sq(d)} = ${m}, and the top ${minus(k)}${brF(c, -d)} = ${show(Z(k * c, -k * d))}. `
-        + `Divide each part by ${m}.`);
+        + (m === 1 ? 'The bottom is 1, so that top is the answer.' : `Divide each part by ${m}.`));
     }
   }
   for (;;) {
@@ -173,7 +273,7 @@ function divide(rng) {
     if (rng.chance(0.6) && (top.re.n % m !== 0 || top.im.n % m !== 0)) continue;
     return worked(`${br(a, b)}/${br(c, d)}`, z,
       `Multiply top and bottom by the bottom's conjugate ${brF(c, -d)}. Bottom: ${sq(c)} + ${sq(d)} = ${m}. `
-      + `Top: ${brF(a, b)}${brF(c, -d)} = ${show(top)}, multiplying out with i² = −1. Divide each part by ${m}.`);
+      + `Top: ${brF(a, b)}${brF(c, -d)} = ${show(top)}, multiplying out with i² = −1. ${m === 1 ? 'The bottom is 1, so that top is the answer.' : `Divide each part by ${m}.`}`);
   }
 }
 
@@ -204,7 +304,7 @@ function natureRow(a, b, c, want) {
 
 // requiem: catalogue/content/complex-judged-exactly
 function roots(rng) {
-  const kind = rng.pick(['solve', 'solve', 'scaled', 'half', 'pure', 'moved', 'nature']);
+  const kind = rng.pick(['solve', 'solve', 'scaled', 'half', 'pure', 'moved', 'nature', 'nature']);
   if (kind === 'nature') {
     const want = rng.pick(KINDS.map(([k]) => k));
     for (;;) {
@@ -250,6 +350,19 @@ function roots(rng) {
     const lhs = kind === 'moved' ? quadText(b, 0, false, a) : quadText(b, c, false, a);
     const rhs = kind === 'moved' ? String(-c) : '0';
     const root = Math.sqrt(-D);
+    // No x term: x² alone is negative, solved by square roots, not the formula.
+    if (b === 0) {
+      const sq2 = Q(-c, a);
+      const said = (v) => `${v.n < 0 ? '−' : ''}${Math.abs(v.n)}${v.d === 1 ? '' : `/${v.d}`}`;
+      return {
+        prompt: [T.prose('Solve:'), ...drawn(`${lhs} = ${rhs}`)],
+        text: `complex roots: ${lhs} = ${rhs}`,
+        answer: answer(z),
+        visual: null,
+        explain: `There is no x term, so get x² alone: take ${c} from both sides${a === 1 ? '' : ` and divide by ${a}`}, giving x² = ${said(sq2)}. `
+          + `A negative has imaginary square roots, since √−1 = i: x = ±√(${said(sq2)}), so x = ${show(z)}.`,
+      };
+    }
     return {
       prompt: [T.prose('Solve:'), ...drawn(`${lhs} = ${rhs}`)],
       text: `complex roots: ${lhs} = ${rhs}`,
@@ -261,7 +374,7 @@ function roots(rng) {
   }
 }
 
-const CONTENT = [powers, addSub, multiply, divide, roots];
+const CONTENT = [negativeRoots, powers, addSub, multiply, divide, roots];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {

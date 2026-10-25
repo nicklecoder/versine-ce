@@ -106,6 +106,19 @@ function logClaim(B, V, E) {
   return [text, label, ok];
 }
 
+// requiem: catalogue/content/decoys-cross-two-slips
+/**
+ * Four claims from two slips crossed: the right one, each slip alone, and
+ * both together. A decoy that is one slip from the key and nothing else
+ * leaves the key as the option nearest all the others, which a student can
+ * pick without the mathematics; crossed, each option is one slip from two
+ * others and two from the last, so no option sits in the middle.
+ */
+const crossed = (key, slip1, slip2) => [key, slip1(key), slip2(key), slip2(slip1(key))];
+/** Two of the three swaps of a claim's three slots. */
+const SWAPS = [(t) => [t[1], t[0], t[2]], (t) => [t[0], t[2], t[1]], (t) => [t[2], t[1], t[0]]];
+const twoSwaps = (rng) => rng.shuffle([0, 1, 2]).slice(0, 2).map((k) => SWAPS[k]);
+
 function asExponent(rng) {
   for (;;) {
     const b = rng.pick(BASES);
@@ -113,14 +126,19 @@ function asExponent(rng) {
       // log form given, power form chosen.
       const e = rng.int(-3, 5);
       const v = powQ({ n: b, d: 1 }, e);
-      if (v.n > 20000) continue;
-      const claims = [
-        powerClaim(b, e, v),
-        powerClaim(e, b, v),
-        powerClaim(v, e, { n: b, d: 1 }),
-        e !== 0 ? powerClaim(b, -e, v) : powerClaim(b, 1, { n: 0, d: 1 }),
-      ];
-      if (!claims[0][2] || claims.slice(1).some(([, , ok]) => ok)) continue;
+      if (v.n > 2000) continue;
+      let claims;
+      if (e >= 2 || e === 0) {
+        // Slots (base, exponent, result), two of them swapped: 2³ = 8 read as
+        // 3² = 8, as 2⁸ = 3 (the number raised by the base), or as 8³ = 2.
+        const [s1, s2] = twoSwaps(rng);
+        claims = crossed([{ n: b, d: 1 }, { n: e, d: 1 }, v], s1, s2).map(([B, E, V]) => (E.d === 1 ? powerClaim(B, E.n, V) : null));
+      } else {
+        // A negative or first power: the sign of the exponent dropped, and the
+        // base and exponent swapped, alone and together.
+        claims = crossed([b, e], ([B, E]) => [B, -E], ([B, E]) => [E, B]).map(([B, E]) => powerClaim(B, E, v));
+      }
+      if (claims.some((c) => !c) || !claims[0][2] || claims.slice(1).some(([, , ok]) => ok)) continue;
       const shown = `log${sub(b)} ${v.d === 1 ? v.n : `(${Qs(v)})`} = ${minus(e)}`;
       const ask = choice([T.prose(`Which equation says the same thing as ${shown}?`)],
         `log form: log_${b}(${Qs(v)}) = ${e}`, claims.map(([t, l]) => [t, l]),
@@ -129,10 +147,12 @@ function asExponent(rng) {
       continue;
     }
     // power form given, log form chosen: e from 2 so every base shown is a real base.
+    // Slots (base, number, value) of log_b v = e, two of them swapped.
     const e = rng.int(2, 5);
     const v = powQ({ n: b, d: 1 }, e);
-    if (v.n > 20000) continue;
-    const claims = [logClaim(b, v, e), logClaim(e, v, b), logClaim(v.n, { n: b, d: 1 }, e), logClaim(b, { n: e, d: 1 }, v.n)];
+    if (v.n > 2000) continue;
+    const [s1, s2] = twoSwaps(rng);
+    const claims = crossed([b, v.n, e], s1, s2).map(([B, V, E]) => logClaim(B, { n: V, d: 1 }, E));
     if (!claims[0][2] || claims.slice(1).some(([, , ok]) => ok)) continue;
     const shown = `${b}${sup(e)} = ${v.n}`;
     const ask = choice([T.prose(`Which equation says the same thing as ${shown}?`)],
@@ -155,7 +175,7 @@ function evaluated(shown, text, n, d, explain) {
 }
 
 function evaluate(rng) {
-  const kind = rng.pick(['whole', 'whole', 'negative', 'root', 'ratio', 'ratio', 'ln', 'common']);
+  const kind = rng.pick(['whole', 'whole', 'negative', 'root', 'ratio', 'ratio', 'ln', 'ln', 'ln', 'common', 'common']);
   if (kind === 'whole' || kind === 'negative') {
     for (;;) {
       const b = rng.pick([2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 15, 20, 25]);
@@ -194,24 +214,58 @@ function evaluate(rng) {
     }
   }
   if (kind === 'ln') {
-    const form = rng.pick(['power', 'power', 'over', 'root', 'one']);
-    if (form === 'one') return evaluated('ln 1', 'ln(1)', 0, 1, 'ln is the log to base e, and e⁰ = 1.');
-    if (form === 'root') {
-      const k = rng.int(2, 3);
-      const shown = k === 2 ? 'ln √e' : 'ln ∛e';
-      return evaluated(shown, k === 2 ? 'ln(sqrt(e))' : 'ln(root(e, 3))', 1, k,
-        `ln is the log to base e, and a ${k === 2 ? 'square' : 'cube'} root is the power 1/${k}: ${k === 2 ? '√e' : '∛e'} is e to the power 1/${k}.`);
+    // requiem: catalogue/content/e-met-before-ln
+    // ln asks what power of e a number is: e itself, a power of it, one
+    // over a power, or a root of a power, which is a fraction power.
+    const form = rng.pick(['power', 'power', 'over', 'root', 'root', 'overroot']);
+    if (form === 'power') {
+      const k = rng.int(-9, 12);
+      if (k === 0) return evaluated('ln 1', 'ln(1)', 0, 1, 'ln is the log to base e, and e⁰ = 1.');
+      return evaluated(k === 1 ? 'ln e' : `ln e${sup(k)}`, k < 0 ? `ln(e^(${k}))` : `ln(e^${k})`, k, 1,
+        k === 1 ? 'ln is the log to base e, and e is e¹.' : `ln is the log to base e, so it asks what power of e this is: it is written as one, e${sup(k)}.`);
     }
-    const k = rng.int(2, 12);
-    const over = form === 'over';
-    return evaluated(over ? `ln(1/e${sup(k)})` : `ln e${sup(k)}`, over ? `ln(1/e^${k})` : `ln(e^${k})`, over ? -k : k, 1,
-      `ln is the log to base e, so it asks what power of e this is${over ? `: 1/e${sup(k)} = e${sup(-k)}` : ''}.`);
+    if (form === 'over') {
+      const k = rng.int(1, 12);
+      return evaluated(k === 1 ? 'ln(1/e)' : `ln(1/e${sup(k)})`, `ln(1/e^${k})`, -k, 1,
+        `ln is the log to base e, so it asks what power of e this is: one over a power is a negative power, 1/e${k === 1 ? '' : sup(k)} = e${sup(-k)}.`);
+    }
+    // ⁿ√(eᵏ) = e^(k/n), and one over it is e^(−k/n).
+    const q = rng.pick([2, 2, 3, 4]), k = rng.int(1, 11);
+    if (gcd(k, q) !== 1) return evaluate(rng);
+    const over = form === 'overroot';
+    const inner = k === 1 ? 'e' : `e${sup(k)}`;
+    const r = q === 2 ? '√' : q === 3 ? '∛' : '∜';
+    const shownArg = `${r}${k === 1 ? 'e' : `(${inner})`}`;
+    const asciiArg = q === 2 ? `sqrt(${k === 1 ? 'e' : `e^${k}`})` : `root(${k === 1 ? 'e' : `e^${k}`}, ${q})`;
+    const word = q === 2 ? 'square' : q === 3 ? 'cube' : 'fourth';
+    return evaluated(over ? `ln(1/${shownArg})` : `ln ${shownArg}`, over ? `ln(1/${asciiArg})` : `ln(${asciiArg})`, over ? -k : k, q,
+      `ln is the log to base e, and a ${word} root is the power 1/${q}: ${shownArg} is e to the power ${fx(k, q)}`
+      + `${over ? `, and one over it turns the power negative, ${fx(-k, q)}` : ''}.`);
   }
-  // common: log alone is base 10.
-  const k = rng.int(-6, 7);
-  const arg = k >= 0 ? String(10 ** k) : (10 ** k).toFixed(-k);
-  return evaluated(`log ${arg}`, `log(${arg})`, k, 1,
-    `log with no base written is base 10${k < 0 ? `, and ${arg} is 1/${10 ** -k}` : ''}: 10${sup(k)} = ${arg}.`);
+  // common: log alone is base 10. 10ᵏ written out, as a decimal or as a
+  // fraction, or a root of a power of 10, which is a fraction power.
+  const form = rng.pick(['plain', 'plain', 'over', 'root', 'root']);
+  if (form === 'plain') {
+    const k = rng.int(-6, 7);
+    const arg = k >= 0 ? String(10 ** k) : (10 ** k).toFixed(-k);
+    return evaluated(`log ${arg}`, `log(${arg})`, k, 1,
+      `log with no base written is base 10${k < 0 ? `, and ${arg} is 1/${10 ** -k}` : ''}: 10${sup(k)} = ${arg}.`);
+  }
+  if (form === 'over') {
+    const k = rng.int(1, 6);
+    return evaluated(`log(1/${10 ** k})`, `log(1/${10 ** k})`, -k, 1,
+      `log with no base written is base 10, and one over a power is a negative power: 1/${10 ** k} = 10${sup(-k)}.`);
+  }
+  const q = rng.pick([2, 2, 3, 4]), k = rng.int(1, 7);
+  if (gcd(k, q) !== 1) return evaluate(rng);
+  const over = rng.chance(0.25);
+  const r = q === 2 ? '√' : q === 3 ? '∛' : '∜';
+  const num = String(10 ** k);
+  const asciiArg = q === 2 ? `sqrt(${num})` : `root(${num}, ${q})`;
+  const word = q === 2 ? 'square' : q === 3 ? 'cube' : 'fourth';
+  return evaluated(over ? `log(1/${r}${num})` : `log ${r}${num}`, over ? `log(1/${asciiArg})` : `log(${asciiArg})`, over ? -k : k, q,
+    `log with no base written is base 10. ${num} = 10${sup(k)}, and a ${word} root is the power 1/${q}, so ${r}${num} is 10 to the power ${fx(k, q)}`
+    + `${over ? `; one over it turns the power negative, ${fx(-k, q)}` : ''}.`);
 }
 
 // --- Product, Quotient & Power ---------------------------------------------
@@ -232,7 +286,7 @@ function combined(shown, text, b, e, explain) {
 const LETTERS = [['x', 'y', 'z'], ['a', 'b', 'c'], ['m', 'n', 'p'], ['u', 'v', 'w']];
 
 function laws(rng) {
-  const kind = rng.pick(['product', 'quotient', 'quotient', 'power', 'three', 'condense', 'condense']);
+  const kind = rng.pick(['product', 'quotient', 'quotient', 'power', 'three', 'three', 'condense', 'condense', 'expand', 'expand']);
   if (kind === 'product') {
     for (;;) {
       const b = rng.pick([6, 10, 12, 14, 15]), e = rng.int(1, 3), R = b ** e;
@@ -280,35 +334,102 @@ function laws(rng) {
         `Adding multiplies and subtracting divides: ${shown} = ${L(b, `${x} × ${y}/${z}`)} = ${L(b, String(R))}.`);
     }
   }
-  // condense: chosen. Each wrong option is a law misused: the number in
-  // front left as a factor, a minus read as a plus, a sum of logs read as
-  // the log of a sum.
+  return kind === 'condense' ? condense(rng) : expand(rng);
+}
+
+/**
+ * The logs of a product, quotient and power as terms: [letter, power, sign].
+ * ln(x²y/z) is x to the 2 added, y added, z taken away.
+ */
+const LOG_PATTERNS = [
+  (k) => [['x', k, 1], ['y', 1, 1], ['z', 1, -1]],
+  (k) => [['x', 1, 1], ['y', k, -1]],
+  (k) => [['x', 1, 1], ['y', k, 1]],
+  (k) => [['x', k, 1], ['y', 1, -1], ['z', 1, -1]],
+  (k) => [['x', 1, 1], ['y', 1, 1], ['z', k, -1]],
+];
+
+/** The terms as one log's argument: x²y/z, x/(3y), or with `sum`, x² + y − z. */
+function inside(terms, { factor = false, sum = false } = {}) {
+  const atom = ([v, k]) => (k === 1 ? [v, v] : factor ? [`${k}*${v}`, `${k}${v}`] : [`${v}^${k}`, `${v}${sup(k)}`]);
+  if (sum) {
+    return terms.map((t, i) => {
+      const [a, l] = atom(t);
+      return i === 0 ? [a, l] : [`${t[2] < 0 ? ' - ' : ' + '}${a}`, `${t[2] < 0 ? ' − ' : ' + '}${l}`];
+    }).reduce(([a, l], [b, m]) => [a + b, l + m]);
+  }
+  const part = (ts) => {
+    const atoms = ts.map(atom);
+    return [atoms.map(([a]) => a).join('*'), atoms.map(([, l]) => l).join('')];
+  };
+  const top = terms.filter((t) => t[2] > 0), bottom = terms.filter((t) => t[2] < 0);
+  const [na, nl] = top.length ? part(top) : ['1', '1'];
+  if (!bottom.length) return [na, nl];
+  const [da, dl] = part(bottom);
+  const wrap = bottom.length > 1 || (factor && bottom.some(([, k]) => k > 1));
+  return [`${na}/${wrap ? `(${da})` : da}`, `${nl}/${wrap ? `(${dl})` : dl}`];
+}
+
+/** The terms as separate logs: 2 ln x + ln y − ln z, or with the slips. */
+function separate(terms, b, { squared = false, spread = false } = {}) {
+  const n = lname(b), an = aname(b);
+  const big = Math.max(...terms.map(([, k]) => k));
+  return terms.map(([v, k0, sign], i) => {
+    const k = spread ? big : k0;
+    const [a, l] = k === 1 ? [`${an}(${v})`, `${n} ${v}`]
+      : squared ? [`${an}(${v})^${k}`, `(${n} ${v})${sup(k)}`] : [`${k}${an}(${v})`, `${k} ${n} ${v}`];
+    if (i === 0) return [sign < 0 ? `-${a}` : a, sign < 0 ? `−${l}` : l];
+    return [`${sign < 0 ? ' - ' : ' + '}${a}`, `${sign < 0 ? ' − ' : ' + '}${l}`];
+  }).reduce(([a, l], [c, m]) => [a + c, l + m]);
+}
+
+/** The last term's sign turned over: a minus read as a plus, or a plus as a minus. */
+const lastFlipped = (terms) => terms.map((t, i) => (i === terms.length - 1 ? [t[0], t[1], -t[2]] : t));
+
+/** A law pattern drawn with one of the letter sets. */
+function lawTerms(rng, k) {
+  const [x, y, z] = rng.pick(LETTERS);
+  return rng.pick(LOG_PATTERNS)(k).map(([v, p, sg]) => [{ x, y, z }[v], p, sg]);
+}
+
+// requiem: catalogue/content/decoys-cross-two-slips
+// Condensed, the slips are the number in front left as a factor (3x for
+// x³), the last sign turned over, and a sum of logs read as the log of a
+// sum; two of them crossed make the four options.
+function condense(rng) {
   for (;;) {
     const b = rng.pick([2, 3, 4, 5, 7, 10, 'e']), k = rng.int(2, 4);
-    const [x, y, z] = rng.pick(LETTERS);
-    const n = lname(b), an = aname(b), K = sup(k);
-    const pattern = rng.int(0, 3);
-    const P = [
-      { shown: `${k} ${n} ${x} + ${n} ${y} − ${n} ${z}`, text: `${k}${an}(${x}) + ${an}(${y}) - ${an}(${z})`,
-        opts: [[`${x}^${k}*${y}/${z}`, `${x}${K}${y}/${z}`], [`${k}*${x}*${y}/${z}`, `${k}${x}${y}/${z}`],
-          [`${x}^${k}*${y}*${z}`, `${x}${K}${y}${z}`], [`${x}^${k} + ${y} - ${z}`, `${x}${K} + ${y} − ${z}`]],
-        why: `The ${k} in front becomes a power, ${k} ${n} ${x} = ${n} ${x}${K}; adding multiplies and subtracting divides.` },
-      { shown: `${n} ${x} − ${k} ${n} ${y}`, text: `${an}(${x}) - ${k}${an}(${y})`,
-        opts: [[`${x}/${y}^${k}`, `${x}/${y}${K}`], [`${x}/(${k}*${y})`, `${x}/(${k}${y})`],
-          [`${x}*${y}^${k}`, `${x}${y}${K}`], [`${x} - ${y}^${k}`, `${x} − ${y}${K}`]],
-        why: `The ${k} in front becomes a power, ${k} ${n} ${y} = ${n} ${y}${K}, and subtracting divides by it.` },
-      { shown: `${n} ${x} + ${k} ${n} ${y}`, text: `${an}(${x}) + ${k}${an}(${y})`,
-        opts: [[`${x}*${y}^${k}`, `${x}${y}${K}`], [`${k}*${x}*${y}`, `${k}${x}${y}`],
-          [`${x}/${y}^${k}`, `${x}/${y}${K}`], [`${x} + ${y}^${k}`, `${x} + ${y}${K}`]],
-        why: `The ${k} in front becomes a power, ${k} ${n} ${y} = ${n} ${y}${K}, and adding multiplies.` },
-      { shown: `${k} ${n} ${x} − ${n} ${y} − ${n} ${z}`, text: `${k}${an}(${x}) - ${an}(${y}) - ${an}(${z})`,
-        opts: [[`${x}^${k}/(${y}*${z})`, `${x}${K}/(${y}${z})`], [`${x}^${k}*${z}/${y}`, `${x}${K}${z}/${y}`],
-          [`${k}*${x}/(${y}*${z})`, `${k}${x}/(${y}${z})`], [`${x}^${k} - ${y} - ${z}`, `${x}${K} − ${y} − ${z}`]],
-        why: `The ${k} in front becomes a power, ${k} ${n} ${x} = ${n} ${x}${K}, and each log subtracted divides by its number.` },
-    ][pattern];
-    const opts = P.opts.map(([t, l]) => [`${an}(${t})`, `${n}(${l})`]);
-    const ask = choice([T.prose(`Write as a single logarithm: ${P.shown}`)], `condense: ${P.text}`, opts,
-      `${P.why} So ${opts[0][1]}.`);
+    const terms = lawTerms(rng, k);
+    const n = lname(b), an = aname(b);
+    const [shownA, shown] = separate(terms, b);
+    const SLIPS = [(o) => ({ ...o, factor: true }), (o) => ({ ...o, flip: true }), (o) => ({ ...o, sum: true })];
+    const [s1, s2] = rng.shuffle([0, 1, 2]).slice(0, 2).map((i) => SLIPS[i]);
+    const opts = crossed({}, s1, s2).map((o) => {
+      const [t, l] = inside(o.flip ? lastFlipped(terms) : terms, o);
+      return [`${an}(${t})`, `${n}(${l})`];
+    });
+    const kTerm = terms.find(([, p]) => p > 1);
+    const ask = choice([T.prose(`Write as a single logarithm: ${shown}`)], `condense: ${shownA}`, opts,
+      `The ${k} in front becomes a power, ${k} ${n} ${kTerm[0]} = ${n} ${kTerm[0]}${sup(k)}; adding a log multiplies by its number and subtracting divides by it. So ${opts[0][1]}.`);
+    if (ask) return ask(rng);
+  }
+}
+
+// Expanded, the slips are a power read as a power of the log ((ln x)² for
+// ln x²), the last sign turned over, and the power spread to every letter
+// (x²y read as (xy)²); two of them crossed make the four options.
+function expand(rng) {
+  for (;;) {
+    const b = rng.pick([2, 3, 4, 5, 7, 10, 'e']), k = rng.int(2, 4);
+    const terms = lawTerms(rng, k);
+    const n = lname(b), an = aname(b);
+    const [inA, inL] = inside(terms);
+    const SLIPS = [(o) => ({ ...o, squared: true }), (o) => ({ ...o, flip: true }), (o) => ({ ...o, spread: true })];
+    const [s1, s2] = rng.shuffle([0, 1, 2]).slice(0, 2).map((i) => SLIPS[i]);
+    const opts = crossed({}, s1, s2).map((o) => separate(o.flip ? lastFlipped(terms) : terms, b, o));
+    const kTerm = terms.find(([, p]) => p > 1);
+    const ask = choice([T.prose(`Expand using the laws of logs: ${n}(${inL})`)], `expand: ${an}(${inA})`, opts,
+      `A product inside becomes a sum of logs and a quotient a difference, the bottom's logs taken away. A power on one letter comes down in front of that letter's log only: ${n} ${kTerm[0]}${sup(k)} = ${k} ${n} ${kTerm[0]}. So ${opts[0][1]}.`);
     if (ask) return ask(rng);
   }
 }
@@ -316,7 +437,7 @@ function laws(rng) {
 // --- ln & Change of Base ---------------------------------------------------
 
 function changeBase(rng) {
-  const kind = rng.pick(['change', 'change', 'which', 'inverse', 'inverse']);
+  const kind = rng.pick(['change', 'change', 'change', 'which', 'which', 'which', 'inverse', 'inverse', 'inverse', 'inverse']);
   if (kind === 'change') {
     for (;;) {
       const b = rng.pick([2, 3, 4, 5, 6, 7, 8, 9, 12]), v = rng.int(2, 300), places = rng.pick([2, 3]);
@@ -338,15 +459,23 @@ function changeBase(rng) {
     }
   }
   if (kind === 'which') {
+    // requiem: catalogue/content/decoys-cross-two-slips
+    // Crossed slips: the quotient turned upside down, and one other misreading
+    // -- the log of the quotient, a difference of logs, or the base divided
+    // by rather than its log -- alone and with the flip.
     for (;;) {
       const b = rng.pick([2, 3, 4, 5, 6, 7, 9]), v = rng.int(2, 60);
       if (v === b || isPowerOf(v, b) || isPowerOf(b, v)) continue;
       const f = rng.pick(['ln', 'log']);
+      const slip = rng.pick(['inside', 'minus', 'bare']);
+      const form = (top, bottom) => (slip === 'inside' ? [`${f}(${top}/${bottom})`, `${f}(${top}/${bottom})`]
+        : slip === 'minus' ? [`${f}(${top}) - ${f}(${bottom})`, `${f} ${top} − ${f} ${bottom}`]
+          : [`${f}(${top})/${bottom}`, `${f} ${top} / ${bottom}`]);
       const opts = [
         [`${f}(${v})/${f}(${b})`, `${f} ${v} / ${f} ${b}`],
         [`${f}(${b})/${f}(${v})`, `${f} ${b} / ${f} ${v}`],
-        [`${f}(${v}) - ${f}(${b})`, `${f} ${v} − ${f} ${b}`],
-        [`${f}(${v})/${b}`, `${f} ${v} / ${b}`],
+        form(v, b),
+        form(b, v),
       ];
       const shown = L(b, String(v));
       const ask = choice([T.prose(`Which of these equals ${shown}?`)], `change of base: ${A(b, v)}`, opts,
@@ -404,8 +533,129 @@ function drawn(src) {
 /** B^(ax + c) in ASCII: 2^x, 2^(x + 1), 2^(3x). */
 const powerOf = (B, a, c) => (a === 1 && c === 0 ? `${B}^x` : `${B}^(${lin(a, c)})`);
 
+/** c ln a terms summed, as prose writes them: ln 2 − 3 ln 5, −ln 3. */
+function lnSum(parts) {
+  const out = [];
+  for (const [c, a] of parts) {
+    if (c === 0) continue;
+    const t = `${Math.abs(c) === 1 ? '' : `${Math.abs(c)} `}ln ${a}`;
+    out.push(out.length ? `${c < 0 ? '−' : '+'} ${t}` : `${c < 0 ? '−' : ''}${t}`);
+  }
+  return out.join(' ');
+}
+/** (ax + c) ln B as it comes down from the power: x ln 2, 2x ln 3, (x − 1) ln 5. */
+const downFrom = (a, c, B) => `${c === 0 ? lin(a, 0, true) : `(${lin(a, c, true)})`} ln ${B}`;
+/** 4-place natural log, as a calculator shows it. */
+const ln4 = (v) => Number(at4(Math.log(v)).replace('−', '-'));
+
+// requiem: catalogue/content/unlike-bases-by-logs
+// Two bases that are not powers of one number: take ln of both sides, bring
+// both powers down, and gather the x terms. 2ˣ = 3ˣ⁻¹ is x ln 2 = (x − 1) ln 3.
+function unlikeBases(rng) {
+  for (;;) {
+    const [B1, B2] = rng.shuffle([2, 3, 5, 6, 7]).slice(0, 2);
+    const p = rng.pick([1, 1, 1, 2]), q = rng.int(-3, 3), r = rng.pick([1, 1, 1, 2, 3]), t = rng.int(-3, 3);
+    if (q === 0 && t === 0 || p * Math.log(B1) === r * Math.log(B2)) continue;
+    // (px + q) ln B1 = (rx + t) ln B2: x(p ln B1 − r ln B2) = t ln B2 − q ln B1.
+    const solve = (l1, l2) => (t * l2 - q * l1) / (p * l1 - r * l2);
+    const x = solve(Math.log(B1), Math.log(B2));
+    const places = rng.pick([2, 3]);
+    const qx = safeRound(x, places, solve(ln4(B1), ln4(B2)));
+    if (qx === null || Math.abs(x) > 50) continue;
+    const src = `${powerOf(B1, p, q)} = ${powerOf(B2, r, t)}`;
+    const top = lnSum([[t, B2], [-q, B1]]), bottom = lnSum([[p, B1], [-r, B2]]);
+    return {
+      prompt: [T.prose('Solve'), ...drawn(src), T.prose(`, ${placeWords(places)}.`)],
+      text: `exp eq: ${src}${placeText(places)}`,
+      answer: roundedAnswer(qx, places),
+      visual: null,
+      explain: `${B1} and ${B2} are not powers of one number, so take ln of both sides; each power comes down in front: `
+        + `${downFrom(p, q, B1)} = ${downFrom(r, t, B2)}. Multiply out and gather the x terms on the left: `
+        + `x(${bottom}) = ${top}, so x = (${top}) / (${bottom}) ≈ ${at4(x)}. So x ≈ ${roundedText(qx, places)}.`,
+    };
+  }
+}
+
+/** A dollar amount as a story says it: $1,500. */
+const usd = (v) => `$${v.toLocaleString('en-US')}`;
+
+// requiem: catalogue/content/growth-solved-for-time
+// F-LE.4: the time a growth or decay story takes, solved with logs. The model
+// is the exponential skill's -- a yearly factor, a half-life, a continuous
+// rate -- and the question is when, not how much.
+function growthTime(rng) {
+  for (;;) {
+    const story = rng.pick(['interest', 'interest', 'double', 'halflife', 'halflife', 'continuous', 'continuous', 'value']);
+    const places = rng.pick([1, 1, 2]);
+    let A, src, want, alt, prompt, setup, unit = 'years';
+    if (story === 'interest' || story === 'double' || story === 'value') {
+      const up = story !== 'value';
+      const r = up ? rng.pick([2, 3, 4, 5, 6, 7, 8, 9, 10, 12]) : rng.pick([5, 8, 10, 12, 15, 20, 25]);
+      const B = (100 + (up ? r : -r)) / 100;
+      A = rng.pick(up ? [500, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000] : [12000, 15000, 18000, 20000, 24000, 30000]);
+      const V = story === 'double' ? 2 * A : up ? A * rng.pick([1.25, 1.5, 1.6, 1.75, 2.5, 3]) : A * rng.pick([0.2, 0.25, 0.4, 0.5, 0.6, 0.75]);
+      if (!Number.isInteger(V)) continue;
+      src = `${A}*(${B})^t = ${V}`;
+      want = Math.log(V / A) / Math.log(B);
+      alt = ln4(V / A) / ln4(B);
+      prompt = story === 'interest'
+        ? `${usd(A)} is saved at ${r}% interest a year, added on at the end of each year. After how many years is it worth ${usd(V)}? Give the time ${placeWords(places)}.`
+        : story === 'double'
+          ? `${usd(A)} is saved at ${r}% interest a year, added on at the end of each year. How many years does it take to double? Give the time ${placeWords(places)}.`
+          : `A car bought for ${usd(A)} loses ${r}% of its value each year. After how many years is it worth ${usd(V)}? Give the time ${placeWords(places)}.`;
+      const ratio = String(V / A);
+      setup = `Each year multiplies it by ${B}, so after t years it is ${A} × ${B}ᵗ. Set that equal to ${V} and divide by ${A}: ${B}ᵗ = ${ratio}. `
+        + `Take ln of both sides; the power comes down: t ln ${B} = ln ${ratio}, so t = ln ${ratio} / ln ${B}`;
+    } else if (story === 'halflife') {
+      const h = rng.pick([2, 3, 4, 5, 6, 8, 10, 12, 30]);
+      A = rng.pick([40, 60, 80, 100, 120, 200, 250, 500]);
+      const V = rng.pick([5, 10, 15, 20, 25, 30, 35, 45]);
+      if (V >= A || Number.isInteger(Math.log2(A / V))) continue;
+      unit = h === 30 ? 'years' : 'hours';
+      src = `${A}*(1/2)^(t/${h}) = ${V}`;
+      want = h * Math.log(A / V) / Math.log(2);
+      alt = h * ln4(A / V) / ln4(2);
+      prompt = h === 30
+        ? `${A} grams of a radioactive element has a half-life of ${h} years. After how many years are ${V} grams left? Give the time ${placeWords(places)}.`
+        : `A patient is given ${A} mg of a medicine with a half-life of ${h} hours. After how many hours are ${V} mg left? Give the time ${placeWords(places)}.`;
+      const ratio = fx(V, A);
+      setup = `Every ${h} ${unit} halves it, so after t ${unit} it is ${A} × (1/2) to the power t/${h}. Set that equal to ${V} and divide by ${A}: (1/2) to the power t/${h} is ${ratio}. `
+        + `Take ln of both sides; the power comes down: (t/${h}) ln(1/2) = ln(${ratio}), so t = ${h} ln(${ratio}) / ln(1/2)`;
+    } else {
+      const k = rng.pick([2, 3, 4, 5, 6, 8]);
+      A = rng.pick([200, 500, 1000, 2000, 5000, 12000]);
+      const V = A * rng.pick([1.5, 2, 2.5, 3, 4]);
+      if (!Number.isInteger(V)) continue;
+      const K = k / 100;
+      src = `${A}*e^(${K}t) = ${V}`;
+      want = Math.log(V / A) / K;
+      alt = ln4(V / A) / K;
+      const ratio = String(V / A);
+      const town = rng.chance(0.5);
+      prompt = town
+        ? [T.prose(`A town grows continuously: after t years its population is`), ...drawn(`${A}e^(${K}t)`),
+          T.prose(`. After how many years are there ${V.toLocaleString('en-US')} people? Give the time ${placeWords(places)}.`)]
+        : [T.prose(`${usd(A)} is invested at ${k}% a year compounded continuously, so after t years it is worth`), ...drawn(`${A}e^(${K}t)`),
+          T.prose(`dollars. After how many years is it worth ${usd(V)}? Give the time ${placeWords(places)}.`)];
+      setup = `Set ${A}e to the power ${K}t equal to ${V} and divide by ${A}: e to the power ${K}t is ${ratio}. ln undoes e, so take ln of both sides: ${K}t = ln ${ratio}, and t = ln ${ratio} / ${K}`;
+    }
+    const qt = safeRound(want, places, alt);
+    if (qt === null || want <= 0 || want > 80) continue;
+    return {
+      prompt: Array.isArray(prompt) ? prompt : [T.prose(prompt)],
+      text: `exp context: ${src}${placeText(places)}`,
+      answer: roundedAnswer(qt, places),
+      visual: null,
+      explain: `${setup} ≈ ${at4(want)}. So it takes about ${roundedText(qt, places)} ${unit}.`,
+    };
+  }
+}
+
 function expEquation(rng) {
-  if (rng.chance(0.5)) {
+  const kind = rng.pick(['one', 'one', 'one', 'logs', 'logs', 'unlike', 'unlike', 'context', 'context', 'context']);
+  if (kind === 'unlike') return unlikeBases(rng);
+  if (kind === 'context') return growthTime(rng);
+  if (kind === 'one') {
     // One base: both sides powers of c0.
     for (;;) {
       const c0 = rng.pick([2, 3, 5]), m = rng.int(1, 3), n = rng.int(-5, 7);

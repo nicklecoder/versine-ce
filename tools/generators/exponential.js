@@ -11,12 +11,14 @@
  * after a prefix naming what is asked, so scripts/check-answers.py can work
  * each answer out again. Arithmetic is exact: every factor is a fraction, and
  * a problem whose answer would not end within a few decimal places is never
- * made, so nothing is ever rounded.
+ * made, so nothing is ever rounded -- except in e and Continuous Growth,
+ * where e makes every value irrational and the question names the places.
  */
 import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
 import { previewOf } from '../../web/ui/express.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/exponential.js';
+import { safeRound, roundedAnswer, roundedText, placeWords, placeText } from './trig.js';
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 const Q = (n, d = 1) => { const g = gcd(n, d) * Math.sign(d); return { n: n / g, d: d / g }; };
@@ -373,7 +375,112 @@ function asymptote(rng) {
   };
 }
 
-const CONTENT = [growthOrDecay, readAB, percentFactor, compound, repeated, linearOrExp, asymptote];
+// --- e and Continuous Growth ---------------------------------------------------
+
+const TIMES = [[1, 'once a year'], [2, 'twice a year'], [4, 'quarterly, 4 times a year'], [12, 'monthly, 12 times a year'],
+  [52, 'weekly, 52 times a year'], [365, 'daily, 365 times a year']];
+
+/** A rounded answer, or null when it sits too near a halfway point to round safely. */
+function rounded(x, places) {
+  const q = safeRound(x, places);
+  return q === null ? null : roundedAnswer(q, places);
+}
+/** 4-place value, as a calculator shows it. */
+const four = (x) => minus(Number(x.toFixed(4)));
+
+// requiem: catalogue/content/e-met-before-ln
+// e is met as what compounding more and more often tends to: $1 at 100%
+// compounded n times is (1 + 1/n)ⁿ, which climbs towards 2.71828... and no
+// further. Continuous growth at rate r is then a·e^(rt), its rate read off
+// the exponent and its yearly factor e^r, a little more than 1 + r.
+function continuous(rng) {
+  const kind = rng.pick(['bernoulli', 'times', 'times', 'continuous', 'continuous', 'rate', 'factor', 'value', 'value']);
+  if (kind === 'bernoulli' || kind === 'times') {
+    for (;;) {
+      const [n, how] = rng.pick(TIMES);
+      const P = kind === 'bernoulli' ? 1 : rng.pick([100, 200, 500, 1000, 1500, 2000, 2500, 4000, 5000, 10000]);
+      const r = kind === 'bernoulli' ? 100 : rng.pick([2, 3, 4, 5, 6, 8, 10, 12]);
+      const t = kind === 'bernoulli' ? 1 : rng.pick([1, 2, 3, 5, 10, 20]);
+      const places = kind === 'bernoulli' ? rng.pick([3, 4]) : 2;
+      const x = P * (1 + r / 100 / n) ** (n * t);
+      const answer = rounded(x, places);
+      if (!answer || n === 1 && kind === 'times') continue;
+      return {
+        prompt: [T.prose(kind === 'bernoulli'
+          ? `$1 earns 100% interest a year, compounded ${how}. How much is it worth after 1 year, ${placeWords(places)}?`
+          : `$${P.toLocaleString('en-US')} is saved at ${r}% interest a year, compounded ${how}. How much is in the account after ${t} year${t === 1 ? '' : 's'}, to the nearest cent?`)],
+        text: `compounded: ${P} at ${r} ${n} times for ${t}${placeText(places)}`,
+        answer,
+        visual: null,
+        explain: `Compounded ${n === 1 ? 'once' : `${n} times`} a year, each time multiplies by 1 + ${r / 100}${n === 1 ? '' : `/${n}`}, ${n * t} time${n * t === 1 ? '' : 's'} in all: `
+          + `${P} × (1 + ${r / 100}${n === 1 ? '' : `/${n}`})${n * t === 1 ? '' : ` to the power ${n * t}`} ≈ ${four(x)}.`
+          + (kind === 'bernoulli' ? ' The more often it is compounded, the closer this comes to e = 2.71828..., and it never passes it.' : '')
+          + ` So ${kind === 'bernoulli' ? '' : '$'}${roundedText(answer.value.n, places)}.`,
+      };
+    }
+  }
+  if (kind === 'continuous') {
+    for (;;) {
+      const P = rng.pick([100, 200, 500, 1000, 1500, 2000, 2500, 4000, 5000, 10000]);
+      const r = rng.pick([2, 3, 4, 5, 6, 8, 10, 12]), t = rng.pick([1, 2, 3, 5, 8, 10, 15, 20]);
+      const x = P * Math.exp((r * t) / 100);
+      const answer = rounded(x, 2);
+      if (!answer) continue;
+      return {
+        prompt: [T.prose(`$${P.toLocaleString('en-US')} is saved at ${r}% interest a year, compounded continuously. How much is in the account after ${t} year${t === 1 ? '' : 's'}, to the nearest cent?`)],
+        text: `continuous: ${P} at ${r} for ${t} to 2 dp`,
+        answer,
+        visual: null,
+        explain: `Compounded continuously, more often than any number of times a year, it grows as P · e to the power rt, with r = ${r / 100} and t = ${t}: `
+          + `${P} × e to the power ${minus(+((r * t) / 100).toFixed(4))} ≈ ${four(x)}. So $${roundedText(answer.value.n, 2)}.`,
+      };
+    }
+  }
+  // A model a · e^(kt): its rate, its factor each step, or its value.
+  for (;;) {
+    const a = rng.pick([20, 50, 80, 100, 250, 300, 500, 1200, 2000]);
+    const pct = rng.pick([1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25]);
+    const up = rng.chance(0.6);
+    const k = (up ? pct : -pct) / 100;
+    const src = `${a}e^(${k}t)`;
+    if (kind === 'rate') {
+      return {
+        prompt: equation(src, `— by what percent does it ${up ? 'grow' : 'decay'} continuously?`),
+        text: `continuous rate: ${src}`,
+        answer: answerOf(Q(pct)),
+        visual: null,
+        explain: `In a · e to the power kt, k is the continuous rate: here k = ${minus(k)}, ${up ? 'positive, so growth' : 'negative, so decay'}, at ${pct}%.`,
+      };
+    }
+    if (kind === 'factor') {
+      const x = Math.exp(k);
+      const answer = rounded(x, 4);
+      if (!answer) continue;
+      return {
+        prompt: equation(src, `— y is multiplied by what each time t goes up 1, to 4 decimal places?`),
+        text: `continuous factor: ${src} to 4 dp`,
+        answer,
+        visual: null,
+        explain: `One more t multiplies by e to the power ${minus(k)}, whatever t was: e to the power ${minus(k)} ≈ ${four(x)}. `
+          + `${up ? `That is ${(100 * (x - 1)).toFixed(2)}% a step, a little more than the ${pct}% rate, since the growth is added on all the time.` : `That is a fall of ${(100 * (1 - x)).toFixed(2)}% a step, a little less than ${pct}%.`}`
+          + ` So ${roundedText(answer.value.n, 4)}.`,
+      };
+    }
+    const t = rng.pick([2, 3, 4, 5, 8, 10, 12, 20]);
+    const x = a * Math.exp(k * t);
+    const answer = rounded(x, 0);
+    if (!answer) continue;
+    return {
+      prompt: equation(src, `— its value when t = ${t}, to the nearest whole number?`),
+      text: `continuous value: ${src} at ${t} to the nearest whole`,
+      answer,
+      visual: null,
+      explain: `Put t = ${t} in the exponent: ${minus(k)} × ${t} = ${minus(+(k * t).toFixed(4))}, and ${a} × e to the power ${minus(+(k * t).toFixed(4))} ≈ ${four(x)}. So ${roundedText(answer.value.n, 0)}.`,
+    };
+  }
+}
+
+const CONTENT = [growthOrDecay, readAB, percentFactor, compound, repeated, linearOrExp, asymptote, continuous];
 
 /** @param {import('../../web/engine/rng.js').Rng} rng @param {number} level */
 export function generate(rng, level) {
