@@ -13,6 +13,27 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Vectors, parametric & polar, and conics, reviewed.** Parametric
+Motion asked how far a ball had gone after it had landed (79 of 245
+distance rows): every time asked is now before the landing, and
+`scripts/check-answers.py` works the landing out again and fails any row
+past it. The path is printed in half its rows, and the level adds the
+range, the greatest height and which equations model a throw. vectors
+gains a ninth level, Dot Product (u · v, the angle between two vectors,
+orthogonal, parallel or neither, and the k that makes two orthogonal), and
+Resultants asks a quarter of its rows on bearings. Unit Vectors says
+"exactly" on every row, and the vector box asks again for fractions when a
+decimal is typed for a component like 5/13; it reads −4j + 3i,
+3i + −4j and (3/5)i + (4/5)j. The roots box previews r =, y = or |v| = for
+the letter asked rather than x = for everything. Polar to Rectangular
+plots points on a new polar grid, which drawn polar graphs use too;
+Rectangular to Polar asks exact polar forms at special angles in degrees
+and radians, and other names for one point. Plot Parametric asks which way
+a curve runs; conics' Writing the Equation starts from the foci and a
+constant sum or difference. Plot Parametric now depends on the unit
+circle's Special Angles and Polar to Rectangular on Around the Circle,
+the other way round from before.
+
 **Parametric & Polar** (`parametric-polar`), a new skill under Vectors &
 Polar, in eight levels: Plot Parametric, Eliminate the Parameter,
 Parametric Motion, Polar to Rectangular, Rectangular to Polar, Converting

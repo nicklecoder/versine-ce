@@ -87,6 +87,15 @@ function windowAround(points, margin = 1) {
 function plane(win, marks, answer) {
   return { kind: 'plane', xRange: [win.x0, win.x1], yRange: [win.y0, win.y1], grid: 1, marks, answer };
 }
+/**
+ * A polar grid out to M: rings a unit apart and spokes every 15°, angles
+ * written every 30°, in place of the square grid, so a point or a curve is
+ * read by its r and θ rather than its x and y.
+ */
+// requiem: play/visuals/polar-grid-on-the-plane
+function polarPlane(M, marks, answer) {
+  return { kind: 'plane', xRange: [-M, M], yRange: [-M, M], grid: 0, polar: { ring: 1, spokes: 15 }, marks, answer };
+}
 /** A parametric curve, split at the window, with a head on the last piece showing which way t runs. */
 function traced(f, t0, t1, win) {
   const pieces = clipped(f, t0, t1, win);
@@ -107,7 +116,11 @@ function polyCurve(rng) {
 }
 
 function plotParametric(rng) {
-  const shape = rng.pick(['point', 'point', 'point', 'point', 'trig', 'trig', 'when', 'when', 'cross', 'cross']);
+  // requiem: catalogue/content/parametric-orientation-asked
+  // Finding a point is two of the five shapes, not most of the level: the
+  // way the curve runs as t grows is asked as often as either other shape.
+  const shape = rng.pick(['point', 'trig', 'when', 'cross', 'orient']);
+  if (shape === 'orient') return orientation(rng);
   if (shape === 'trig') {
     const A = rng.int(2, 6), B = rng.int(2, 6), h = rng.int(-4, 4), k = rng.int(-4, 4);
     const t = rng.pick([0, 90, 180, 270]);
@@ -149,7 +162,7 @@ function plotParametric(rng) {
       text: `param when: x = ${C.xs}; y = ${C.ys} at ${ptA(X, Y)}`,
       answer: fracAnswer(t),
       visual: null,
-      explain: `x is ${minus(X)} there: ${pretty(C.xs)} = ${minus(X)}, so ${C.a === 1 ? '' : `${C.a === -1 ? '−' : minus(C.a)}t = ${minus(X - C.b)} and `}t = ${minus(t)}. Check y: ${sub(C.ys, t)} = ${minus(Y)}, as it should be. So t = ${minus(t)}.`,
+      explain: `x is ${minus(X)} there: ${pretty(C.xs)} = ${minus(X)}, so ${C.a === 1 || C.b === 0 ? '' : `${C.a === -1 ? '−' : minus(C.a)}t = ${minus(X - C.b)} and `}t = ${minus(t)}. Check y: ${sub(C.ys, t)} = ${minus(Y)}, as it should be. So t = ${minus(t)}.`,
     };
   }
   // Where it crosses the y-axis: x = 0 fixes t, which may be a fraction.
@@ -162,6 +175,40 @@ function plotParametric(rng) {
     answer: pairAnswer(0, Y),
     visual: null,
     explain: `On the y-axis x = 0: ${pretty(C.xs)} = 0, so t = ${qs(t)}. Then y = ${sub(C.ys, qs(t).replace('−', '-'))} = ${qs(Y)}. So it crosses at ${pt(0, Y)}.`,
+  };
+}
+
+const PLACE = { 'right of': 'right', 'left of': 'left', above: 'top', below: 'bottom' };
+/** Where a point sits from a center, along an axis: right of, above. */
+function sideOf(P, h, k) {
+  if (P[0] > h) return 'right of';
+  if (P[0] < h) return 'left of';
+  return P[1] > k ? 'above' : 'below';
+}
+
+/**
+ * Which way an ellipse x = ±A cos t + h, y = ±B sin t + k (or with cos and
+ * sin traded) is traced as t grows: the menu is Clockwise and
+ * Counterclockwise, keyed half each, since a sign or a trade turns it.
+ * Asked without a drawing: the arrow a traced curve carries is the answer.
+ */
+function orientation(rng) {
+  const A = rng.int(2, 6), B = rng.int(2, 6), h = rng.int(-4, 4), k = rng.int(-4, 4);
+  const xf = rng.pick(['cos', 'sin']), yf = xf === 'cos' ? 'sin' : 'cos';
+  const sx = rng.sign(), sy = rng.sign();
+  const f = (fn, t) => Math.round(fn === 'cos' ? cosD(t) : sinD(t));
+  const at = (t) => [sx * A * f(xf, t) + h, sy * B * f(yf, t) + k];
+  const xs = `${sx < 0 ? '-' : ''}${A}${xf}(t)${plusK(h)}`, ys = `${sy < 0 ? '-' : ''}${B}${yf}(t)${plusK(k)}`;
+  const P0 = at(0), P1 = at(90);
+  const cross = (P0[0] - h) * (P1[1] - k) - (P0[1] - k) * (P1[0] - h);
+  const ccw = cross > 0;
+  return {
+    prompt: [T.prose(`A curve is traced by x = ${pretty(xs)} and y = ${pretty(ys)}, with t in degrees. As t increases from 0° to 360°, which way does it go round?`)],
+    text: `param orientation: x = ${xs}; y = ${ys}`,
+    answer: choice(ccw ? 'ccw' : 'cw', [['cw', 'Clockwise'], ['ccw', 'Counterclockwise']]),
+    visual: null,
+    explain: `It goes round the center (${minus(h)}, ${minus(k)}). At t = 0° it is at ${pt(...P0)}, ${sideOf(P0, h, k)} the center; at t = 90° it is at ${pt(...P1)}, ${sideOf(P1, h, k)} it. `
+      + `A quarter turn from the ${PLACE[sideOf(P0, h, k)]} to the ${PLACE[sideOf(P1, h, k)]} is ${ccw ? 'counterclockwise' : 'clockwise'}. So it goes round ${ccw ? 'counterclockwise' : 'clockwise'}.`,
   };
 }
 
@@ -186,13 +233,18 @@ function eliminate(rng) {
       const m = Q(c, a), k = Q(d * a - c * b, a);
       if (a === 1 && rng.chance(0.5)) continue;
       const xs = lin(a, b), ys = lin(c, d);
-      const tIs = a === 1 ? `x ${b < 0 ? '+' : '−'} ${Math.abs(b)}`.replace(/ [+−] 0$/, '') : `(x ${b < 0 ? '+' : '−'} ${Math.abs(b)})/${minus(a)}`.replace(/ [+−] 0\)/, ')');
+      // t = (x − b)/a, with a negative a's sign in front: −(x + 6)/4.
+      const top = b === 0 ? 'x' : `x ${b < 0 ? '+' : '−'} ${Math.abs(b)}`;
+      const bracket = b === 0 ? 'x' : `(${top})`;
+      const tIs = a === 1 ? top : a === -1 ? `−${bracket}` : `${a < 0 ? '−' : ''}${bracket}/${Math.abs(a)}`;
+      const cT = c === 1 ? '' : c === -1 ? '−' : minus(c);
+      const yLine = `${qs(m) === '1' ? '' : qs(m) === '−1' ? '−' : m.d === 1 ? qs(m) : `(${qs(m)})`}x${k.n ? ` ${k.n < 0 ? '−' : '+'} ${qs(Q(Math.abs(k.n), k.d))}` : ''}`;
       return {
         prompt: [T.prose('Eliminate the parameter:'), eq(`x = ${xs}`), T.prose('and'), eq(`y = ${ys}`), T.prose('. Write y in terms of x.')],
         text: `eliminate line: x = ${xs}; y = ${ys}`,
         answer: { type: 'linear', value: { m, b: k } },
         visual: null,
-        explain: `Solve the first for t: t = ${tIs}. Put that into y = ${pretty(ys)}: the slope is ${minus(c)} ÷ ${minus(a)} = ${qs(m)}, and at x = 0, t = ${qs(Q(-b, a))}, so y = ${qs(k)}. So y = ${qs(m) === '1' ? '' : qs(m) === '−1' ? '−' : m.d === 1 ? qs(m) : `(${qs(m)})`}x${k.n ? ` ${k.n < 0 ? '−' : '+'} ${qs(Q(Math.abs(k.n), k.d))}` : ''}.`,
+        explain: `Solve the first for t: t = ${tIs}. Put that into y = ${pretty(ys)}: y = ${cT}(${tIs})${d ? ` ${d < 0 ? '−' : '+'} ${Math.abs(d)}` : ''} = ${yLine}. So y = ${yLine}.`,
       };
     }
   }
@@ -209,7 +261,7 @@ function eliminate(rng) {
       text: `eliminate: x = ${xs}; y = ${ys}; options ${listing}`,
       answer: choice(key, labels),
       visual: null,
-      explain: `From x = ${pretty(xs)}, t = ${pretty(shifted('x', h))}/${c}. Square it and put it into y: y = ${a === 1 ? '' : a === -1 ? '−' : a}${pretty(shifted('x', h))}²/${c * c}${pretty(plusK(k))}, which is ${pretty(opts[0])}. `
+      explain: `From x = ${pretty(xs)}, t = ${pretty(shifted('x', h))}/${c}. Square it and put it into y: y = ${a === 1 ? '' : a === -1 ? '−' : minus(a)}${pretty(shifted('x', h))}²/${c * c}${pretty(plusK(k))}, which is ${pretty(opts[0])}. `
         + `The others: ${pretty(opts[1])} turns the sign in the bracket; ${pretty(opts[2])} divides by ${c} instead of ${c}² = ${c * c}; ${pretty(opts[3])} does both.`,
     };
   }
@@ -242,51 +294,96 @@ function eliminate(rng) {
 const THROWS = [
   (v, t, h) => `A ball is thrown at ${v} ft/s at ${t}° above the horizontal from ${h} ft above the ground.`,
   (v, t, h) => `An arrow leaves a bow at ${v} ft/s, ${t}° above the horizontal, ${h} ft above the ground.`,
-  (v, t, h) => `A water balloon is launched at ${v} ft/s at ${t}° from a height of ${h} ft.`,
+  (v, t, h) => `A water balloon is launched at ${v} ft/s at ${t}° above the horizontal from a height of ${h} ft.`,
   (v, t) => `A golf ball is hit from the ground at ${v} ft/s at ${t}° above the horizontal.`,
 ];
 
+/** The path as written: x = (40 cos 31°)t and y = 5 + (40 sin 31°)t − 16t². */
+const pathOf = (v, th, h) => `x = (${v} cos ${th}°)t and y = ${h ? `${h} + ` : ''}(${v} sin ${th}°)t − 16t²`;
+
+/**
+ * A thrown ball, x = (v cos θ)t and y = h + (v sin θ)t − 16t². Half the
+ * rows print that path and half give only the speed, the angle and the
+ * height, so the student writes it; a quarter of the level asks which
+ * equations model the throw. Every time asked about is before it lands.
+ */
+// requiem: catalogue/content/motion-asked-in-the-air
+// requiem: catalogue/content/motion-model-not-always-given
 function motion(rng) {
-  const want = rng.pick(['height', 'distance', 'landing', 'top']);
+  const want = rng.pick(['height', 'distance', 'landing', 'top', 'range', 'peak', 'model', 'model']);
+  if (want === 'model') return motionModel(rng);
   for (;;) {
     const story = rng.int(0, THROWS.length - 1);
     const v = rng.int(4, 18) * 5, th = rng.int(15, 75), h = story === 3 ? 0 : rng.int(1, 8);
     const s = sinD(th), c = cosD(th), s4 = four(s), c4 = four(c);
     const land = (vs) => (vs + Math.sqrt(vs * vs + 64 * h)) / 32;
-    const flight = land(v * s);
+    const flight = land(v * s), flight4 = land(v * s4);
     const t = rng.pick([0.5, 1, 1.5, 2, 2.5, 3]);
-    if (want === 'height' && t >= flight - 0.1) continue;
+    // After it lands there is no height or distance to ask about.
+    if ((want === 'height' || want === 'distance') && t >= flight - 0.1) continue;
     let exact, alt;
     if (want === 'height') { exact = h + v * s * t - 16 * t * t; alt = h + v * s4 * t - 16 * t * t; }
     else if (want === 'distance') { exact = v * c * t; alt = v * c4 * t; }
-    else if (want === 'landing') { exact = flight; alt = land(v * s4); }
-    else { exact = (v * s) / 32; alt = (v * s4) / 32; }
+    else if (want === 'landing') { exact = flight; alt = flight4; }
+    else if (want === 'top') { exact = (v * s) / 32; alt = (v * s4) / 32; }
+    else if (want === 'range') { exact = v * c * flight; alt = v * c4 * flight4; }
+    else { exact = h + (v * s) ** 2 / 64; alt = h + (v * s4) ** 2 / 64; }
     const q = safeRound(exact, 1, alt);
     if (q === null) continue;
+    const given = rng.chance(0.5);
     const words = THROWS[story](v, th, h);
-    const eqs = `Its path is x = (${v} cos ${th}°)t and y = ${h ? `${h} + ` : ''}(${v} sin ${th}°)t − 16t², in feet, with t in seconds.`;
+    const eqs = given ? `Its path is ${pathOf(v, th, h)}, in feet, with t in seconds.` : 'Gravity pulls it down 16t² ft in t seconds.';
     const ask = {
       height: `How high is it after ${t} s, in feet, to 1 decimal place?`,
       distance: `How far has it gone horizontally after ${t} s, in feet, to 1 decimal place?`,
       landing: 'When does it hit the ground, in seconds, to 1 decimal place?',
       top: 'When is it highest, in seconds, to 1 decimal place?',
+      range: 'How far has it gone horizontally when it hits the ground, in feet, to 1 decimal place?',
+      peak: 'What is the greatest height it reaches, in feet, to 1 decimal place?',
     }[want];
     const vs = at4(v * s4), vc = at4(v * c4);
+    const landing = h ? `y = 0 when 16t² − ${vs}t − ${h} = 0. By the quadratic formula, the positive root is t = (${vs} + √(${vs}² + 64 × ${h}))/32 ≈ ${at4(flight4)}`
+      : `y = 0 when t(${vs} − 16t) = 0, so besides t = 0 it lands at t = ${vs}/16 ≈ ${at4(flight4)}`;
     const how = {
       height: `y = ${h ? `${h} + ` : ''}${vs}(${t}) − 16(${t})² ≈ ${at4(alt)}`,
       distance: `x = ${vc}(${t}) ≈ ${at4(alt)}`,
-      landing: h ? `y = 0 when 16t² − ${vs}t − ${h} = 0. By the quadratic formula, the positive root is t = (${vs} + √(${vs}² + 64 × ${h}))/32 ≈ ${at4(alt)}`
-        : `y = 0 when t(${vs} − 16t) = 0, so besides t = 0 it lands at t = ${vs}/16 ≈ ${at4(alt)}`,
+      landing,
       top: `y = ${h ? `${h} + ` : ''}${vs}t − 16t² is a parabola opening down, highest at t = −b/(2a) = ${vs}/32 ≈ ${at4(alt)}`,
+      range: `${landing}. Then x = ${vc} × ${at4(flight4)} ≈ ${at4(alt)}`,
+      peak: `y = ${h ? `${h} + ` : ''}${vs}t − 16t² is highest at t = ${vs}/32 ≈ ${at4((v * s4) / 32)}, where y = ${h ? `${h} + ` : ''}${vs}²/64 ≈ ${at4(alt)}`,
     }[want];
+    const feet = want !== 'landing' && want !== 'top';
     return {
       prompt: [T.prose(`${words} ${eqs} ${ask}`)],
-      text: `motion ${want}: v ${v} at ${th} degrees from ${h} ft${want === 'height' || want === 'distance' ? ` after ${t} s` : ''} to 1 dp`,
+      text: `motion ${want}: v ${v} at ${th} degrees from ${h} ft${want === 'height' || want === 'distance' ? ` after ${t} s` : ''} to 1 dp${given ? ' with its path' : ''}`,
       answer: roundedAnswer(q, 1),
       visual: null,
-      explain: `${v} sin ${th}° ≈ ${vs} and ${v} cos ${th}° ≈ ${vc}. ${how}. So it is ${roundedText(q, 1)} ${want === 'height' || want === 'distance' ? 'ft' : 's'}.`,
+      explain: `${given ? '' : `Its path is ${pathOf(v, th, h)}. `}${v} sin ${th}° ≈ ${vs} and ${v} cos ${th}° ≈ ${vc}. ${how}. So it is ${roundedText(q, 1)} ${feet ? 'ft' : 's'}.`,
     };
   }
+}
+
+/**
+ * Which equations model a throw. Two slips crossed: cos and sin traded
+ * between x and y, and gravity's 32 ft/s² put in whole where half of it,
+ * 16, belongs.
+ */
+function motionModel(rng) {
+  const story = rng.int(0, THROWS.length - 1);
+  const v = rng.int(4, 18) * 5, th = rng.int(15, 75), h = story === 3 ? 0 : rng.int(1, 8);
+  if (th === 45) return motionModel(rng);
+  const make = (swap, g) => `x = (${v}${swap ? 'sin' : 'cos'}(${th}°))t, y = ${h ? `${h} + ` : ''}(${v}${swap ? 'cos' : 'sin'}(${th}°))t - ${g}t^2`;
+  const opts = [make(false, 16), make(true, 16), make(false, 32), make(true, 32)];
+  const { key, listing, labels } = shuffled(rng, opts);
+  const show = (o) => pretty(o).replace(/(\d)(cos|sin)/g, '$1 $2');
+  return {
+    prompt: [T.prose(`${THROWS[story](v, th, h)} Which equations model its path, with x and y in feet and t in seconds?`)],
+    text: `motion model: v ${v} at ${th} degrees from ${h} ft; options ${listing}`,
+    answer: choice(key, labels.map(([id, label]) => [id, label.replace(/(\d)(cos|sin)/g, '$1 $2')])),
+    visual: null,
+    explain: `Across, it keeps the horizontal part of its velocity, ${v} cos ${th}° ft/s; up, it starts with the vertical part, ${v} sin ${th}° ft/s${h ? `, from ${h} ft` : ''}, and gravity's 32 ft/s² takes ½ × 32t² = 16t² off its height. So ${show(opts[0])}. `
+      + `The others: ${show(opts[1])} trades cos and sin; ${show(opts[2])} takes off 32t², the whole of gravity's 32 where half belongs; ${show(opts[3])} does both.`,
+  };
 }
 
 /** (n/d)√r as written, with a real minus sign: −3√2/2, √3, −5, 0. */
@@ -302,7 +399,50 @@ function exact(n, d, r) {
 
 const SPECIAL = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
 
+const LETTERS = ['A', 'B', 'C', 'D'];
+
+/**
+ * Which of four points on a polar grid is (r, θ). Two slips crossed, each a
+ * real misreading: with a negative r, its sign ignored and θ turned
+ * clockwise; with a positive r, θ turned clockwise and measured from the
+ * positive y-axis. The four letters are the menu and the key moves among
+ * them.
+ */
+// requiem: catalogue/content/polar-points-plotted-on-a-polar-grid
+function polarPlot(rng) {
+  const neg = rng.chance(0.5);
+  const size = rng.int(1, 5), r = neg ? -size : size;
+  // A positive r keeps to the 30° family: at 45° clockwise from the y-axis
+  // and counterclockwise from the x-axis are one direction.
+  const deg = rng.pick(SPECIAL.filter((d) => d % 90 && (neg || d % 30 === 0)));
+  const radians = rng.chance(0.4);
+  const norm = (d) => ((d % 360) + 360) % 360;
+  // The direction each reading puts the point in, at distance |r|.
+  const dirs = neg ? [deg + 180, deg, 180 - deg, -deg] : [deg, -deg, 90 + deg, 90 - deg];
+  const order = rng.shuffle([0, 1, 2, 3]);
+  const at = (d) => [+(size * cosD(d)).toFixed(3), +(size * sinD(d)).toFixed(3)];
+  const letterOf = (j) => LETTERS[order.indexOf(j)];
+  const marks = order.map((j, i) => ({ kind: 'point', at: at(dirs[j]), tone: LINE, label: LETTERS[i] }));
+  const ang = angleText(deg, radians);
+  const way = neg
+    ? `θ = ${ang} points one way, and a negative r goes ${size} the opposite way, along ${angleText(norm(deg + 180), radians)}`
+    : `Turn ${ang} counterclockwise from the positive x-axis and go out ${size}`;
+  const others = neg
+    ? `${letterOf(1)} ignores the sign of r; ${letterOf(2)} turns θ clockwise; ${letterOf(3)} does both`
+    : `${letterOf(1)} turns θ clockwise; ${letterOf(2)} measures θ from the positive y-axis; ${letterOf(3)} turns it clockwise from the positive y-axis`;
+  return {
+    prompt: [T.prose(`Which point is the polar point (r, θ) = (${minus(r)}, ${ang})?`)],
+    // Where each letter is drawn, so two layouts of one point are two rows.
+    text: `polar plot: r = ${r} at ${deg} degrees${radians ? ' as radians' : ''}; options ${marks.map((mk) => `${mk.label}: (${mk.at[0]}, ${mk.at[1]})`).join(' | ')}`,
+    answer: choice(letterOf(0), LETTERS.map((l) => [l, l])),
+    visual: polarPlane(size + 2, marks, [{ kind: 'point', at: at(dirs[0]), tone: ASKED, label: `(${minus(r)}, ${ang})` }]),
+    explain: `${way}. That is point ${letterOf(0)}. The others: ${others}. So it is ${letterOf(0)}.`,
+  };
+}
+
 function polarToRect(rng) {
+  // requiem: catalogue/content/polar-points-plotted-on-a-polar-grid
+  if (rng.chance(0.25)) return polarPlot(rng);
   for (;;) {
     const want = rng.pick(['x', 'y']);
     const rr = (rng.chance(0.2) ? -1 : 1) * rng.int(1, 10);
@@ -338,16 +478,97 @@ function placed(x, y, ref) {
   return [360 - ref, `In quadrant IV, θ = 360° − ${at4(ref)}°`];
 }
 
+/** (n/d)√r with whole n as ASCII the checker reads: -2sqrt(3), 4, 3sqrt(3)/2. */
+const exactA = (n, d, r) => `${n < 0 ? '-' : ''}${r === 1 ? Math.abs(n) : `${Math.abs(n) === 1 ? '' : Math.abs(n)}sqrt(${r})`}${d === 1 ? '' : `/${d}`}`;
+const refAngleOf = (d) => [d, 180 - d, d - 180, 360 - d][Math.floor(d / 90)];
+
+/**
+ * A point at a special angle in exact polar form, θ in degrees or radians:
+ * (−1, √3) is (2, 2π/3). Two slips crossed: r left as x² + y², the root
+ * forgotten, and θ half a turn out, since the inverse tangent cannot tell
+ * (x, y) from (−x, −y).
+ */
+// requiem: catalogue/content/exact-polar-form-at-special-angles
+function exactPolar(rng) {
+  const radians = rng.chance(0.5);
+  const deg = rng.pick(SPECIAL.filter((d) => d % 90));
+  const k = rng.int(1, 4);
+  // The 45° family at r = k√2 and the 30° family at r = 2k, so x and y are
+  // k or k√3, nothing over 2.
+  const fam45 = deg % 45 === 0;
+  const R2 = fam45 ? 2 * k * k : 4 * k * k;
+  const coord = (fn) => {
+    const v = exactTrig(fn, deg);
+    // R × (n/d)√m: the √2s meet for the 45s, and 2k over 2 for the 30s.
+    if (fam45) return { n: (k * 2 * v.n) / v.d, d: 1, r: 1 };
+    return { n: (2 * k * v.n) / v.d, d: 1, r: v.r };
+  };
+  const X = coord('cos'), Y = coord('sin');
+  const rText = fam45 ? `${k === 1 ? '' : k}√2` : String(2 * k);
+  const norm = (d) => ((d % 360) + 360) % 360;
+  const make = (squared, turned) => `(${squared ? R2 : rText}, ${angleText(turned ? norm(deg + 180) : deg, radians)})`;
+  const opts = [make(false, false), make(true, false), make(false, true), make(true, true)];
+  const { key, listing, labels } = shuffled(rng, opts);
+  const quadrant = deg < 90 ? 'I' : deg < 180 ? 'II' : deg < 270 ? 'III' : 'IV';
+  const sq = (v) => v.n * v.n * v.r;
+  const shown = (v) => exact(v.n, v.d, v.r);
+  const inBr = (v) => (v.n < 0 ? `(${shown(v)})` : shown(v));
+  return {
+    prompt: [T.prose(`Write the point (${shown(X)}, ${shown(Y)}) in polar form (r, θ), with r > 0 and θ ${radians ? 'in radians from 0 to 2π' : 'in degrees from 0° to 360°'}.`)],
+    text: `polar form: (${exactA(X.n, X.d, X.r)}, ${exactA(Y.n, Y.d, Y.r)}) ${radians ? 'radians' : 'degrees'}; options ${listing}`,
+    answer: choice(key, labels),
+    visual: null,
+    explain: `r = √(${inBr(X)}² + ${inBr(Y)}²) = √(${sq(X)} + ${sq(Y)}) = √${R2} = ${rText}. The point is in quadrant ${quadrant}, and its reference angle is ${angleText(refAngleOf(deg), radians)}, so θ = ${angleText(deg, radians)}. So it is ${opts[0]}. `
+      + `The others: ${opts[1]} leaves r as x² + y² = ${R2}, without the root; ${opts[2]} is half a turn out, the point (${shown({ ...X, n: -X.n })}, ${shown({ ...Y, n: -Y.n })}), whose tan θ is the same; ${opts[3]} does both.`,
+  };
+}
+
+/**
+ * Another polar name for one point: a negative r half a turn round, or the
+ * same r a whole turn round. Two slips crossed: r's sign turned with θ left
+ * alone (the point opposite), and θ measured clockwise (the point reflected
+ * in the x-axis).
+ */
+// requiem: catalogue/content/polar-points-have-many-names
+function polarNames(rng) {
+  const radians = rng.chance(0.5);
+  const r = rng.int(1, 9), deg = rng.pick(SPECIAL.filter((d) => d % 90));
+  const form = rng.pick(['neg+', 'neg-', 'co+', 'co-']);
+  const [kr, kd] = { 'neg+': [-r, deg + 180], 'neg-': [-r, deg - 180], 'co+': [r, deg + 360], 'co-': [r, deg - 360] }[form];
+  const opts = [[kr, kd], [-kr, kd], [kr, -kd], [-kr, -kd]];
+  const order = rng.shuffle([0, 1, 2, 3]);
+  const name = ([rr, d]) => `(${minus(rr)}, ${angleText(d, radians)})`;
+  const key = IDS[order.indexOf(0)];
+  const listing = order.map((j, i) => `${IDS[i]}: (${opts[j][0]}, ${opts[j][1]})`).join(' | ');
+  const half = form.startsWith('neg');
+  const turn = radians ? (half ? 'π' : '2π') : (half ? '180°' : '360°');
+  const adding = form.endsWith('+') ? 'adding' : 'taking away';
+  const why = half
+    ? `A negative r goes the opposite way along θ, so turning θ half a turn (${adding} ${turn}) and making r negative lands on the same point`
+    : `A whole turn points the same way, so ${adding} ${turn} and keeping r names the same point`;
+  return {
+    prompt: [T.prose(`Which polar coordinates name the same point as (r, θ) = (${r}, ${angleText(deg, radians)})?`)],
+    text: `polar same point: (${r}, ${deg}) ${radians ? 'radians' : 'degrees'}; options ${listing}`,
+    answer: choice(key, order.map((j, i) => [IDS[i], name(opts[j])])),
+    visual: null,
+    explain: `${why}: ${name(opts[0])}. The others: ${name(opts[1])} is the point opposite it, through the origin; ${name(opts[2])} measures the angle clockwise, the point reflected in the x-axis; ${name(opts[3])} does both. So it is ${name(opts[0])}.`,
+  };
+}
+
 function rectToPolar(rng) {
-  if (rng.chance(0.5)) {
+  const shape = rng.pick(['r', 'r', 'r', 'angle', 'angle', 'angle', 'exact', 'exact', 'names', 'names']);
+  if (shape === 'exact') return exactPolar(rng);
+  if (shape === 'names') return polarNames(rng);
+  if (shape === 'r') {
     let x, y;
     do { x = rng.int(-10, 10); y = rng.int(-10, 10); } while (!x || !y);
     const n = x * x + y * y, { s, r } = surd(n);
     const simplified = r === 1 ? `√${n} = ${s}` : s === 1 ? `√${n}` : `√${n} = ${rootText(s, 1, r)}`;
     return {
-      prompt: [T.prose(`The point ${pt(x, y)} is written in polar form (r, θ) with r > 0. What is r? Give it exactly, in simplest radical form.`)],
+      prompt: [T.prose(`The point ${pt(x, y)} is written in polar form (r, θ) with r > 0. What is r? Give it exactly, with any radical in simplest form.`)],
       text: `polar r: ${ptA(x, y)}`,
-      answer: { ...rootAnswer('x', s, 1, r), requireSimplest: true },
+      // requiem: play/answers/roots-preview-names-the-asked-letter
+      answer: { ...rootAnswer('r', s, 1, r), requireSimplest: true },
       visual: null,
       explain: `r is the distance from the origin: r = √(${x < 0 ? `(${minus(x)})` : x}² + ${y < 0 ? `(${minus(y)})` : y}²) = √(${x * x} + ${y * y}) = ${simplified}. So r = ${rootText(s, 1, r)}.`,
     };
@@ -491,7 +712,10 @@ function polarGraphs(rng) {
   }
   if (shape === 'name') {
     // requiem: catalogue/content/fixed-menu-key-moves
-    const C = polarCurve(rng, rng.pick(['rose', 'circle', 'cardioid', 'limacon']), true);
+    // A cardioid's and a circle's equations are few beside a rose's and a
+    // limaçon's, and the build keeps distinct rows only, so they are drawn
+    // more often for each name to be the key about as often.
+    const C = polarCurve(rng, rng.pick(['cardioid', 'cardioid', 'cardioid', 'cardioid', 'cardioid', 'cardioid', 'circle', 'circle', 'circle', 'circle', 'rose', 'rose', 'limacon', 'limacon']), true);
     return {
       prompt: [T.prose(`What kind of curve is ${pretty(C.src)}?`)],
       text: `polar curve: ${C.src}`,
@@ -533,7 +757,8 @@ function polarGraphs(rng) {
     prompt: [T.prose('Which polar equation is graphed?')],
     text: `polar graph: through ${at}; options ${listing}`,
     answer: choice(key, labels),
-    visual: plane({ x0: -M, x1: M, y0: -M, y1: M }, [{ kind: 'path', points, tone: LINE }],
+    // requiem: play/visuals/polar-grid-on-the-plane
+    visual: polarPlane(M, [{ kind: 'path', points, tone: LINE }],
       [{ kind: 'point', at: farPt, tone: ASKED, label: `r = ${minus(C.max)}` }, { kind: 'text', at: [-M + 0.3, M - 0.6], label: pretty(C.src), tone: ASKED }]),
     explain: `${why(C)}. It is ${pretty(opts[0])}. The others: ${pretty(opts[1])} is the same curve turned; ${pretty(opts[2])} ${kind === 'rose' ? `has ${(2 * C.n) % 2 ? 2 * C.n : 4 * C.n} petals` : kind === 'circle' ? 'lies on the other side of the origin' : 'faces the other way'}; ${pretty(opts[3])} does both.`,
   };

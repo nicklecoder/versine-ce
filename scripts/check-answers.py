@@ -9257,7 +9257,21 @@ def cn_from_focus(focus, letter, d, listing):
 def cn_from_points(kind, given, listing):
     """The ellipse or hyperbola with the center, vertex and focus a question gives."""
     parts = dict(p.split(" ", 1) for p in given.split("; "))
-    if "center" in parts:
+    # requiem: catalogue/content/conic-from-its-locus
+    # From the definition: the foci, and the sum (an ellipse) or difference
+    # (a hyperbola) of the distances to them, which is 2a. The center is
+    # halfway between the foci, and a vertex is a along from it toward one.
+    if "sum" in parts or "difference" in parts:
+        assert ("sum" in parts) == (kind == "ellipse"), f"{given}: a {kind} is not a constant {'difference' if kind == 'ellipse' else 'sum'}"
+        f1, f2 = (cn_point(s) for s in parts["foci"].split(" and "))
+        center = ((f1[0] + f2[0]) / 2, (f1[1] + f2[1]) / 2)
+        a = Fraction(parts.get("sum") or parts["difference"]) / 2
+        c = (abs(f2[0] - f1[0]) + abs(f2[1] - f1[1])) / 2
+        assert (f1[0] == f2[0]) != (f1[1] == f2[1]), f"{given}: foci not on one axis"
+        assert (a > c) == (kind == "ellipse"), f"{given}: no {kind} has a = {a} and c = {c}"
+        step = ((f2[0] - f1[0]) / (2 * c), (f2[1] - f1[1]) / (2 * c))
+        focus, vertex = f2, (center[0] + a * step[0], center[1] + a * step[1])
+    elif "center" in parts:
         center, vertex, focus = (cn_point(parts[w]) for w in ("center", "vertex", "focus"))
     else:
         v1, v2 = (cn_point(s) for s in parts["vertices"].split(" and "))
@@ -9513,6 +9527,101 @@ BY_RULE += (
 )
 
 
+# requiem: catalogue/content/dot-product-level
+# The dot product as the sum of the products of components; the angle
+# between two vectors by the calculator from the cosine u . v / (|u||v|),
+# once exactly and once from that cosine copied to 4 places; orthogonal,
+# parallel or neither from the dot product and the cross product a·d − b·c,
+# which is 0 exactly when one is a multiple of the other; and k from the
+# dot product set to 0, solved as the linear equation it is.
+def vc_dot(a, b, c, d) -> Fraction:
+    return Fraction(a) * Fraction(c) + Fraction(b) * Fraction(d)
+
+
+def vc_angle_between(a, b, c, d, places) -> Fraction:
+    u, v = vc_q(a, b), vc_q(c, d)
+    cos = float(vc_dot(*u, *v)) / math.sqrt(float(vc_dot(*u, *u) * vc_dot(*v, *v)))
+    assert abs(abs(cos) - 1) > 1e-9, "the vectors are parallel"
+    return trig_agree(math.degrees(math.acos(cos)), math.degrees(math.acos(round(cos, 4))), int(places))
+
+
+def vc_orthogonal_or_parallel(a, b, c, d) -> str:
+    u, v = vc_q(a, b), vc_q(c, d)
+    if vc_dot(*u, *v) == 0:
+        return "orthogonal"
+    return "parallel" if u[0] * v[1] - u[1] * v[0] == 0 else "neither"
+
+
+def vc_orthogonal_k(p, q, c, d) -> Fraction:
+    """k in <p, q> . <c, d> = 0, where one of p and q is k."""
+    # The dot product is linear in k: its value at k = 0 and its slope.
+    at = lambda k: (Fraction(k) if p == "k" else Fraction(p)) * Fraction(c) + (Fraction(k) if q == "k" else Fraction(q)) * Fraction(d)
+    slope = at(1) - at(0)
+    assert slope != 0, "no k makes these orthogonal"
+    k = -at(0) / slope
+    assert at(k) == 0
+    return k
+
+
+# requiem: catalogue/content/resultants-on-bearings
+# A bearing b, clockwise from north, is east r sin b and north r cos b; the
+# resultant's bearing is the angle of its east and north parts measured the
+# same way, by atan2(east, north), worked exactly and from 4-place values.
+def vc_bearing_resultant(want, listing, places) -> Fraction:
+    legs = [(int(r), int(b)) for r, b in re.findall(r"(\d+) on bearing (\d+)", listing)]
+    assert len(legs) == 2, listing
+    e = sum(r * math.sin(math.radians(b)) for r, b in legs)
+    n = sum(r * math.cos(math.radians(b)) for r, b in legs)
+    e4 = sum(r * round(math.sin(math.radians(b)), 4) for r, b in legs)
+    n4 = sum(r * round(math.cos(math.radians(b)), 4) for r, b in legs)
+    if want == "distance":
+        return trig_agree(math.hypot(e, n), math.hypot(e4, n4), int(places))
+    exact = math.degrees(math.atan2(e, n)) % 360
+    assert 0.1 <= exact <= 359.9, "a bearing near north rounds to 0 or to 360"
+    return trig_agree(exact, math.degrees(math.atan2(e4, n4)) % 360, int(places))
+
+
+BY_RULE += (
+    (re.compile(rf"^dot: {VC_VEC} \. {VC_VEC}$"), vc_dot),
+    (re.compile(rf"^angle between: {VC_VEC} and {VC_VEC} to (\d) dp$"), vc_angle_between),
+    (re.compile(rf"^orthogonal k: <(k|-?\d+), (k|-?\d+)> and {VC_VEC}$"), vc_orthogonal_k),
+    (re.compile(r"^resultant (distance|bearing): (.+) to (\d) dp$"), vc_bearing_resultant),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^orthogonal or parallel: {VC_VEC} and {VC_VEC}$"), vc_orthogonal_or_parallel),
+)
+
+
+# requiem: catalogue/content/unit-vectors-asked-exactly
+# requiem: play/answers/roots-preview-names-the-asked-letter
+# A vector whose components end in no decimal is asked "exactly", since the
+# box refuses a decimal for it; and an exact length is keyed with the
+# letter its preview draws, |v| for a magnitude, so the box never shows x.
+def vc_check_wording() -> None:
+    def ends(q):
+        d = q.denominator
+        for f in (2, 5):
+            while d % f == 0:
+                d //= f
+        return d == 1
+    for path in sorted(LIB.glob("vectors-*.json")):
+        lib = json.loads(path.read_text())
+        for i, p in enumerate(lib["problems"]):
+            where = f"vectors L{lib['level'] + 1} row {i}"
+            words = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+            ans = p["answer"]
+            if ans["type"] == "vector":
+                v = ans["value"]
+                if not all(ends(Fraction(c["n"], c["d"])) for c in (v["x"], v["y"])) and "exactly" not in words:
+                    problems.append(f"{where}: {ans['accept'][0]} has a component with no ending decimal, and the question does not say exactly")
+            if ans["type"] == "roots" and "magnitude" in words and ans["value"].get("letter") != "|v|":
+                problems.append(f"{where}: a magnitude keyed with the letter {ans['value'].get('letter')!r}, not |v|")
+
+
+vc_check_wording()
+
+
 def vc_arrow(marks, tail, tip) -> bool:
     """A shaft from tail to tip and a head whose point is the tip."""
     tail, tip = [float(c) for c in tail], [float(c) for c in tip]
@@ -9644,11 +9753,24 @@ def pp_eliminated(xs, ys, listing):
     return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
 
 
+# requiem: catalogue/content/motion-asked-in-the-air
+# Every time a row asks about comes before the landing, worked again here as
+# the positive root of h + (v sin θ)t − 16t² = 0: a height or a distance
+# after the ball is on the ground answers nothing. The range is the distance
+# at that landing time and the peak the height at t = v sin θ / 32.
+def pp_flight(v, s, h) -> float:
+    b = v * s
+    return (b + math.sqrt(b * b + 64 * h)) / 32
+
+
 def pp_motion(want, v, th, h, t, places) -> Fraction:
     v, th, h = int(v), int(th), int(h)
     s, c = math.sin(math.radians(th)), math.cos(math.radians(th))
     s4, c4 = round(s, 4), round(c, 4)
     t = float(t) if t else None
+    if t is not None:
+        assert 0 < t < pp_flight(v, s, h), f"the ball has landed by {t} s"
+
     def value(s, c):
         if want == "height":
             return h + v * s * t - 16 * t * t
@@ -9656,12 +9778,47 @@ def pp_motion(want, v, th, h, t, places) -> Fraction:
             return v * c * t
         if want == "top":
             return v * s / 32
-        # The positive root of h + (v s)t − 16t² = 0.
-        a, b, cc = -16, v * s, h
-        return (-b - math.sqrt(b * b - 4 * a * cc)) / (2 * a)
-    if want == "height":
-        assert value(s, c) > 0, "the ball has already landed"
+        if want == "landing":
+            return pp_flight(v, s, h)
+        if want == "range":
+            return v * c * pp_flight(v, s, h)
+        return h + v * s * (v * s / 32) - 16 * (v * s / 32) ** 2
+    assert value(s, c) > 0, "the ball is not in the air"
     return trig_agree(value(s, c), value(s4, c4), int(places))
+
+
+# requiem: catalogue/content/motion-model-not-always-given
+# Which equations model a throw: each option is read back as functions of t
+# and compared at three times with the physics -- across at v cos θ, up at
+# v sin θ from the height, and down ½ × 32t² -- where exactly one may fit.
+PP_MODEL = re.compile(r"^x = \((\d+)(cos|sin)\((\d+)°\)\)t, y = (?:(\d+) \+ )?\((\d+)(cos|sin)\((\d+)°\)\)t - (\d+)t\^2$")
+
+
+def pp_model(v, th, h, listing):
+    v, th, h = int(v), math.radians(int(th)), int(h)
+    trig = {"cos": math.cos, "sin": math.sin}
+    truth = lambda t: (v * math.cos(th) * t, h + v * math.sin(th) * t - 32 / 2 * t * t)
+    fits = []
+    for oid, body in te_options(listing).items():
+        m = PP_MODEL.match(body)
+        assert m, f"unread model {body}"
+        xv, xf, xd, y0, yv, yf, yd, g = m.groups()
+        said = lambda t: (int(xv) * trig[xf](math.radians(int(xd))) * t,
+                          int(y0 or 0) + int(yv) * trig[yf](math.radians(int(yd))) * t - int(g) * t * t)
+        if all(math.isclose(a, b, abs_tol=1e-9) for t in (0.5, 1, 2) for a, b in zip(said(t), truth(t))):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# requiem: catalogue/content/parametric-orientation-asked
+# Which way a curve runs: its points at t = 0°, 90°, 180° and 270°, in that
+# order, enclose a positive area (the shoelace sum) when they go round
+# counterclockwise.
+def pp_orientation(xs, ys) -> str:
+    pts = [(pp_trig_at(xs, d), pp_trig_at(ys, d)) for d in (0, 90, 180, 270)]
+    area = sum(pts[i][0] * pts[(i + 1) % 4][1] - pts[(i + 1) % 4][0] * pts[i][1] for i in range(4))
+    assert area != 0, "the curve encloses nothing"
+    return "ccw" if area > 0 else "cw"
 
 
 def pp_polar_xy(want, r, deg, radians):
@@ -9820,6 +9977,133 @@ def pp_graph_keys() -> dict:
 
 
 PP_GRAPH_KEY = pp_graph_keys()
+
+
+# requiem: catalogue/content/polar-points-plotted-on-a-polar-grid
+# A plotted polar point: (r cos θ, r sin θ) worked again from the text, and
+# the key is the one lettered point there. All four sit on the ring at |r|
+# -- each a misreading of θ or of r's sign, never a point at another
+# distance -- and the drawing is those four letters at those places on a
+# polar grid, with the point revealed once answered.
+def pp_plot(r, d, listing):
+    r, t = int(r), math.radians(int(d))
+    want = (r * math.cos(t), r * math.sin(t))
+    pts = {oid: tuple(float(c) for c in body.strip("()").split(", ")) for oid, body in te_options(listing).items()}
+    assert sorted(pts) == ["A", "B", "C", "D"], f"the letters are {sorted(pts)}"
+    assert all(abs(math.hypot(*q) - abs(r)) < 0.002 for q in pts.values()), "a point off the ring at |r|"
+    assert len({(round(x, 2), round(y, 2)) for x, y in pts.values()}) == 4, "two letters at one point"
+    fits = [oid for oid, q in pts.items() if math.hypot(q[0] - want[0], q[1] - want[1]) < 0.002]
+    return fits[0] if len(fits) == 1 else f"{len(fits)} points are (r, θ)"
+
+
+for path in sorted(LIB.glob("parametric-polar-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        m = re.match(r"^polar plot: r = (-?\d+) at (\d+) degrees(?: as radians)?; options (.+)$", p["text"])
+        if not m:
+            continue
+        where = f"parametric-polar L{lib['level'] + 1} row {i}"
+        vis = p.get("visual") or {}
+        said = {oid: [float(c) for c in body.strip("()").split(", ")] for oid, body in te_options(m[3]).items()}
+        drawn = {mk.get("label"): mk["at"] for mk in vis.get("marks", []) if mk["kind"] == "point"}
+        if drawn != said:
+            problems.append(f"{where}: the letters drawn are not where the text puts them")
+        if not vis.get("polar") or vis.get("grid") != 0:
+            problems.append(f"{where}: a polar point not plotted on a polar grid")
+        r, t = int(m[1]), math.radians(int(m[2]))
+        shown = [mk["at"] for mk in vis.get("answer", []) if mk["kind"] == "point"]
+        if len(shown) != 1 or math.hypot(shown[0][0] - r * math.cos(t), shown[0][1] - r * math.sin(t)) > 0.002:
+            problems.append(f"{where}: the revealed point is not (r, θ)")
+
+
+def pp_exact(s: str) -> float:
+    """-2sqrt(3), 4, 3sqrt(3)/2, 3√2 as a float."""
+    m = re.fullmatch(r"(-?)(\d*)(?:sqrt\((\d+)\)|√(\d+))?(?:/(\d+))?", s.replace("−", "-"))
+    assert m and (m[2] or m[3] or m[4]), f"unread number {s}"
+    whole = int(m[2] or 1) if (m[3] or m[4]) else int(m[2])
+    root = math.sqrt(int(m[3] or m[4] or 1))
+    return (-1 if m[1] else 1) * whole * root / int(m[5] or 1)
+
+
+def pp_angle(s: str, unit: str) -> float:
+    """120°, 3π/4, π, −π/4 in radians, read in the unit the row says."""
+    s = s.replace("−", "-")
+    if unit == "degrees":
+        m = re.fullmatch(r"(-?\d+)°", s)
+        assert m, f"{s} is not in degrees"
+        return math.radians(int(m[1]))
+    if s == "0":
+        return 0.0
+    m = re.fullmatch(r"(-?)(\d*)π(?:/(\d+))?", s)
+    assert m, f"{s} is not in radians"
+    return (-1 if m[1] else 1) * int(m[2] or 1) * math.pi / int(m[3] or 1)
+
+
+# requiem: catalogue/content/exact-polar-form-at-special-angles
+# The point's own coordinates, and every option read as r and θ in the unit
+# asked: the key is the one with r > 0, θ from 0 up to a full turn, and
+# (r cos θ, r sin θ) at the point.
+def pp_polar_form(x, y, unit, listing):
+    x, y = pp_exact(x), pp_exact(y)
+    fits = []
+    for oid, body in te_options(listing).items():
+        r_s, t_s = body.strip("()").split(", ")
+        r, t = pp_exact(r_s), pp_angle(t_s, unit)
+        if r > 0 and 0 <= t < 2 * math.pi - 1e-12 and math.isclose(r * math.cos(t), x, abs_tol=1e-9) and math.isclose(r * math.sin(t), y, abs_tol=1e-9):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# requiem: catalogue/content/polar-points-have-many-names
+# Another name for one point: the option whose (r cos θ, r sin θ) is the
+# given point's, and it must be a different pair from the one given.
+def pp_same_point(r, d, unit, listing):
+    r, t = int(r), math.radians(int(d))
+    x, y = r * math.cos(t), r * math.sin(t)
+    fits = []
+    for oid, body in te_options(listing).items():
+        rr, dd = (int(v) for v in body.strip("()").split(", "))
+        assert (rr, dd) != (r, int(d)), "an option is the pair given"
+        tt = math.radians(dd)
+        if math.isclose(rr * math.cos(tt), x, abs_tol=1e-9) and math.isclose(rr * math.sin(tt), y, abs_tol=1e-9):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# Each option the student reads is the pair the text holds, in the unit
+# the question asks in.
+for path in sorted(LIB.glob("parametric-polar-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        m = re.match(r"^polar same point: \((\d+), (\d+)\) (degrees|radians); options (.+)$", p["text"])
+        if not m:
+            continue
+        shown = {o["id"]: o["label"] for o in p["answer"]["options"]}
+        for oid, body in te_options(m[4]).items():
+            rr, dd = (int(v) for v in body.strip("()").split(", "))
+            r_s, t_s = shown[oid].strip("()").split(", ")
+            if int(r_s.replace("−", "-")) != rr or not math.isclose(pp_angle(t_s, m[3]), math.radians(dd), abs_tol=1e-12):
+                problems.append(f"parametric-polar L{lib['level'] + 1} row {i}: option {oid} reads {shown[oid]}, not ({rr}, {dd}°)")
+
+
+# requiem: play/answers/roots-preview-names-the-asked-letter
+# requiem: catalogue/content/motion-model-not-always-given
+# An exact answer is keyed with the letter asked for, so the box previews
+# r = 2√5 for an r and y = −3 for a y; and a thrown ball's path is printed
+# exactly when its text says so, written as the physics has it.
+for path in sorted(LIB.glob("parametric-polar-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        where = f"parametric-polar L{lib['level'] + 1} row {i}"
+        words = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+        if m := re.match(r"^polar (x|y|r):", p["text"]):
+            if p["answer"]["value"].get("letter") != m[1]:
+                problems.append(f"{where}: {m[1]} keyed with the letter {p['answer']['value'].get('letter')!r}")
+        if m := re.match(r"^motion (?!model)\w+: v (\d+) at (\d+) degrees from (\d+) ft.*?( with its path)?$", p["text"]):
+            v, th, h = m[1], m[2], int(m[3])
+            path_said = f"Its path is x = ({v} cos {th}°)t and y = {f'{h} + ' if h else ''}({v} sin {th}°)t − 16t²"
+            if bool(m[4]) != (path_said in words) or (not m[4] and "Its path is" in words):
+                problems.append(f"{where}: the path is {'not ' if m[4] else ''}printed as its text says")
 IDS_ABCD = ("a", "b", "c", "d")
 
 CHOICE_RULES += (
@@ -9828,6 +10112,11 @@ CHOICE_RULES += (
     (re.compile(r"^to polar: (.+ = .+); options (.+)$"), pp_to_polar),
     (re.compile(r"^polar curve: (r = .+)$"), pp_kind),
     (re.compile(r"^(polar graph: .+)$"), lambda text: PP_GRAPH_KEY[text]),
+    (re.compile(r"^polar plot: r = (-?\d+) at (\d+) degrees(?: as radians)?; options (.+)$"), pp_plot),
+    (re.compile(r"^polar form: \((\S+), (\S+)\) (degrees|radians); options (.+)$"), pp_polar_form),
+    (re.compile(r"^polar same point: \((\d+), (\d+)\) (degrees|radians); options (.+)$"), pp_same_point),
+    (re.compile(r"^param orientation: x = (.+); y = (.+)$"), pp_orientation),
+    (re.compile(r"^motion model: v (\d+) at (\d+) degrees from (\d+) ft; options (.+)$"), pp_model),
 )
 
 PAIR_RULES += (
@@ -9849,7 +10138,7 @@ EXACT_RULES += (
 
 BY_RULE += (
     (re.compile(rf"^param when: x = (.+); y = (.+) at \(({PP_NUM}), ({PP_NUM})\)$"), pp_when),
-    (re.compile(r"^motion (height|distance|landing|top): v (\d+) at (\d+) degrees from (\d+) ft(?: after ([\d.]+) s)? to (\d) dp$"), pp_motion),
+    (re.compile(r"^motion (height|distance|landing|top|range|peak): v (\d+) at (\d+) degrees from (\d+) ft(?: after ([\d.]+) s)? to (\d) dp(?: with its path)?$"), pp_motion),
     (re.compile(r"^polar angle: \((-?\d+), (-?\d+)\) to (\d) dp$"), pp_polar_angle),
     (re.compile(r"^polar petals: (r = .+)$"), pp_petals),
     (re.compile(r"^polar max r: (r = .+)$"), pp_max),
@@ -9866,6 +10155,11 @@ def pp_check_drawings() -> None:
                 continue
             where = f"parametric-polar L{lib['level'] + 1} row {i}"
             text = p["text"]
+            if text.startswith("polar plot: "):
+                continue
+            # requiem: play/visuals/polar-grid-on-the-plane
+            if text in PP_GRAPH_KEY and (not vis.get("polar") or vis.get("grid") != 0):
+                problems.append(f"{where}: a polar graph not drawn on a polar grid")
             if text in PP_GRAPH_KEY:
                 # Once answered: a dot at the farthest point of the curve, and
                 # the equation written as the key's label.

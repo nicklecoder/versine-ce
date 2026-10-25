@@ -58,7 +58,9 @@ export function freeInput(spec = {}, opts = {}) {
       lastGood = null;
       return;
     }
-    const result = draw(raw);
+    // The answer spec goes too, for a box whose preview names the letter
+    // the question asks about rather than one of its own.
+    const result = draw(raw, spec);
     if (result.ok) {
       lastGood = result.terms;
       hint.textContent = '';

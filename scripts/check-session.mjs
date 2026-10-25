@@ -29,6 +29,7 @@ const { MODES } = await import(join(ROOT, 'web/engine/modes.js'));
 const { dealer } = await import(join(ROOT, 'web/engine/library.js'));
 const { getType } = await import(join(ROOT, 'web/math/answer.js'));
 const { lessonFor } = await import(join(ROOT, 'web/engine/lesson.js'));
+const { promptText: promptTextOf } = await import(join(ROOT, 'web/ui/prompt.js'));
 
 const fail = [];
 const libOf = (skill, level) => {
@@ -177,6 +178,16 @@ for (const skill of SKILLS) {
     if (got.ok && roots.equals(got.value, want)) fail.push(`roots: "${raw}" was accepted for (−3 ± √17)/4`);
   }
   if (!roots.parse('no real solutions').ok) fail.push('roots: "no real solutions" was not read');
+
+  // requiem: play/answers/roots-preview-names-the-asked-letter
+  // A bare number previews with the letter asked for; a letter typed stays.
+  const said = (raw, letter) => promptTextOf(roots.preview(raw, { type: 'roots', value: { letter } }).terms);
+  for (const [raw, letter, shown] of [['3sqrt(10)', 'r', 'r'], ['-3', 'y', 'y'], ['25', '|v|', '|v|'], ['x = 2', 'r', 'x'], ['|v| = 5', 'x', '|v|']]) {
+    const got = said(raw, letter);
+    if (!got.replace(/\s+/g, '').startsWith(`${shown}=`)) fail.push(`roots: "${raw}" asked for ${letter} previews "${got}"`);
+  }
+  const mag = roots.parse('|v| = 13');
+  if (!mag.ok || roots.format({ letter: '|v|', roots: mag.value.roots }) !== '|v| = 13') fail.push('roots: |v| = 13 does not round-trip');
 }
 
 // requiem: play/answers/accepted-forms-judged
@@ -607,6 +618,32 @@ for (const skill of SKILLS) {
     if (box.parse(raw).ok) fail.push(`vector: "${raw}" was read as a vector`);
   }
   if (!box.parse('(3, -4)').hint?.includes('angle brackets')) fail.push('vector: (3, −4) was not told to use angle brackets');
+  // requiem: play/answers/vector-unit-form-any-order
+  // ai + bj in any order, a sign given twice, and a coefficient in brackets.
+  for (const raw of ['-4j+3i', '-4j + 3i', '3i + -4j', '3i+(-4)j', '(3)i - (4)j', '3i - (+4)j']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, want)) fail.push(`vector: "${raw}" was not read as ⟨3, −4⟩`);
+  }
+  const fifths = box.parse('<3/5, 4/5>').value;
+  for (const raw of ['(3/5)i+(4/5)j', '(4/5)j + (3/5)i', '0.6i + 0.8j', '3/5i + 4/5j']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, fifths)) fail.push(`vector: "${raw}" was not read as ⟨3/5, 4/5⟩`);
+  }
+  for (const raw of ['3i + 4i', '3i4j', '3i + 4', 'i j']) {
+    if (box.parse(raw).ok) fail.push(`vector: "${raw}" was read as a vector`);
+  }
+  // requiem: play/answers/vector-decimal-asked-exactly
+  // A decimal for a component that ends in no decimal is asked again, right
+  // digits or not; where every component ends, a decimal is judged.
+  {
+    const thirteenths = { type: 'vector', value: box.parse('<5/13, -12/13>').value };
+    for (const raw of ['<0.38, -0.92>', '<0.3846, -0.9231>', '0.38i - 0.92j']) {
+      const hint = box.refuseHint(box.parse(raw), thirteenths);
+      if (!hint?.includes('exactly')) fail.push(`vector: "${raw}" for ⟨5/13, −12/13⟩ was not asked for it exactly`);
+    }
+    if (box.refuseHint(box.parse('<5/13, -12/13>'), thirteenths)) fail.push('vector: the exact ⟨5/13, −12/13⟩ was refused');
+    if (box.refuseHint(box.parse('<0.6, 0.8>'), { type: 'vector', value: fifths })) fail.push('vector: ⟨0.6, 0.8⟩ was refused for ⟨3/5, 4/5⟩');
+  }
   if (box.format(want) !== '⟨3, −4⟩') fail.push(`vector: ⟨3, −4⟩ shown as "${box.format(want)}"`);
 
   const skill = SKILLS.find((s) => s.id === 'vectors');

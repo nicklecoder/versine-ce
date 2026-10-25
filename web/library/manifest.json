@@ -1,5 +1,5 @@
 {
-  "built": 664,
+  "built": 665,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -700,6 +700,7 @@
       "adding-and-subtracting",
       "scalar-multiples",
       "unit-vectors",
+      "dot-product",
       "resultants",
       "all-together"
     ],
@@ -1732,6 +1733,9 @@
         ],
         "from-magnitude-and-direction": [
           "trig-ratios"
+        ],
+        "resultants": [
+          "trig-ratios"
         ]
       }
     },
@@ -2119,7 +2123,7 @@
       }
     }
   },
-  "sources": "9e24d356cc65ec78e795646aad9935032f58a1a727e3eeb391beee3cd11581d2",
+  "sources": "6976091df7e811d97d6194e678b7c5e6a4b943558771144dadb27fb87cea24e7",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7664,22 +7668,32 @@
     {
       "skill": "vectors",
       "level": 6,
-      "slug": "resultants",
-      "name": "Resultants",
+      "slug": "dot-product",
+      "name": "Dot Product",
       "count": 1000,
       "exhaustive": false,
-      "signed": false,
+      "signed": true,
       "file": "vectors-6.json"
     },
     {
       "skill": "vectors",
       "level": 7,
+      "slug": "resultants",
+      "name": "Resultants",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "vectors-7.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 8,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "vectors-7.json"
+      "file": "vectors-8.json"
     },
     {
       "skill": "parametric-polar",
@@ -7726,8 +7740,8 @@
       "level": 4,
       "slug": "rectangular-to-polar",
       "name": "Rectangular to Polar",
-      "count": 784,
-      "exhaustive": true,
+      "count": 1000,
+      "exhaustive": false,
       "signed": false,
       "file": "parametric-polar-4.json"
     },
