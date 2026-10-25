@@ -21,7 +21,7 @@ export const LEVELS = [
     blurb: 'Sₙ = a₁(1 − rⁿ)/(1 − r): multiply the series by r and take it away, and only the ends are left.',
     dependsOn: [{ skill: 'sequences', level: 4 }] },
   { name: 'Sigma Notation', slug: 'sigma-notation',
-    blurb: 'Σ says: put each k from the bottom number to the top into the rule, and add. Evaluate one, count its terms, or read which series it is.' },
+    blurb: 'Σ says: put each k from the bottom number to the top into the rule, and add. Read one, write one, and use Σc = nc, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6.' },
   { name: 'Infinite Geometric', slug: 'infinite-geometric',
     blurb: 'When −1 < r < 1 the terms shrink to nothing and the sum settles at a₁/(1 − r); otherwise there is no sum. A repeating decimal is one.' },
   { name: 'Series in Context', slug: 'series-in-context',
@@ -35,7 +35,7 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [60, 75, 60, 60, 80, 80, 75];
+export const PAR_SECONDS = [60, 75, 70, 60, 80, 80, 75];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
