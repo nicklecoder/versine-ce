@@ -26,6 +26,26 @@ a₁(1 − rⁿ)/(1 − r), and the pay-rise story becomes a shop's monthly
 takings. `scripts/check-answers.py` writes each sigma option out term by
 term and checks a scaled sum on a concrete sequence.
 
+**Systems of Equations II**: explanations show the substitution before
+simplifying, a fraction cleared, and every elimination step, and the
+line-and-circle count is by the discriminant rather than a distance formula
+never taught. Line Meets Parabola, Line Meets Circle and Two Curves draw both
+curves and their meeting points once answered. Two Curves adds circle and
+x² − y² = B, and two circles, solved by taking x² out; the word problems add
+paired prices and a bakery's batches, true three-equation systems; prices
+are keyed in dollars. The `points` box reads they don't meet, no
+intersection, DNE, a trailing period, braces, spaced coordinates,
+x = 2, y = −1, z = 3, and dollar signs, and its hints say parentheses.
+
+**Binomial Theorem**: C(n, k) is worked from the smaller of k and n − k and
+cancelled before multiplying (C(16, 14) = C(16, 2) = 16 × 15/2 = 120).
+Pascal's Triangle draws the rows above the asked one, the asked row held
+back until answered. Explanations say factors, not brackets, and name the
+term by its power. At least 1 and at most n − 1 are worked as one minus the
+case left out. Full Expansion reaches fifth and sixth powers (52 of 176
+rows, from 18 of 142), works each term out, and has a 105-second par;
+coefficients and probability denominators stay hand-sized.
+
 **Logarithms** has a new level before All Together, Log Functions: y =
 log_b x as the inverse of y = bˣ and its reflection in y = x; where a
 shifted log crosses the x-axis or reaches a height, through the key points

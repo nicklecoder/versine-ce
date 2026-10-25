@@ -565,6 +565,15 @@ solution (x, y, z), go in a new `points` box that judges them as a set;
 How Many Intersections asks its count as a choice and a tangent's k as a
 number, each said by its question. Two Curves is capped at 450 rows, since
 a circle and a parabola meeting at whole points run out at a few hundred.
+Two Curves also meets a circle with x² − y² = B, and two circles, where
+subtracting one equation from the other takes x² out. The word problems add
+three items priced two at a time and a bakery's batches from what it used,
+so two rows in three need all three equations; prices are answered in
+dollars, ($4.50, $1.00, $0.75). Where curves meet, the answer brings both
+curves and the meeting points on a plane, drawn only once answered. The
+explanations show the substitution before simplifying, a fraction cleared,
+and every elimination step; How Many Intersections counts a line and a
+circle by the discriminant.
 
 `binomial` is built, as Pascal's Triangle · Coefficients by Combinations ·
 A Given Term · Full Expansion · The Constant Term · Binomial Probability ·
@@ -578,6 +587,11 @@ Probability on probability's independent events. Counts and coefficients
 are whole-number box answers, an expansion an expression, and a
 probability a fraction, each said by its question. The Constant Term is
 capped at 520 rows, since its constant terms run out at a few hundred.
+Pascal's Triangle draws the rows above the asked one as a table, the asked
+row its answer, so its next-row and coefficient questions stop at row 8.
+Coefficients by Combinations cancels C(n, k) from the smaller side, and A
+Given Term, Full Expansion and Binomial Probability keep their numbers to
+hand size; Full Expansion reaches fifth and sixth powers.
 
 `series` is built, as Arithmetic Sums · Finite Geometric · Sigma Notation ·
 Infinite Geometric · Series in Context · Working Backward · All Together.
