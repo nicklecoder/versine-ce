@@ -8695,6 +8695,97 @@ CHOICE_RULES += (
 )
 
 
+# --- Inverses: Log Functions -----------------------------------------------------
+# A point of bˣ or of log_b x is confirmed on its own curve, by raising the
+# base, and swapped; a log's domain is sampled, every x kept where what it
+# takes the log of is positive; its asymptote is where that is 0, found from
+# two values of it; and the inverse is the option that composes with f to
+# give x back, both ways, at several x, in floating point.
+
+def il_inside(src):
+    """What a log_b(...) takes the log of, and the base."""
+    m = re.match(r"^log_(\d+)\((.+?)\)(?: [-+] \d+)?$", src)
+    assert m, f"no log in {src}"
+    return int(m[1]), m[2]
+
+
+def il_reflect(x, y, base, onto):
+    x, y, b = Fraction(x), Fraction(y), int(base)
+    if onto == "log":
+        assert Fraction(b) ** int(x) == y and x.denominator == 1, f"({x}, {y}) is not on {b}^x"
+    else:
+        assert Fraction(b) ** int(y) == x and y.denominator == 1, f"({x}, {y}) is not on log_{b} x"
+    return (y, x)
+
+
+def il_domain(src):
+    _, inner = il_inside(src)
+    return on_grid({x for x in DR_X if evaluate(inner, "x", x) > 0}, DR_X)
+
+
+def il_asymptote(src):
+    _, inner = il_inside(src)
+    at0, at1 = evaluate(inner, "x", 0), evaluate(inner, "x", 1)
+    assert evaluate(inner, "x", 5) == at0 + 5 * (at1 - at0), f"{inner} is not a line"
+    return -at0 / (at1 - at0)
+
+
+def il_float(src):
+    """An ASCII rule in x as a Python function of floats: log_2(x), 3*2^x, 2^(x - 1)."""
+    py = re.sub(r"log_(\d+)\(", r"_log(\1, ", src)
+    py = re.sub(r"(\d)(x)", r"\1*\2", py).replace("^", "**")
+    return lambda x: eval(py, {"_log": lambda b, v: math.log(v, b) if v > 0 else float("nan")}, {"x": x})
+
+
+def il_inverse(f, listing):
+    fn = il_float(f.split(" = ", 1)[1])
+    good = []
+    for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
+        g = il_float(label)
+        ok = True
+        for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0):
+            try:
+                back = g(fn(x))                        # f⁻¹(f(x)) = x, for every x
+                ok &= back == back and abs(back - x) < 1e-9
+            except (ValueError, ZeroDivisionError, OverflowError):
+                ok = False
+        for y in (13.0, 40.0, 97.5):                   # f(f⁻¹(y)) = y, for y in f's range
+            try:
+                there = fn(g(y))
+                ok &= there == there and abs(there - y) < 1e-9 * y
+            except (ValueError, ZeroDivisionError, OverflowError):
+                ok = False
+        if ok:
+            good.append(oid)
+    assert len(good) == 1, f"{f}: {good} undo it"
+    return good[0]
+
+
+def il_reflect_shifted(x, y, base, k):
+    x, y = Fraction(x), Fraction(y)
+    assert x.denominator == 1 and Fraction(int(base)) ** int(x) + int(k) == y, f"({x}, {y}) is not on {base}^x + {k}"
+    return (y, x)
+
+
+PAIR_RULES += (
+    (re.compile(r"^reflect shifted: \((\S+), (\S+)\) on base (\d+) plus (-?\d+)$"), il_reflect_shifted),
+    (re.compile(r"^reflect onto log: \((\S+), (\S+)\) on base (\d+)$"), lambda x, y, b: il_reflect(x, y, b, "log")),
+    (re.compile(r"^reflect onto power: \((\S+), (\S+)\) on base (\d+)$"), lambda x, y, b: il_reflect(x, y, b, "power")),
+)
+
+SET_RULES += (
+    (re.compile(r"^log domain: (.+)$"), il_domain),
+)
+
+BY_RULE += (
+    (re.compile(r"^log asymptote: (.+)$"), il_asymptote),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^log inverse: (f\(x\) = .+?); options (.+)$"), il_inverse),
+)
+
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape

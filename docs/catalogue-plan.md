@@ -431,6 +431,18 @@ slopes, a − bx and (ax + b)/(cx + d). A number goes in the fraction box, a
 formula in the equivalent box, judged by value, and a reflected point in
 the pair box; the question says which.
 
+`inverses` has a Log Functions level, before All Together: y = log_b x as
+the reflection of y = bˣ, a point of bˣ + k reflected to its inverse, the
+domain of log_b(ax + c) and log_b(x² − c²), the vertical asymptote where
+the inside is 0, and the inverse of bˣ + k, b^(x − h), log_b x + k, c·bˣ
+and bˣ/c as a choice. Its wrong options cross undoing in the wrong order
+with a sign or a step turned round, and each family has a twin with the
+same four options and another key. It depends on logarithms' Log as
+Exponent, so `inverses` now waits for `logarithms` as a whole; nothing
+depends on `inverses`, so nothing else waits longer. A domain goes in the
+solutions box, written with x, an asymptote in the fraction box, and a
+point in the pair box.
+
 `radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
 Radical · Square Twice · Cube Roots · Rational Exponents · All Together.
 Square Twice is added: a root left after the first squaring is isolated

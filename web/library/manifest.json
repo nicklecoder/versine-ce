@@ -1,5 +1,5 @@
 {
-  "built": 639,
+  "built": 640,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -707,6 +707,7 @@
       "check-by-composing",
       "restrict-the-domain",
       "graph-reflection",
+      "log-functions",
       "all-together"
     ],
     "radical-eq": [
@@ -1711,6 +1712,7 @@
         "composition",
         "equations",
         "functions",
+        "logarithms",
         "quadratic-graphs",
         "roots"
       ],
@@ -1732,6 +1734,9 @@
         ],
         "graph-reflection": [
           "functions"
+        ],
+        "log-functions": [
+          "logarithms"
         ]
       }
     },
@@ -2018,7 +2023,7 @@
       }
     }
   },
-  "sources": "4393cca43d4315355104551f972d88a2a147575e5d0fb81dc8435e4a7b4633de",
+  "sources": "c0554ef7dda606ee66915d196b0d516737780e4dc671c4fc2cff49550ba6692c",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7613,12 +7618,22 @@
     {
       "skill": "inverses",
       "level": 5,
+      "slug": "log-functions",
+      "name": "Log Functions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "inverses-5.json"
+    },
+    {
+      "skill": "inverses",
+      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "inverses-5.json"
+      "file": "inverses-6.json"
     },
     {
       "skill": "radical-eq",

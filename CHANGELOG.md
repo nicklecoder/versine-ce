@@ -13,6 +13,16 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Inverse Functions** has a new level before All Together, Log Functions:
+y = log_b x as the reflection of y = bˣ in y = x, points reflected from
+bˣ + k to its inverse, the domain of a log of a line or of x² − c², its
+vertical asymptote, and the inverse of an exponential or a log picked from
+four options that cross undoing in the wrong order with a sign or a step
+turned round. It depends on logarithms' Log as Exponent, so Inverse
+Functions now opens after Logarithms. `scripts/check-answers.py` samples a
+log's domain, finds its asymptote from two values of what it takes the log
+of, and picks the inverse that composes with the function to give x back.
+
 **Systems of Equations II** (`systems-2`), a new skill under Equations, in
 eight levels: Line Meets Parabola, How Many Intersections, Line Meets
 Circle, Two Curves, Three Variables, No Solution or Infinitely Many,
