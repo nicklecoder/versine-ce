@@ -8327,7 +8327,7 @@ for path in sorted(LIB.glob("*.json")):
     if path.name in ("manifest.json", "schemas.json"):
         continue
     lib = json.loads(path.read_text())
-    rows = MEDOID.rows_written_for(MEDOID.choice_answers(lib))
+    rows = MEDOID.rows_written_for(MEDOID.choice_rows(lib))
     if len(rows) >= 20:
         share = sum(MEDOID.medoid_share(a) for a in rows) / len(rows)
         if share > 0.4:

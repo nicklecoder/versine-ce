@@ -24,6 +24,7 @@ Usage: python scripts/measure-medoid.py [skill ...] [--over 0.4]
 # requiem: catalogue/content/decoys-crossed-not-centred
 # requiem: catalogue/content/decoys-cross-two-slips
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -77,36 +78,48 @@ def key_label(answer: dict) -> str:
 
 
 # requiem: catalogue/content/decoys-cross-two-slips
-def rows_written_for(answers: list[dict]) -> list[dict]:
-    """The choice rows whose options were written for the row, not drawn from a fixed menu.
+def rows_written_for(rows: list[dict]) -> list[dict]:
+    """The answers of the choice rows whose options were written for the row,
+    not drawn from a fixed menu.
 
     Read from the library, not listed by hand. A row is left out when its
     label set recurs with another key (the key moves among a fixed menu), or
-    when fewer than three of its labels are its own once stock labels -- ones
-    in a third or more of the level's choice rows, like "They are the same"
-    -- are set aside.
+    when fewer than three of its labels are its own once stock labels are set
+    aside. A stock label is in a third or more of the level's choice rows, or
+    of the rows sharing its question's shape (the text before the first ':'
+    or ';') where that shape has 20 rows or more: "They are the same", or
+    "It will most likely get closer to the theoretical probability" in a
+    level that asks that question beside others.
     """
-    seen: dict[str, int] = {}
+    def stock_in(group: list[dict]) -> set:
+        seen: dict[str, int] = {}
+        for p in group:
+            for label in {o["label"] for o in p["answer"]["options"]}:
+                seen[label] = seen.get(label, 0) + 1
+        return {label for label, n in seen.items() if n >= len(group) / 3}
+
+    shapes: dict[str, list] = {}
     keys: dict[frozenset, set] = {}
-    for a in answers:
-        labels = frozenset(o["label"] for o in a["options"])
-        for label in labels:
-            seen[label] = seen.get(label, 0) + 1
-        keys.setdefault(labels, set()).add(key_label(a))
-    stock = {label for label, n in seen.items() if n >= len(answers) / 3}
-    return [a for a in answers
-            if len(keys[frozenset(o["label"] for o in a["options"])]) == 1
-            and sum(o["label"] not in stock for o in a["options"]) >= 3]
+    for p in rows:
+        shapes.setdefault(re.split(r"[:;]", p["text"])[0], []).append(p)
+        keys.setdefault(frozenset(o["label"] for o in p["answer"]["options"]), set()).add(key_label(p["answer"]))
+    stock = stock_in(rows)
+    for group in shapes.values():
+        if len(group) >= 20:
+            stock |= stock_in(group)
+    return [p["answer"] for p in rows
+            if len(keys[frozenset(o["label"] for o in p["answer"]["options"])]) == 1
+            and sum(o["label"] not in stock for o in p["answer"]["options"]) >= 3]
 
 
-def choice_answers(lib: dict) -> list[dict]:
-    """A library's choice answers with three or more options."""
-    return [p["answer"] for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+def choice_rows(lib: dict) -> list[dict]:
+    """A library's choice problems with three or more options."""
+    return [p for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
 
 
 def measure(path: Path):
     lib = json.loads(path.read_text())
-    rows = rows_written_for(choice_answers(lib))
+    rows = rows_written_for(choice_rows(lib))
     if not rows:
         return None
     mean = lambda f: sum(f(a) for a in rows) / len(rows)
