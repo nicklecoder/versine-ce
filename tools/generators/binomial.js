@@ -16,7 +16,7 @@
 import * as T from '../terms.js';
 import { minus } from '../../web/ui/dom.js';
 import { previewOf } from '../../web/ui/express.js';
-import { fracAnswer, fracText } from './chance.js';
+import { fracAnswer, fracText, fracWork } from './chance.js';
 import { LAST_LEVEL, PAR_SECONDS } from '../../web/skills/binomial.js';
 
 const C = (n, k) => {
@@ -90,16 +90,37 @@ const pretty = (s) => s.replace(/\^(\d+)/g, (_, d) => sup(d)).replace(/ - /g, ' 
 
 // --- Pascal's Triangle -----------------------------------------------------------
 
+/** A row as the triangle draws it, the numbers spaced apart: 1  4  6  4  1. */
+const rowCell = (n) => row(n).join('\u00a0 ');
+
+// requiem: catalogue/visuals/pascal-rows-above-the-asked
+// The few rows above the one asked, then that row as ?: the student adds
+// the two above. The asked row, and the sum that makes its number, are the
+// answer layer. Rows stop at 8, the widest that fits a phone.
+function triangle(asked, k) {
+  const lo = Math.max(0, asked - 4);
+  const above = row(asked - 1);
+  return {
+    kind: 'table',
+    cols: ['Row', 'Numbers'],
+    rows: [...Array.from({ length: asked - lo }, (_, i) => [String(lo + i), rowCell(lo + i)]), [String(asked), '?']],
+    fill: rowCell(asked),
+    workingCol: 'Added',
+    working: [...Array(asked - lo).fill(''), `${above[k - 1]} + ${above[k]} = ${row(asked)[k]}`],
+    note: 'Each number is the two above it added.',
+  };
+}
+
 function pascal(rng) {
   const kind = rng.pick(['next', 'next', 'next', 'sum', 'sum', 'mirror', 'mirror', 'power', 'coefficient', 'coefficient', 'coefficient']);
   if (kind === 'next') {
-    const n = rng.int(4, 10), r = row(n), next = row(n + 1);
+    const n = rng.int(4, 7), r = row(n), next = row(n + 1);
     const k = rng.int(1, n); // the (k + 1)th number of the next row, not an end
     return {
       prompt: [T.prose(`One row of Pascal's triangle is ${r.join(', ')}. What is the ${ORD[k + 1]} number in the row below it?`)],
       text: `pascal next: ${r.join(', ')}; number ${k + 1}`,
       answer: intAnswer(next[k]),
-      visual: null,
+      visual: triangle(n + 1, k),
       explain: `Each number is the two above it added. The row below starts 1, and its ${ORD[k + 1]} number sits under the ${ORD[k]} and ${ORD[k + 1]} of this row: ${r[k - 1]} + ${r[k]} = ${next[k]}. So it is ${next[k]}.`,
     };
   }
@@ -131,21 +152,53 @@ function pascal(rng) {
       text: `pascal power: begins ${r.slice(0, 3).join(', ')}`,
       answer: intAnswer(n),
       visual: null,
-      explain: `The coefficients of (a + b)ⁿ are row n of Pascal's triangle, which begins 1, n: the second term is n·aⁿ⁻¹b, one b from any of the n brackets. So n = ${n}.`,
+      explain: `The coefficients of (a + b)ⁿ are row n of Pascal's triangle, which begins 1, n: the second term is n·aⁿ⁻¹b, one b from any of the n factors (a + b). So n = ${n}.`,
     };
   }
-  const n = rng.int(3, 10), k = rng.int(1, n - 1), r = row(n);
+  const n = rng.int(3, 8), k = rng.int(1, n - 1), r = row(n);
   const term = `a${n - k === 1 ? '' : sup(n - k)}b${k === 1 ? '' : sup(k)}`;
   return {
     prompt: [T.prose(`Use Pascal's triangle: what is the coefficient of ${term} in (a + b)${sup(n)} multiplied out?`)],
     text: `coefficient: ${powerAscii(n - k, 0).replace(/x/g, 'a')}${powerAscii(0, k).replace(/y/g, 'b')} in (a + b)^${n}`,
     answer: intAnswer(r[k]),
-    visual: null,
-    explain: `Row ${n} of Pascal's triangle is ${r.join(', ')}: the coefficients of a${sup(n)}, a${sup(n - 1)}b, … , b${sup(n)} in turn. ${term} has b to the power ${k}, so it is number ${k + 1} along. So the coefficient is ${r[k]}.`,
+    visual: triangle(n, k),
+    explain: `Row ${n} of Pascal's triangle is ${r.join(', ')}: the coefficients of a${sup(n)}, a${sup(n - 1)}b, … , b${sup(n)} in turn. ${term} has b to the power ${k}, so it is number ${k + 1} along, the two above it added: ${row(n - 1)[k - 1]} + ${row(n - 1)[k]} = ${r[k]}. So the coefficient is ${r[k]}.`,
   };
 }
 
 // --- Coefficients by Combinations --------------------------------------------------
+
+/**
+ * n(n − 1)…(n − j + 1)/j! cancelled before anything is multiplied: each
+ * factor of j! (2 and up) is matched to a factor on top that it divides,
+ * one top factor taking several when they fit (12/(4 × 3)). Every j that
+ * Coefficients by Combinations asks has such a matching; a draw without one
+ * throws, so it is found when the library is built.
+ */
+function cancelled(n, j) {
+  const top = Array.from({ length: j }, (_, i) => n - i);
+  const bottom = Array.from({ length: j - 1 }, (_, i) => j - i); // j, …, 2
+  const taken = top.map(() => []);
+  const fit = (d) => {
+    if (d === bottom.length) return true;
+    for (let t = 0; t < top.length; t++) {
+      const under = taken[t].reduce((a, b) => a * b, 1) * bottom[d];
+      if (top[t] % under) continue;
+      taken[t].push(bottom[d]);
+      if (fit(d + 1)) return true;
+      taken[t].pop();
+    }
+    return false;
+  };
+  if (!fit(0)) throw new Error(`no cancelling for C(${n}, ${j})`);
+  const steps = top.map((f, t) => {
+    if (!taken[t].length) return null;
+    const under = taken[t].reduce((a, b) => a * b, 1);
+    return `${f}/${taken[t].length > 1 ? `(${taken[t].join(' × ')})` : under} = ${f / under}`;
+  }).filter(Boolean);
+  const left = top.map((f, t) => f / taken[t].reduce((a, b) => a * b, 1)).filter((v) => v !== 1);
+  return { top, steps, left };
+}
 
 function combos(rng) {
   const kind = rng.pick(['choose', 'choose', 'choose', 'same', 'same', 'one', 'one', 'one', 'two', 'two', 'two']);
@@ -162,13 +215,24 @@ function combos(rng) {
         explain: `Choosing ${k} of ${n} to take is the same as choosing the ${n - k} to leave, so C(${n}, ${k}) = C(${n}, ${n - k}); in Pascal's triangle, the row reads the same from either end. So k = ${n - k}.`,
       };
     }
-    const top = Array.from({ length: k }, (_, i) => n - i);
+    // requiem: catalogue/content/choose-cancels-the-smaller
+    // C(16, 14) is worked as C(16, 2) = (16 × 15)/(2 × 1), never as
+    // 16 × 15 × … × 3 over 14!: the smaller of k and n − k, cancelled
+    // before anything is multiplied.
+    const j = Math.min(k, n - k);
+    // Five factors over 5! at most: C(15, 7) is past what cancels by hand,
+    // with no factor on top that 6 × 4 divides.
+    if (j > 5) return combos(rng);
+    const { top, steps, left } = cancelled(n, j);
+    const swap = j === k ? '' : ` Choosing ${k} to take is choosing ${j} to leave, so C(${n}, ${k}) = C(${n}, ${j}).`;
+    const leftover = left.length > 1 ? `${left.join(' × ')} = ${commas(C(n, k))}` : `${commas(C(n, k))}`;
     return {
       prompt: [T.prose(`Evaluate C(${n}, ${k}).`)],
       text: `choose: ${n}, ${k}`,
       answer: intAnswer(C(n, k)),
       visual: null,
-      explain: `C(${n}, ${k}) = ${n}!/(${k}! · ${n - k}!): the ${k} biggest factors of ${n}! over ${k}!, ${top.join(' × ')}/${k}! = ${commas(top.reduce((a, b) => a * b, 1))}/${commas([...Array(k)].reduce((a, _, i) => a * (i + 1), 1))} = ${commas(C(n, k))}. So C(${n}, ${k}) = ${commas(C(n, k))}.`,
+      explain: `C(n, k) = n!/(k!(n − k)!).${swap} In ${n}!/(${j}! · ${n - j}!), the ${n - j}! cancels from ${n}!, leaving the ${j} biggest factors over ${j}!: (${top.join(' × ')})/(${[...Array(j)].map((_, i) => j - i).join(' × ')}). `
+        + `Cancel before multiplying: ${steps.join(', ')}, leaving ${leftover}. So C(${n}, ${k}) = ${commas(C(n, k))}.`,
     };
   }
   const n = rng.int(4, 12), k = rng.int(1, n - 1);
@@ -180,7 +244,7 @@ function combos(rng) {
       text: `coefficient: ${asked} in (x + 1)^${n}`,
       answer: intAnswer(C(n, k)),
       visual: null,
-      explain: `Each of the ${n} brackets gives an x or a 1, and x${k === 1 ? '' : sup(k)} comes from choosing which ${k} give the x: C(${n}, ${k}) ways, and the 1s multiply to 1. So the coefficient is ${commas(C(n, k))}.`,
+      explain: `Each of the ${n} factors (x + 1) gives an x or a 1, and x${k === 1 ? '' : sup(k)} comes from choosing which ${k} give the x: C(${n}, ${k}) ways, and the 1s multiply to 1. So the coefficient is ${commas(C(n, k))}.`,
     };
   }
   const asked = powerAscii(n - k, k);
@@ -189,7 +253,7 @@ function combos(rng) {
     text: `coefficient: ${asked} in (x + y)^${n}`,
     answer: intAnswer(C(n, k)),
     visual: null,
-    explain: `Each of the ${n} brackets gives an x or a y, and ${pretty(asked)} takes y from ${k} of them: C(${n}, ${k}) = ${commas(C(n, k))} ways. (C(${n}, ${n - k}), choosing the x's, is the same number.) So the coefficient is ${commas(C(n, k))}.`,
+    explain: `Each of the ${n} factors (x + y) gives an x or a y, and ${pretty(asked)} takes y from ${k} of them: C(${n}, ${k}) = ${commas(C(n, k))} ways. (C(${n}, ${n - k}), choosing the x's, is the same number.) So the coefficient is ${commas(C(n, k))}.`,
   };
 }
 
@@ -216,7 +280,10 @@ function given(rng) {
     const m2 = kind === 'two' ? mono(b, 0, 1) : mono(b);
     const k = rng.int(kind === 'nth' ? 1 : 1, n - 1);
     const { coef, said } = termWork(m1, m2, n, k);
-    if (Math.abs(coef) > 999999 || Math.abs(coef) < 2) continue;
+    // requiem: catalogue/content/binomial-hand-sized
+    // A coefficient is three whole numbers multiplied by hand: kept to four
+    // digits, where (2x − 4)⁸ once asked for −393,216.
+    if (Math.abs(coef) > 5000 || Math.abs(coef) < 2) continue;
     if (Math.abs(a) === 1 && Math.abs(b) === 1) continue;
     const src = binAscii(m1, m2, n);
     const px = m1.px * (n - k), py = m2.py * k;
@@ -226,7 +293,7 @@ function given(rng) {
         text: `term number: ${k + 1} of ${src}`,
         answer: intAnswer(coef),
         visual: null,
-        explain: `The terms run C(${n}, 0), C(${n}, 1), …, the second number's power rising from 0, so the ${ORD[k + 1]} term has it to the power ${k}: C(${n}, ${k})${piece(m1)}${sup(n - k)}${piece(m2)}${sup(k)}. `
+        explain: `The terms run C(${n}, 0), C(${n}, 1), …, the power of ${piece(m2)} rising from 0, so the ${ORD[k + 1]} term has it to the power ${k}: C(${n}, ${k})${piece(m1)}${sup(n - k)}${piece(m2)}${sup(k)}. `
           + `${said}. So the coefficient is ${commas(coef)}.`,
       };
     }
@@ -236,7 +303,7 @@ function given(rng) {
       text: `coefficient: ${asked} in ${src}`,
       answer: intAnswer(coef),
       visual: null,
-      explain: `${pretty(asked)} comes from the term with the second number to the power ${k}${kind === 'square' ? `, since (x²)${sup(n - k)} = x${sup(2 * (n - k))}` : ''}: C(${n}, ${k})${piece(m1)}${sup(n - k)}${piece(m2)}${sup(k)}. `
+      explain: `${pretty(asked)} comes from the term with ${piece(m2)} to the power ${k}${kind === 'square' ? `, since (x²)${sup(n - k)} = x${sup(2 * (n - k))}` : ''}: C(${n}, ${k})${piece(m1)}${sup(n - k)}${piece(m2)}${sup(k)}. `
         + `Its number is ${said}, signs and all. So the coefficient is ${commas(coef)}.`,
     };
   }
@@ -251,11 +318,29 @@ function rawTerm(m1, m2, n, k) {
   return `${c === 1 ? '' : c}${pow(m1, n - k)}${pow(m2, k)}`;
 }
 
+/** The letters of a term in prose: x³, x²y, the constant's nothing. */
+const lettersOf = (px, py) => pretty(powerAscii(px, py));
+
+/** One term worked out: 10(2x)³(−3)² = 10 × 8 × 9x³ = 720x³. */
+function termOut(m1, m2, n, k) {
+  const c = C(n, k), p1 = m1.c ** (n - k), p2 = m2.c ** k;
+  const coef = c * p1 * p2;
+  const letters = lettersOf(m1.px * (n - k) + m2.px * k, m1.py * (n - k) + m2.py * k);
+  const factors = [c, p1, p2].filter((f) => f !== 1).map((f) => (f < 0 ? `(${minus(f)})` : commas(f)));
+  const value = `${minus(coef)}${letters}`.replace(/^(−?)1([a-z])/, '$1$2');
+  const raw = rawTerm(m1, m2, n, k) || '1';
+  if (factors.length <= 1) return raw === value ? value : `${raw} = ${value}`;
+  return `${raw} = ${factors.join(' × ')}${letters} = ${value}`;
+}
+
 function full(rng) {
   const kind = rng.pick(['x+b', 'x+b', 'x+b', 'ax+b', 'ax+b', 'ax+b', 'two', 'two', 'two', 'square']);
   for (;;) {
-    const n = kind === 'x+b' ? rng.int(3, 6) : kind === 'square' ? rng.int(3, 5) : rng.int(3, 4);
-    const a = kind === 'x+b' || kind === 'square' ? 1 : rng.pick([2, 3, 2, 4, 5]);
+    // requiem: catalogue/content/binomial-hand-sized
+    // Every kind reaches the fifth and sixth powers, with the numbers inside
+    // kept small there so each coefficient stays a hand product.
+    const n = rng.int(3, 6);
+    const a = kind === 'x+b' || kind === 'square' ? 1 : rng.pick(n >= 5 ? [2, 3, 2] : [2, 3, 2, 4, 5]);
     const b = rng.pick(n >= 5 ? [1, 2, -1, -2, 3, -3] : [1, 2, 3, -1, -2, -3, 4, -4, 5, -5]);
     // (3x + 3)³ is 27(x + 1)³: a common factor would hide the binomial asked for.
     const shared = (p, q) => (q ? shared(q, p % q) : Math.abs(p));
@@ -264,20 +349,21 @@ function full(rng) {
     let m2 = mono(b);
     if (kind === 'two') {
       // x and a multiple of y, or a multiple of x and y, sharing no factor.
-      [m1, m2] = rng.chance(0.5) ? [mono(1, 1), mono(rng.pick([2, 3, 4, -2, -3, -4]), 0, 1)] : [mono(a, 1), mono(rng.pick([1, -1]), 0, 1)];
+      [m1, m2] = rng.chance(0.5) ? [mono(1, 1), mono(rng.pick(n >= 5 ? [2, 3, -2, -3] : [2, 3, 4, -2, -3, -4]), 0, 1)] : [mono(a, 1), mono(rng.pick([1, -1]), 0, 1)];
     }
     const map = expand(m1, m2, n);
-    if ([...map.values()].some((c) => Math.abs(c) > 9999)) continue;
+    if ([...map.values()].some((c) => Math.abs(c) > 2500)) continue;
     const src = binAscii(m1, m2, n);
     const ans = polyAscii(map);
     const raw = Array.from({ length: n + 1 }, (_, k) => rawTerm(m1, m2, n, k));
+    const worked = Array.from({ length: n + 1 }, (_, k) => termOut(m1, m2, n, k));
     return {
       prompt: [T.prose('Expand and simplify:'), ...previewOf(src).terms],
       text: `expand: ${src}`,
       answer: { type: 'expr', value: ans },
       visual: null,
       explain: `Row ${n} of Pascal's triangle, ${row(n).join(', ')}, gives the coefficients; the power of ${piece(m1)} falls from ${n} as the power of ${piece(m2)} rises from 0: `
-        + `${raw.join(' + ')}. Working each out, signs and all, gives ${pretty(ans)}. So it is ${pretty(ans)}.`,
+        + `${raw.join(' + ')}. Term by term, signs and all: ${worked.join('; ')}. So it is ${pretty(ans)}.`,
     };
   }
 }
@@ -358,7 +444,10 @@ function chance(rng) {
   const k = how === 'exactly' ? rng.int(1, n - 1) : how === 'at least' ? rng.pick([1, n - 2, n - 1]) : rng.pick([1, 2, n - 1]);
   const ks = how === 'exactly' ? [k] : how === 'at least' ? Array.from({ length: n - k + 1 }, (_, i) => k + i) : Array.from({ length: k + 1 }, (_, i) => i);
   const qn = pd - pn, bot = pd ** n;
-  if (bot > 10 ** 7) return chance(rng);
+  // requiem: catalogue/content/binomial-hand-sized
+  // Up to 6⁵ = 7,776 on the bottom, the die's five rolls; 5⁶ = 15,625 is
+  // past what a student multiplies out.
+  if (bot > 8000) return chance(rng);
   const tops = ks.map((j) => C(n, j) * pn ** j * qn ** (n - j));
   const top = tops.reduce((a, b) => a + b, 0);
   const p = fracText(pn, pd), q = fracText(qn, pd);
@@ -369,13 +458,18 @@ function chance(rng) {
     text: `binomial chance: n ${n}, p ${p}, ${how} ${k}; ${story.tag}`,
     answer: fracAnswer(top, bot),
     visual: null,
+    // requiem: catalogue/content/complement-leads
+    // At least 1 and at most n − 1 leave out one case, so they are worked as
+    // one minus that case; adding every other case is the aside.
     explain: (how === 'exactly'
       ? `Any one order of ${story.win(k)} and ${story.lose(n - k)} has probability (${p})${sup(k)}(${q})${sup(n - k)}, and there are C(${n}, ${k}) = ${C(n, k)} orders: ${one(k)}.`
-      : `${how === 'at least' ? 'At least' : 'At most'} ${k} means ${ks.join(' or ')}, each the number of orders times the chance of one order: ${ks.map(one).join('; ')}. `
-        + `Added, ${tops.join(' + ')} = ${top}, over ${bot}.`
-        + (how === 'at least' && k === 1 ? ` (Or one minus the chance of none: 1 − (${q})${sup(n)} = ${bot - qn ** n}/${bot}.)`
-          : how === 'at most' && k === n - 1 ? ` (Or one minus the chance of all ${n}: 1 − (${p})${sup(n)} = ${bot - pn ** n}/${bot}.)` : ''))
-      + ` So the probability is ${fracText(top, bot)}.`,
+      : how === 'at least' && k === 1
+        ? `At least 1 is every case but ${story.win(0)}, so it is one minus the chance of that one case: 1 − (${q})${sup(n)} = 1 − ${qn ** n}/${bot} = ${top}/${bot}. (Adding the cases 1 to ${n} one by one gives the same.)`
+        : how === 'at most' && k === n - 1
+          ? `At most ${n - 1} is every case but ${story.win(n)}, so it is one minus the chance of that one case: 1 − (${p})${sup(n)} = 1 − ${pn ** n}/${bot} = ${top}/${bot}. (Adding the cases 0 to ${n - 1} one by one gives the same.)`
+          : `${how === 'at least' ? 'At least' : 'At most'} ${k} means ${ks.join(' or ')}, each the number of orders times the chance of one order: ${ks.map(one).join('; ')}. `
+            + `Added, ${tops.join(' + ')} = ${top}, over ${bot}: ${top}/${bot}.`)
+      + ` So the probability is ${fracWork(top, bot)}.`,
   };
 }
 

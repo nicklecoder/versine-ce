@@ -2023,7 +2023,7 @@
       }
     }
   },
-  "sources": "b13c14dd209c4e355057879e2631231f66d288233633f4c5c6e507fdc2356ad2",
+  "sources": "2417f903233ce95484ebd2789b5bc734d50115dd5f1b10409d8fc02b3b6794f1",
   "levels": [
     {
       "skill": "int-addsub",
@@ -8280,7 +8280,7 @@
       "level": 0,
       "slug": "pascals-triangle",
       "name": "Pascal's Triangle",
-      "count": 165,
+      "count": 121,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-0.json"
@@ -8290,7 +8290,7 @@
       "level": 1,
       "slug": "coefficients-by-combinations",
       "name": "Coefficients by Combinations",
-      "count": 300,
+      "count": 285,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-1.json"
@@ -8310,7 +8310,7 @@
       "level": 3,
       "slug": "full-expansion",
       "name": "Full Expansion",
-      "count": 142,
+      "count": 176,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-3.json"
@@ -8330,7 +8330,7 @@
       "level": 5,
       "slug": "binomial-probability",
       "name": "Binomial Probability",
-      "count": 266,
+      "count": 255,
       "exhaustive": true,
       "signed": false,
       "file": "binomial-5.json"

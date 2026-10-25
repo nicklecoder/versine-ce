@@ -41,7 +41,9 @@ export const LEVELS = [
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [40, 45, 70, 90, 75, 75, 70];
+// Full Expansion runs to sixth powers, each of seven terms a product worked by
+// hand, so it has the longest par.
+export const PAR_SECONDS = [40, 45, 70, 105, 75, 75, 70];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
