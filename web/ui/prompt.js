@@ -285,6 +285,11 @@ export function answerTerm(type, value) {
     // A decimal is held as an exact {n, d}, so it is written out, not stringified.
     case 'decimal': return { t: 'num', v: getType(type).format(value) };
     case 'solutions': return setTerms(value);
+    // As the box previews it: a conjugate pair is its two members, joined by "or".
+    case 'complex': {
+      const box = getType(type);
+      return box.preview(box.format(value)).terms;
+    }
     case 'roots': return rootTerms(value);
     // A whole number is drawn as one: 1/2 ÷ 1/16 = 8, not a stacked 8/1.
     case 'frac': return value.d === 1 ? { t: 'num', v: String(value.n).replace('-', '−') }

@@ -453,12 +453,12 @@ for (const skill of SKILLS) {
     const r = sets.parse(raw);
     if (!r.ok || r.value.parts.length) fail.push(`solutions: "${raw}" was not read as no solution`);
   }
-  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'] };
+  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'], complex: ['i', '+-'] };
   for (const [id, typed] of Object.entries(shown)) {
     const keys = (getType(id).keys ?? []).map(([t]) => t);
     for (const t of typed) if (!keys.includes(t)) fail.push(`${id}: the box does not show how to type ${t}`);
   }
-  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)']]) {
+  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)'], ['complex', '2 +- 3i']]) {
     if (!getType(id).parse(sample).ok) fail.push(`${id}: the shown spelling "${sample}" is refused`);
   }
 }

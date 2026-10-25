@@ -1,5 +1,5 @@
 {
-  "built": 598,
+  "built": 604,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -757,6 +757,14 @@
       "sketch-from-factors",
       "turning-points",
       "polynomial-inequalities",
+      "all-together"
+    ],
+    "complex": [
+      "powers-of-i",
+      "add-and-subtract",
+      "multiply",
+      "conjugates-and-divide",
+      "complex-roots",
       "all-together"
     ]
   },
@@ -1839,9 +1847,33 @@
           "quadratic-eq"
         ]
       }
+    },
+    "complex": {
+      "dependsOn": [
+        "exponents",
+        "polynomials",
+        "quadratic-formula"
+      ],
+      "levels": {
+        "powers-of-i": [
+          "exponents"
+        ],
+        "add-and-subtract": [
+          "polynomials"
+        ],
+        "multiply": [
+          "polynomials"
+        ],
+        "conjugates-and-divide": [
+          "polynomials"
+        ],
+        "complex-roots": [
+          "quadratic-formula"
+        ]
+      }
     }
   },
-  "sources": "fa15116d1ef7df3a22c0c33e9919a99a7f03d50d082bc03d833d7df9988accb1",
+  "sources": "597112a9b27406fd01b1ea36cfa3a3ce32fa9ab8f3bc2350b129d67d41d7d5ff",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7822,6 +7854,66 @@
       "exhaustive": false,
       "signed": true,
       "file": "poly-functions-5.json"
+    },
+    {
+      "skill": "complex",
+      "level": 0,
+      "slug": "powers-of-i",
+      "name": "Powers of i",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-0.json"
+    },
+    {
+      "skill": "complex",
+      "level": 1,
+      "slug": "add-and-subtract",
+      "name": "Add & Subtract",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-1.json"
+    },
+    {
+      "skill": "complex",
+      "level": 2,
+      "slug": "multiply",
+      "name": "Multiply",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-2.json"
+    },
+    {
+      "skill": "complex",
+      "level": 3,
+      "slug": "conjugates-and-divide",
+      "name": "Conjugates & Divide",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-3.json"
+    },
+    {
+      "skill": "complex",
+      "level": 4,
+      "slug": "complex-roots",
+      "name": "Complex Roots of Quadratics",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-4.json"
+    },
+    {
+      "skill": "complex",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-5.json"
     }
   ]
 }

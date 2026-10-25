@@ -19,6 +19,7 @@ import { parseSet, sameSet, formatSet, previewSet, combined, isComplement } from
 import { parseRoots, sameRoots, formatRoots, rootTexts } from './surds.js';
 import { previewOf } from '../ui/express.js';
 import { sameFunction, finished, withoutName, parseNamed } from './equivalent.js';
+import { parseComplex, sameComplex, formatComplex } from './complex.js';
 
 /** @type {Record<string, AnswerType>} */
 const TYPES = {};
@@ -630,6 +631,58 @@ defineType({
   isSimplest: (v) => v.simplest !== false,
   unfinished: 'in simplest radical form',
   format: formatRoots,
+});
+
+// requiem: catalogue/content/complex-judged-exactly
+defineType({
+  id: 'complex',
+  input: 'free',
+  hint: 'Type it as a + bi, like 3 − 2i, or 2 +- 3i for a conjugate pair. Type +- for ±.',
+  keys: [['i', '√−1'], ['+-', '±']],
+  /**
+   * A complex number, judged by its real and imaginary parts as exact
+   * fractions: 3 − 2i, −2i + 3 and (6 − 4i)/2 agree, and nothing is rounded.
+   * The expression box cannot judge these, since it knows nothing of i: it
+   * would take i·i for a letter squared and never make it −1. A power of i
+   * left in is refused with a hint, not marked wrong. web/math/complex.js
+   * has every form it reads.
+   *
+   * The preview draws the number as it is understood, a conjugate pair as
+   * its two members joined by "or".
+   *
+   * Value: { re, im, pm?, simplest? }, re and im fractions { n, d }; pm is
+   * the pair re ± im·i.
+   */
+  parse(raw) {
+    const r = parseComplex(raw);
+    return r.ok ? r : { ok: false, hint: r.hint ?? 'Write it as a + bi, like 3 − 2i.' };
+  },
+  preview(raw) {
+    const r = parseComplex(raw);
+    if (!r.ok) return { ok: false, error: r.hint };
+    const v = r.value;
+    const members = v.pm
+      ? [{ re: v.re, im: v.im }, { re: v.re, im: { n: -v.im.n, d: v.im.d } }]
+      : [v];
+    const terms = [];
+    for (const [i, z] of members.entries()) {
+      const drawn = previewOf(formatComplex(z, true));
+      if (!drawn.ok) return drawn;
+      if (i) terms.push({ t: 'prose', v: 'or' });
+      terms.push(...drawn.terms);
+    }
+    return { ok: true, terms };
+  },
+  equals: sameComplex,
+  // One root of a conjugate pair typed alone is half the answer: wrong,
+  // and told that the other root is its conjugate.
+  missHint: (v, spec) => (spec.value.pm && !v.pm
+    && sameComplex({ re: v.re, im: { n: Math.abs(v.im.n), d: v.im.d }, pm: true }, spec.value)
+    ? 'That is one root. The other is its conjugate: give both, like 2 +- 3i.' : null),
+  // (6 − 4i)/2 is the right number, not yet written as a + bi.
+  isSimplest: (v) => v.simplest !== false,
+  unfinished: 'as one real part and one imaginary part, in lowest terms',
+  format: (v) => formatComplex(v),
 });
 
 defineType({

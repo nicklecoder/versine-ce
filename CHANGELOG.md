@@ -13,6 +13,18 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Complex Numbers**, a new skill under Powers, in six levels: Powers of i,
+Add & Subtract, Multiply, Conjugates & Divide, Complex Roots of Quadratics
+(a conjugate pair, and which kind of roots a discriminant gives), then All
+Together. Answers go in a new `complex` box, which reads a + bi into exact
+real and imaginary parts: 3 − 2i, −2i + 3 and (6 − 4i)/2 are one answer,
+the last right but not finished, and a pair is typed 2 +- 3i or both
+written out. A power of i left in an answer is refused with a hint rather
+than marked wrong, and one root of a pair typed alone is told the other is
+its conjugate. The box's key guide shows i and +-. `check-answers.py`
+works each question out again in exact complex arithmetic over fractions,
+and a quadratic's roots from its own discriminant.
+
 **Polynomial Functions**, a new skill under Functions, in six levels:
 Zeros & Multiplicity (every zero, one zero's multiplicity, and whether
 the graph crosses or touches there), End Behavior (the two ends chosen

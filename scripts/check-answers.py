@@ -7422,6 +7422,115 @@ for path in sorted(LIB.glob("poly-functions-*.json")):
         if marked != pf_count(m[1]):
             problems.append(f"{where}: {marked} turning points marked, but the heights turn {pf_count(m[1])} times")
 
+# --- Complex Numbers ----------------------------------------------------------
+#
+# The question's expression is evaluated again in exact complex arithmetic:
+# pairs of Fractions with i * i = -1 built in, so i^27, a product, a sum or
+# a quotient comes out as a real and an imaginary part with nothing rounded.
+# A quadratic's complex roots come from its own discriminant, whose square
+# root must be exact, as the conjugate pair -b/2a +- (sqrt(-D)/2a)i.
+
+class Cx:
+    def __init__(self, re, im=0):
+        self.re, self.im = Fraction(re), Fraction(im)
+
+    @staticmethod
+    def of(v):
+        return v if isinstance(v, Cx) else Cx(v)
+
+    def __add__(self, o):
+        o = Cx.of(o)
+        return Cx(self.re + o.re, self.im + o.im)
+
+    __radd__ = __add__
+
+    def __neg__(self):
+        return Cx(-self.re, -self.im)
+
+    def __pos__(self):
+        return self
+
+    def __sub__(self, o):
+        return self + -Cx.of(o)
+
+    def __rsub__(self, o):
+        return Cx.of(o) - self
+
+    def __mul__(self, o):
+        o = Cx.of(o)
+        return Cx(self.re * o.re - self.im * o.im, self.re * o.im + self.im * o.re)
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, o):
+        o = Cx.of(o)
+        m = o.re * o.re + o.im * o.im
+        assert m != 0, "division by 0"
+        return Cx((self.re * o.re + self.im * o.im) / m, (self.im * o.re - self.re * o.im) / m)
+
+    def __rtruediv__(self, o):
+        return Cx.of(o) / self
+
+    def __pow__(self, k):
+        k = int(k)
+        out = Cx(1)
+        for _ in range(abs(k)):
+            out = out * self
+        return Cx(1) / out if k < 0 else out
+
+
+def cx_eval(src: str) -> Cx:
+    py = src.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[i(])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[i(\d])", ")*", py)
+    py = re.sub(r"i\s*(?=[(\d])", "i*", py)
+    py = re.sub(r"(?<![\w.])(\d+)", r"F(\1)", py)
+    return Cx.of(eval(py, {"__builtins__": {}, "F": Fraction, "i": Cx(0, 1)}))  # noqa: S307
+
+
+def cx_value(src: str) -> tuple:
+    z = cx_eval(src)
+    return z.re, z.im, False
+
+
+def cx_conjugate(src: str) -> tuple:
+    z = cx_eval(src)
+    return z.re, -z.im, False
+
+
+def cx_exact_root(v: Fraction) -> Fraction:
+    n, d = math.isqrt(v.numerator), math.isqrt(v.denominator)
+    assert n * n == v.numerator and d * d == v.denominator, f"sqrt({v}) is not exact"
+    return Fraction(n, d)
+
+
+# requiem: catalogue/content/complex-judged-exactly
+def cx_roots(lhs: str, rhs: str) -> tuple:
+    c = qe_plus(rf_poly(lhs), [-a for a in rf_poly(rhs)])
+    assert len(c) == 3, "not a quadratic"
+    c0, c1, c2 = c
+    D = c1 * c1 - 4 * c2 * c0
+    assert D < 0, "the roots are real"
+    return -c1 / (2 * c2), cx_exact_root(-D) / (2 * abs(c2)), True
+
+
+def cx_nature(src: str, listing: str) -> str:
+    c = rf_poly(src)
+    D = c[1] ** 2 - 4 * c[2] * c[0]
+    kind = "two real" if D > 0 else "one real" if D == 0 else "two complex"
+    return rf_pick(listing, lambda body: body == kind)
+
+
+COMPLEX_RULES = (
+    (re.compile(r"^complex: (.+)$"), cx_value),
+    (re.compile(r"^conjugate: (.+)$"), cx_conjugate),
+    (re.compile(r"^complex roots: (.+) = (.+)$"), cx_roots),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^nature of roots: (.+) = 0; options (.+)$"), cx_nature),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -7558,6 +7667,27 @@ for path in sorted(LIB.glob("*.json")):
                 v = answer["value"]
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
+            continue
+
+        # requiem: catalogue/content/complex-judged-exactly
+        # A complex number: worked out again in exact complex arithmetic and
+        # compared part by part, a conjugate pair as its real part and the
+        # size of its imaginary part.
+        if answer["type"] == "complex":
+            rule = next((r for r in COMPLEX_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                re_, im, pm = rule[1](*rule[0].match(text).groups())
+                if pm:
+                    im = abs(im)
+                v = answer["value"]
+                got = (as_fraction(v["re"]), as_fraction(v["im"]), bool(v.get("pm")))
+                if got != (re_, im, pm):
+                    problems.append(f"{where}: {text} is {(re_, im, pm)}, not {v}")
+                for part in ("re", "im"):
+                    n, d = v[part]["n"], v[part]["d"]
+                    if d <= 0 or math.gcd(n, d) != 1:
+                        problems.append(f"{where}: {part} {v[part]} is not in lowest terms")
             continue
 
         # A number to a fraction power, worked out exactly where it can be.

@@ -49,7 +49,8 @@ pre-algebra walks straight up it.
 ## Engine work the later phases need
 
 Answer types beyond `int frac mixed decimal choice expr`: exact multiples of π,
-simplified radicals (a√b), ordered pairs, intervals, complex numbers, degrees.
+simplified radicals (a√b), ordered pairs, intervals, complex numbers (the `complex`
+type, built with that skill), degrees.
 Visuals for function graphs, triangles and circles (the plane already exists).
 
 ## Phase 0 — finish pre-algebra
@@ -487,6 +488,14 @@ graphs of quadratics' Vertex From −b/2a, and Polynomial & Quadratic
 Inequalities on compound inequalities' Either Side and quadratic
 equations' By Factoring. Graphs are drawn with every whole-number height
 in the window listed, and the checker reads them from those heights.
+
+`complex` is built, in the plan's five levels and All Together. Powers of
+i depends on exponents' Multiplying Powers and Zero and Negative, Add &
+Subtract on polynomials' Adding, Multiply on Binomial Times Binomial,
+Conjugates & Divide on Special Products, and Complex Roots of Quadratics
+on the quadratic formula's The Discriminant. Answers are the new
+`complex` type, judged by exact real and imaginary parts rather than by
+`expr` or `equivalent`, neither of which knows that i² is −1.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
