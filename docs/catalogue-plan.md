@@ -319,7 +319,7 @@ With it, Phase 3 is built.
 | `poly-division` (Expressions) | Long Division · Synthetic · Remainder Theorem · Factor Theorem · Rational Root Theorem · All Zeros From One | A-APR.2,6, TEKS A2.7C,D |
 | `poly-functions` (Functions) | Zeros & Multiplicity · End Behavior · Sketch From Factors · Turning Points · Polynomial & Quadratic Inequalities · Rational Inequalities | A-APR.3, TEKS A2.4H, P.5K |
 | `complex` (Powers) | Powers of i · Add & Subtract · Multiply · Conjugates & Divide · Complex Roots of Quadratics | N-CN.1–3,7 |
-| `logarithms` (Powers) | Log as Exponent · Evaluate · Product/Quotient/Power · ln & Change of Base · Solve Exponential Equations · Solve Log Equations | F-LE.4, F-BF.5, TEKS A2.5 |
+| `logarithms` (Powers) | Log as Exponent · Evaluate · Product/Quotient/Power · ln & Change of Base · Solve Exponential Equations · Solve Log Equations · Log Functions | F-LE.4, F-BF.4–5, F-IF.7e, TEKS A2.5 |
 | `series` (Sequences) | Arithmetic Sums · Finite Geometric · Sigma Notation · Infinite Geometric | A-SSE.4, TEKS P.5A–E |
 | `binomial` (Sequences) | Pascal's Triangle · Coefficients by Combinations · A Given Term · Full Expansion | A-APR.5, TEKS P.5F |
 | `systems-2` (Equations) | Line Meets Parabola · How Many Intersections · Three Variables · Three-Variable Word Problems | A-REI.7, TEKS A2.3 |
@@ -431,17 +431,10 @@ slopes, a − bx and (ax + b)/(cx + d). A number goes in the fraction box, a
 formula in the equivalent box, judged by value, and a reflected point in
 the pair box; the question says which.
 
-`inverses` has a Log Functions level, before All Together: y = log_b x as
-the reflection of y = bˣ, a point of bˣ + k reflected to its inverse, the
-domain of log_b(ax + c) and log_b(x² − c²), the vertical asymptote where
-the inside is 0, and the inverse of bˣ + k, b^(x − h), log_b x + k, c·bˣ
-and bˣ/c as a choice. Its wrong options cross undoing in the wrong order
-with a sign or a step turned round, and each family has a twin with the
-same four options and another key. It depends on logarithms' Log as
-Exponent, so `inverses` now waits for `logarithms` as a whole; nothing
-depends on `inverses`, so nothing else waits longer. A domain goes in the
-solutions box, written with x, an asymptote in the fraction box, and a
-point in the pair box.
+Log functions are not in `inverses`: they are a level of `logarithms`,
+which builds on this skill's Graph Reflection (US courses teach inverses
+first and the log as the inverse of bˣ), so `inverses` waits for nothing
+in logarithms.
 
 `radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
 Radical · Square Twice · Cube Roots · Rational Exponents · All Together.
@@ -538,6 +531,18 @@ Exact answers are fractions; rounded ones are decimals to the places the
 question names. Product, Quotient & Power both condenses and expands, and
 every choice's decoys cross two misreadings, so the key is not the option
 nearest all the others.
+
+`logarithms` has a Log Functions level, before All Together, depending on
+inverse functions' Graph Reflection: y = log_b x as the inverse of bˣ, the
+x-intercept and the point at a height of log_b(x − h) + k (the key points
+(1, 0) and (b, 1) moved), the range of a log or a power and the domain of
+an inverse as the range of f, the domain and asymptote of the log of a line,
+rising or falling (bases below 1, −log_b x, log_b(−x)), the four
+reflections, vertical stretches including log₄ x = (1/2) log₂ x, matching a
+drawn graph to its equation, and the inverse as a choice whose four options
+are keyed by four functions in turn. Swapping a point's coordinates is a
+tenth of it. The log of x² − c² is left out: its domain needs a quadratic
+inequality, which is poly-functions', not a dependency here.
 
 `exponential` gained e and Continuous Growth for this, as its ninth level
 with a `longerBecause`: e as what compounding ever more often tends to,

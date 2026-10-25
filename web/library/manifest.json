@@ -707,7 +707,6 @@
       "check-by-composing",
       "restrict-the-domain",
       "graph-reflection",
-      "log-functions",
       "all-together"
     ],
     "radical-eq": [
@@ -781,6 +780,7 @@
       "ln-and-change-of-base",
       "exponential-equations",
       "log-equations",
+      "log-functions",
       "all-together"
     ],
     "series": [
@@ -1712,7 +1712,6 @@
         "composition",
         "equations",
         "functions",
-        "logarithms",
         "quadratic-graphs",
         "roots"
       ],
@@ -1734,9 +1733,6 @@
         ],
         "graph-reflection": [
           "functions"
-        ],
-        "log-functions": [
-          "logarithms"
         ]
       }
     },
@@ -1925,6 +1921,7 @@
         "equations",
         "exponential",
         "exponents",
+        "inverses",
         "quadratic-eq",
         "radical-eq",
         "rational-exponents"
@@ -1947,6 +1944,9 @@
         "log-equations": [
           "quadratic-eq",
           "radical-eq"
+        ],
+        "log-functions": [
+          "inverses"
         ]
       }
     },
@@ -2023,7 +2023,7 @@
       }
     }
   },
-  "sources": "67b8aba1275a5b6d4993e5e0a257ca21bf97283bc815bd9a0132ef04d12f8d0a",
+  "sources": "d2ff15f49b27a460cd6189f354f1a3cc9354aaae68abf071839b22f2a7a34bdd",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7618,22 +7618,12 @@
     {
       "skill": "inverses",
       "level": 5,
-      "slug": "log-functions",
-      "name": "Log Functions",
-      "count": 1000,
-      "exhaustive": false,
-      "signed": true,
-      "file": "inverses-5.json"
-    },
-    {
-      "skill": "inverses",
-      "level": 6,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "inverses-6.json"
+      "file": "inverses-5.json"
     },
     {
       "skill": "radical-eq",
@@ -8198,12 +8188,22 @@
     {
       "skill": "logarithms",
       "level": 6,
+      "slug": "log-functions",
+      "name": "Log Functions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-6.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "logarithms-6.json"
+      "file": "logarithms-7.json"
     },
     {
       "skill": "series",

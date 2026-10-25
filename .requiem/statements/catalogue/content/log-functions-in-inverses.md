@@ -2,7 +2,7 @@
 id: log-functions-in-inverses
 namespace: catalogue/content
 kind: decision
-status: active
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-25T05:47:11.753768612Z

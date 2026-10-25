@@ -13,15 +13,27 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
-**Inverse Functions** has a new level before All Together, Log Functions:
-y = log_b x as the reflection of y = bˣ in y = x, points reflected from
-bˣ + k to its inverse, the domain of a log of a line or of x² − c², its
-vertical asymptote, and the inverse of an exponential or a log picked from
-four options that cross undoing in the wrong order with a sign or a step
-turned round. It depends on logarithms' Log as Exponent, so Inverse
-Functions now opens after Logarithms. `scripts/check-answers.py` samples a
-log's domain, finds its asymptote from two values of what it takes the log
-of, and picks the inverse that composes with the function to give x back.
+**Logarithms** has a new level before All Together, Log Functions: y =
+log_b x as the inverse of y = bˣ and its reflection in y = x; where a
+shifted log crosses the x-axis or reaches a height, through the key points
+(1, 0) and (b, 1); the range of a log or a power, and the domain of an
+inverse as the range of its function; the domain and vertical asymptote of
+the log of a line; whether a log rises or falls, a base below 1, a minus in
+front and −x inside each turning it over; the four reflections (x-axis,
+y-axis, y = x, through the origin); a vertical stretch, log₄ x as log₂ x
+times 1/2 among them; which equation a drawn graph is; and the inverse of
+an exponential or a log as a choice, each set of four options keyed by four
+functions so where the number sits gives nothing away. Most rows draw the
+graph once answered, with its asymptote and the points asked for; the
+matching rows draw it while asking. It depends on inverse functions' Graph
+Reflection, and Logarithms now builds on Inverse Functions rather than the
+other way round, the order US courses teach them in: the level was briefly
+in Inverse Functions, which made that skill wait for Logarithms.
+`scripts/check-answers.py` reads each function from its text and finds
+every answer from its values: crossings by bisection, ranges from the
+values near each edge of the domain and far out, a reflection by mapping
+one graph's points onto the other, and checks every curve drawn lies on
+the function the question names.
 
 **Systems of Equations II** (`systems-2`), a new skill under Equations, in
 eight levels: Line Meets Parabola, How Many Intersections, Line Meets

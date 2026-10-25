@@ -8,7 +8,9 @@
  * which solves an exponential equation -- 2ˣ = 3ˣ⁻¹ as readily as 2ˣ = 8 --
  * and the time a growth or decay story takes; a log equation is solved by
  * writing it as a power, then every answer is checked, since a log of a
- * number that is not positive does not exist.
+ * number that is not positive does not exist. And y = log_b x is a function,
+ * the inverse of y = bˣ: its graph is that one reflected in y = x, through
+ * (1, 0) and (b, 1), taking only positive numbers and giving every real one.
  */
 
 export const LEVELS = [
@@ -34,12 +36,19 @@ export const LEVELS = [
   { name: 'Solve Log Equations', slug: 'log-equations',
     blurb: 'Combine into one log, write it as a power, solve, then check each answer: a log needs a positive number.',
     dependsOn: [{ skill: 'quadratic-eq', level: 1 }, { skill: 'radical-eq', level: 1 }] },
+  // requiem: catalogue/content/log-functions-in-logarithms
+  { name: 'Log Functions', slug: 'log-functions',
+    blurb: 'y = log₂ x is the inverse of 2ˣ: its graph is the reflection in y = x, through (1, 0) and (2, 1). It takes only positive numbers, gives every real one, and runs down beside the line where its inside is 0.',
+    // The reflection in y = x, a point (a, b) becoming (b, a), is inverses'
+    // Graph Reflection; reading log_b v = e as b^e = v is Log as Exponent,
+    // earlier in this skill, and the stretch rows use ln & Change of Base.
+    dependsOn: [{ skill: 'inverses', level: 4 }] },
   { name: 'All Together', slug: 'all-together',
     blurb: 'Everything mixed. Clear this against the clock to finish the skill for the day.' },
 ];
 
 export const LAST_LEVEL = LEVELS.length - 1;
-export const PAR_SECONDS = [35, 40, 60, 60, 75, 90, 65];
+export const PAR_SECONDS = [35, 40, 60, 60, 75, 90, 55, 65];
 
 /**
  * The runtime definition of this skill: what the student sees and how the
@@ -52,9 +61,10 @@ export default {
   name: 'Logarithms',
   category: 'powers',
   glyph: 'log₂ 8',
-  blurb: 'Logs as exponents, the laws of logs, ln and change of base, and solving exponential and log equations.',
+  blurb: 'Logs as exponents, the laws of logs, ln and change of base, solving exponential and log equations, and the graph of log_b x as the inverse of bˣ.',
   answerInput: 'frac',
-  // Powers from exponents and rational-exponents; solving from equations, exponential, quadratic-eq and radical-eq.
-  dependsOn: ['exponents', 'rational-exponents', 'equations', 'exponential', 'quadratic-eq', 'radical-eq'],
+  // Powers from exponents and rational-exponents; solving from equations, exponential, quadratic-eq and radical-eq;
+  // the log as the inverse of bˣ from inverses.
+  dependsOn: ['exponents', 'rational-exponents', 'equations', 'exponential', 'quadratic-eq', 'radical-eq', 'inverses'],
   levels: LEVELS,
 };

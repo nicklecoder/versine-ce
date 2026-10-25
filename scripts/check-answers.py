@@ -8767,16 +8767,20 @@ def il_inverse(f, listing):
     for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
         g = il_float(label)
         ok = True
-        for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0):
+        # Only x in f's domain: log_2(x - 5) takes no x below 5. At least
+        # four are always left, and every y = f(x) is in f's range.
+        xs = [x for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0, 15.5, 23.0) if fn(x) == fn(x)]
+        assert len(xs) >= 4, f"{f}: too few x in its domain"
+        for x in xs:
             try:
                 back = g(fn(x))                        # f⁻¹(f(x)) = x, for every x
                 ok &= back == back and abs(back - x) < 1e-9
             except (ValueError, ZeroDivisionError, OverflowError):
                 ok = False
-        for y in (13.0, 40.0, 97.5):                   # f(f⁻¹(y)) = y, for y in f's range
+        for y in (fn(x) for x in xs):                  # f(f⁻¹(y)) = y, for y in f's range
             try:
                 there = fn(g(y))
-                ok &= there == there and abs(there - y) < 1e-9 * y
+                ok &= there == there and abs(there - y) < 1e-9 * max(1, abs(y))
             except (ValueError, ZeroDivisionError, OverflowError):
                 ok = False
         if ok:
@@ -8809,6 +8813,258 @@ CHOICE_RULES += (
     (re.compile(r"^log inverse: (f\(x\) = .+?); options (.+)$"), il_inverse),
 )
 
+
+# --- Logarithms: Log Functions -------------------------------------------------
+# requiem: catalogue/content/log-functions-in-logarithms
+# Each function is read from its ASCII text and evaluated -- exactly in
+# fractions where it can be, so 3 - 2^(-100) stays below 3 -- and every answer
+# is found from the values alone: a crossing by bisection where the function
+# passes the height, a range from the values near each edge of the domain and
+# far out, a direction from the values in order, a reflection by mapping the
+# points of one graph and testing them on the other, a stretch from the ratio
+# of two logs, and a drawn graph from the equation every point of it fits.
+
+def lf_log(b, v):
+    if not v > 0:
+        return float("nan")
+    if isinstance(v, Fraction):
+        return (math.log(v.numerator) - math.log(v.denominator)) / math.log(b)
+    return math.log(v) / math.log(b)
+
+
+def lf_pow(a, e):
+    if isinstance(e, Fraction) and e.denominator == 1 and abs(e) <= 2000:
+        return Fraction(a) ** e
+    try:
+        v = float(a) ** float(e)
+    except OverflowError:
+        return float("nan")
+    # A float too small to survive being added to a whole number (10^(-40.5)
+    # + 3 is 3.0) would put the edge of a range in it: left out, as unknown.
+    return float("nan") if abs(v) < 1e-12 or math.isinf(v) else v
+
+
+def lf_float(src):
+    """log_3(x - 2) + 1, -2^(x - 1) + 3, 3*log_(1/2)(-x) as a function of x."""
+    py = re.sub(r"log_\((\d+)/(\d+)\)\(", r"_log(\1/\2, ", src)
+    py = re.sub(r"log_(\d+)\(", r"_log(\1, ", py)
+    py = re.sub(r"(\d)(x)", r"\1*\2", py)
+    py = re.sub(r"(\d+|\([^()]*\))\^(x|\([^()]*\))", r"_pow(\1, \2)", py)
+    assert "^" not in py, f"unread power in {src}"
+    code = compile(py, "<log function>", "eval")
+
+    def f(x):
+        try:
+            v = eval(code, {"__builtins__": {}, "_log": lf_log, "_pow": lf_pow}, {"x": x})  # noqa: S307
+        except (OverflowError, ZeroDivisionError, ValueError):
+            return float("nan")
+        return v if v == v else float("nan")
+    return f
+
+
+LF_GRID = [Fraction(k, 16) for k in range(-40 * 16, 40 * 16 + 1)]
+LF_TOL = Fraction(1, 10 ** 12)
+
+
+def lf_ok(v):
+    return isinstance(v, (int, Fraction)) or (isinstance(v, float) and math.isfinite(v))
+
+
+def lf_cross(f, height):
+    """The one x where f passes the height, found by bisection on a fine grid."""
+    xs = [Fraction(k, 256) for k in range(-20 * 256, 20 * 256)] + [Fraction(20 + j) for j in range(2000)]
+    roots, prev = [], None
+    for x in xs:
+        v = f(x)
+        if not lf_ok(v):
+            prev = None
+            continue
+        d = v - height
+        if d == 0:
+            roots.append(Fraction(x))
+        elif prev is not None and prev[1] != 0 and (prev[1] < 0) != (d < 0):
+            lo, hi = prev[0], x
+            for _ in range(80):
+                mid = (lo + hi) / 2
+                if (f(mid) - height < 0) == (prev[1] < 0):
+                    lo = mid
+                else:
+                    hi = mid
+            roots.append(Fraction(float(lo)).limit_denominator(1000))
+        prev = (x, d)
+    roots = sorted(set(roots))
+    assert len(roots) == 1, f"passes {height} at {roots}"
+    q = roots[0]
+    assert abs(f(q) - height) < 1e-9, f"{q} is not where it passes {height}"
+    return q
+
+
+def lf_x_intercept(src):
+    return lf_cross(lf_float(src), 0)
+
+
+def lf_height(src, y):
+    return (lf_cross(lf_float(src), Fraction(y)), Fraction(y))
+
+
+def lf_range(src):
+    """Every height f reaches: its values on a grid, near each edge of its
+    domain (approached by halving, in fractions), and far out, joined where
+    the value between two samples lies between theirs."""
+    f = lf_float(src)
+    xs = set(LF_GRID)
+    for a, b in zip(LF_GRID, LF_GRID[1:]):
+        if lf_ok(f(a)) != lf_ok(f(b)):
+            inside, outside = (a, b) if lf_ok(f(a)) else (b, a)
+            for i in range(300):
+                mid = (inside + outside) / 2
+                if lf_ok(f(mid)):
+                    inside = mid
+                else:
+                    outside = mid
+                if i % 10 == 9:
+                    xs.add(inside)
+    xs.update(s * Fraction(2) ** j for j in range(1, 11) for s in (1, -1))
+    xs.update(s * Fraction(10) ** j for j in range(3, 61) for s in (1, -1))
+    pts = [(x, f(x)) for x in sorted(xs)]
+    spans = []
+    for (x0, v0), (x1, v1) in zip(pts, pts[1:]):
+        if lf_ok(v0) and lf_ok(v1):
+            m = f((x0 + x1) / 2)
+            lo, hi = sorted((v0, v1))
+            if lf_ok(m) and lo - LF_TOL <= m <= hi + LF_TOL:
+                spans.append((lo, hi))
+    return on_grid({y for y in DR_Y if any(lo <= y <= hi for lo, hi in spans)}, DR_Y)
+
+
+def lf_direction(src, listing):
+    f = lf_float(src)
+    vals = [v for v in (f(x) for x in LF_GRID) if lf_ok(v)]
+    steps = [b - a for a, b in zip(vals, vals[1:])]
+    assert len(vals) > 20 and (all(s > 0 for s in steps) or all(s < 0 for s in steps)), f"{src} does not run one way"
+    want = "rises" if steps[0] > 0 else "falls"
+    ids = {label.strip(): oid for oid, label in re.findall(r"(\w): ([^|]+)", listing)}
+    return ids[want]
+
+
+LF_MIRRORS = {"x-axis": lambda x, y: (x, -y), "y-axis": lambda x, y: (-x, y),
+              "y = x": lambda x, y: (y, x), "origin": lambda x, y: (-x, -y)}
+
+
+def lf_reflected(g_src, f_src, listing):
+    f, g = lf_float(f_src), lf_float(g_src)
+    pts = [(x, f(x)) for x in LF_GRID[::8]]
+    pts = [(x, y) for x, y in pts if lf_ok(y) and 1e-6 < abs(y) < 40]
+    assert len(pts) > 10, f"too few points of {f_src}"
+    fits = []
+    for oid, name in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
+        ok = True
+        for x, y in pts:
+            X, Y = LF_MIRRORS[name](x, y)
+            there = g(X)
+            ok &= lf_ok(there) and abs(there - Y) < 1e-9 * max(1, abs(Y))
+        if ok:
+            fits.append(oid)
+    assert len(fits) == 1, f"{g_src} from {f_src}: {fits}"
+    return fits[0]
+
+
+def lf_stretch(to, frm):
+    r = [lf_log(int(to), x) / lf_log(int(frm), x) for x in (7.0, 13.0, 0.3)]
+    q = Fraction(r[0]).limit_denominator(20)
+    assert all(abs(v - float(q)) < 1e-12 for v in r), f"log_{to}/log_{frm} is not one number: {r}"
+    return q
+
+
+def lf_same(a_src, b_src):
+    a, b = lf_float(a_src), lf_float(b_src)
+    xs = [x for x in LF_GRID[::5] if lf_ok(a(x)) or lf_ok(b(x))]
+    return bool(xs) and all(lf_ok(a(x)) and lf_ok(b(x)) and abs(a(x) - b(x)) < 1e-9 for x in xs)
+
+
+def lf_which(drawn, listing):
+    good = [oid for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing) if lf_same(drawn, label)]
+    assert len(good) == 1, f"{drawn}: {good} are it"
+    return good[0]
+
+
+PAIR_RULES += (
+    (re.compile(r"^log point at height: (.+); y = (-?\d+)$"), lf_height),
+)
+
+BY_RULE += (
+    (re.compile(r"^log x-intercept: (.+)$"), lf_x_intercept),
+    (re.compile(r"^stretch factor: log_(\d+)\(x\) from log_(\d+)\(x\)$"), lf_stretch),
+    (re.compile(r"^stretched log meets: (\d+\*log_\d+\(x\)) = (-?\d+)$"), lambda src, y: lf_cross(lf_float(src), Fraction(y))),
+)
+
+SET_RULES += (
+    (re.compile(r"^log range: (.+)$"), lf_range),
+    (re.compile(r"^power range: (.+)$"), lf_range),
+    # The domain of f⁻¹ is the range of f: f⁻¹ takes exactly what f gives out.
+    (re.compile(r"^inverse domain: f\(x\) = (.+)$"), lf_range),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^rises or falls: (.+); options (a: rises \| b: falls)$"), lf_direction),
+    (re.compile(r"^reflected: (.+) from (.+); options (.+)$"), lf_reflected),
+    (re.compile(r"^which graph: drawn (.+?); options (.+)$"), lf_which),
+)
+
+
+def lf_drawn_functions(text):
+    """The functions a row's picture draws, read from its text."""
+    m = re.match(r"^reflect shifted: \(\S+, \S+\) on base (\d+) plus (-?\d+)$", text)
+    if m:
+        b, k = m[1], int(m[2])
+        return [f"{b}^x + {k}" if k >= 0 else f"{b}^x - {-k}", f"log_{b}(x - {k})" if k >= 0 else f"log_{b}(x + {-k})"]
+    m = re.match(r"^reflect onto (?:log|power): \(\S+, \S+\) on base (\d+)$", text)
+    if m:
+        return [f"{m[1]}^x", f"log_{m[1]}(x)"]
+    m = re.match(r"^reflected: (.+) from (.+); options", text)
+    if m:
+        return [m[1], m[2]]
+    m = re.match(r"^(?:log x-intercept|log point at height|log range|power range|inverse domain: f\(x\) =|log domain|log asymptote"
+                 r"|rises or falls|which graph: drawn):? (.+?)(?:; .*)?$", text)
+    if m:
+        return [m[1]]
+    return None
+
+
+def lf_on(f, x, y):
+    """(x, y) is within 1/1000 of the graph of f, across or up: next to an
+    asymptote the curve is so steep that x rounded to four places moves its
+    height a long way, so the heights f takes over x ± 1/1000, nearer x
+    ever more closely, must reach y."""
+    steps = [Fraction(j, 20000) for j in range(-20, 21)] + [s * Fraction(1, 10 ** k) for k in range(5, 13) for s in (1, -1)]
+    near = [v for v in (f(x + d) for d in steps) if lf_ok(v)]
+    return bool(near) and min(near) - 1e-3 <= y <= max(near) + 1e-3
+
+
+# Every curve drawn is one the text names, and the graph a student reads to
+# choose its equation, drawn while asking, is the key's.
+for path in sorted(LIB.glob("logarithms-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        v = p.get("visual")
+        if not v or v.get("kind") != "plane":
+            continue
+        where = f"logarithms L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        srcs = lf_drawn_functions(p["text"])
+        if srcs is None:
+            problems.append(f"{where}: a graph no rule reads: {p['text']}")
+            continue
+        fns = [lf_float(s) for s in srcs]
+        on = lambda f, mk: all(lf_on(f, Fraction(x).limit_denominator(10 ** 6), y) for x, y in mk["points"])
+        curves = [mk for mk in v["marks"] + v["answer"] if mk["kind"] == "path"]
+        if not curves:
+            problems.append(f"{where}: a plane with no curve")
+        for mk in curves:
+            if not any(on(f, mk) for f in fns):
+                problems.append(f"{where}: a curve drawn is none of {srcs}")
+        if p["text"].startswith("which graph:"):
+            shown = [mk for mk in v["marks"] if mk["kind"] == "path"]
+            if not shown or not all(on(fns[0], mk) for mk in shown):
+                problems.append(f"{where}: the graph shown while asking is not {srcs[0]}")
 
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
