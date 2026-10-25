@@ -7036,6 +7036,7 @@ SET_RULES += (
 BY_RULE += (
     (re.compile(r"^inverse variation: y = (-?\d+) when x = (-?\d+); (?:(y) when x = (-?\d+)|(x) when y = (-?\d+)|(k))$"), qe_variation),
     (re.compile(r"^work together: (\d+), (\d+)$"), qe_together),
+    (re.compile(r"^printers together: (\d+), (\d+)$"), qe_together),
     (re.compile(r"^work alone: together (\d+), (\d+)$"), qe_alone),
     (re.compile(r"^fill drain: (\d+), (\d+)$"), qe_fill),
     (re.compile(r"^current: speed (\d+), downstream (\d+), upstream (\d+)$"), qe_current),
@@ -7275,6 +7276,500 @@ for path in sorted(LIB.glob("poly-division-*.json")):
             if part["lo"] != part["hi"] or as_fraction(part["lo"]) not in QE_LINE:
                 problems.append(f"{where}: key {part} is not a lone half-step from -60 to 60")
 
+# --- Polynomial Functions -----------------------------------------------------
+#
+# A formula is read into exact coefficients: its zeros from the rational root
+# search, a multiplicity by dividing out x - a until it no longer goes, the
+# ends from its sign at x = +-10^9, and an inequality from its sign at every
+# half-step from -60 to 60. A drawn graph is read from the heights at the
+# whole numbers its text lists: an option is the graph only if it takes
+# every one of those heights, and for turning points the polynomial is
+# rebuilt from the heights by interpolation and the sign changes of its
+# derivative are counted. None of this uses the factors the generator chose.
+
+PF_PT = re.compile(r"\((-?\d+), (-?\d+)\)")
+
+
+def pf_readings(listing: str) -> list:
+    return [(Fraction(int(x)), Fraction(int(y))) for x, y in PF_PT.findall(listing)]
+
+
+def pf_interpolate(pts: list) -> list:
+    """The polynomial of least degree through every point, by Lagrange."""
+    total = [Fraction(0)]
+    for i, (xi, yi) in enumerate(pts):
+        term = [yi]
+        for j, (xj, _) in enumerate(pts):
+            if j != i:
+                term = qe_times(term, [-xj / (xi - xj), 1 / (xi - xj)])
+        total = qe_plus(total, term)
+    return qe_trim(total)
+
+
+def pf_turns(c: list, lo: Fraction, hi: Fraction) -> int:
+    d = qe_trim([i * a for i, a in enumerate(c)][1:]) if len(c) > 1 else [Fraction(0)]
+    signs = []
+    steps = int((hi - lo) * 100)
+    for k in range(steps + 1):
+        v = qe_at(d, lo + Fraction(k, 100))
+        if v != 0:
+            signs.append(v > 0)
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
+def pf_zeros(src: str) -> OnGrid:
+    found = qe_zeros(rf_poly(src))
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+def pf_multiplicity(src: str, a) -> Fraction:
+    c = rf_poly(src)
+    m = rf_times(c, Fraction(int(a)))
+    assert m > 0, f"{a} is not a zero"
+    return Fraction(m)
+
+
+def pf_cross(src: str, a, listing: str) -> str:
+    m = rf_times(rf_poly(src), Fraction(int(a)))
+    assert m > 0, f"{a} is not a zero"
+    return rf_pick(listing, lambda body: body == ("crosses" if m % 2 else "touches"))
+
+
+def pf_end_sign(c: list, x: int) -> str:
+    return "up" if qe_at(c, Fraction(x)) > 0 else "down"
+
+
+def pf_ends(src: str, listing: str) -> str:
+    c = rf_poly(src)
+    said = f"{pf_end_sign(c, -(10 ** 9))} {pf_end_sign(c, 10 ** 9)}"
+    return rf_pick(listing, lambda body: body == said)
+
+
+def pf_sketch(listing: str, options: str) -> str:
+    pts = pf_readings(listing)
+    return rf_pick(options, lambda body: all(qe_at(rf_poly(body), x) == y for x, y in pts))
+
+
+def pf_most(src: str) -> Fraction:
+    return Fraction(len(rf_poly(src)) - 2)
+
+
+def pf_count(listing: str) -> Fraction:
+    pts = pf_readings(listing)
+    return Fraction(pf_turns(pf_interpolate(pts), pts[0][0], pts[-1][0]))
+
+
+def pf_least(listing: str) -> Fraction:
+    pts = pf_readings(listing)
+    c = pf_interpolate(pts)
+    n = pf_turns(c, pts[0][0], pts[-1][0]) + 1
+    same_way = pf_end_sign(c, -(10 ** 9)) == pf_end_sign(c, 10 ** 9)
+    if (n % 2 == 0) != same_way:
+        n += 1
+    return Fraction(n)
+
+
+PF_TEST = {">": lambda v: v > 0, "<": lambda v: v < 0, ">=": lambda v: v >= 0, "<=": lambda v: v <= 0}
+
+
+def pf_inequality(src: str, op: str) -> frozenset:
+    c = rf_poly(src)
+    return frozenset(x for x in SAMPLES_ON_LINE if PF_TEST[op](qe_at(c, x)))
+
+
+SET_RULES += (
+    (re.compile(r"^poly zeros: (.+)$"), pf_zeros),
+    (re.compile(r"^poly ineq: (.+) (>=|<=|>|<) 0$"), pf_inequality),
+)
+
+BY_RULE += (
+    (re.compile(r"^multiplicity: (.+); at (-?\d+)$"), pf_multiplicity),
+    (re.compile(r"^most turning points: (.+)$"), pf_most),
+    (re.compile(r"^turning count: graph ((?:\(-?\d+, -?\d+\) ?)+)$"), pf_count),
+    (re.compile(r"^least degree: graph ((?:\(-?\d+, -?\d+\) ?)+)$"), pf_least),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^cross or touch: (.+); at (-?\d+); options (.+)$"), pf_cross),
+    (re.compile(r"^poly ends: (.+); options (.+)$"), pf_ends),
+    (re.compile(r"^sketch: graph ((?:\(-?\d+, -?\d+\) ?)+); options (.+)$"), pf_sketch),
+)
+
+# The graph is the student's only copy of P: every height the text lists
+# must be on the drawn curve, the zeros must be the labelled dots, and the
+# set answers' ends must be half-steps the sets above are read at.
+for path in sorted(LIB.glob("poly-functions-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"poly-functions L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        if p["answer"]["type"] == "solutions":
+            for part in p["answer"]["value"]["parts"]:
+                for end in (part["lo"], part["hi"]):
+                    if end is not None and as_fraction(end) not in QE_LINE:
+                        problems.append(f"{where}: key end {end} is not a half-step from -60 to 60")
+        m = re.match(r"^(?:sketch|turning count|least degree): graph ((?:\(-?\d+, -?\d+\) ?)+)", p["text"])
+        if not m:
+            continue
+        drawn_pts = {(round(a, 1), round(b, 1)) for mk in p["visual"]["marks"] if mk["kind"] == "path" for a, b in mk["points"]}
+        for x, y in pf_readings(m[1]):
+            if (float(x), float(y)) not in drawn_pts:
+                problems.append(f"{where}: ({x}, {y}) is in the text but not on the curve drawn")
+        dots = sorted(mk["at"][0] for mk in p["visual"]["marks"] if mk["kind"] == "point")
+        zeros_read = sorted(float(x) for x, y in pf_readings(m[1]) if y == 0)
+        if dots != zeros_read:
+            problems.append(f"{where}: zero dots {dots}, but the heights are 0 at {zeros_read}")
+        # The turning points marked once answered are the ones the heights give.
+        marked = sum(1 for mk in p["visual"]["answer"] if mk["kind"] == "point")
+        if marked != pf_count(m[1]):
+            problems.append(f"{where}: {marked} turning points marked, but the heights turn {pf_count(m[1])} times")
+
+# --- Complex Numbers ----------------------------------------------------------
+#
+# The question's expression is evaluated again in exact complex arithmetic:
+# pairs of Fractions with i * i = -1 built in, so i^27, a product, a sum or
+# a quotient comes out as a real and an imaginary part with nothing rounded.
+# A quadratic's complex roots come from its own discriminant, whose square
+# root must be exact, as the conjugate pair -b/2a +- (sqrt(-D)/2a)i.
+
+class Cx:
+    def __init__(self, re, im=0):
+        self.re, self.im = Fraction(re), Fraction(im)
+
+    @staticmethod
+    def of(v):
+        return v if isinstance(v, Cx) else Cx(v)
+
+    def __add__(self, o):
+        o = Cx.of(o)
+        return Cx(self.re + o.re, self.im + o.im)
+
+    __radd__ = __add__
+
+    def __neg__(self):
+        return Cx(-self.re, -self.im)
+
+    def __pos__(self):
+        return self
+
+    def __sub__(self, o):
+        return self + -Cx.of(o)
+
+    def __rsub__(self, o):
+        return Cx.of(o) - self
+
+    def __mul__(self, o):
+        o = Cx.of(o)
+        return Cx(self.re * o.re - self.im * o.im, self.re * o.im + self.im * o.re)
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, o):
+        o = Cx.of(o)
+        m = o.re * o.re + o.im * o.im
+        assert m != 0, "division by 0"
+        return Cx((self.re * o.re + self.im * o.im) / m, (self.im * o.re - self.re * o.im) / m)
+
+    def __rtruediv__(self, o):
+        return Cx.of(o) / self
+
+    def __pow__(self, k):
+        k = int(k)
+        out = Cx(1)
+        for _ in range(abs(k)):
+            out = out * self
+        return Cx(1) / out if k < 0 else out
+
+
+def cx_eval(src: str) -> Cx:
+    py = src.replace("^", "**")
+    py = re.sub(r"(\d)\s*(?=[i(])", r"\1*", py)
+    py = re.sub(r"\)\s*(?=[i(\d])", ")*", py)
+    py = re.sub(r"i\s*(?=[(\d])", "i*", py)
+    py = re.sub(r"(?<![\w.])(\d+)", r"F(\1)", py)
+    return Cx.of(eval(py, {"__builtins__": {}, "F": Fraction, "i": Cx(0, 1)}))  # noqa: S307
+
+
+def cx_value(src: str) -> tuple:
+    z = cx_eval(src)
+    return z.re, z.im, False
+
+
+def cx_conjugate(src: str) -> tuple:
+    z = cx_eval(src)
+    return z.re, -z.im, False
+
+
+def cx_exact_root(v: Fraction) -> Fraction:
+    n, d = math.isqrt(v.numerator), math.isqrt(v.denominator)
+    assert n * n == v.numerator and d * d == v.denominator, f"sqrt({v}) is not exact"
+    return Fraction(n, d)
+
+
+# requiem: catalogue/content/complex-judged-exactly
+def cx_roots(lhs: str, rhs: str) -> tuple:
+    c = qe_plus(rf_poly(lhs), [-a for a in rf_poly(rhs)])
+    assert len(c) == 3, "not a quadratic"
+    c0, c1, c2 = c
+    D = c1 * c1 - 4 * c2 * c0
+    assert D < 0, "the roots are real"
+    return -c1 / (2 * c2), cx_exact_root(-D) / (2 * abs(c2)), True
+
+
+def cx_nature(src: str, listing: str) -> str:
+    c = rf_poly(src)
+    D = c[1] ** 2 - 4 * c[2] * c[0]
+    kind = "two real" if D > 0 else "one real" if D == 0 else "two complex"
+    return rf_pick(listing, lambda body: body == kind)
+
+
+COMPLEX_RULES = (
+    (re.compile(r"^complex: (.+)$"), cx_value),
+    (re.compile(r"^conjugate: (.+)$"), cx_conjugate),
+    (re.compile(r"^complex roots: (.+) = (.+)$"), cx_roots),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^nature of roots: (.+) = 0; options (.+)$"), cx_nature),
+)
+
+# --- Logarithms -----------------------------------------------------------------
+#
+# An exact log is found from prime factors: log_b v is the one ratio between
+# v's exponents and b's, prime by prime, and there is no such log if the
+# ratio is not the same for every prime. A number is held as r * e^t, so ln
+# is the e exponent. Logs to one base added or subtracted are combined into
+# one log of a product first, so log_6(4) + log_6(9) is log_6(36), worked out
+# without either half. A rounded log comes from Python's own logarithms. A
+# log equation is cleared into a polynomial -- logs added multiply, logs
+# subtracted divide, equal logs are of equal numbers -- whose rational zeros
+# are kept only where every log in the question is of a positive number.
+
+LG_TERM = re.compile(r"([+-])?\s*(\d*)(log_(\d+)|log|ln)\(((?:[^()]|\([^()]*\))*)\)")
+
+
+def lg_factor(n: int) -> dict:
+    out, p = {}, 2
+    while p * p <= n:
+        while n % p == 0:
+            out[p] = out.get(p, 0) + 1
+            n //= p
+        p += 1
+    if n > 1:
+        out[n] = out.get(n, 0) + 1
+    return out
+
+
+def lg_exponents(q: Fraction) -> dict:
+    assert q > 0, f"log of {q}"
+    top, bottom = lg_factor(q.numerator), lg_factor(q.denominator)
+    return {**top, **{p: -k for p, k in bottom.items()}}
+
+
+def lg_num(s: str) -> tuple:
+    """A log's argument as (r, t), the number r * e^t."""
+    s = s.replace(" ", "")
+    if s == "e":
+        return Fraction(1), Fraction(1)
+    if s == "sqrt(e)":
+        return Fraction(1), Fraction(1, 2)
+    m = re.fullmatch(r"root\(e,(\d+)\)", s)
+    if m:
+        return Fraction(1), Fraction(1, int(m[1]))
+    m = re.fullmatch(r"(1/)?e\^\(?(-?\d+)\)?", s)
+    if m:
+        return Fraction(1), Fraction(int(m[2])) * (-1 if m[1] else 1)
+    m = re.fullmatch(r"(\d+)\^\(?(-?\d+)\)?", s)
+    if m:
+        return Fraction(int(m[1])) ** int(m[2]), Fraction(0)
+    return Fraction(s), Fraction(0)
+
+
+def lg_base(name: str, digits) -> object:
+    return "e" if name == "ln" else 10 if name == "log" else int(digits)
+
+
+def lg_exact(base, r: Fraction, t: Fraction) -> Fraction:
+    if base == "e":
+        assert r == 1, f"ln of {r} e^{t} is not exact"
+        return t
+    assert t == 0, "e in a log that is not ln"
+    if r == 1:
+        return Fraction(0)
+    fb, fr = lg_exponents(Fraction(base)), lg_exponents(r)
+    assert set(fb) == set(fr), f"log_{base}({r}) is not exact"
+    ratios = {Fraction(fr[p], fb[p]) for p in fb}
+    assert len(ratios) == 1, f"log_{base}({r}) is not exact"
+    return ratios.pop()
+
+
+def lg_terms(expr: str) -> list:
+    """[(sign * coefficient, base, argument)] for every log in expr, which must be nothing else."""
+    out, used = [], ""
+    for m in LG_TERM.finditer(expr):
+        k = int(m[2]) if m[2] else 1
+        out.append((-k if m[1] == "-" else k, lg_base(m[3], m[4]), m[5]))
+        used += m[0]
+    assert used.replace(" ", "") == expr.replace(" ", ""), f"{expr} is not only logs"
+    return out
+
+
+def lg_value(expr: str) -> Fraction:
+    by_base = {}
+    for k, base, arg in lg_terms(expr):
+        r, t = lg_num(arg)
+        r0, t0 = by_base.get(base, (Fraction(1), Fraction(0)))
+        by_base[base] = (r0 * r ** k, t0 + t * k)
+    return sum((lg_exact(b, r, t) for b, (r, t) in by_base.items()), Fraction(0))
+
+
+def lg_float(base, arg: str) -> float:
+    r, t = lg_num(arg)
+    natural = math.log(r) + float(t)
+    return natural if base == "e" else natural / math.log(base)
+
+
+def lg_near(v: float) -> Fraction:
+    q = Fraction(v).limit_denominator(1000)
+    assert abs(float(q) - v) < 1e-9, f"{v} is not a plain number"
+    return q
+
+
+def lg_raise(base: str, k: str, name: str, digits, arg: str) -> Fraction:
+    """B^(k log_c(v)), by calculator."""
+    b = math.e if base == "e" else float(base)
+    return lg_near(b ** (int(k or 1) * lg_float(lg_base(name, digits), str(arg))))
+
+
+def lg_rounded(v: float, places: int) -> Fraction:
+    return Fraction(Decimal(repr(v)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+
+
+def lg_change(b, v, places) -> Fraction:
+    return lg_rounded(math.log(v) / math.log(b), places)
+
+
+def lg_claim(body: str) -> bool:
+    m = re.fullmatch(r"\(?(-?\d+(?:/\d+)?)\)?\^\(?(-?\d+)\)? = (-?\d+(?:/\d+)?)", body)
+    if m:
+        b, e, v = Fraction(m[1]), int(m[2]), Fraction(m[3])
+        if b == 0 and e <= 0:
+            return False
+        return b ** e == v
+    m = re.fullmatch(r"log_(\d+)\((-?\d+(?:/\d+)?)\) = (-?\d+)", body)
+    assert m, f"cannot read {body}"
+    b, v, e = int(m[1]), Fraction(m[2]), int(m[3])
+    return b > 1 and v > 0 and Fraction(b) ** e == v
+
+
+def lg_form(given: str, listing: str) -> str:
+    assert lg_claim(given), f"{given} is not true"
+    nums = lambda s: sorted(re.findall(r"\d+(?:/\d+)?", s))  # noqa: E731
+    return rf_pick(listing, lambda body: lg_claim(body) and nums(body) == nums(given))
+
+
+LG_POINTS = ({"x": 2, "y": 3, "z": 5}, {"x": 7, "y": 11, "z": 13})
+
+
+def lg_monomial(arg: str, at: dict) -> Fraction:
+    py = arg.replace("^", "**")
+    py = re.sub(r"(\d+)", r"F(\1)", py)
+    return eval(py, {"__builtins__": {}, "F": Fraction}, {k: Fraction(v) for k, v in at.items()})  # noqa: S307
+
+
+def lg_condense(expr: str, listing: str) -> str:
+    terms = lg_terms(expr)
+    bases = {b for _, b, _ in terms}
+    assert len(bases) == 1
+    base = bases.pop()
+    letters = sorted({a for _, _, a in terms})
+    points = [dict(zip(letters, p.values())) for p in LG_POINTS]
+
+    def fits(body):
+        [(k, b, arg)] = lg_terms(body)
+        if k != 1 or b != base:
+            return False
+        for at in points:
+            want = Fraction(1)
+            for c, _, a in terms:
+                want *= Fraction(at[a]) ** c
+            if lg_monomial(arg, at) != want:
+                return False
+        return True
+
+    return rf_pick(listing, fits)
+
+
+def lg_which(b, v, listing: str) -> str:
+    want = math.log(int(v)) / math.log(int(b))
+    calc = {"ln": math.log, "log": math.log10}
+
+    def value(body):
+        return eval(re.sub(r"(ln|log)\(", r"\1(", body), {"__builtins__": {}}, calc)  # noqa: S307
+
+    return rf_pick(listing, lambda body: abs(value(body) - want) < 1e-9)
+
+
+def lg_exp_exact(base, exponent, v) -> Fraction:
+    c = rf_poly(exponent or "x")
+    assert len(c) == 2, "not linear"
+    e = lg_exact(int(base), Fraction(v), Fraction(0))
+    return (e - c[0]) / c[1]
+
+
+def lg_exp_rounded(k, base, a, v, places) -> Fraction:
+    ln_b = 1.0 if base == "e" else math.log(int(base))
+    return lg_rounded(math.log(int(v) / int(k or 1)) / (int(a or 1) * ln_b), int(places))
+
+
+def lg_side(side: str) -> tuple:
+    """A side of a log equation: its logs [(sign, base, polynomial)] and its constant."""
+    logs = [((-1 if m[1] == "-" else 1) * (int(m[2]) if m[2] else 1), lg_base(m[3], m[4]), rf_poly(m[5]))
+            for m in LG_TERM.finditer(side)]
+    rest = LG_TERM.sub("", side).replace(" ", "")
+    const = Fraction(rest) if rest else Fraction(0)
+    return logs, const
+
+
+# requiem: catalogue/content/log-equation-domain-checked
+def lg_equation(lhs: str, rhs: str) -> OnGrid:
+    left, k_left = lg_side(lhs)
+    right, k_right = lg_side(rhs)
+    logs = left + [(-k, b, p) for k, b, p in right]
+    bases = {b for _, b, _ in logs}
+    assert len(bases) == 1, "logs to more than one base"
+    base = bases.pop()
+    power = k_right - k_left
+    assert power.denominator == 1
+    top, bottom = [Fraction(1)], [Fraction(1)]
+    for k, _, p in logs:
+        assert abs(k) == 1
+        if k > 0:
+            top = qe_times(top, p)
+        else:
+            bottom = qe_times(bottom, p)
+    scale = Fraction(base) ** int(power)
+    poly = qe_trim(qe_plus(top, [-scale * a for a in bottom]))
+    found = {x for x in qe_zeros(poly) if all(qe_at(p, x) > 0 for _, _, p in logs)}
+    return on_grid(found, sorted(set(SAMPLES_ON_LINE) | found))
+
+
+BY_RULE += (
+    (re.compile(r"^log value: (e|\d+)\^\((-?\d*)(log_(\d+)|log|ln)\((\d+)\)\)$"), lg_raise),
+    (re.compile(r"^log value: (-?\d*(?:log|ln).*)$"), lg_value),
+    (re.compile(r"^change of base: log_(\d+)\((\d+)\) to (\d) dp$"), lg_change),
+    (re.compile(r"^exp eq: (?:(\d+)\*)?(\d+|e)\^(?:x|\((\d+)x\)) = (\d+) to (\d) dp$"), lg_exp_rounded),
+    (re.compile(r"^exp eq: (\d+)\^(?:x|\((.+)\)) = (\d+(?:/\d+)?)$"), lg_exp_exact),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^log form: (.+?); options (.+)$"), lg_form),
+    (re.compile(r"^condense: (.+?); options (.+)$"), lg_condense),
+    (re.compile(r"^change of base: log_(\d+)\((\d+)\); options (.+)$"), lg_which),
+)
+
+SET_RULES += (
+    (re.compile(r"^log eq: (.+) = (.+)$"), lg_equation),
+)
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -7411,6 +7906,27 @@ for path in sorted(LIB.glob("*.json")):
                 v = answer["value"]
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
+            continue
+
+        # requiem: catalogue/content/complex-judged-exactly
+        # A complex number: worked out again in exact complex arithmetic and
+        # compared part by part, a conjugate pair as its real part and the
+        # size of its imaginary part.
+        if answer["type"] == "complex":
+            rule = next((r for r in COMPLEX_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                re_, im, pm = rule[1](*rule[0].match(text).groups())
+                if pm:
+                    im = abs(im)
+                v = answer["value"]
+                got = (as_fraction(v["re"]), as_fraction(v["im"]), bool(v.get("pm")))
+                if got != (re_, im, pm):
+                    problems.append(f"{where}: {text} is {(re_, im, pm)}, not {v}")
+                for part in ("re", "im"):
+                    n, d = v[part]["n"], v[part]["d"]
+                    if d <= 0 or math.gcd(n, d) != 1:
+                        problems.append(f"{where}: {part} {v[part]} is not in lowest terms")
             continue
 
         # A number to a fraction power, worked out exactly where it can be.

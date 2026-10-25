@@ -1,5 +1,5 @@
 {
-  "built": 592,
+  "built": 611,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -749,6 +749,31 @@
       "remainder-theorem",
       "factor-theorem",
       "all-zeros-from-one",
+      "all-together"
+    ],
+    "poly-functions": [
+      "zeros-and-multiplicity",
+      "end-behavior",
+      "sketch-from-factors",
+      "turning-points",
+      "polynomial-inequalities",
+      "all-together"
+    ],
+    "complex": [
+      "powers-of-i",
+      "add-and-subtract",
+      "multiply",
+      "conjugates-and-divide",
+      "complex-roots",
+      "all-together"
+    ],
+    "logarithms": [
+      "log-as-exponent",
+      "evaluate",
+      "product-quotient-power",
+      "ln-and-change-of-base",
+      "exponential-equations",
+      "log-equations",
       "all-together"
     ]
   },
@@ -1801,9 +1826,92 @@
           "quadratic-eq"
         ]
       }
+    },
+    "poly-functions": {
+      "dependsOn": [
+        "compound-ineq",
+        "factoring",
+        "functions",
+        "polynomials",
+        "quadratic-eq",
+        "quadratic-graphs"
+      ],
+      "levels": {
+        "zeros-and-multiplicity": [
+          "factoring",
+          "quadratic-graphs"
+        ],
+        "end-behavior": [
+          "polynomials",
+          "quadratic-graphs"
+        ],
+        "sketch-from-factors": [
+          "functions"
+        ],
+        "turning-points": [
+          "quadratic-graphs"
+        ],
+        "polynomial-inequalities": [
+          "compound-ineq",
+          "quadratic-eq"
+        ]
+      }
+    },
+    "complex": {
+      "dependsOn": [
+        "exponents",
+        "polynomials",
+        "quadratic-formula"
+      ],
+      "levels": {
+        "powers-of-i": [
+          "exponents"
+        ],
+        "add-and-subtract": [
+          "polynomials"
+        ],
+        "multiply": [
+          "polynomials"
+        ],
+        "conjugates-and-divide": [
+          "polynomials"
+        ],
+        "complex-roots": [
+          "quadratic-formula"
+        ]
+      }
+    },
+    "logarithms": {
+      "dependsOn": [
+        "equations",
+        "exponential",
+        "exponents",
+        "quadratic-eq",
+        "radical-eq",
+        "rational-exponents"
+      ],
+      "levels": {
+        "log-as-exponent": [
+          "exponents"
+        ],
+        "evaluate": [
+          "rational-exponents"
+        ],
+        "product-quotient-power": [
+          "exponents"
+        ],
+        "exponential-equations": [
+          "equations",
+          "exponential"
+        ],
+        "log-equations": [
+          "quadratic-eq",
+          "radical-eq"
+        ]
+      }
     }
   },
-  "sources": "997b503c3939fbdf6daa7d0736680f72f0e1acaa9bb6a34c2d36cad90b2afb4c",
+  "sources": "acdbddee1961493601f9a933ca28d5dff51b7ce2ea8bc61a16f5648106cf2517",
   "levels": [
     {
       "skill": "int-addsub",
@@ -7590,8 +7698,8 @@
       "level": 4,
       "slug": "work-and-rate",
       "name": "Work & Rate",
-      "count": 1000,
-      "exhaustive": false,
+      "count": 830,
+      "exhaustive": true,
       "signed": false,
       "file": "rational-eq-4.json"
     },
@@ -7724,6 +7832,196 @@
       "exhaustive": false,
       "signed": true,
       "file": "poly-division-5.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 0,
+      "slug": "zeros-and-multiplicity",
+      "name": "Zeros & Multiplicity",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-0.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 1,
+      "slug": "end-behavior",
+      "name": "End Behavior",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-functions-1.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 2,
+      "slug": "sketch-from-factors",
+      "name": "Sketch From Factors",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-functions-2.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 3,
+      "slug": "turning-points",
+      "name": "Turning Points",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "poly-functions-3.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 4,
+      "slug": "polynomial-inequalities",
+      "name": "Polynomial & Quadratic Inequalities",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-4.json"
+    },
+    {
+      "skill": "poly-functions",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "poly-functions-5.json"
+    },
+    {
+      "skill": "complex",
+      "level": 0,
+      "slug": "powers-of-i",
+      "name": "Powers of i",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-0.json"
+    },
+    {
+      "skill": "complex",
+      "level": 1,
+      "slug": "add-and-subtract",
+      "name": "Add & Subtract",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-1.json"
+    },
+    {
+      "skill": "complex",
+      "level": 2,
+      "slug": "multiply",
+      "name": "Multiply",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-2.json"
+    },
+    {
+      "skill": "complex",
+      "level": 3,
+      "slug": "conjugates-and-divide",
+      "name": "Conjugates & Divide",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-3.json"
+    },
+    {
+      "skill": "complex",
+      "level": 4,
+      "slug": "complex-roots",
+      "name": "Complex Roots of Quadratics",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-4.json"
+    },
+    {
+      "skill": "complex",
+      "level": 5,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "complex-5.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 0,
+      "slug": "log-as-exponent",
+      "name": "Log as Exponent",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "logarithms-0.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 1,
+      "slug": "evaluate",
+      "name": "Evaluate",
+      "count": 397,
+      "exhaustive": true,
+      "signed": true,
+      "file": "logarithms-1.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 2,
+      "slug": "product-quotient-power",
+      "name": "Product, Quotient & Power",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "logarithms-2.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 3,
+      "slug": "ln-and-change-of-base",
+      "name": "ln & Change of Base",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-3.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 4,
+      "slug": "exponential-equations",
+      "name": "Solve Exponential Equations",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-4.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 5,
+      "slug": "log-equations",
+      "name": "Solve Log Equations",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-5.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-6.json"
     }
   ]
 }

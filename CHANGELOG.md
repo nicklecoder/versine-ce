@@ -13,6 +13,45 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Logarithms**, a new skill under Powers, in seven levels: Log as Exponent
+(the power form of a log chosen, or the log form of a power), Evaluate
+(whole, negative and fractional answers, log for base 10 and ln for base
+e), Product, Quotient & Power (combine, then evaluate, or condense into
+one log against options that misuse a law), ln & Change of Base (a log
+found to 2 or 3 decimal places, which quotient equals it, and a base
+raised to its own log), Solve Exponential Equations (exactly when both
+sides are powers of one base, otherwise rounded), Solve Log Equations
+(rows with one solution, two, and none, every prompt allowing for none),
+then All Together. `check-answers.py` finds an exact log from prime
+factors, combining logs to one base into one product first, and solves a
+log equation by clearing it into a polynomial whose zeros it keeps only
+where every log in the question is of a positive number.
+
+**Complex Numbers**, a new skill under Powers, in six levels: Powers of i,
+Add & Subtract, Multiply, Conjugates & Divide, Complex Roots of Quadratics
+(a conjugate pair, and which kind of roots a discriminant gives), then All
+Together. Answers go in a new `complex` box, which reads a + bi into exact
+real and imaginary parts: 3 − 2i, −2i + 3 and (6 − 4i)/2 are one answer,
+the last right but not finished, and a pair is typed 2 +- 3i or both
+written out. A power of i left in an answer is refused with a hint rather
+than marked wrong, and one root of a pair typed alone is told the other is
+its conjugate. The box's key guide shows i and +-. `check-answers.py`
+works each question out again in exact complex arithmetic over fractions,
+and a quadratic's roots from its own discriminant.
+
+**Polynomial Functions**, a new skill under Functions, in six levels:
+Zeros & Multiplicity (every zero, one zero's multiplicity, and whether
+the graph crosses or touches there), End Behavior (the two ends chosen
+from four), Sketch From Factors (a drawn graph matched to its factored
+formula, against a flipped sign, a power changed and a zero mirrored),
+Turning Points (the most a formula allows, and the count or least degree
+a drawn graph shows), Polynomial & Quadratic Inequalities (solved as a
+set, with rows that hold for every x or for none, so every prompt allows
+for no solution), then All Together. `check-answers.py` reads a drawn
+graph only from the heights its text lists: it rebuilds the polynomial
+by interpolation, takes the option that hits every height, and counts
+turning points from the sign changes of the derivative.
+
 **Polynomial Division**, a new skill under Expressions, in six levels:
 Long Division (a quotient typed when the division is exact, judged by
 value, and otherwise the quotient and remainder chosen together), Synthetic
@@ -44,7 +83,8 @@ Clear Denominators (numbers under x, and x under numbers), Extraneous
 one, both or neither stand, and a linear one whose only answer is
 excluded), Proportions With x (cross-multiplying, some to a quadratic),
 Inverse Variation (in symbols and in stories), Work & Rate (working
-together, one alone, a fill against a drain, and a current), then All
+together, two printers sharing a batch, one alone, a fill against a drain,
+and a current, none of them more than about a quarter of the level), then All
 Together. The equations take a set in the solutions input; variation and
 work take a number. `check-answers.py` puts both sides over one
 denominator, finds the numerator's zeros by the rational root theorem,

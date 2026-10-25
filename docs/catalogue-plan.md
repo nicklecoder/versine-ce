@@ -49,7 +49,8 @@ pre-algebra walks straight up it.
 ## Engine work the later phases need
 
 Answer types beyond `int frac mixed decimal choice expr`: exact multiples of π,
-simplified radicals (a√b), ordered pairs, intervals, complex numbers, degrees.
+simplified radicals (a√b), ordered pairs, intervals, complex numbers (the `complex`
+type, built with that skill), degrees.
 Visuals for function graphs, triangles and circles (the plane already exists).
 
 ## Phase 0 — finish pre-algebra
@@ -477,6 +478,34 @@ Negative, Factor Theorem on quadratic equations' Zero Product, and All
 Zeros From One on quadratic equations' By Factoring. A quotient is typed,
 and judged by value, only when the division is exact; otherwise every
 answer is a choice, a number or a set of zeros.
+
+`poly-functions` is built, in the plan's five levels and All Together.
+Zeros & Multiplicity depends on graphs of quadratics' Zeros From Factored
+Form and factoring's Common Factor Out, End Behavior on polynomials'
+Degree and Standard Form and graphs of quadratics' Up or Down, Sketch
+From Factors on functions' Reading f off a Graph, Turning Points on
+graphs of quadratics' Vertex From −b/2a, and Polynomial & Quadratic
+Inequalities on compound inequalities' Either Side and quadratic
+equations' By Factoring. Graphs are drawn with every whole-number height
+in the window listed, and the checker reads them from those heights.
+
+`complex` is built, in the plan's five levels and All Together. Powers of
+i depends on exponents' Multiplying Powers and Zero and Negative, Add &
+Subtract on polynomials' Adding, Multiply on Binomial Times Binomial,
+Conjugates & Divide on Special Products, and Complex Roots of Quadratics
+on the quadratic formula's The Discriminant. Answers are the new
+`complex` type, judged by exact real and imaginary parts rather than by
+`expr` or `equivalent`, neither of which knows that i² is −1.
+
+`logarithms` is built, in the plan's six levels and All Together. Log as
+Exponent depends on exponents' Zero and Negative, Evaluate on rational
+exponents' Negative Fractional Powers, Product, Quotient & Power on
+exponents' Dividing Powers and Power of a Power, Solve Exponential
+Equations on solving equations' Two Steps and exponential functions'
+Doubling and Half-Life, and Solve Log Equations on quadratic equations'
+By Factoring and radical equations' Extraneous Roots. ln & Change of
+Base builds on this skill's own Evaluate. Exact answers are fractions;
+rounded ones are decimals to the places the question names.
 
 `vectors` and `parametric-polar` are TEKS-only and come last; they need a
 category, perhaps under Trigonometry.
