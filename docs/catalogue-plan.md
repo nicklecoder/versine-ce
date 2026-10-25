@@ -315,9 +315,9 @@ With it, Phase 3 is built.
 | `radical-eq` (Equations) | Isolate & Square · Extraneous Roots · Both Sides Radical · Square Twice · Cube Roots · Rational Exponents | A-REI.2, TEKS A2.4F,G, 6B, 7H |
 | `rational-expr` (Expressions) | Simplify · Excluded Values · Multiply & Divide · Common Denominator · Unlike Denominators · Complex Fractions | A-APR.6–7, TEKS A2.7F |
 | `rational-eq` (Equations) | Clear Denominators · Extraneous · Proportions With x · Inverse Variation · Work & Rate | A-REI.2, TEKS A2.6H–J,L |
-| `rational-functions` (Functions) | Vertical Asymptotes · Horizontal by Degree · Holes · Oblique · End Behavior | TEKS A2.6K, P.2J–L |
-| `poly-division` (Expressions) | Long Division · Synthetic · Remainder Theorem · Factor Theorem · All Zeros From One | A-APR.2,6, TEKS A2.7C,D |
-| `poly-functions` (Functions) | Zeros & Multiplicity · End Behavior · Sketch From Factors · Turning Points · Polynomial & Quadratic Inequalities | A-APR.3, TEKS A2.4H, P.5K |
+| `rational-functions` (Functions) | Vertical Asymptotes · Horizontal by Degree · Holes · Oblique · End Behavior · Intercepts · Match the Graph | F-IF.7d, TEKS A2.6K, P.2J–L |
+| `poly-division` (Expressions) | Long Division · Synthetic · Remainder Theorem · Factor Theorem · Rational Root Theorem · All Zeros From One | A-APR.2,6, TEKS A2.7C,D |
+| `poly-functions` (Functions) | Zeros & Multiplicity · End Behavior · Sketch From Factors · Turning Points · Polynomial & Quadratic Inequalities · Rational Inequalities | A-APR.3, TEKS A2.4H, P.5K |
 | `complex` (Powers) | Powers of i · Add & Subtract · Multiply · Conjugates & Divide · Complex Roots of Quadratics | N-CN.1–3,7 |
 | `logarithms` (Powers) | Log as Exponent · Evaluate · Product/Quotient/Power · ln & Change of Base · Solve Exponential Equations · Solve Log Equations | F-LE.4, F-BF.5, TEKS A2.5 |
 | `series` (Sequences) | Arithmetic Sums · Finite Geometric · Sigma Notation · Infinite Geometric | A-SSE.4, TEKS P.5A–E |
@@ -461,32 +461,44 @@ equations' Rearrange to Zero First, Inverse Variation on proportional
 relationships' Using y = kx, and Work & Rate on writing equations' Two
 Things Equal and ratio's Unit Rate. As in radical-eq, the Extraneous level
 keeps one answer in about three rows of five, both in one and neither in
-one.
+one, and every equation in the skill offers none, so the wording never
+says which rows need the excluded-value check. Work & Rate answers are
+whole numbers, halves or thirds, a fifth being a decimal a student types
+and a fraction box refuses.
 
-`rational-functions` is built, in the plan's five levels and All
-Together. Vertical Asymptotes depends on rational expressions' Excluded
-Values and domain and range's Domain of √ and Fractions, Horizontal by
-Degree on polynomials' Degree and Standard Form and exponential
-functions' The Asymptote, Holes on rational expressions' Simplify, and
-Oblique on polynomial division's Long Division. End Behavior builds on
-this skill's own asymptote levels.
+`rational-functions` is built, in the plan's five levels, Intercepts,
+Match the Graph and All Together. Vertical Asymptotes depends on rational
+expressions' Excluded Values and domain and range's Domain of √ and
+Fractions, Horizontal by Degree on polynomials' Degree and Standard Form,
+Holes on rational expressions' Simplify, and Oblique on polynomial
+division's Long Division. End Behavior, Intercepts and Match the Graph
+build on this skill's own levels; an asymptote is met on Vertical
+Asymptotes, so the skill no longer waits on exponential functions.
+Vertical Asymptotes counts multiplicity, (x − 2)/(x − 2)² still having
+one at 2; Intercepts makes a zero the top shares with the bottom a hole
+rather than an intercept; Match the Graph draws f with its hole and asks
+which formula it is, the asymptotes drawn once it is answered.
 
-`poly-division` is built, in the plan's five levels and All Together.
-Long Division depends on monomials' Dividing and polynomials' Binomial
-Times Binomial, Remainder Theorem on using expressions' Substitute a
-Negative, Factor Theorem on quadratic equations' Zero Product, and All
-Zeros From One on quadratic equations' By Factoring. A quotient is typed,
-and judged by value, only when the division is exact; otherwise every
-answer is a choice, a number or a set of zeros.
+`poly-division` is built, in the plan's five levels, Rational Root
+Theorem before All Zeros From One, and All Together. Long Division
+depends on monomials' Dividing and polynomials' Binomial Times Binomial,
+Remainder Theorem on using expressions' Substitute a Negative, and All
+Zeros From One on quadratic equations' By Factoring. Long Division
+divides by ax − b and by quadratics as well as x − c. A quotient is
+typed, and judged by value, only when the division is exact; otherwise
+every answer is a choice, a number or a set of zeros.
 
-`poly-functions` is built, in the plan's five levels and All Together.
-Zeros & Multiplicity depends on graphs of quadratics' Zeros From Factored
-Form and factoring's Common Factor Out, End Behavior on polynomials'
-Degree and Standard Form and graphs of quadratics' Up or Down, Sketch
-From Factors on functions' Reading f off a Graph, Turning Points on
-graphs of quadratics' Vertex From −b/2a, and Polynomial & Quadratic
-Inequalities on compound inequalities' Either Side and quadratic
-equations' By Factoring. Graphs are drawn with every whole-number height
+`poly-functions` is built, in the plan's five levels, Rational
+Inequalities and All Together. Zeros & Multiplicity depends on graphs of
+quadratics' Zeros From Factored Form and factoring's Common Factor Out,
+End Behavior on polynomials' Degree and Standard Form and graphs of
+quadratics' Up or Down, Sketch From Factors on functions' Reading f off a
+Graph, Polynomial & Quadratic Inequalities on compound inequalities'
+Either Side and quadratic equations' By Factoring, and Rational
+Inequalities on rational expressions' Excluded Values. Rational
+inequalities sit here rather than in rational-functions because they are
+the sign chart of the level before with the bottom's zeros added, and
+rational-functions has eight levels already. Graphs are drawn with every whole-number height
 in the window listed, and the checker reads them from those heights.
 
 `complex` is built, in the plan's five levels, Square Roots of Negatives

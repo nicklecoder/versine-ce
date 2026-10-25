@@ -48,21 +48,23 @@ const setOf = (xs) => {
 const said = (xs) => (xs.length ? formatSet(setOf(xs).value) : 'no solution');
 
 /**
- * "Solve:" and the equation drawn as the expression box draws it. Where a
- * level can have no solution, every row of it says so may be the answer,
- * so the wording gives nothing away.
+ * The equation drawn as the expression box draws it, and an offer of none.
+ * Every equation in this skill is worded alike, whether or not it can come
+ * out empty: All Together mixes Extraneous rows, which can, with the rest,
+ * and wording only those would tell the student which rows need the
+ * excluded-value check. The words are radical-eq's, which name a spelling
+ * the solutions box reads as the empty set.
  */
 // requiem: catalogue/content/none-offered-on-every-row
-function ask(lhs, rhs, none) {
+function ask(lhs, rhs) {
   const drawn = previewOf(`${lhs} = ${rhs}`);
   if (!drawn.ok) throw new Error(`rational-eq: cannot draw ${lhs} = ${rhs}: ${drawn.error}`);
-  return [T.prose(none ? 'Solve, or say there is none:' : 'Solve:'), ...drawn.terms];
+  return [T.prose('Solve'), ...drawn.terms, T.prose('.'), T.prose('Give every solution, or none if there is no solution.')];
 }
-const equation = (lhs, rhs, xs, explain, none = false) => {
-  if (!xs.length && !none) throw new Error('rational-eq: no solution where the prompt does not offer it');
+const equation = (lhs, rhs, xs, explain) => {
   if (xs.some((x) => !Number.isInteger(x) || Math.abs(x) > 60)) throw new Error(`rational-eq: ${xs} off the number line`);
   return {
-    prompt: ask(lhs, rhs, none),
+    prompt: ask(lhs, rhs),
     text: `rational eq: ${lhs} = ${rhs}`,
     answer: setOf(xs),
     visual: null,
@@ -107,7 +109,7 @@ function clear(rng) {
       const k = A * p + B * q;
       return equation(`(${lin(1, p)})/${a} ${sub ? '-' : '+'} (${lin(1, q)})/${b}`, String(c), [x],
         `The least common denominator of ${a} and ${b} is ${L}. Multiply every term by ${L}: ${coefF(A)}(${lin(1, p, true)}) ${sub ? '−' : '+'} ${coefF(Math.abs(B))}(${lin(1, q, true)}) = ${minus(c * L)}. `
-        + `Expand and collect: ${lin(A + B, k, true)} = ${minus(c * L)}, so ${lin(A + B, 0, true)} = ${minus(c * L - k)}.`);
+        + `Expand and collect: ${lin(A + B, k, true)} = ${minus(c * L)}${k === 0 ? '' : `, so ${lin(A + B, 0, true)} = ${minus(c * L - k)}`}.`);
     }
     if (kind === 'overX') {
       const x = rng.nonZero(-12, 12), t = rng.nonZero(-6, 6), m = rng.nonZero(-9, 9);
@@ -116,13 +118,21 @@ function clear(rng) {
         `x cannot be 0. ${m > 0 ? 'Subtract' : 'Add'} ${Math.abs(m)}: ${minus(k)}/x = ${minus(t)}. `
         + `Multiply both sides by x: ${minus(k)} = ${lin(t, 0, true)}.`);
     }
-    // a/x + b/(dx) = c: the least common denominator is dx.
-    const d = rng.pick([2, 3]), x = rng.nonZero(-10, 10), c = rng.nonZero(-4, 4), a = rng.nonZero(-9, 9);
-    const b = d * c * x - d * a;
-    if (b === 0 || Math.abs(b) > 40) continue;
-    return equation(plus(`${a}/x`, `${b}/(${d}x)`), String(c), [x],
-      `x cannot be 0. The least common denominator of x and ${d}x is ${d}x. Multiply every term by ${d}x: ${minus(d * a)} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${lin(d * c, 0, true)}. `
-      + `So ${minus(d * a + b)} = ${lin(d * c, 0, true)}.`);
+    // a/(px) + b/(qx) = c/r, every fraction in lowest terms: the least common
+    // denominator is lcm(p, q, r)·x. With a whole number on the right the
+    // tops would have to share the bottoms' numbers (2/x − 30/(3x) = 4), so
+    // the right side is a fraction too.
+    const [p, q, r] = rng.pick([[1, 2, 2], [1, 3, 3], [1, 4, 4], [2, 3, 6], [1, 5, 5], [2, 5, 10], [3, 4, 12]]);
+    const M = lcm(lcm(p, q), r), x = rng.nonZero(-10, 10), c = rng.nonZero(-12, 12), a = rng.nonZero(-9, 9);
+    const rest = (M / r) * c * x - (M / p) * a;
+    if (rest % (M / q) !== 0) continue;
+    const b = rest / (M / q);
+    if (b === 0 || Math.abs(b) > 40 || gcd(a, p) !== 1 || gcd(b, q) !== 1 || gcd(c, r) !== 1) continue;
+    const over = (k, d) => (d === 1 ? `${k}/x` : `${k}/(${d}x)`);
+    const bottom = (d) => (d === 1 ? 'x' : `${d}x`);
+    return equation(plus(over(a, p), over(b, q)), `${c}/${r}`, [x],
+      `x cannot be 0. The least common denominator of ${bottom(p)}, ${bottom(q)} and ${r} is ${M}x. Multiply every term by ${M}x: ${minus((M / p) * a)} ${b < 0 ? '−' : '+'} ${Math.abs((M / q) * b)} = ${lin((M / r) * c, 0, true)}. `
+      + `So ${minus((M / r) * c * x)} = ${lin((M / r) * c, 0, true)}.`);
   }
 }
 
@@ -139,7 +149,7 @@ function extraneous(rng) {
       const top = a === 1 ? 'x' : `(${lin(a, 0)})`;
       return equation(`${top}/(${lin(1, -r)})`, plus(`${a * r}/(${lin(1, -r)})`, String(k)), [],
         `x cannot be ${minus(r)}, since that makes x ${r < 0 ? '+' : '−'} ${Math.abs(r)} zero. Multiply every term by (${lin(1, -r, true)}): ${lin(a, 0, true)} = ${minus(a * r)} ${k < 0 ? '−' : '+'} ${Math.abs(k)}(${lin(1, -r, true)}). `
-        + `Collect: ${lin(a - k, 0, true)} = ${minus((a - k) * r)}, so x = ${minus(r)}. But that is the excluded value: it makes a denominator 0 in the original, so it is extraneous.`, true);
+        + `Collect: ${lin(a - k, 0, true)} = ${minus((a - k) * r)}, so x = ${minus(r)}. But that is the excluded value: it makes a denominator 0 in the original, so it is extraneous.`);
     }
   }
   for (;;) {
@@ -170,7 +180,7 @@ function extraneous(rng) {
       `First the excluded values: x cannot be ${minus(r)} or ${minus(-t)}, where a denominator is 0. Multiply every term by ${denF}: `
       + `x(${lin(1, t, true)}) ${k > 0 ? '−' : '+'} ${Math.abs(k)}(${lin(1, -r, true)}) = ${minus(M)}. `
       + `Expand and collect: ${quad(t - k, k * r - M)} = 0, which factors as ${factors(s1, s2)} = 0, so x = ${minus(s1)} or x = ${minus(s2)}. `
-      + `${verdict(s1)}; ${verdict(s2)}.`, true);
+      + `${verdict(s1)}; ${verdict(s2)}.`);
   }
 }
 
@@ -269,14 +279,21 @@ function variation(rng) {
 const PAIRS = [];
 for (let a = 2; a <= 40; a += 1) for (let b = a + 1; b <= 90; b += 1) if ((a * b) % (a + b) === 0) PAIRS.push([a, b]);
 
+/**
+ * A time the student can type as it is: whole, or a half or a third. A fifth
+ * or a quarter would be a fraction a student reasonably writes as a decimal
+ * (82.8 hours), which a fraction box refuses as a form miss.
+ */
+// requiem: catalogue/content/work-rate-answers-typeable
+const nice = (n, d) => [1, 2, 3].includes(reduce(n, d).d);
+
 function work(rng) {
   // Five shapes, and none with a pool so large that it fills the level.
   const kind = rng.pick(['together', 'printers', 'alone', 'drain', 'current']);
   for (;;) {
     if (kind === 'together') {
-      const a = rng.int(2, 30), b = rng.int(2, 30);
-      if (a === b) continue;
-      if (reduce(a * b, a + b).d > 5) continue;
+      const a = rng.int(2, 40), b = rng.int(2, 40);
+      if (a === b || !nice(a * b, a + b)) continue;
       const t = fracText(a * b, a + b);
       return worded(`Ana can paint a fence in ${a} hours. Ben can paint it in ${b} hours. How many hours does it take them working together?`,
         `work together: ${a}, ${b}`, a * b, a + b,
@@ -285,7 +302,7 @@ function work(rng) {
     }
     if (kind === 'printers') {
       const a = rng.int(3, 60), b = rng.int(3, 60);
-      if (a === b || reduce(a * b, a + b).d > 4) continue;
+      if (a === b || !nice(a * b, a + b)) continue;
       const t = fracText(a * b, a + b);
       return worded(`One printer prints a batch of reports in ${a} minutes. A second printer prints the same batch in ${b} minutes. Sharing the batch, how many minutes do the two printers take?`,
         `printers together: ${a}, ${b}`, a * b, a + b,
@@ -301,15 +318,19 @@ function work(rng) {
         + `which is the whole job in ${b} hours.`);
     }
     if (kind === 'drain') {
-      const a = rng.int(2, 20), b = rng.int(a + 1, 40);
-      if (reduce(a * b, b - a).d > 5) continue;
+      // A tank that takes more than a day to fill is not one anybody waits on.
+      const a = rng.int(2, 20), b = rng.int(a + 1, 60);
+      if (a * b > 24 * (b - a) || !nice(a * b, b - a)) continue;
       const t = fracText(a * b, b - a);
       return worded(`A pipe fills a tank in ${a} hours. A drain empties the full tank in ${b} hours. With both open, how many hours does the empty tank take to fill?`,
         `fill drain: ${a}, ${b}`, a * b, b - a,
         `The pipe fills 1/${a} of the tank each hour and the drain takes away 1/${b}. Together: 1/${a} − 1/${b} = ${fracText(b - a, a * b)} each hour, `
         + `so the tank takes 1 ÷ (${fracText(b - a, a * b)}) = ${t} hours.`);
     }
-    const v = rng.int(6, 14), c = rng.int(1, v - 2), m = rng.int(1, 3);
+    // A boat 10 to 24 mph in still water, on a river running 1 to 6 mph and
+    // never more than a third of the boat's speed: a current at half of it
+    // would barely let the boat upstream.
+    const v = rng.int(10, 24), c = rng.int(1, Math.min(6, Math.floor(v / 3))), m = rng.int(1, 3);
     const down = m * (v + c), up = m * (v - c);
     return worded(`A boat goes ${v} miles per hour in still water. It travels ${down} miles downstream in the same time it travels ${up} miles upstream. How fast is the current, in miles per hour?`,
       `current: speed ${v}, downstream ${down}, upstream ${up}`, c, 1,
