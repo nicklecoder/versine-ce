@@ -2,7 +2,7 @@
 id: calculus-extent
 namespace: roadmap
 kind: question
-status: proposed
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-24T14:54:42.714353427Z

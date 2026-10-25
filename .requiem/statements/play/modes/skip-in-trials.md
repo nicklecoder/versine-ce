@@ -2,7 +2,7 @@
 id: skip-in-trials
 namespace: play/modes
 kind: question
-status: proposed
+status: superseded
 provenance:
     type: dialogue
 created_at: 2026-10-24T03:06:50.82227808Z
