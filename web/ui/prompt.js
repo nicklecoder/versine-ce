@@ -305,7 +305,9 @@ export function answerTerm(type, value) {
       return box.preview(box.format(value)).terms;
     }
     case 'roots': return rootTerms(value);
-    // As the box previews it: each point in its brackets, none as the word.
+    // As the box previews it: each point in its brackets, none as the word,
+    // and a vector in its angle brackets.
+    case 'vector':
     case 'points': {
       const box = getType(type);
       return box.preview(box.format(value)).terms;

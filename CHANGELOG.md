@@ -13,6 +13,61 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Parametric & Polar** (`parametric-polar`), a new skill under Vectors &
+Polar, in eight levels: Plot Parametric, Eliminate the Parameter,
+Parametric Motion, Polar to Rectangular, Rectangular to Polar, Converting
+Equations, Polar Graphs and All Together. A parametric curve gives a
+point at a value of t, a value of t at a point, and where it crosses the
+y-axis, drawn with its direction for some; a line is eliminated to y in
+terms of x, and a parabola or an ellipse chosen from four equations; a
+thrown ball's height, distance, landing time and highest moment come from
+x = (v cos θ)t and y = h + (v sin θ)t − 16t²; a polar point's x or y is
+exact from the unit circle, in degrees or radians, and a point's r exact
+and θ to 1 dp; equations convert both ways; and a polar curve's petals,
+farthest reach and name are asked, and a drawn one matched to its
+equation. `scripts/check-answers.py` puts t into each parametric pair
+exactly, tests every option at points of the curve -- at angles whose
+cosine and sine are rational, for an ellipse -- and samples each polar
+curve for its loops, its farthest point and its shape, holding every
+drawing to its equation.
+
+**Vectors** (`vectors`), a new skill in a new category, Vectors & Polar,
+under Trigonometry, in eight levels: Components, Magnitude & Direction,
+From Magnitude & Direction, Adding & Subtracting, Scalar Multiples, Unit
+Vectors, Resultants and All Together. A vector is found from its initial
+and terminal points or read off a drawn arrow, and a point from a vector
+and the other end; its magnitude is exact in simplest radical form and its
+direction an angle to 1 dp, counterclockwise from the positive x-axis from
+0° to 360°; components come from a length and an angle, in plain numbers
+or a kicked ball, a pulled sled or a drone; vectors add and subtract,
+drawn tip to tail or not, and scale, alone or as au + bv, with k found from
+a multiple; a unit vector, and a vector of a given length along or against
+another, comes out in fractions; and a boat in a current, a plane in a wind
+or two forces on a crate give a resultant speed or direction. A new
+answer box takes vectors as <3, −4> for ⟨3, −4⟩, fractions and decimals
+alike, and 3i − 4j; a pair in round brackets is asked again with the hint
+to use angle brackets. `scripts/check-answers.py` works every vector out
+again component by component in exact fractions, every length from its
+squares, and every rounded value twice, exactly and from 4-place trig
+values, and holds each drawn arrow, leg and sum to the vectors in its text.
+
+**Conic Sections** (`conics`), a new skill under Coordinates, in eight
+levels: Which Conic?, Parabola Focus & Directrix, Ellipses, Hyperbolas,
+Writing the Equation, Completing the Square, Match the Graph and All
+Together. An equation in general, standard or rearranged form is named
+from its squared terms; a parabola's focus and directrix come from 4p,
+and its equation from a focus and directrix; an ellipse's and a
+hyperbola's foci, vertices, co-vertices, axis lengths and asymptote slopes
+come from a², b² and c; an equation is chosen from a center, a vertex and
+a focus; the center or vertex is found out of general form by completing
+the square; and a drawn conic is matched to its equation. Points go in the
+pair and points boxes, numbers in the fraction box. Foci, directrix and
+asymptote questions are drawn, with the foci, directrix or asymptotes
+shown once answered. `scripts/check-answers.py` reads every equation back
+as a polynomial in x and y and works each feature out from its
+coefficients, picks the equation a choice's given points or drawing fit,
+and holds every drawing to its equation.
+
 **Inverse Functions** has a new level before All Together, Log Functions:
 y = log_b x as the reflection of y = bˣ in y = x, points reflected from
 bˣ + k to its inverse, the domain of a log of a line or of x² − c², its

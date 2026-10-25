@@ -45,6 +45,7 @@ import area from '../skills/area.js';
 import volume from '../skills/volume.js';
 import transformationsG from '../skills/transformations-g.js';
 import coordGeometry from '../skills/coord-geometry.js';
+import conics from '../skills/conics.js';
 import congruence from '../skills/congruence.js';
 import similarity from '../skills/similarity.js';
 import units from '../skills/units.js';
@@ -76,6 +77,8 @@ import logarithms from '../skills/logarithms.js';
 import series from '../skills/series.js';
 import binomial from '../skills/binomial.js';
 import systems2 from '../skills/systems-2.js';
+import vectors from '../skills/vectors.js';
+import parametricPolar from '../skills/parametric-polar.js';
 import bivariate from '../skills/bivariate.js';
 import evaluate from '../skills/evaluate.js';
 import equations from '../skills/equations.js';
@@ -90,7 +93,7 @@ import sequences from '../skills/sequences.js';
 
 /** @type {any[]} */
 export const SKILLS = [intAddSub, intMulDiv, factors, fracAddSub, fracMulDiv, fracMixed, fracEquiv, fracSigned,
-  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines, radians, unitCircle, trigGraphs, identities, trigEquations, domainRange, composition, inverses, radicalEq, rationalExpr, rationalEq, rationalFunctions, polyDivision, polyFunctions, complex, logarithms, series, binomial, systems2];
+  ratio, proportional, orderOps, exponents, roots, sciNotation, realNumbers, rationalExponents, coords, slope, linearEq, lineForms, linearModels, functions, quadraticGraphs, exponential, transformationsF, decimals, rounding, percents, simplify, monomials, polynomials, factoring, factoring2, evaluate, equations, equationsBoth, wordEquations, systems, quadraticEq, quadraticFormula, inequalities, compoundIneq, absValue, ineqGraphs, sequences, pythagoras, dataCenter, angles, triangleAngles, area, volume, transformationsG, coordGeometry, conics, congruence, similarity, units, quadrilaterals, circles, reasoning, bivariate, distributions, probability, counting, probability2, trigRatios, lawsSinesCosines, radians, unitCircle, trigGraphs, identities, trigEquations, vectors, parametricPolar, domainRange, composition, inverses, radicalEq, rationalExpr, rationalEq, rationalFunctions, polyDivision, polyFunctions, complex, logarithms, series, binomial, systems2];
 
 export const getSkill = (id) => SKILLS.find((s) => s.id === id);
 
@@ -165,6 +168,12 @@ export const CATEGORIES = [
   { id: 'right-triangles', subject: 'trigonometry', name: 'Right Triangles', glyph: '◺' },
   { id: 'unit-circle', subject: 'trigonometry', name: 'The Unit Circle', glyph: '◯' },
   { id: 'identities', subject: 'trigonometry', name: 'Identities', glyph: '≡' },
+  // requiem: catalogue/structure/vectors-polar-category
+  // Also geometry: a vector is an arrow on the coordinate plane. Filed under
+  // trigonometry because both skills in it are worked with cos θ and sin θ:
+  // a vector's components and direction, a polar point's x and y, and a
+  // parametric curve traced by an angle.
+  { id: 'vectors-polar', subject: 'trigonometry', name: 'Vectors & Polar', glyph: '↗' },
 
   // ── Chance & Data ─────────────────────────────────────────────────────
   { id: 'probability', subject: 'data', name: 'Probability', glyph: '⚄' },
