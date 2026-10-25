@@ -11,11 +11,18 @@ rate of one over the number of options. Beside it, how often the key is the
 outlier, the option farthest from the rest, and the longest label: a key
 that is rarely the medoid can still stand out the other way.
 
+Only rows whose options were written for the row are measured (see
+rows_written_for): a fixed menu -- Higher / Lower / Equal, Inside / On /
+Outside -- has a medoid set by its wording, and what matters there is that
+the key moves among its options, not where the decoys sit. check-answers.py
+loads this file and fails a level above 40% on at least 20 measured rows.
+
 Usage: python scripts/measure-medoid.py [skill ...] [--over 0.4]
   With no skills, every library. --over lists only levels above that share.
   Exits 1 when --over is given and some level is above it.
 """
 # requiem: catalogue/content/decoys-crossed-not-centred
+# requiem: catalogue/content/decoys-cross-two-slips
 import json
 import sys
 from pathlib import Path
@@ -65,12 +72,44 @@ def longest_share(answer: dict) -> float:
     return share(answer, lambda i, labels: len(labels[i]), max)
 
 
+def key_label(answer: dict) -> str:
+    return next(o["label"] for o in answer["options"] if o["id"] == answer["value"])
+
+
+# requiem: catalogue/content/decoys-cross-two-slips
+def rows_written_for(answers: list[dict]) -> list[dict]:
+    """The choice rows whose options were written for the row, not drawn from a fixed menu.
+
+    Read from the library, not listed by hand. A row is left out when its
+    label set recurs with another key (the key moves among a fixed menu), or
+    when fewer than three of its labels are its own once stock labels -- ones
+    in a third or more of the level's choice rows, like "They are the same"
+    -- are set aside.
+    """
+    seen: dict[str, int] = {}
+    keys: dict[frozenset, set] = {}
+    for a in answers:
+        labels = frozenset(o["label"] for o in a["options"])
+        for label in labels:
+            seen[label] = seen.get(label, 0) + 1
+        keys.setdefault(labels, set()).add(key_label(a))
+    stock = {label for label, n in seen.items() if n >= len(answers) / 3}
+    return [a for a in answers
+            if len(keys[frozenset(o["label"] for o in a["options"])]) == 1
+            and sum(o["label"] not in stock for o in a["options"]) >= 3]
+
+
+def choice_answers(lib: dict) -> list[dict]:
+    """A library's choice answers with three or more options."""
+    return [p["answer"] for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+
+
 def measure(path: Path):
     lib = json.loads(path.read_text())
-    rows = [p for p in lib["problems"] if p["answer"]["type"] == "choice" and len(p["answer"]["options"]) >= 3]
+    rows = rows_written_for(choice_answers(lib))
     if not rows:
         return None
-    mean = lambda f: sum(f(p["answer"]) for p in rows) / len(rows)
+    mean = lambda f: sum(f(a) for a in rows) / len(rows)
     return (lib["skill"], lib["level"], lib["levelName"], len(rows), len(lib["problems"]),
             mean(medoid_share), mean(lambda a: 1 / len(a["options"])), mean(outlier_share), mean(longest_share))
 
@@ -93,7 +132,7 @@ def main(argv):
         if over is not None and medoid <= over:
             continue
         high += medoid > (over or 1)
-        print(f"{skill} L{level} {name}: key is the medoid in {medoid:.0%} of {n} choice rows (of {rows}); "
+        print(f"{skill} L{level} {name}: key is the medoid in {medoid:.0%} of {n} choice rows written for the row (of {rows}); "
               f"chance {chance:.0%}; the outlier {outlier:.0%}, the longest {longest:.0%}")
     return 1 if over is not None and high else 0
 
