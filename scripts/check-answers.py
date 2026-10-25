@@ -8234,7 +8234,39 @@ def sr_which_sum(has: str, listing: str) -> str:
     return rf_pick(listing, lambda body: converges(body) == (has == "has sum"))
 
 
+def sr_sigma_writes(listing, last, options):
+    # The series shown is walked out in full from its terms; each option's
+    # sigma is written out by putting every k into its rule, and the one
+    # whose terms are the series' terms, all of them in order, is the key.
+    ts = sr_nums(listing)
+    geometric = ts[1] - ts[0] != ts[2] - ts[1]
+    whole = sr_to(ts[0], sr_step(ts, geometric), geometric, Fraction(last))
+
+    def writes(body):
+        lo, hi, src = re.fullmatch(r"(\d+)\.\.(\d+) of (.+)", body).groups()
+        return [evaluate(src, "k", k) for k in range(int(lo), int(hi) + 1)] == whole
+    return rf_pick(options, writes)
+
+
+def sr_sigma_scaled(hi, total, times, plus):
+    # Some sequence with that sum, any one: 1, 2, 3, ... and a last term that
+    # makes the total. The new sum is then added up term by term.
+    n = int(hi)
+    seq = [Fraction(k) for k in range(1, n)]
+    seq.append(Fraction(total) - sum(seq))
+    return sum(int(times) * a + int(plus) for a in seq)
+
+
+def sr_sigma_constant(lo, hi, c):
+    # A rule with no k: every k from lo to hi puts the same number in, so
+    # the terms are listed one per k and added.
+    return sum([Fraction(c)] * len(range(int(lo), int(hi) + 1)))
+
+
 BY_RULE += (
+    (re.compile(r"^sigma: k=(\d+)\.\.(\d+) of (-?\d+)$"), sr_sigma_constant),
+    (re.compile(r"^sigma scale: k=1\.\.(\d+), sum (-?\d+), times (-?\d+), plus (-?\d+)$"), sr_sigma_scaled),
+    (re.compile(r"^takings: (\d+) first, (\d+) percent, (\d+) months$"), sr_salary),
     (re.compile(r"^arith sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, False)),
     (re.compile(r"^arith sum: (\d+) terms, first (\S+), last (\S+)$"), sr_ends),
     (re.compile(r"^arith sum: (\d+) terms, first (\S+), difference (\S+)$"),
@@ -8271,6 +8303,7 @@ BY_RULE += (
 
 CHOICE_RULES += (
     (re.compile(r"^sigma which: k=(\d+)\.\.(\d+) of (.+?); options (.+)$"), sr_which_sigma),
+    (re.compile(r"^sigma write: (.+) to (\S+); options (.+)$"), sr_sigma_writes),
     (re.compile(r"^infinite which: (has sum|no sum); options (.+)$"), sr_which_sum),
 )
 
