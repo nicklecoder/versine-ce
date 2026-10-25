@@ -38,6 +38,10 @@
  *   question never gave, and invites reading them off.
  * @property {{x?: string, y?: string}} [titles]  what each axis measures,
  *   "hours" and "km": a story graph read without them is two bare numbers.
+ * @property {{ring: number, spokes: number}} [polar]  a polar grid in place
+ *   of the square one: circles every `ring` units about the origin and
+ *   spokes every `spokes` degrees, those on a multiple of 30° heavier and
+ *   their angle written past the last ring, so a point is read by r and θ.
  * @property {Mark[]} [marks]            drawn while the question is open
  * @property {Mark[]} [answer]           withheld until an answer is committed
  */
@@ -53,7 +57,7 @@ const make = (tag, attrs) => {
 const PAD = 22;
 
 export function drawPlane(svg, spec, { verdict = null } = {}) {
-  const { xRange, yRange, grid = 1, axes: withAxes = true, titles = {}, marks = [], answer = [] } = spec;
+  const { xRange, yRange, grid = 1, axes: withAxes = true, titles = {}, polar = null, marks = [], answer = [] } = spec;
   const [x0, x1] = xRange;
   const [y0, y1] = yRange;
 
@@ -86,6 +90,35 @@ export function drawPlane(svg, spec, { verdict = null } = {}) {
       g.append(make('line', { x1: px(x0), y1: py(y), x2: px(x1), y2: py(y) }));
     }
     svg.append(g);
+  }
+
+  // ── Polar grid ────────────────────────────────────────────────────────
+  // requiem: play/visuals/polar-grid-on-the-plane
+  // Rings and spokes from the origin, to the last ring inside the window.
+  // The angles are fixed labels of the grid, the same on every problem, so
+  // they say nothing about any answer.
+  if (polar) {
+    const g = make('g', { class: 'pl__grid pl__polar' });
+    const reach = Math.min(-x0, x1, -y0, y1);
+    const last = Math.floor((reach - 0.5) / polar.ring) * polar.ring;
+    for (let r = polar.ring; r <= last + 1e-9; r += polar.ring) {
+      g.append(make('circle', { cx: originX, cy: originY, r: r * unit, fill: 'none' }));
+    }
+    for (let d = 0; d < 360; d += polar.spokes) {
+      const t = (d * Math.PI) / 180;
+      g.append(make('line', { x1: originX, y1: originY, x2: px(last * Math.cos(t)), y2: py(last * Math.sin(t)),
+        class: d % 30 === 0 ? 'is-major' : '' }));
+    }
+    svg.append(g);
+    const labels = make('g', { class: 'pl__ticks pl__angles' });
+    for (let d = 0; d < 360; d += 30) {
+      if (d % 90 === 0) continue;
+      const t = (d * Math.PI) / 180, at = last + 0.45 * Math.max(1, polar.ring);
+      const label = make('text', { x: px(at * Math.cos(t)), y: py(at * Math.sin(t)) + 3, 'text-anchor': 'middle' });
+      label.textContent = `${d}°`;
+      labels.append(label);
+    }
+    svg.append(labels);
   }
 
   // ── Axes and their numbers ────────────────────────────────────────────

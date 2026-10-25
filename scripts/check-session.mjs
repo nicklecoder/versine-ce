@@ -29,6 +29,7 @@ const { MODES } = await import(join(ROOT, 'web/engine/modes.js'));
 const { dealer } = await import(join(ROOT, 'web/engine/library.js'));
 const { getType } = await import(join(ROOT, 'web/math/answer.js'));
 const { lessonFor } = await import(join(ROOT, 'web/engine/lesson.js'));
+const { promptText: promptTextOf } = await import(join(ROOT, 'web/ui/prompt.js'));
 
 const fail = [];
 const libOf = (skill, level) => {
@@ -177,6 +178,16 @@ for (const skill of SKILLS) {
     if (got.ok && roots.equals(got.value, want)) fail.push(`roots: "${raw}" was accepted for (−3 ± √17)/4`);
   }
   if (!roots.parse('no real solutions').ok) fail.push('roots: "no real solutions" was not read');
+
+  // requiem: play/answers/roots-preview-names-the-asked-letter
+  // A bare number previews with the letter asked for; a letter typed stays.
+  const said = (raw, letter) => promptTextOf(roots.preview(raw, { type: 'roots', value: { letter } }).terms);
+  for (const [raw, letter, shown] of [['3sqrt(10)', 'r', 'r'], ['-3', 'y', 'y'], ['25', '|v|', '|v|'], ['x = 2', 'r', 'x'], ['|v| = 5', 'x', '|v|']]) {
+    const got = said(raw, letter);
+    if (!got.replace(/\s+/g, '').startsWith(`${shown}=`)) fail.push(`roots: "${raw}" asked for ${letter} previews "${got}"`);
+  }
+  const mag = roots.parse('|v| = 13');
+  if (!mag.ok || roots.format({ letter: '|v|', roots: mag.value.roots }) !== '|v| = 13') fail.push('roots: |v| = 13 does not round-trip');
 }
 
 // requiem: play/answers/accepted-forms-judged
@@ -453,12 +464,12 @@ for (const skill of SKILLS) {
     const r = sets.parse(raw);
     if (!r.ok || r.value.parts.length) fail.push(`solutions: "${raw}" was not read as no solution`);
   }
-  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'], complex: ['i', '+-'] };
+  const shown = { solutions: ['<=', '>=', '!=', '+-'], halfplane: ['<=', '>='], roots: ['sqrt(5)', '+-'], complex: ['i', '+-'], vector: ['<3, -4>'] };
   for (const [id, typed] of Object.entries(shown)) {
     const keys = (getType(id).keys ?? []).map(([t]) => t);
     for (const t of typed) if (!keys.includes(t)) fail.push(`${id}: the box does not show how to type ${t}`);
   }
-  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)'], ['complex', '2 +- 3i']]) {
+  for (const [id, sample] of [['solutions', 'x <= 3'], ['solutions', 'x != 1'], ['halfplane', 'y >= 2x + 1'], ['roots', 'x = 1 +- sqrt(5)'], ['complex', '2 +- 3i'], ['vector', '<3, -4>']]) {
     if (!getType(id).parse(sample).ok) fail.push(`${id}: the shown spelling "${sample}" is refused`);
   }
 }
@@ -504,6 +515,146 @@ for (const skill of SKILLS) {
   }
   if (box.parse('-(7+6i)/17').value?.simplest === false) fail.push('complex: −(7 + 6i)/17 was called unfinished');
   if (box.parse('-(3-2i)').value?.simplest !== false) fail.push('complex: −(3 − 2i) was called finished');
+}
+
+// requiem: play/answers/points-judged-as-set
+// The points box reads the points in any order, said once or twice, with
+// commas, semicolons or and between them; a fraction and a decimal are one
+// coordinate; none is no points; a point keeps its order; some of the points
+// are not all of them, and are told so; and a point with the wrong number of
+// coordinates is asked again, not marked.
+{
+  const box = getType('points');
+  const want = box.parse('(-3, 4), (3, 4)').value;
+  for (const raw of ['(3, 4) and (-3, 4)', '(3,4);(−3,4)', '(-3, 4) (3, 4)', '(3, 4), (-3, 4), (3, 4)', '(3, 4) or (−3, 4)']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, want)) fail.push(`points: "${raw}" was not read as (−3, 4), (3, 4)`);
+  }
+  if (box.equals(box.parse('(4, 3), (4, -3)').value, want)) fail.push('points: (4, 3) was taken for (3, 4)');
+  if (box.equals(box.parse('(3, 4)').value, want)) fail.push('points: one of two points was taken for both');
+  if (!box.equals(box.parse('(1/2, -0.25)').value, box.parse('(0.5, -1/4)').value)) fail.push('points: 1/2 and 0.5 were not one coordinate');
+  for (const raw of ['none', 'no points', 'They do not meet.', 'no solution', 'no real solutions',
+    "they don't meet", 'do not meet', 'no intersection', 'DNE', 'They never intersect.', '{}']) {
+    const r = box.parse(raw);
+    if (!r.ok || r.value.pts.length) fail.push(`points: "${raw}" was not read as no points`);
+  }
+  // requiem: play/answers/points-read-as-written
+  // A sentence's period, set braces, spaces inside a point, and one point
+  // said letter by letter in the question's order are read as the points.
+  for (const [raw, said] of [['(-3, 4), (3, 4).', '(−3, 4), (3, 4)'], ['{(3, 4), (-3, 4)}', '(−3, 4), (3, 4)'],
+    ['( - 1/2 , 5/2 )', '(−1/2, 5/2)'], ['x = 2, y = −1, z = 3', '(2, −1, 3)'], ['x=3 and y=4', '(3, 4)'],
+    ['($4.50, $1, $0.75)', '(9/2, 1, 3/4)']]) {
+    const r = box.parse(raw);
+    if (!r.ok || box.format(r.value) !== said) fail.push(`points: "${raw}" was not read as ${said}`);
+  }
+  for (const raw of ['y = 4, x = 3', 'x = 3', '3, 4', '(3, 4', '(3)', '(1 2, 3)']) {
+    if (box.parse(raw).ok) fail.push(`points: "${raw}" was read as points`);
+  }
+  if (!box.parse('y = 4, x = 3').hint?.includes('in that order')) fail.push('points: y = 4, x = 3 was not told the order');
+  // requiem: catalogue/content/us-notation
+  // Every hint says parentheses, the US word, never brackets; prices are written in dollars.
+  for (const raw of ['', 'y = 4, x = 3', '3, 4', '(3)']) {
+    const hint = box.parse(raw).hint ?? '';
+    if (/bracket/i.test(hint) || !/parentheses/.test(hint)) fail.push(`points: the hint for "${raw}" is "${hint}"`);
+  }
+  if (/bracket/i.test(box.hint)) fail.push('points: the box hint says brackets');
+  const price = { dim: 3, money: true, pts: [[{ n: 9, d: 2 }, { n: 1, d: 1 }, { n: 3, d: 4 }]] };
+  if (box.format(price) !== '($4.50, $1.00, $0.75)') fail.push(`points: a price answer was written ${box.format(price)}`);
+  if (!box.equals(box.parse('($4.50, $1.00, $0.75)').value, price) || !box.equals(box.parse('(4.5, 1, .75)').value, price)) fail.push('points: prices typed in dollars were not the price answer');
+
+  const skill = SKILLS.find((s) => s.id === 'systems-2');
+  const at = (slug) => skill.levels.findIndex((l) => l.slug === slug);
+  const two = libOf(skill, at('line-meets-parabola')).problems.find((q) => q.answer.value.pts.length === 2);
+  const none = libOf(skill, at('line-meets-parabola')).problems.find((q) => !q.answer.value.pts.length);
+  const three = libOf(skill, at('three-variables')).problems[0];
+  const play = (p, raw) => {
+    const s = new Session({ skill, level: at('all-together'), mode: MODES.practice, onEvent() {} });
+    s.deal = () => p;
+    s.start();
+    return s.submit(raw);
+  };
+  const [p1, p2] = two.answer.accept[0].split(/\), /).map((t) => `${t.replace(/\)$/, '')})`);
+  const [x, y, z] = three.answer.accept[0].replace(/[()]/g, '').split(', ');
+  const cases = [
+    [two, `${p2}, ${p1}`, 'correct'], [two, `${p1} and ${p2}`, 'correct'], [two, p1, 'wrong'], [two, 'none', 'wrong'],
+    [none, 'none', 'correct'], [none, 'They do not meet', 'correct'], [none, '(0, 0)', 'wrong'],
+    [three, `(${x}, ${y}, ${z})`, 'correct'], [three, `(${x}, ${y})`, 'invalid'], [three, `x = ${x}, y = ${y}, z = ${z}`, 'correct'],
+    [three, `{(${x}, ${y}, ${z})}.`, 'correct'], [three, `x = ${x}, y = ${y}`, 'invalid'], [none, 'no intersection', 'correct'], [none, 'DNE', 'correct'],
+  ];
+  for (const [row, raw, want] of cases) {
+    const r = play(row, raw);
+    if (r.status !== want) fail.push(`points: "${raw}" for ${row.answer.accept[0]} was ${r.status}, not ${want}`);
+  }
+  // requiem: catalogue/content/prices-answered-in-dollars
+  // A price answer, given with its dollar signs or without, is right.
+  const shop = libOf(skill, at('three-variable-word-problems')).problems.find((q) => q.answer.value.money);
+  if (!shop) fail.push('points: no word problem asks for prices in dollars');
+  else {
+    for (const raw of [shop.answer.accept[0], shop.answer.accept[0].replace(/\$/g, '')]) {
+      if (play(shop, raw).status !== 'correct') fail.push(`points: the prices "${raw}" were not right for ${shop.answer.accept[0]}`);
+    }
+  }
+  if (!play(two, p1).hint?.includes('more places')) fail.push('points: one of two meeting points was not told there are more');
+  if (!play(three, `(${x}, ${y})`).hint?.includes('3 coordinates')) fail.push('points: a pair for (x, y, z) was not told it needs 3 coordinates');
+}
+
+// requiem: play/answers/vector-typed-in-angle-brackets
+// The vector box reads <a, b> and the angle brackets themselves, each
+// component a whole number, a fraction or a decimal compared exactly, and
+// ai + bj; a pair in round brackets is a point, so it is asked again with
+// the hint to use angle brackets, not marked; and the order of the
+// components matters.
+{
+  const box = getType('vector');
+  const want = box.parse('<3, -4>').value;
+  for (const raw of ['<3,-4>', '⟨3, −4⟩', '〈3, -4〉', ' < 3 , -4 > ', '3i - 4j', '3i-4j', '<6/2, -4.0>']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, want)) fail.push(`vector: "${raw}" was not read as ⟨3, −4⟩`);
+  }
+  if (box.equals(box.parse('<-4, 3>').value, want)) fail.push('vector: ⟨−4, 3⟩ was taken for ⟨3, −4⟩');
+  if (!box.equals(box.parse('<3/5, -0.8>').value, box.parse('<0.6, -4/5>').value)) fail.push('vector: 3/5 and 0.6 were not one component');
+  if (!box.equals(box.parse('-j').value, box.parse('<0, -1>').value)) fail.push('vector: −j was not read as ⟨0, −1⟩');
+  for (const raw of ['(3, -4)', '3, -4', '<3>', '<3, -4, 1>', '<a, b>', '']) {
+    if (box.parse(raw).ok) fail.push(`vector: "${raw}" was read as a vector`);
+  }
+  if (!box.parse('(3, -4)').hint?.includes('angle brackets')) fail.push('vector: (3, −4) was not told to use angle brackets');
+  // requiem: play/answers/vector-unit-form-any-order
+  // ai + bj in any order, a sign given twice, and a coefficient in brackets.
+  for (const raw of ['-4j+3i', '-4j + 3i', '3i + -4j', '3i+(-4)j', '(3)i - (4)j', '3i - (+4)j']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, want)) fail.push(`vector: "${raw}" was not read as ⟨3, −4⟩`);
+  }
+  const fifths = box.parse('<3/5, 4/5>').value;
+  for (const raw of ['(3/5)i+(4/5)j', '(4/5)j + (3/5)i', '0.6i + 0.8j', '3/5i + 4/5j']) {
+    const r = box.parse(raw);
+    if (!r.ok || !box.equals(r.value, fifths)) fail.push(`vector: "${raw}" was not read as ⟨3/5, 4/5⟩`);
+  }
+  for (const raw of ['3i + 4i', '3i4j', '3i + 4', 'i j']) {
+    if (box.parse(raw).ok) fail.push(`vector: "${raw}" was read as a vector`);
+  }
+  // requiem: play/answers/vector-decimal-asked-exactly
+  // A decimal for a component that ends in no decimal is asked again, right
+  // digits or not; where every component ends, a decimal is judged.
+  {
+    const thirteenths = { type: 'vector', value: box.parse('<5/13, -12/13>').value };
+    for (const raw of ['<0.38, -0.92>', '<0.3846, -0.9231>', '0.38i - 0.92j']) {
+      const hint = box.refuseHint(box.parse(raw), thirteenths);
+      if (!hint?.includes('exactly')) fail.push(`vector: "${raw}" for ⟨5/13, −12/13⟩ was not asked for it exactly`);
+    }
+    if (box.refuseHint(box.parse('<5/13, -12/13>'), thirteenths)) fail.push('vector: the exact ⟨5/13, −12/13⟩ was refused');
+    if (box.refuseHint(box.parse('<0.6, 0.8>'), { type: 'vector', value: fifths })) fail.push('vector: ⟨0.6, 0.8⟩ was refused for ⟨3/5, 4/5⟩');
+  }
+  if (box.format(want) !== '⟨3, −4⟩') fail.push(`vector: ⟨3, −4⟩ shown as "${box.format(want)}"`);
+
+  const skill = SKILLS.find((s) => s.id === 'vectors');
+  const row = libOf(skill, 0).problems.find((q) => q.answer.type === 'vector');
+  const s = new Session({ skill, level: 0, mode: MODES.practice, onEvent() {} });
+  s.deal = () => row;
+  s.start();
+  const [a, b] = row.answer.accept[0].replace(/[⟨⟩]/g, '').replace(/−/g, '-').split(', ');
+  const round = s.submit(`(${a}, ${b})`);
+  if (round.status !== 'invalid') fail.push(`vector: (${a}, ${b}) for ${row.answer.accept[0]} was ${round.status}, not invalid`);
+  if (s.submit(`<${a}, ${b}>`).status !== 'correct') fail.push(`vector: <${a}, ${b}> for ${row.answer.accept[0]} was not correct`);
 }
 
 // requiem: play/answers/set-comma-after-not-equal

@@ -7,7 +7,8 @@
  * y again. Composing checks it: f(f⁻¹(x)) = x and f⁻¹(f(x)) = x. Only a
  * one-to-one function has an inverse, so a parabola has to be cut to half
  * of itself first, and the graph of f⁻¹ is the graph of f reflected in the
- * line y = x: every point (a, b) becomes (b, a).
+ * line y = x: every point (a, b) becomes (b, a). Logarithms takes this up
+ * next, as y = log_b x, the inverse of y = bˣ.
  */
 
 export const LEVELS = [
@@ -49,10 +50,12 @@ export default {
   name: 'Inverse Functions',
   category: 'functions',
   glyph: 'f⁻¹',
-  blurb: 'Undoing a function: its values, its formula, checking by composing, cutting a parabola to half, and the reflection in y = x.',
+  blurb: 'Undoing a function: its values, its formula, checking by composing, cutting a parabola to half, and the graph reflected in y = x.',
   answerInput: 'expr',
   // Notation and graphs from functions; composing from composition; cube
-  // roots from roots.
+  // roots from roots. Logarithms is not among them: log_b x as the inverse
+  // of bˣ is taught there, after this skill.
+  // requiem: catalogue/content/log-functions-in-logarithms
   dependsOn: ['functions', 'equations', 'composition', 'quadratic-graphs', 'roots'],
   levels: LEVELS,
 };

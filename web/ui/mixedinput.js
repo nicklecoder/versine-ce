@@ -20,6 +20,8 @@ export function mixedInput() {
     },
   });
 
+  // requiem: catalogue/library/answer-typeable-in-its-boxes
+  // Three characters a box: check-library.py holds every mixed answer to it.
   const whole = box('mixed-whole', 'w', 3);
   const num = box('frac-box frac-box--num', 'n', 3);
   const den = box('frac-box frac-box--den', 'd', 3);

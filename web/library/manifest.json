@@ -1,5 +1,5 @@
 {
-  "built": 617,
+  "built": 665,
   "order": {
     "int-addsub": [
       "first-steps",
@@ -505,6 +505,16 @@
       "complete-the-parallelogram",
       "all-together"
     ],
+    "conics": [
+      "which-conic",
+      "parabola-focus-and-directrix",
+      "ellipses",
+      "hyperbolas",
+      "writing-the-equation",
+      "completing-the-square",
+      "match-the-graph",
+      "all-together"
+    ],
     "congruence": [
       "corresponding-parts",
       "name-the-congruence",
@@ -683,6 +693,27 @@
       "quadratic-type",
       "all-together"
     ],
+    "vectors": [
+      "components",
+      "magnitude-and-direction",
+      "from-magnitude-and-direction",
+      "adding-and-subtracting",
+      "scalar-multiples",
+      "unit-vectors",
+      "dot-product",
+      "resultants",
+      "all-together"
+    ],
+    "parametric-polar": [
+      "plot-parametric",
+      "eliminate-the-parameter",
+      "parametric-motion",
+      "polar-to-rectangular",
+      "rectangular-to-polar",
+      "converting-equations",
+      "polar-graphs",
+      "all-together"
+    ],
     "domain-range": [
       "domain-of-roots-and-fractions",
       "from-a-graph",
@@ -780,6 +811,35 @@
       "ln-and-change-of-base",
       "exponential-equations",
       "log-equations",
+      "log-functions",
+      "all-together"
+    ],
+    "series": [
+      "arithmetic-sums",
+      "finite-geometric",
+      "sigma-notation",
+      "infinite-geometric",
+      "series-in-context",
+      "working-backward",
+      "all-together"
+    ],
+    "binomial": [
+      "pascals-triangle",
+      "coefficients-by-combinations",
+      "a-given-term",
+      "full-expansion",
+      "the-constant-term",
+      "binomial-probability",
+      "all-together"
+    ],
+    "systems-2": [
+      "line-meets-parabola",
+      "how-many-intersections",
+      "line-meets-circle",
+      "two-curves",
+      "three-variables",
+      "no-solution-or-infinitely-many",
+      "three-variable-word-problems",
       "all-together"
     ]
   },
@@ -1397,6 +1457,23 @@
       ],
       "levels": {}
     },
+    "conics": {
+      "dependsOn": [
+        "circles",
+        "quadratic-graphs"
+      ],
+      "levels": {
+        "which-conic": [
+          "circles"
+        ],
+        "parabola-focus-and-directrix": [
+          "quadratic-graphs"
+        ],
+        "completing-the-square": [
+          "circles"
+        ]
+      }
+    },
     "congruence": {
       "dependsOn": [
         "triangle-angles"
@@ -1639,6 +1716,58 @@
         "quadratic-type": [
           "identities",
           "quadratic-eq"
+        ]
+      }
+    },
+    "vectors": {
+      "dependsOn": [
+        "pythagoras",
+        "trig-ratios",
+        "unit-circle"
+      ],
+      "levels": {
+        "magnitude-and-direction": [
+          "pythagoras",
+          "trig-ratios",
+          "unit-circle"
+        ],
+        "from-magnitude-and-direction": [
+          "trig-ratios"
+        ],
+        "resultants": [
+          "trig-ratios"
+        ]
+      }
+    },
+    "parametric-polar": {
+      "dependsOn": [
+        "circles",
+        "conics",
+        "quadratic-formula",
+        "radians",
+        "unit-circle",
+        "vectors"
+      ],
+      "levels": {
+        "plot-parametric": [
+          "unit-circle"
+        ],
+        "eliminate-the-parameter": [
+          "conics"
+        ],
+        "parametric-motion": [
+          "quadratic-formula",
+          "vectors"
+        ],
+        "polar-to-rectangular": [
+          "radians",
+          "unit-circle"
+        ],
+        "rectangular-to-polar": [
+          "vectors"
+        ],
+        "converting-equations": [
+          "circles"
         ]
       }
     },
@@ -1892,6 +2021,7 @@
         "equations",
         "exponential",
         "exponents",
+        "inverses",
         "quadratic-eq",
         "radical-eq",
         "rational-exponents"
@@ -1914,11 +2044,86 @@
         "log-equations": [
           "quadratic-eq",
           "radical-eq"
+        ],
+        "log-functions": [
+          "inverses"
+        ]
+      }
+    },
+    "series": {
+      "dependsOn": [
+        "quadratic-eq",
+        "sequences"
+      ],
+      "levels": {
+        "arithmetic-sums": [
+          "sequences"
+        ],
+        "finite-geometric": [
+          "sequences"
+        ],
+        "working-backward": [
+          "quadratic-eq"
+        ]
+      }
+    },
+    "binomial": {
+      "dependsOn": [
+        "counting",
+        "exponents",
+        "monomials",
+        "polynomials",
+        "probability"
+      ],
+      "levels": {
+        "coefficients-by-combinations": [
+          "counting"
+        ],
+        "a-given-term": [
+          "monomials"
+        ],
+        "full-expansion": [
+          "polynomials"
+        ],
+        "the-constant-term": [
+          "exponents"
+        ],
+        "binomial-probability": [
+          "probability"
+        ]
+      }
+    },
+    "systems-2": {
+      "dependsOn": [
+        "circles",
+        "quadratic-eq",
+        "quadratic-formula",
+        "systems"
+      ],
+      "levels": {
+        "line-meets-parabola": [
+          "quadratic-eq",
+          "systems"
+        ],
+        "how-many-intersections": [
+          "quadratic-formula"
+        ],
+        "line-meets-circle": [
+          "circles"
+        ],
+        "three-variables": [
+          "systems"
+        ],
+        "no-solution-or-infinitely-many": [
+          "systems"
+        ],
+        "three-variable-word-problems": [
+          "systems"
         ]
       }
     }
   },
-  "sources": "ce9834093c0c709cce081b3ab67ae86fedf42f68a6707a6da16afbe005962f7b",
+  "sources": "6976091df7e811d97d6194e678b7c5e6a4b943558771144dadb27fb87cea24e7",
   "levels": [
     {
       "skill": "int-addsub",
@@ -5901,6 +6106,86 @@
       "file": "coord-geometry-7.json"
     },
     {
+      "skill": "conics",
+      "level": 0,
+      "slug": "which-conic",
+      "name": "Which Conic?",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "conics-0.json"
+    },
+    {
+      "skill": "conics",
+      "level": 1,
+      "slug": "parabola-focus-and-directrix",
+      "name": "Parabola Focus & Directrix",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-1.json"
+    },
+    {
+      "skill": "conics",
+      "level": 2,
+      "slug": "ellipses",
+      "name": "Ellipses",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-2.json"
+    },
+    {
+      "skill": "conics",
+      "level": 3,
+      "slug": "hyperbolas",
+      "name": "Hyperbolas",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-3.json"
+    },
+    {
+      "skill": "conics",
+      "level": 4,
+      "slug": "writing-the-equation",
+      "name": "Writing the Equation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "conics-4.json"
+    },
+    {
+      "skill": "conics",
+      "level": 5,
+      "slug": "completing-the-square",
+      "name": "Completing the Square",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-5.json"
+    },
+    {
+      "skill": "conics",
+      "level": 6,
+      "slug": "match-the-graph",
+      "name": "Match the Graph",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "conics-6.json"
+    },
+    {
+      "skill": "conics",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "conics-7.json"
+    },
+    {
       "skill": "congruence",
       "level": 0,
       "slug": "corresponding-parts",
@@ -7321,6 +7606,176 @@
       "file": "trig-equations-6.json"
     },
     {
+      "skill": "vectors",
+      "level": 0,
+      "slug": "components",
+      "name": "Components",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-0.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 1,
+      "slug": "magnitude-and-direction",
+      "name": "Magnitude & Direction",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "vectors-1.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 2,
+      "slug": "from-magnitude-and-direction",
+      "name": "From Magnitude & Direction",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-2.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 3,
+      "slug": "adding-and-subtracting",
+      "name": "Adding & Subtracting",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-3.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 4,
+      "slug": "scalar-multiples",
+      "name": "Scalar Multiples",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-4.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 5,
+      "slug": "unit-vectors",
+      "name": "Unit Vectors",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-5.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 6,
+      "slug": "dot-product",
+      "name": "Dot Product",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-6.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 7,
+      "slug": "resultants",
+      "name": "Resultants",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "vectors-7.json"
+    },
+    {
+      "skill": "vectors",
+      "level": 8,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "vectors-8.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 0,
+      "slug": "plot-parametric",
+      "name": "Plot Parametric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "parametric-polar-0.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 1,
+      "slug": "eliminate-the-parameter",
+      "name": "Eliminate the Parameter",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "parametric-polar-1.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 2,
+      "slug": "parametric-motion",
+      "name": "Parametric Motion",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "parametric-polar-2.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 3,
+      "slug": "polar-to-rectangular",
+      "name": "Polar to Rectangular",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "parametric-polar-3.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 4,
+      "slug": "rectangular-to-polar",
+      "name": "Rectangular to Polar",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "parametric-polar-4.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 5,
+      "slug": "converting-equations",
+      "name": "Converting Equations",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "parametric-polar-5.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 6,
+      "slug": "polar-graphs",
+      "name": "Polar Graphs",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "parametric-polar-6.json"
+    },
+    {
+      "skill": "parametric-polar",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "parametric-polar-7.json"
+    },
+    {
       "skill": "domain-range",
       "level": 0,
       "slug": "domain-of-roots-and-fractions",
@@ -8083,12 +8538,242 @@
     {
       "skill": "logarithms",
       "level": 6,
+      "slug": "log-functions",
+      "name": "Log Functions",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "logarithms-6.json"
+    },
+    {
+      "skill": "logarithms",
+      "level": 7,
       "slug": "all-together",
       "name": "All Together",
       "count": 1000,
       "exhaustive": false,
       "signed": true,
-      "file": "logarithms-6.json"
+      "file": "logarithms-7.json"
+    },
+    {
+      "skill": "series",
+      "level": 0,
+      "slug": "arithmetic-sums",
+      "name": "Arithmetic Sums",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-0.json"
+    },
+    {
+      "skill": "series",
+      "level": 1,
+      "slug": "finite-geometric",
+      "name": "Finite Geometric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-1.json"
+    },
+    {
+      "skill": "series",
+      "level": 2,
+      "slug": "sigma-notation",
+      "name": "Sigma Notation",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-2.json"
+    },
+    {
+      "skill": "series",
+      "level": 3,
+      "slug": "infinite-geometric",
+      "name": "Infinite Geometric",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-3.json"
+    },
+    {
+      "skill": "series",
+      "level": 4,
+      "slug": "series-in-context",
+      "name": "Series in Context",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "series-4.json"
+    },
+    {
+      "skill": "series",
+      "level": 5,
+      "slug": "working-backward",
+      "name": "Working Backward",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-5.json"
+    },
+    {
+      "skill": "series",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "series-6.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 0,
+      "slug": "pascals-triangle",
+      "name": "Pascal's Triangle",
+      "count": 121,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-0.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 1,
+      "slug": "coefficients-by-combinations",
+      "name": "Coefficients by Combinations",
+      "count": 285,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-1.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 2,
+      "slug": "a-given-term",
+      "name": "A Given Term",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-2.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 3,
+      "slug": "full-expansion",
+      "name": "Full Expansion",
+      "count": 176,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-3.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 4,
+      "slug": "the-constant-term",
+      "name": "The Constant Term",
+      "count": 520,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-4.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 5,
+      "slug": "binomial-probability",
+      "name": "Binomial Probability",
+      "count": 255,
+      "exhaustive": true,
+      "signed": false,
+      "file": "binomial-5.json"
+    },
+    {
+      "skill": "binomial",
+      "level": 6,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "binomial-6.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 0,
+      "slug": "line-meets-parabola",
+      "name": "Line Meets Parabola",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-0.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 1,
+      "slug": "how-many-intersections",
+      "name": "How Many Intersections",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-1.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 2,
+      "slug": "line-meets-circle",
+      "name": "Line Meets Circle",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-2.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 3,
+      "slug": "two-curves",
+      "name": "Two Curves",
+      "count": 450,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-3.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 4,
+      "slug": "three-variables",
+      "name": "Three Variables",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-4.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 5,
+      "slug": "no-solution-or-infinitely-many",
+      "name": "No Solution or Infinitely Many",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": false,
+      "file": "systems-2-5.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 6,
+      "slug": "three-variable-word-problems",
+      "name": "Three-Variable Word Problems",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-6.json"
+    },
+    {
+      "skill": "systems-2",
+      "level": 7,
+      "slug": "all-together",
+      "name": "All Together",
+      "count": 1000,
+      "exhaustive": false,
+      "signed": true,
+      "file": "systems-2-7.json"
     }
   ]
 }

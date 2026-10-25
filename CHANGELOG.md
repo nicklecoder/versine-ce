@@ -13,6 +13,201 @@ anyone who wants a known version, and these notes say what changed either way.
 
 ## Unreleased
 
+**Vectors, parametric & polar, and conics, reviewed.** Parametric
+Motion asked how far a ball had gone after it had landed (79 of 245
+distance rows): every time asked is now before the landing, and
+`scripts/check-answers.py` works the landing out again and fails any row
+past it. The path is printed in half its rows, and the level adds the
+range, the greatest height and which equations model a throw. vectors
+gains a ninth level, Dot Product (u · v, the angle between two vectors,
+orthogonal, parallel or neither, and the k that makes two orthogonal), and
+Resultants asks a quarter of its rows on bearings. Unit Vectors says
+"exactly" on every row, and the vector box asks again for fractions when a
+decimal is typed for a component like 5/13; it reads −4j + 3i,
+3i + −4j and (3/5)i + (4/5)j. The roots box previews r =, y = or |v| = for
+the letter asked rather than x = for everything. Polar to Rectangular
+plots points on a new polar grid, which drawn polar graphs use too;
+Rectangular to Polar asks exact polar forms at special angles in degrees
+and radians, and other names for one point. Plot Parametric asks which way
+a curve runs; conics' Writing the Equation starts from the foci and a
+constant sum or difference. Plot Parametric now depends on the unit
+circle's Special Angles and Polar to Rectangular on Around the Circle,
+the other way round from before.
+
+**Parametric & Polar** (`parametric-polar`), a new skill under Vectors &
+Polar, in eight levels: Plot Parametric, Eliminate the Parameter,
+Parametric Motion, Polar to Rectangular, Rectangular to Polar, Converting
+Equations, Polar Graphs and All Together. A parametric curve gives a
+point at a value of t, a value of t at a point, and where it crosses the
+y-axis, drawn with its direction for some; a line is eliminated to y in
+terms of x, and a parabola or an ellipse chosen from four equations; a
+thrown ball's height, distance, landing time and highest moment come from
+x = (v cos θ)t and y = h + (v sin θ)t − 16t²; a polar point's x or y is
+exact from the unit circle, in degrees or radians, and a point's r exact
+and θ to 1 dp; equations convert both ways; and a polar curve's petals,
+farthest reach and name are asked, and a drawn one matched to its
+equation. `scripts/check-answers.py` puts t into each parametric pair
+exactly, tests every option at points of the curve -- at angles whose
+cosine and sine are rational, for an ellipse -- and samples each polar
+curve for its loops, its farthest point and its shape, holding every
+drawing to its equation.
+
+**Vectors** (`vectors`), a new skill in a new category, Vectors & Polar,
+under Trigonometry, in eight levels: Components, Magnitude & Direction,
+From Magnitude & Direction, Adding & Subtracting, Scalar Multiples, Unit
+Vectors, Resultants and All Together. A vector is found from its initial
+and terminal points or read off a drawn arrow, and a point from a vector
+and the other end; its magnitude is exact in simplest radical form and its
+direction an angle to 1 dp, counterclockwise from the positive x-axis from
+0° to 360°; components come from a length and an angle, in plain numbers
+or a kicked ball, a pulled sled or a drone; vectors add and subtract,
+drawn tip to tail or not, and scale, alone or as au + bv, with k found from
+a multiple; a unit vector, and a vector of a given length along or against
+another, comes out in fractions; and a boat in a current, a plane in a wind
+or two forces on a crate give a resultant speed or direction. A new
+answer box takes vectors as <3, −4> for ⟨3, −4⟩, fractions and decimals
+alike, and 3i − 4j; a pair in round brackets is asked again with the hint
+to use angle brackets. `scripts/check-answers.py` works every vector out
+again component by component in exact fractions, every length from its
+squares, and every rounded value twice, exactly and from 4-place trig
+values, and holds each drawn arrow, leg and sum to the vectors in its text.
+
+**Conic Sections** (`conics`), a new skill under Coordinates, in eight
+levels: Which Conic?, Parabola Focus & Directrix, Ellipses, Hyperbolas,
+Writing the Equation, Completing the Square, Match the Graph and All
+Together. An equation in general, standard or rearranged form is named
+from its squared terms; a parabola's focus and directrix come from 4p,
+and its equation from a focus and directrix; an ellipse's and a
+hyperbola's foci, vertices, co-vertices, axis lengths and asymptote slopes
+come from a², b² and c; an equation is chosen from a center, a vertex and
+a focus; the center or vertex is found out of general form by completing
+the square; and a drawn conic is matched to its equation. Points go in the
+pair and points boxes, numbers in the fraction box. Foci, directrix and
+asymptote questions are drawn, with the foci, directrix or asymptotes
+shown once answered. `scripts/check-answers.py` reads every equation back
+as a polynomial in x and y and works each feature out from its
+coefficients, picks the equation a choice's given points or drawing fit,
+and holds every drawing to its equation.
+
+**Inverse Functions** has a new level before All Together, Log Functions:
+y = log_b x as the reflection of y = bˣ in y = x, points reflected from
+bˣ + k to its inverse, the domain of a log of a line or of x² − c², its
+vertical asymptote, and the inverse of an exponential or a log picked from
+four options that cross undoing in the wrong order with a sign or a step
+turned round. It depends on logarithms' Log as Exponent, so Inverse
+Functions now opens after Logarithms. `scripts/check-answers.py` samples a
+log's domain, finds its asymptote from two values of what it takes the log
+of, and picks the inverse that composes with the function to give x back.
+**Series, reworked.** Every answer now fits the fraction box; 586 rows were
+too wide to type, such as 1 + … + 200 and salaries in the hundreds of
+thousands. Working Backward's count of terms is a quadratic that factors at
+By Factoring's size once its common factor is divided out, and the
+explanation factors it. Sigma Notation now asks writing a series in sigma,
+as a choice of four sigmas spelled "Σ from k = 1 to 10 of (2k + 1)" whose
+wrong options cross a slip at each limit, and the sum rules Σc = nc,
+Σc·aₖ = cΣaₖ, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6. Finite
+geometric sums stay hand-sized, every geometric sum is worked in
+a₁(1 − rⁿ)/(1 − r), and the pay-rise story becomes a shop's monthly
+takings. `scripts/check-answers.py` writes each sigma option out term by
+term and checks a scaled sum on a concrete sequence.
+
+**Systems of Equations II**: explanations show the substitution before
+simplifying, a fraction cleared, and every elimination step, and the
+line-and-circle count is by the discriminant rather than a distance formula
+never taught. Line Meets Parabola, Line Meets Circle and Two Curves draw both
+curves and their meeting points once answered. Two Curves adds circle and
+x² − y² = B, and two circles, solved by taking x² out; the word problems add
+paired prices and a bakery's batches, true three-equation systems; prices
+are keyed in dollars. The `points` box reads they don't meet, no
+intersection, DNE, a trailing period, braces, spaced coordinates,
+x = 2, y = −1, z = 3, and dollar signs, and its hints say parentheses.
+
+**Binomial Theorem**: C(n, k) is worked from the smaller of k and n − k and
+cancelled before multiplying (C(16, 14) = C(16, 2) = 16 × 15/2 = 120).
+Pascal's Triangle draws the rows above the asked one, the asked row held
+back until answered. Explanations say factors, not brackets, and name the
+term by its power. At least 1 and at most n − 1 are worked as one minus the
+case left out. Full Expansion reaches fifth and sixth powers (52 of 176
+rows, from 18 of 142), works each term out, and has a 105-second par;
+coefficients and probability denominators stay hand-sized.
+
+**Logarithms** has a new level before All Together, Log Functions: y =
+log_b x as the inverse of y = bˣ and its reflection in y = x; where a
+shifted log crosses the x-axis or reaches a height, through the key points
+(1, 0) and (b, 1); the range of a log or a power, and the domain of an
+inverse as the range of its function; the domain and vertical asymptote of
+the log of a line; whether a log rises or falls, a base below 1, a minus in
+front and −x inside each turning it over; the four reflections (x-axis,
+y-axis, y = x, through the origin); a vertical stretch, log₄ x as log₂ x
+times 1/2 among them; which equation a drawn graph is; and the inverse of
+an exponential or a log as a choice, each set of four options keyed by four
+functions so where the number sits gives nothing away. Most rows draw the
+graph once answered, with its asymptote and the points asked for; the
+matching rows draw it while asking. It depends on inverse functions' Graph
+Reflection, and Logarithms now builds on Inverse Functions rather than the
+other way round, the order US courses teach them in: the level was briefly
+in Inverse Functions, which made that skill wait for Logarithms.
+`scripts/check-answers.py` reads each function from its text and finds
+every answer from its values: crossings by bisection, ranges from the
+values near each edge of the domain and far out, a reflection by mapping
+one graph's points onto the other, and checks every curve drawn lies on
+the function the question names.
+
+**Systems of Equations II** (`systems-2`), a new skill under Equations, in
+eight levels: Line Meets Parabola, How Many Intersections, Line Meets
+Circle, Two Curves, Three Variables, No Solution or Infinitely Many,
+Three-Variable Word Problems and All Together. A line is put into a
+parabola (given multiplied out or in vertex form) or a circle (centered or
+not), the quadratic left is solved, and each root gives a point: two, one,
+or none. The discriminant, a circle's distance from the line, or a
+parabola's vertex counts the points without solving, and a tangent line's
+intercept is the k that leaves one. Two parabolas, a circle and a
+parabola, and xy = k with a line meet the same way. A system in x, y and z
+is cut to two letters and then one; one where an equation is a multiple
+of another, or the sum of two, has no solution or infinitely many. The
+stories are tickets, coins, a snack stand and three numbers. Meeting
+points and solutions go in a new `points` answer box, which reads the
+points in any order, fractions or decimals, and none for no points; it
+tells a student who gives some of the points that there are more, and
+asks again when a point has the wrong number of coordinates.
+`scripts/check-answers.py` reads each equation back as a polynomial,
+eliminates y with a resultant and finds its rational roots, walks a line
+to count where it meets a curve, solves three letters by Cramer's rule and
+ranks the matrices, and searches the stories' whole counts.
+
+**The Binomial Theorem** (`binomial`), a new skill under Sequences, in
+seven levels: Pascal's Triangle, Coefficients by Combinations, A Given Term,
+Full Expansion, The Constant Term, Binomial Probability and All Together.
+Pascal's triangle is built by adding, read from either end, and its rows
+sum to 2ⁿ; C(n, k) gives the coefficients of (x + 1)ⁿ and (x + y)ⁿ; one
+term is found with the numbers and signs inside raised along, by its power
+or by its place; a whole expansion goes in the expression box; the constant
+term of (x² + 1/x)ⁿ, and which term it is, come from where the powers
+cancel; and the chance of exactly, at least or at most k successes is
+asked of coins, dice, free throws, seeds, guesses, rain and a spinner.
+Counts and coefficients go in the whole-number box, a probability in the
+fraction box. `scripts/check-answers.py` builds the triangle by adding,
+multiplies the brackets out one at a time, and lists every run of
+successes and failures.
+
+**Series**, a new skill under Sequences, in seven levels: Arithmetic Sums,
+Finite Geometric, Sigma Notation, Infinite Geometric, Series in Context,
+Working Backward and All Together. Arithmetic sums pair the first term with
+the last, in halves and negatives as well as whole steps; geometric sums
+take ratios like −2 and 2/3. Sigma notation is drawn with its limits
+stacked, a new `sigma` prompt term, and is evaluated, counted (both ends
+included) and matched to the series it writes out, the wrong options
+crossing a sum started a term early with one stopped a term early. Infinite
+geometric series find a sum where the ratio is between −1 and 1, pick out
+which of four series has one (or has none), write a repeating decimal as a
+fraction, and find the first term or ratio from the sum. Stories are seats,
+stacks, savings, pay rises, a pendulum and a bouncing ball; working
+backward counts the terms that make a total, finds a difference or first
+term, and a term from Sₙ − Sₙ₋₁. Every answer goes in the fraction box,
+which takes whole numbers too. `scripts/check-answers.py` adds each series
+up term by term, takes an infinite one as the limit of its partial sums, and
+reads a repeating decimal by shifting it.
+
 **Polynomial division, polynomial and rational functions, and rational
 equations, reworked.** Choice options no longer give the right one away by
 their look: each set is two slips crossed (neither, one, the other, both),

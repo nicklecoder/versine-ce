@@ -319,13 +319,13 @@ With it, Phase 3 is built.
 | `poly-division` (Expressions) | Long Division · Synthetic · Remainder Theorem · Factor Theorem · Rational Root Theorem · All Zeros From One | A-APR.2,6, TEKS A2.7C,D |
 | `poly-functions` (Functions) | Zeros & Multiplicity · End Behavior · Sketch From Factors · Turning Points · Polynomial & Quadratic Inequalities · Rational Inequalities | A-APR.3, TEKS A2.4H, P.5K |
 | `complex` (Powers) | Powers of i · Add & Subtract · Multiply · Conjugates & Divide · Complex Roots of Quadratics | N-CN.1–3,7 |
-| `logarithms` (Powers) | Log as Exponent · Evaluate · Product/Quotient/Power · ln & Change of Base · Solve Exponential Equations · Solve Log Equations | F-LE.4, F-BF.5, TEKS A2.5 |
+| `logarithms` (Powers) | Log as Exponent · Evaluate · Product/Quotient/Power · ln & Change of Base · Solve Exponential Equations · Solve Log Equations · Log Functions | F-LE.4, F-BF.4–5, F-IF.7e, TEKS A2.5 |
 | `series` (Sequences) | Arithmetic Sums · Finite Geometric · Sigma Notation · Infinite Geometric | A-SSE.4, TEKS P.5A–E |
 | `binomial` (Sequences) | Pascal's Triangle · Coefficients by Combinations · A Given Term · Full Expansion | A-APR.5, TEKS P.5F |
 | `systems-2` (Equations) | Line Meets Parabola · How Many Intersections · Three Variables · Three-Variable Word Problems | A-REI.7, TEKS A2.3 |
 | `conics` (Coordinates) | Which Conic · Parabola Focus & Directrix · Ellipses · Hyperbolas | G-GPE.2–3, TEKS P.3F–I |
-| `vectors` (TBD) | Components · Magnitude & Direction · Adding · Scalar Multiples · Resultants | TEKS P.4I–K |
-| `parametric-polar` (TBD) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
+| `vectors` (Vectors & Polar) | Components · Magnitude & Direction · Adding · Scalar Multiples · Dot Product · Resultants | TEKS P.4I–K |
+| `parametric-polar` (Vectors & Polar) | Plot Parametric · Eliminate the Parameter · Polar Points · Convert · Polar Graphs | TEKS P.3A–E |
 
 `trig-ratios` is built, in the plan's eight levels and All Together, which
 makes nine; the skill says why with `longerBecause`. Calculator answers round
@@ -431,6 +431,11 @@ slopes, a − bx and (ax + b)/(cx + d). A number goes in the fraction box, a
 formula in the equivalent box, judged by value, and a reflected point in
 the pair box; the question says which.
 
+Log functions are not in `inverses`: they are a level of `logarithms`,
+which builds on this skill's Graph Reflection (US courses teach inverses
+first and the log as the inverse of bˣ), so `inverses` waits for nothing
+in logarithms.
+
 `radical-eq` is built, as Isolate & Square · Extraneous Roots · Both Sides
 Radical · Square Twice · Cube Roots · Rational Exponents · All Together.
 Square Twice is added: a root left after the first squaring is isolated
@@ -527,18 +532,161 @@ question names. Product, Quotient & Power both condenses and expands, and
 every choice's decoys cross two misreadings, so the key is not the option
 nearest all the others.
 
+`logarithms` has a Log Functions level, before All Together, depending on
+inverse functions' Graph Reflection: y = log_b x as the inverse of bˣ, the
+x-intercept and the point at a height of log_b(x − h) + k (the key points
+(1, 0) and (b, 1) moved), the range of a log or a power and the domain of
+an inverse as the range of f, the domain and asymptote of the log of a line,
+rising or falling (bases below 1, −log_b x, log_b(−x)), the four
+reflections, vertical stretches including log₄ x = (1/2) log₂ x, matching a
+drawn graph to its equation, and the inverse as a choice whose four options
+are keyed by four functions in turn. Swapping a point's coordinates is a
+tenth of it. The log of x² − c² is left out: its domain needs a quadratic
+inequality, which is poly-functions', not a dependency here.
+
 `exponential` gained e and Continuous Growth for this, as its ninth level
 with a `longerBecause`: e as what compounding ever more often tends to,
 then P(1 + r/n)^(nt), P·e^(rt), and a·e^(kt) read for its rate, its factor
 each step and its value.
 
-`vectors` and `parametric-polar` are TEKS-only and come last; they need a
-category, perhaps under Trigonometry.
+`systems-2` is built, as Line Meets Parabola · How Many Intersections ·
+Line Meets Circle · Two Curves · Three Variables · No Solution or
+Infinitely Many · Three-Variable Word Problems · All Together. Line Meets
+Circle, Two Curves and No Solution or Infinitely Many are added: a line
+and a circle centered anywhere, two parabolas, a circle and a parabola,
+xy = k and a line, and the systems in three letters that do not fix one
+point. Line Meets Parabola depends on systems' Substitution and quadratic
+equations' By Factoring, How Many Intersections on the quadratic
+formula's The Discriminant, Line Meets Circle on circles' Equation of a
+Circle, Three Variables on systems' Elimination, No
+Solution or Infinitely Many on systems' None or Infinitely Many, and the
+word problems on systems' From Words. The points where curves meet, and the
+solution (x, y, z), go in a new `points` box that judges them as a set;
+How Many Intersections asks its count as a choice and a tangent's k as a
+number, each said by its question. Two Curves is capped at 450 rows, since
+a circle and a parabola meeting at whole points run out at a few hundred.
+Two Curves also meets a circle with x² − y² = B, and two circles, where
+subtracting one equation from the other takes x² out. The word problems add
+three items priced two at a time and a bakery's batches from what it used,
+so two rows in three need all three equations; prices are answered in
+dollars, ($4.50, $1.00, $0.75). Where curves meet, the answer brings both
+curves and the meeting points on a plane, drawn only once answered. The
+explanations show the substitution before simplifying, a fraction cleared,
+and every elimination step; How Many Intersections counts a line and a
+circle by the discriminant.
+
+`binomial` is built, as Pascal's Triangle · Coefficients by Combinations ·
+A Given Term · Full Expansion · The Constant Term · Binomial Probability ·
+All Together. The Constant Term and Binomial Probability are added: the
+term of (x² + 1/x)ⁿ where the powers cancel, and exactly, at least or at
+most k successes in n tries. Coefficients by Combinations depends on
+counting's Combinations, A Given Term on monomials' A Power of a Monomial,
+Full Expansion on polynomials' Special Products, The Constant Term on
+exponents' negative-exponent and power-of-a-power levels, and Binomial
+Probability on probability's independent events. Counts and coefficients
+are whole-number box answers, an expansion an expression, and a
+probability a fraction, each said by its question. The Constant Term is
+capped at 520 rows, since its constant terms run out at a few hundred.
+Pascal's Triangle draws the rows above the asked one as a table, the asked
+row its answer, so its next-row and coefficient questions stop at row 8.
+Coefficients by Combinations cancels C(n, k) from the smaller side, and A
+Given Term, Full Expansion and Binomial Probability keep their numbers to
+hand size; Full Expansion reaches fifth and sixth powers.
+
+`series` is built, as Arithmetic Sums · Finite Geometric · Sigma Notation ·
+Infinite Geometric · Series in Context · Working Backward · All Together.
+Series in Context and Working Backward are added: stories of seats, stacks,
+savings, pay, a pendulum and a bouncing ball, and the formulas read the
+other way, how many terms make a total, a difference or a first term from
+the sum, and aₙ = Sₙ − Sₙ₋₁. Arithmetic Sums depends on sequences' Any
+Term, Finite Geometric on its Geometric Terms, and Working Backward on
+quadratic equations' By Factoring, since the count of terms is a root of a
+quadratic in n. Every answer is a fraction box answer, whole or not, so the
+box says nothing of the form. Sigma notation is drawn by a new `sigma`
+prompt term with stacked limits, and is only ever read, never typed, so no
+Σ key is needed. An infinite series with no sum is asked as a choice of
+four series, half the rows asking which has a sum and half which has none.
+Sigma Notation also asks writing a series in sigma, as a choice of four
+one-line sigmas (Σ from k = 1 to 10 of (2k + 1)), since choice labels cannot
+stack limits, their wrong options crossing a slip at each limit, and the sum
+rules Σc = nc, Σc·aₖ = cΣaₖ, Σk = n(n + 1)/2 and Σk² = n(n + 1)(2n + 1)/6.
+Working Backward's count of terms factors at By Factoring's size once its
+common factor is divided out, and the explanation factors it. Every geometric
+sum is worked as a₁(1 − rⁿ)/(1 − r), and every series answer fits the
+fraction box, four characters top and bottom.
+
+`conics` is built, as Which Conic? · Parabola Focus & Directrix ·
+Ellipses · Hyperbolas · Writing the Equation · Completing the Square ·
+Match the Graph · All Together. Writing the Equation, Completing the
+Square and Match the Graph are added: an ellipse or hyperbola from its
+center, a vertex and a focus (or both vertices and both foci), the center
+or vertex out of general form, and the equation of a drawn conic. Writing
+the Equation also starts from the definition: the foci and the constant
+sum (an ellipse) or difference (a hyperbola) of the distances to them,
+which is 2a (G-GPE.3, TEKS P.3G). Circles
+from general form are not repeated, since circles' Complete the Square for
+Center already asks them; a circle is one of the four answers to Which
+Conic?. Which Conic? depends on circles' Equation of a Circle, Parabola
+Focus & Directrix on graphs of quadratics' Vertex Form, and Completing the
+Square on circles' Complete the Square for Center. Foci and vertices are
+exact points, two in the points box and one in the pair box, so the
+ellipses and hyperbolas whose foci are asked are built on Pythagorean
+triples; lengths, slopes and a directrix's number go in the fraction box.
+Rows about foci, a directrix or asymptotes carry the graph, which the
+checker holds to the equation read back as a polynomial; rows about
+vertices carry none, since the vertices could be read off it.
+
+`vectors` and `parametric-polar` are TEKS-only and come last, in a new
+category, Vectors & Polar, under Trigonometry: both are worked with cos θ
+and sin θ throughout.
+
+`vectors` is built, as Components · Magnitude & Direction · From Magnitude &
+Direction · Adding & Subtracting · Scalar Multiples · Unit Vectors · Dot
+Product · Resultants · All Together, nine levels with a declared reason:
+the dot product, the angle between two vectors and orthogonality are a
+technique of their own that calculus and physics use. Magnitude & Direction builds on the Pythagorean
+theorem's distance and trig ratios' Missing Angle, with angles past 90° from
+the unit circle's reference angles; From Magnitude & Direction on trig
+ratios' Missing Side. A vector is typed in its own box as <3, −4>, read as
+⟨3, −4⟩, with 3i − 4j read too and a round-bracket pair asked again as a
+point, in any order and with bracketed coefficients. Every direction is
+counterclockwise from the positive x-axis, 0° to 360°, or a bearing
+clockwise from north, and every question says which; a quarter of
+Resultants is on bearings and depends on trig ratios' Elevation &
+Bearings. An exact length is asked "with any radical in simplest form"
+whether it has one or not, and previews as |v| =; unit vectors are built
+on Pythagorean triples so their components are fractions, every unit
+vector question says "exactly", and a decimal typed for a fraction with no
+ending decimal is asked again; a rounded component, angle or resultant
+agrees to 1 dp with its trig values copied to 4 places.
+
+`parametric-polar` is built, as Plot Parametric · Eliminate the Parameter ·
+Parametric Motion · Polar to Rectangular · Rectangular to Polar · Converting
+Equations · Polar Graphs · All Together. Eliminate the Parameter builds on
+conics' Ellipses, Plot Parametric on the unit circle's Special Angles (only
+the angles on the axes), Parametric Motion on vectors' From Magnitude &
+Direction and the quadratic formula, Polar to Rectangular on the unit
+circle's Around the Circle (120°, 300°, 7π/6) and radians, Rectangular to Polar on vectors' Magnitude &
+Direction, and Converting Equations on circles' Equation of a Circle. A
+point goes in the pair box, an eliminated line in the line box as y in
+terms of x, an exact coordinate or r in simplest radical form, an angle or
+a thrown ball's height, distance or time to 1 dp; an eliminated curve, a
+converted equation and a drawn polar graph are chosen from four options
+crossing two slips, and a curve's name from Circle, Cardioid, Limaçon and
+Rose. Every question in degrees says so, and every polar angle is from 0°
+to 360°. Polar to Rectangular gives negative r as well as positive, and
+plots a point on a polar grid (rings and 15° spokes), which drawn polar
+graphs use too; Rectangular to Polar asks r > 0, an exact polar form at a
+special angle in degrees or radians, and another name for one point (a
+negative r half a turn round, or a whole turn). Plot Parametric asks which
+way a curve runs; Parametric Motion asks only times before the ball lands,
+prints the path in half its rows, asks the range and the greatest height,
+and asks which equations model a throw (TEKS P.3C).
 
 ## Category sizes when complete
 
 Functions 9, Equations 9, Expressions 8, Coordinates 8, Powers 7; everything
-else under 6. `logarithms` is filed under Powers (a logarithm is an exponent)
+else under 6, Vectors & Polar 2. `logarithms` is filed under Powers (a logarithm is an exponent)
 and `linear-models` under Coordinates to keep Functions under the cap.
 
 ## Sources

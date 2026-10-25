@@ -124,7 +124,8 @@ function entries(raw) {
   let letter = null;
   const texts = [];
   for (const piece of text.split(/\s*(?:\bor\b|,|;)\s*/)) {
-    const m = piece.match(/^([a-z])\s*=\s*(.+)$/);
+    // A letter, or a length's bars round one: x = 3, r = 2√5, |v| = 13.
+    const m = piece.match(/^(\|[a-z]\||[a-z])\s*=\s*(.+)$/);
     if (m && letter && m[1] !== letter) return { ok: false, hint: 'Use one letter throughout.' };
     if (m) letter = m[1];
     const body = m ? m[2] : piece;
@@ -200,9 +201,13 @@ export function sameRoots(x, y) {
 }
 
 /** The typed entries, ± expanded, for a preview that shows how ± was read. */
-export function rootTexts(raw) {
+// requiem: play/answers/roots-preview-names-the-asked-letter
+// The letter typed, or else the one the question asks for, never x by
+// default: r = 2√5 for a polar r, |v| = 13 for a magnitude, y = −3 for a
+// y-coordinate, so the preview never says x of something that is not x.
+export function rootTexts(raw, asked = 'x') {
   const e = entries(raw);
-  return e.ok ? { ok: true, letter: e.letter ?? 'x', texts: e.texts } : e;
+  return e.ok ? { ok: true, letter: e.letter ?? asked, texts: e.texts } : e;
 }
 
 const sign = (n) => (n < 0 ? '−' : '');
@@ -229,6 +234,12 @@ export function formatRoots({ letter = 'x', roots }) {
   return roots.map((x) => `${letter} = ${written(x)}`).join(' or ');
 }
 
+/** The letter as drawn: r, or a length's bars round v, as abs(v) draws. */
+export const letterTerms = (letter) => {
+  const bars = /^\|([a-z])\|$/.exec(letter);
+  return bars ? [{ t: 'op', v: '|' }, { t: 'var', v: bars[1] }, { t: 'op', v: '|' }] : [{ t: 'var', v: letter }];
+};
+
 /**
  * The same as prompt terms, for the reveal: a fraction drawn as a fraction
  * and √17 as a radical, which formatRoots' text cannot be parsed back into,
@@ -249,7 +260,7 @@ export function rootTerms({ letter = 'x', roots }) {
   };
   const [s, t] = roots;
   if (t && s.r > 1 && s.r === t.r && sameQ(s.a, t.a) && sameQ(s.b, qneg(t.b))) {
-    return [{ t: 'var', v: letter }, { t: 'op', v: '=' }, ...one(s.b.n > 0 ? s : t, true)];
+    return [...letterTerms(letter), { t: 'op', v: '=' }, ...one(s.b.n > 0 ? s : t, true)];
   }
-  return roots.flatMap((x, i) => [...(i ? [{ t: 'prose', v: 'or' }] : []), { t: 'var', v: letter }, { t: 'op', v: '=' }, ...one(x, false)]);
+  return roots.flatMap((x, i) => [...(i ? [{ t: 'prose', v: 'or' }] : []), ...letterTerms(letter), { t: 'op', v: '=' }, ...one(x, false)]);
 }

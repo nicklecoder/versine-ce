@@ -271,6 +271,9 @@
       "titles": {
         "type": "object"
       },
+      "polar": {
+        "type": "object"
+      },
       "marks": {
         "type": "array",
         "of": {
@@ -379,6 +382,7 @@
     "blank",
     "pow",
     "root",
+    "sigma",
     "var",
     "juxt",
     "group",
@@ -412,6 +416,8 @@
     "solutions",
     "roots",
     "complex",
+    "points",
+    "vector",
     "pair"
   ]
 }

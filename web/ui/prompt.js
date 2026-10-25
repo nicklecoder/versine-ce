@@ -97,6 +97,20 @@ const TERMS = {
     el('span.root-term__sign', {}, '√'),
     part(t.v, 'root-term__body')),
 
+  /**
+   * A sum in sigma notation: Σ with its limits stacked above and below it,
+   * then the body. Written as ∑ₖ₌₁¹⁰ on one line, the limits read as a
+   * subscript and a power of the sign; stacked, it is set the way every
+   * textbook sets it. `lo` and `hi` are short strings (k = 1, 10, ∞).
+   */
+  // requiem: catalogue/content/sigma-read-not-typed
+  sigma: (t) => el(`span.t${t.s ?? 1}.sigma-term`, {},
+    el('span.sigma-term__op', {},
+      el('span.sigma-term__hi', {}, String(t.hi)),
+      el('span.sigma-term__sign', {}, 'Σ'),
+      el('span.sigma-term__lo', {}, String(t.lo))),
+    el('span.sigma-term__body', {}, (t.terms ?? []).map(drawTerm))),
+
   /** A variable, set in italic as convention requires. */
   var: (t) => el(`span.t${t.s ?? 1}.var-term`, {}, String(t.v)),
 
@@ -291,6 +305,13 @@ export function answerTerm(type, value) {
       return box.preview(box.format(value)).terms;
     }
     case 'roots': return rootTerms(value);
+    // As the box previews it: each point in its brackets, none as the word,
+    // and a vector in its angle brackets.
+    case 'vector':
+    case 'points': {
+      const box = getType(type);
+      return box.preview(box.format(value)).terms;
+    }
     // A whole number is drawn as one: 1/2 ÷ 1/16 = 8, not a stacked 8/1.
     case 'frac': return value.d === 1 ? { t: 'num', v: String(value.n).replace('-', '−') }
       : { t: 'frac', n: value.n, d: value.d };
@@ -321,6 +342,7 @@ export function promptText(terms) {
       case 'root': return `${t.c === undefined ? '' : (t.c === null ? '?' : flat(t.c))}`
         + `${t.i === undefined ? 'sqrt' : `root${t.i}`}(${flat(t.v)})`;
       case 'var': return String(t.v);
+      case 'sigma': return ` the sum from ${t.lo} to ${t.hi} of ${promptText(t.terms)} `;
       case 'group': return `(${promptText(t.terms)})`;
       case 'juxt': return promptText(t.terms).replace(/ /g, '');
       case 'math': return ` ${promptText(t.terms)} `;

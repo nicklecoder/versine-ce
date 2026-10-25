@@ -44,6 +44,7 @@ export function freeInput(spec = {}, opts = {}) {
   const input = el('input.answer.answer--free', {
     type: 'text', inputmode: 'text',
     autocomplete: 'off', autocorrect: 'off', autocapitalize: 'off',
+    // requiem: catalogue/library/answer-typeable-in-its-boxes
     spellcheck: 'false', placeholder: '?', maxlength: 80, 'aria-label': 'Answer',
   });
 
@@ -58,7 +59,9 @@ export function freeInput(spec = {}, opts = {}) {
       lastGood = null;
       return;
     }
-    const result = draw(raw);
+    // The answer spec goes too, for a box whose preview names the letter
+    // the question asks about rather than one of its own.
+    const result = draw(raw, spec);
     if (result.ok) {
       lastGood = result.terms;
       hint.textContent = '';

@@ -19,6 +19,7 @@ import { el, fitToContent } from './dom.js';
 export function pairInput(spec, opts = {}) {
   const box = (cls, placeholder) => el(`input.pair-box.${cls}`, {
     'aria-label': `${placeholder} coordinate`,
+    // requiem: catalogue/library/answer-typeable-in-its-boxes
     type: 'text', inputmode: opts.signed ? 'text' : 'decimal', maxlength: 7,
     autocomplete: 'off', spellcheck: 'false', placeholder,
     oninput: (e) => {

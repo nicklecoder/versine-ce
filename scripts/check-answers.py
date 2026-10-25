@@ -8074,6 +8074,2390 @@ SET_RULES += (
     (re.compile(r"^log eq: (.+) = (.+)$"), lg_equation),
 )
 
+# --- Series ----------------------------------------------------------------------
+#
+# A finite series is added up term by term, walked from its first term by its
+# own difference or ratio -- read from the terms the question shows -- and
+# never by the n(a + l)/2 or a(1 - r^n)/(1 - r) the generator uses. A story's
+# series is built again from the story's numbers. An infinite series is the
+# limit its partial sums settle on: a few hundred terms out, the nearest
+# fraction with a small bottom, which a ratio inside -1 to 1 pins exactly. A
+# repeating decimal is read as x, shifted by its repeat and taken from
+# itself. A count of terms is found by adding terms until the total is hit.
+
+def sr_nums(listing: str) -> list:
+    return [Fraction(v) for v in listing.split(", ")]
+
+
+def sr_step(ts: list, geometric: bool) -> Fraction:
+    """The common difference or ratio, which every shown term must share."""
+    if geometric:
+        r = ts[1] / ts[0]
+        assert all(b == a * r for a, b in zip(ts, ts[1:])), f"{ts} is not geometric"
+        return r
+    d = ts[1] - ts[0]
+    assert all(b - a == d for a, b in zip(ts, ts[1:])), f"{ts} is not arithmetic"
+    return d
+
+
+def sr_walk(first: Fraction, step: Fraction, geometric: bool, count: int) -> list:
+    out, t = [], first
+    for _ in range(count):
+        out.append(t)
+        t = t * step if geometric else t + step
+    return out
+
+
+def sr_to(first: Fraction, step: Fraction, geometric: bool, last: Fraction) -> list:
+    out, t = [], first
+    for _ in range(2000):
+        out.append(t)
+        if t == last:
+            return out
+        t = t * step if geometric else t + step
+    raise AssertionError(f"{last} is never reached")
+
+
+def sr_first_n(n, listing, geometric):
+    ts = sr_nums(listing)
+    return sum(sr_walk(ts[0], sr_step(ts, geometric), geometric, int(n)))
+
+
+def sr_up_to(listing, last, geometric):
+    ts = sr_nums(listing)
+    return sum(sr_to(ts[0], sr_step(ts, geometric), geometric, Fraction(last)))
+
+
+def sr_ends(n, first, last):
+    n, a, l = int(n), Fraction(first), Fraction(last)
+    return sum(sr_to(a, (l - a) / (n - 1), False, l))
+
+
+def sr_limit(partial: Fraction) -> Fraction:
+    """The fraction a partial sum far out is settling on."""
+    return partial.limit_denominator(10 ** 7)
+
+
+def sr_infinite(listing):
+    ts = sr_nums(listing)
+    r = sr_step(ts, True)
+    assert abs(r) < 1, "no sum"
+    return sr_limit(sum(sr_walk(ts[0], r, True, 400)))
+
+
+def sr_infinite_rule(lo, src):
+    return sr_limit(sum(evaluate(src, "k", k) for k in range(int(lo), int(lo) + 400)))
+
+
+def sr_repeating(digits: str) -> Fraction:
+    # x = 0.lead(block): shifting by the repeat's length lines the repeats up.
+    # Read as one string, so a block such as 05 keeps its zero.
+    lead, block = re.fullmatch(r"(\d*)\((\d+)\)", digits).groups()
+    m, n = len(lead), len(block)
+    whole = int(lead + block) - int(lead or "0")
+    return Fraction(whole, 10 ** (m + n) - 10 ** m)
+
+
+def sr_first_of(total, ratio):
+    # The sum is a times the sum of r^k, which the partial sums give.
+    unit = sr_limit(sum(sr_walk(Fraction(1), Fraction(ratio), True, 400)))
+    return Fraction(total) / unit
+
+
+def sr_ratio_of(first, total):
+    a, S = Fraction(first), Fraction(total)
+    hits = {Fraction(p, q) for q in range(1, 13) for p in range(-q + 1, q)
+            if sr_limit(sum(sr_walk(a, Fraction(p, q), True, 400))) == S}
+    assert len(hits) == 1, f"{len(hits)} ratios give {S}"
+    return hits.pop()
+
+
+def sr_count(listing, target):
+    ts = sr_nums(listing)
+    geometric = ts[1] - ts[0] != ts[2] - ts[1]
+    step, t, total = sr_step(ts, geometric), ts[0], Fraction(0)
+    for n in range(1, 500):
+        total += t
+        if total == Fraction(target):
+            return n
+        t = t * step if geometric else t + step
+    raise AssertionError(f"no count of terms makes {target}")
+
+
+def sr_difference(n, first, total):
+    hits = [d for d in range(-60, 61) if sum(sr_walk(Fraction(first), Fraction(d), False, int(n))) == Fraction(total)]
+    assert len(hits) == 1, f"{len(hits)} differences fit"
+    return hits[0]
+
+
+def sr_first_term(n, diff, total):
+    # Raising the first term by one raises every term, so the sum, by n.
+    base = sum(sr_walk(Fraction(0), Fraction(diff), False, int(n)))
+    return (Fraction(total) - base) / int(n)
+
+
+def sr_stack(bottom, top):
+    return sum(range(int(top), int(bottom) + 1))
+
+
+def sr_salary(pay, pct, years):
+    return sum(sr_walk(Fraction(pay), Fraction(100 + int(pct), 100), True, int(years)))
+
+
+def sr_ball(drop, rebound, landings):
+    h, r = Fraction(drop), Fraction(rebound)
+    far, height = h, h
+    for _ in range(int(landings) - 1 if landings else 400):
+        height *= r
+        far += 2 * height
+    return far if landings else sr_limit(far)
+
+
+def sr_term_from_sums(src, n):
+    n = int(n)
+    return evaluate(src, "n", n) - evaluate(src, "n", n - 1)
+
+
+def sr_which_sigma(lo, hi, src, listing):
+    lo, hi = int(lo), int(hi)
+    want = [evaluate(src, "k", k) for k in (lo, lo + 1, lo + 2)], evaluate(src, "k", hi)
+
+    def fits(body):
+        head, last = body.split(" ... ")
+        return (sr_nums(head), Fraction(last)) == want
+    return rf_pick(listing, fits)
+
+
+def sr_which_sum(has: str, listing: str) -> str:
+    def converges(body):
+        return abs(sr_step(sr_nums(body), True)) < 1
+    return rf_pick(listing, lambda body: converges(body) == (has == "has sum"))
+
+
+def sr_sigma_writes(listing, last, options):
+    # The series shown is walked out in full from its terms; each option's
+    # sigma is written out by putting every k into its rule, and the one
+    # whose terms are the series' terms, all of them in order, is the key.
+    ts = sr_nums(listing)
+    geometric = ts[1] - ts[0] != ts[2] - ts[1]
+    whole = sr_to(ts[0], sr_step(ts, geometric), geometric, Fraction(last))
+
+    def writes(body):
+        lo, hi, src = re.fullmatch(r"(\d+)\.\.(\d+) of (.+)", body).groups()
+        return [evaluate(src, "k", k) for k in range(int(lo), int(hi) + 1)] == whole
+    return rf_pick(options, writes)
+
+
+def sr_sigma_scaled(hi, total, times, plus):
+    # Some sequence with that sum, any one: 1, 2, 3, ... and a last term that
+    # makes the total. The new sum is then added up term by term.
+    n = int(hi)
+    seq = [Fraction(k) for k in range(1, n)]
+    seq.append(Fraction(total) - sum(seq))
+    return sum(int(times) * a + int(plus) for a in seq)
+
+
+def sr_sigma_constant(lo, hi, c):
+    # A rule with no k: every k from lo to hi puts the same number in, so
+    # the terms are listed one per k and added.
+    return sum([Fraction(c)] * len(range(int(lo), int(hi) + 1)))
+
+
+BY_RULE += (
+    (re.compile(r"^sigma: k=(\d+)\.\.(\d+) of (-?\d+)$"), sr_sigma_constant),
+    (re.compile(r"^sigma scale: k=1\.\.(\d+), sum (-?\d+), times (-?\d+), plus (-?\d+)$"), sr_sigma_scaled),
+    (re.compile(r"^takings: (\d+) first, (\d+) percent, (\d+) months$"), sr_salary),
+    (re.compile(r"^arith sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, False)),
+    (re.compile(r"^arith sum: (\d+) terms, first (\S+), last (\S+)$"), sr_ends),
+    (re.compile(r"^arith sum: (\d+) terms, first (\S+), difference (\S+)$"),
+     lambda n, a, d: sum(sr_walk(Fraction(a), Fraction(d), False, int(n)))),
+    (re.compile(r"^arith sum: (.+) to (\S+?)(?:; (?:whole|even|odd|multiples))?$"), lambda ts, l: sr_up_to(ts, l, False)),
+    (re.compile(r"^geo sum: first (\d+), a1 (\S+), r (\S+)$"),
+     lambda n, a, r: sum(sr_walk(Fraction(a), Fraction(r), True, int(n)))),
+    (re.compile(r"^geo sum: first (\d+) of (.+)$"), lambda n, ts: sr_first_n(n, ts, True)),
+    (re.compile(r"^geo sum: (.+) to (\S+)$"), lambda ts, l: sr_up_to(ts, l, True)),
+    (re.compile(r"^sigma: k=(\d+)\.\.(\d+) of (.+)$"),
+     lambda lo, hi, src: sum(evaluate(src, "k", k) for k in range(int(lo), int(hi) + 1))),
+    (re.compile(r"^sigma terms: k=(\d+)\.\.(\d+) of (.+)$"), lambda lo, hi, src: len(range(int(lo), int(hi) + 1))),
+    (re.compile(r"^infinite sum: (.+)$"), sr_infinite),
+    (re.compile(r"^infinite sigma: k=(\d+) of (.+)$"), sr_infinite_rule),
+    (re.compile(r"^repeating: 0\.(\d*\(\d+\))$"), sr_repeating),
+    (re.compile(r"^infinite first: sum (\S+), r (\S+)$"), sr_first_of),
+    (re.compile(r"^infinite ratio: first (\S+), sum (\S+)$"), sr_ratio_of),
+    (re.compile(r"^seats: (\d+) rows, (\d+) first, (\d+) more each$"),
+     lambda rows, first, more: sum(sr_walk(Fraction(first), Fraction(more), False, rows))),
+    (re.compile(r"^stack: (\d+) bottom, 1 fewer, (\d+) top; \w+$"), sr_stack),
+    (re.compile(r"^savings: (\d+) first, (\d+) more, (\d+) weeks$"),
+     lambda first, more, weeks: sum(sr_walk(Fraction(first), Fraction(more), False, weeks))),
+    (re.compile(r"^growing: (\d+) first, times (\d+), (\d+) days$"),
+     lambda first, times, days: sum(sr_walk(Fraction(first), Fraction(times), True, days))),
+    (re.compile(r"^salary: (\d+) first, (\d+) percent, (\d+) years$"), sr_salary),
+    (re.compile(r"^ball: (\S+) drop, (\S+) rebound(?:, (\d+) landings)?; (?:feet|meters)$"), sr_ball),
+    (re.compile(r"^pendulum: (\d+) first, (\S+) each, (\d+) swings$"),
+     lambda first, r, swings: sum(sr_walk(Fraction(first), Fraction(r), True, swings))),
+    (re.compile(r"^terms to sum: (.+) make (\d+)$"), sr_count),
+    (re.compile(r"^find difference: (\d+) terms, first (-?\d+), sum (-?\d+)$"), sr_difference),
+    (re.compile(r"^find first: (\d+) terms, difference (-?\d+), sum (-?\d+)$"), sr_first_term),
+    (re.compile(r"^term from sums: (.+), a(\d+)$"), sr_term_from_sums),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^sigma which: k=(\d+)\.\.(\d+) of (.+?); options (.+)$"), sr_which_sigma),
+    (re.compile(r"^sigma write: (.+) to (\S+); options (.+)$"), sr_sigma_writes),
+    (re.compile(r"^infinite which: (has sum|no sum); options (.+)$"), sr_which_sum),
+)
+
+# --- The Binomial Theorem ------------------------------------------------------------
+#
+# Pascal's triangle is built by adding, row from row, and a row is found by
+# the numbers it begins with. A binomial power is multiplied out one bracket
+# at a time, as a polynomial in its letters (negative powers included, for
+# 1/x), so a coefficient is read off the product and never from C(n, k). An
+# expansion typed as an answer is read term by term into the same form and
+# must be that product with each power once. A chance of k successes lists
+# every run of n successes and failures and adds the ones that count.
+
+def bn_triangle(rows: int = 25) -> list:
+    out = [[1]]
+    for _ in range(rows):
+        prev = out[-1]
+        out.append([1] + [a + b for a, b in zip(prev, prev[1:])] + [1])
+    return out
+
+
+BN_TRI = bn_triangle()
+
+
+def bn_row_beginning(listing: str) -> int:
+    head = [int(v) for v in listing.split(", ")]
+    hits = [n for n, r in enumerate(BN_TRI) if r[:len(head)] == head]
+    assert len(hits) == 1, f"{len(hits)} rows begin {listing}"
+    return hits[0]
+
+
+def bn_next(listing: str, number) -> int:
+    r = [int(v) for v in listing.split(", ")]
+    n = len(r) - 1
+    assert BN_TRI[n] == r, f"{listing} is not a row"
+    return BN_TRI[n + 1][int(number) - 1]
+
+
+BN_MONO = re.compile(r"^(-?)(\d*)([a-z])?(?:\^(\d+))?$|^(-?)(\d+)/([a-z])(?:\^(\d+))?$")
+
+
+def bn_mono(src: str) -> tuple:
+    """A monomial as (coefficient, ((letter, power), ...))."""
+    m = BN_MONO.match(src.replace(" ", ""))
+    assert m, f"cannot read {src}"
+    if m[6]:
+        sign = -1 if m[5] else 1
+        return Fraction(sign * int(m[6])), ((m[7], -int(m[8] or 1)),)
+    sign = -1 if m[1] else 1
+    coef = Fraction(int(m[2]) if m[2] else 1) * sign
+    return coef, (((m[3], int(m[4] or 1)),) if m[3] else ())
+
+
+def bn_times(p: dict, q: dict) -> dict:
+    out = {}
+    for (ka, ca) in p.items():
+        for (kb, cb) in q.items():
+            powers = dict(ka)
+            for letter, e in kb:
+                powers[letter] = powers.get(letter, 0) + e
+            key = tuple(sorted((l, e) for l, e in powers.items() if e != 0))
+            out[key] = out.get(key, 0) + ca * cb
+    return {k: c for k, c in out.items() if c != 0}
+
+
+def bn_power(src: str) -> dict:
+    """(A + B)^n multiplied out, one bracket at a time."""
+    m = re.fullmatch(r"\((-?[^ ]+) ([+-]) ([^ ]+)\)\^(\d+)", src)
+    assert m, f"cannot read {src}"
+    a = bn_mono(m[1])
+    b = bn_mono(("-" if m[2] == "-" else "") + m[3])
+    bracket = {a[1]: a[0]}
+    bracket[b[1]] = bracket.get(b[1], 0) + b[0]
+    out = {(): Fraction(1)}
+    for _ in range(int(m[4])):
+        out = bn_times(out, bracket)
+    return out
+
+
+def bn_letters(asked: str) -> tuple:
+    """x^2y^4, a^5b^3, x, x^0, x^-3 as ((letter, power), ...)."""
+    powers = {}
+    for letter, e in re.findall(r"([a-z])(?:\^(-?\d+))?", asked):
+        powers[letter] = powers.get(letter, 0) + int(e or 1)
+    return tuple(sorted((l, e) for l, e in powers.items() if e != 0))
+
+
+def bn_coefficient(asked: str, src: str):
+    return bn_power(src).get(bn_letters(asked), 0)
+
+
+def bn_term_number(k, src: str):
+    # In descending powers of x: the kth term of the product, so ordered.
+    terms = sorted(bn_power(src).items(), key=lambda kv: -dict(kv[0]).get("x", 0))
+    return terms[int(k) - 1][1]
+
+
+def bn_choose_same(n, k):
+    n, k = int(n), int(k)
+    hits = [j for j, v in enumerate(BN_TRI[n]) if v == BN_TRI[n][k] and j != k]
+    assert len(hits) == 1, f"{len(hits)} other k"
+    return hits[0]
+
+
+BN_TERM = re.compile(r"^(\d*)((?:[a-z](?:\^\d+)?)*)$")
+
+
+def bn_expanded(src: str, answer: str) -> str:
+    """The product, written as one term per power, each coefficient worked out."""
+    seen = {}
+    for term in answer.replace(" - ", " + -").split(" + "):
+        sign, body = ("-", term[1:]) if term.startswith("-") else ("", term)
+        m = BN_TERM.match(body)
+        if not m or m[1] in ("0", "1") and m[2] or not (m[1] or m[2]):
+            return f"has a term {body} that is not worked out"
+        key = bn_letters(m[2])
+        if key in seen:
+            return f"has the power {m[2] or 'constant'} twice"
+        seen[key] = Fraction(int(m[1]) if m[1] else 1) * (-1 if sign else 1)
+    if seen != bn_power(src):
+        return f"is not {src} multiplied out"
+    return "ok"
+
+
+def bn_chance(n, p, how, k):
+    import itertools
+    n, k, p = int(n), int(k), Fraction(p)
+    total = Fraction(0)
+    for run in itertools.product((True, False), repeat=n):
+        wins = sum(run)
+        if {"exactly": wins == k, "at least": wins >= k, "at most": wins <= k}[how]:
+            chance = Fraction(1)
+            for won in run:
+                chance *= p if won else 1 - p
+            total += chance
+    return total
+
+
+def bn_constant_number(src: str) -> int:
+    # Every term multiplied out, in descending powers of x: where x's power is 0.
+    terms = sorted(bn_power(src).items(), key=lambda kv: -dict(kv[0]).get("x", 0))
+    hits = [i + 1 for i, (key, _) in enumerate(terms) if dict(key).get("x", 0) == 0]
+    assert len(hits) == 1, f"{src} has {len(hits)} constant terms"
+    return hits[0]
+
+
+BY_RULE += (
+    (re.compile(r"^pascal next: ([\d, ]+); number (\d+)$"), bn_next),
+    (re.compile(r"^constant term number: (\(.+\)\^\d+)$"), bn_constant_number),
+    (re.compile(r"^pascal sum: begins ([\d, ]+)$"), lambda head: sum(BN_TRI[bn_row_beginning(head)])),
+    (re.compile(r"^pascal mirror: begins ([\d, ]+); number (\d+)$"), lambda head, k: BN_TRI[bn_row_beginning(head)][int(k) - 1]),
+    (re.compile(r"^pascal power: begins ([\d, ]+)$"), bn_row_beginning),
+    (re.compile(r"^choose: (\d+), (\d+)$"), lambda n, k: BN_TRI[int(n)][int(k)]),
+    (re.compile(r"^choose same: (\d+), (\d+)$"), bn_choose_same),
+    (re.compile(r"^coefficient: (\S+) in (\(.+\)\^\d+)$"), bn_coefficient),
+    (re.compile(r"^term number: (\d+) of (\(.+\)\^\d+)$"), bn_term_number),
+    (re.compile(r"^binomial chance: n (\d+), p (\d+/\d+), (exactly|at least|at most) (\d+); \w+$"), bn_chance),
+)
+
+EXPR_RULES += (
+    (re.compile(r"^expand: (\(.+\)\^\d+)$"), bn_expanded),
+)
+
+# The worked text is checked as well as the answer. Pascal's triangle is
+# drawn as rows above the asked one, which must be the triangle's own rows,
+# numbered as they are, with the asked row held back and its number shown as
+# the two above added. C(n, k) is cancelled before it is multiplied: from the
+# smaller of k and n - k, each factor of j! dividing a factor on top, and what
+# is left multiplying to the triangle's number. An expansion is worked term
+# by term, and each worked term must be the product's term with its power. A
+# chance one minus a single case must have that case's chance right.
+
+BN_SUP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹−", "0123456789-")
+
+
+def bn_row_text(cell: str) -> list:
+    return [int(v) for v in cell.replace(" ", " ").split()]
+
+
+# requiem: catalogue/visuals/pascal-rows-above-the-asked
+def bn_table(text: str, vis: dict, answer) -> str:
+    m = re.match(r"^pascal next: ([\d, ]+); number (\d+)$", text)
+    if m:
+        given = [int(v) for v in m[1].split(", ")]
+        asked, k = len(given), int(m[2]) - 1
+        if BN_TRI[asked - 1] != given:
+            return f"{m[1]} is not a row"
+    else:
+        m = re.match(r"^coefficient: a(?:\^\d+)?b(\^\d+)? in \(a \+ b\)\^(\d+)$", text)
+        if not m:
+            return "has a triangle it should not"
+        asked, k = int(m[2]), int((m[1] or "^1")[1:])
+    rows = vis["rows"]
+    if [r[0] for r in rows] != [str(i) for i in range(asked - len(rows) + 1, asked + 1)]:
+        return f"rows numbered {[r[0] for r in rows]}, not up to {asked}"
+    if rows[-1][1] != "?" or any(bn_row_text(r[1]) != BN_TRI[int(r[0])] for r in rows[:-1]):
+        return "draws a row that is not the triangle's, or shows the asked row"
+    if bn_row_text(vis["fill"]) != BN_TRI[asked]:
+        return f"holds back {vis['fill']}, not row {asked}"
+    above = BN_TRI[asked - 1]
+    if vis["working"][:-1] != [""] * (len(rows) - 1) or vis["working"][-1] != f"{above[k - 1]} + {above[k]} = {answer}":
+        return f"works {vis['working'][-1]}, not the two above number {k + 1} of row {asked}"
+    if BN_TRI[asked][k] != answer:
+        return f"asks number {k + 1} of row {asked}, which is not {answer}"
+    return "ok"
+
+
+# requiem: catalogue/content/choose-cancels-the-smaller
+def bn_choose_work(n: int, k: int, explain: str) -> str:
+    j = min(k, n - k)
+    if j != k and f"C({n}, {k}) = C({n}, {j})" not in explain:
+        return f"works C({n}, {j}) without saying it is C({n}, {k})"
+    m = re.search(r"\(([\d × ]+)\)/\(([\d × ]+)\)\. Cancel before multiplying: (.+), leaving ([\d × ,]+?)(?: = ([\d,]+))?\. So", explain)
+    if not m:
+        return "does not cancel before multiplying"
+    top = [int(v) for v in m[1].split(" × ")]
+    if top != list(range(n, n - j, -1)) or m[2] != " × ".join(str(i) for i in range(j, 0, -1)):
+        return f"works {m[1]} over {m[2]}, not the {j} biggest factors over {j}!"
+    unused, unders, quotients = list(top), [], []
+    for f, under, q in re.findall(r"(\d+)/(\([\d × ]+\)|\d+) = (\d+)", m[3]):
+        ds = [int(v) for v in under.strip("()").split(" × ")]
+        if int(f) not in unused or Fraction(int(f), math.prod(ds)) != int(q):
+            return f"cancels {f}/{under} = {q}"
+        unused.remove(int(f))
+        unders += ds
+        quotients.append(int(q))
+    if sorted(unders) != list(range(2, j + 1)):
+        return f"cancels {sorted(unders)}, not 2 to {j}"
+    left = [int(v) for v in m[4].replace(",", "").split(" × ")]
+    rest = sorted(v for v in unused + quotients if v != 1)
+    if sorted(left) != rest and not (len(left) == 1 and len(rest) <= 1):
+        return f"leaves {left}, not {rest}"
+    if math.prod(left) != BN_TRI[n][k] or (m[5] and int(m[5].replace(",", "")) != BN_TRI[n][k]):
+        return f"leaves {left}, whose product is not C({n}, {k})"
+    return "ok"
+
+
+def bn_term_value(src: str):
+    """−240x⁴, x³y², 81 as (coefficient, letters)."""
+    m = re.fullmatch(r"(-?)(\d*)((?:[a-z]\d*)*)", src.translate(BN_SUP).replace(" ", ""))
+    assert m and (m[2] or m[3]), f"cannot read {src}"
+    return (-1 if m[1] else 1) * int(m[2] or 1), bn_letters(re.sub(r"([a-z])(\d+)", r"\1^\2", m[3]))
+
+
+def bn_full_work(src: str, explain: str) -> str:
+    m = re.search(r"Term by term, signs and all: (.+?)\. So it is", explain)
+    if not m:
+        return "does not work its terms"
+    terms = sorted(bn_power(src).items(), key=lambda kv: (-dict(kv[0]).get("x", 0), dict(kv[0]).get("y", 0)))
+    said = m[1].split("; ")
+    if len(said) != len(terms):
+        return f"works {len(said)} terms, not {len(terms)}"
+    for part, (key, coef) in zip(said, terms):
+        steps = part.split(" = ")
+        if bn_term_value(steps[-1]) != (coef, key):
+            return f"works a term as {steps[-1]}"
+        if len(steps) == 3:
+            nums = re.sub(r"[a-z][⁰¹²³⁴⁵⁶⁷⁸⁹]*", "", steps[1]).translate(BN_SUP).replace("(", "").replace(")", "").replace(",", "")
+            if math.prod(int(v) for v in nums.split(" × ")) != coef:
+                return f"multiplies {steps[1]} to {coef}"
+    return "ok"
+
+
+# requiem: catalogue/content/complement-leads
+def bn_complement_work(text: str, explain: str, answer: Fraction) -> str:
+    m = re.match(r"^binomial chance: n (\d+), p (\d+/\d+), (at least|at most) (\d+); \w+$", text)
+    if not m:
+        return "ok"
+    n, p, how, k = int(m[1]), Fraction(m[2]), m[3], int(m[4])
+    if not ((how == "at least" and k == 1) or (how == "at most" and k == n - 1)):
+        return "ok"
+    w = re.search(r"1 − \((\d+)/(\d+)\)([⁰¹²³⁴⁵⁶⁷⁸⁹]+) = 1 − (\d+)/(\d+) = (\d+)/(\d+)", explain)
+    if not w:
+        return "does not lead with one minus the case left out"
+    base, e = Fraction(int(w[1]), int(w[2])), int(w[3].translate(BN_SUP))
+    if base != (1 - p if how == "at least" else p) or e != n:
+        return f"takes ({base})^{e}, not the chance of the one case left out"
+    if Fraction(int(w[4]), int(w[5])) != base ** e or int(w[6]) != int(w[5]) - int(w[4]) or w[7] != w[5]:
+        return "has its subtraction wrong"
+    if Fraction(int(w[6]), int(w[7])) != answer:
+        return f"works {w[6]}/{w[7]}, not the answer"
+    return "ok"
+
+
+for path in sorted(LIB.glob("binomial-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"binomial L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i} ({p['text']})"
+        verdicts = []
+        vis = p.get("visual")
+        if vis:
+            verdicts.append(bn_table(p["text"], vis, p["answer"]["value"]) if vis.get("kind") == "table" else f"draws a {vis.get('kind')}")
+        elif p["text"].startswith("pascal next:") or re.match(r"^coefficient: a", p["text"]):
+            verdicts.append("draws no triangle")
+        m = re.match(r"^choose: (\d+), (\d+)$", p["text"])
+        if m:
+            verdicts.append(bn_choose_work(int(m[1]), int(m[2]), p["explain"]))
+        m = re.match(r"^expand: (\(.+\)\^\d+)$", p["text"])
+        if m:
+            verdicts.append(bn_full_work(m[1], p["explain"]))
+        if p["text"].startswith("binomial chance:"):
+            a = p["answer"]["value"]
+            verdicts.append(bn_complement_work(p["text"], p["explain"], Fraction(a["n"], a["d"]) if isinstance(a, dict) else Fraction(a)))
+        for v in verdicts:
+            if v != "ok":
+                problems.append(f"{where}: {v}")
+
+
+# --- Systems of Equations II ------------------------------------------------------
+# Where two curves meet is found again without putting one into the other:
+# each equation is read back as a polynomial in x and y by evaluating it on a
+# grid, y is eliminated with the Sylvester resultant -- worked out at many x
+# and fitted, never expanded by hand -- and the resultant's rational roots,
+# found by the rational root theorem, give every x where they can meet; each
+# is put back to find its y's. How many points a line and a curve share is
+# counted by walking the line as P + t·d and solving in t, and a tangent's k
+# is the lowest point of the parabola less the line, found on a grid. A
+# system in x, y and z is solved by Cramer's rule, and whether it has one
+# solution, none or infinitely many by the ranks of its matrices. The three-
+# letter stories are searched, every whole count tried.
+
+def s2_solve(M, b):
+    """Solve M v = b over the rationals by elimination; None if singular."""
+    n = len(M)
+    A = [[Fraction(v) for v in row] + [Fraction(bb)] for row, bb in zip(M, b)]
+    for c in range(n):
+        p = next((r for r in range(c, n) if A[r][c] != 0), None)
+        if p is None:
+            return None
+        A[c], A[p] = A[p], A[c]
+        for r in range(n):
+            if r != c and A[r][c] != 0:
+                f = A[r][c] / A[c][c]
+                A[r] = [x - f * y for x, y in zip(A[r], A[c])]
+    return [A[i][n] / A[i][i] for i in range(n)]
+
+
+def s2_det(M):
+    A = [[Fraction(v) for v in row] for row in M]
+    n, det = len(A), Fraction(1)
+    for c in range(n):
+        p = next((r for r in range(c, n) if A[r][c] != 0), None)
+        if p is None:
+            return Fraction(0)
+        if p != c:
+            A[c], A[p] = A[p], A[c]
+            det = -det
+        det *= A[c][c]
+        for r in range(c + 1, n):
+            f = A[r][c] / A[c][c]
+            A[r] = [x - f * y for x, y in zip(A[r], A[c])]
+    return det
+
+
+def s2_fit(values):
+    """Coefficients, constant first, of the polynomial through (k, values[k])."""
+    n = len(values)
+    return s2_solve([[Fraction(k) ** j for j in range(n)] for k in range(n)], values)
+
+
+def s2_at(cs, x):
+    out = Fraction(0)
+    for c in reversed(cs):
+        out = out * x + c
+    return out
+
+
+def s2_trim(cs):
+    cs = list(cs)
+    while cs and cs[-1] == 0:
+        cs.pop()
+    return cs
+
+
+def s2_equation(src):
+    """An equation in x and y as {(i, j): coefficient of x^i y^j}, read off a grid."""
+    left, right = src.split(" = ")
+    f = lambda x, y: (evaluate(left.replace("x", f"({x})").replace("y", f"({y})"))
+                      - evaluate(right.replace("x", f"({x})").replace("y", f"({y})")))
+    N = 4                                   # every equation here is of degree under 4 in each letter
+    by_x = [s2_fit([f(x, y) for y in range(N)]) for x in range(N)]
+    poly = {}
+    for j in range(N):
+        for i, c in enumerate(s2_fit([by_x[x][j] for x in range(N)])):
+            if c:
+                poly[(i, j)] = c
+    for x, y in ((7, -5), (-3, 11), (Fraction(1, 3), Fraction(-5, 2))):
+        assert s2_value(poly, x, y) == f(x, y), f"{src} is not of degree under 4"
+    return poly
+
+
+def s2_value(poly, x, y):
+    return sum(c * Fraction(x) ** i * Fraction(y) ** j for (i, j), c in poly.items())
+
+
+def s2_in_y(poly, x):
+    """The polynomial in y left when x is fixed."""
+    deg = max(j for _, j in poly)
+    return [sum((c * Fraction(x) ** i for (i, jj), c in poly.items() if jj == j), Fraction(0)) for j in range(deg + 1)]
+
+
+def s2_resultant_at(p, q, x):
+    a, b = s2_in_y(p, x), s2_in_y(q, x)
+    m, n = len(a) - 1, len(b) - 1
+    size = m + n
+    if size == 0:
+        return Fraction(1)
+    rows = []
+    for r in range(n):
+        rows.append([Fraction(0)] * r + list(reversed(a)) + [Fraction(0)] * (size - m - 1 - r))
+    for r in range(m):
+        rows.append([Fraction(0)] * r + list(reversed(b)) + [Fraction(0)] * (size - n - 1 - r))
+    return s2_det(rows)
+
+
+def s2_rational_roots(cs):
+    """Every rational root of a polynomial with rational coefficients, constant first."""
+    cs = s2_trim(cs)
+    if not cs:
+        raise ValueError("the zero polynomial has every root")
+    out = set()
+    while cs and cs[0] == 0:
+        out.add(Fraction(0))
+        cs = cs[1:]
+    if len(cs) <= 1:
+        return out
+    den = 1
+    for c in cs:
+        den = den * c.denominator // math.gcd(den, c.denominator)
+    ints = [int(c * den) for c in cs]
+
+    def divisors(n):
+        n, ds = abs(n), set()
+        for d in range(1, math.isqrt(n) + 1):
+            if n % d == 0:
+                ds |= {d, n // d}
+        return ds
+
+    for p in divisors(ints[0]):
+        for q in divisors(ints[-1]):
+            for r in (Fraction(p, q), Fraction(-p, q)):
+                if s2_at(cs, r) == 0:
+                    out.add(r)
+    return out
+
+
+def s2_meet(text):
+    """Every point where the two equations both hold, as sorted tuples."""
+    p, q = (s2_equation(e) for e in text.split("; "))
+    # y out of both: a polynomial in x whose roots are the x's of the points.
+    width = 13
+    res = s2_fit([s2_resultant_at(p, q, x) for x in range(width)])
+    for x in (13, 14, -2):
+        assert s2_at(res, x) == s2_resultant_at(p, q, x), f"{text}: resultant of degree {width} or more"
+    pts = set()
+    for x in s2_rational_roots(res):
+        a, b = s2_trim(s2_in_y(p, x)), s2_trim(s2_in_y(q, x))
+        pick = a or b
+        if not pick:
+            raise ValueError(f"{text}: a whole line in common at x = {x}")
+        for y in s2_rational_roots(pick):
+            if s2_value(p, x, y) == 0 and s2_value(q, x, y) == 0:
+                pts.add((x, y))
+    return sorted(pts)
+
+
+def s2_count(text):
+    """How many points a line and a curve share: the line walked as P + t·d."""
+    p, q = (s2_equation(e) for e in text.split("; "))
+    line, curve = (p, q) if all(i + j <= 1 for i, j in p) else (q, p)
+    assert all(i + j <= 1 for i, j in line), f"{text}: no line"
+    A, B, C = line.get((1, 0), 0), line.get((0, 1), 0), -line.get((0, 0), 0)
+    P = (Fraction(0), C / B) if B else (C / A, Fraction(0))
+    g = s2_trim(s2_fit([s2_value(curve, P[0] + t * B, P[1] - t * A) for t in range(4)]))
+    if len(g) == 4:
+        raise ValueError(f"{text}: cubic along the line")
+    if len(g) <= 1:
+        return "none" if g else "infinite"
+    if len(g) == 2:
+        return "one"
+    disc = g[1] ** 2 - 4 * g[2] * g[0]
+    return "two" if disc > 0 else "one" if disc == 0 else "none"
+
+
+def s2_tangent(par, m):
+    """k where y = mx + k touches the parabola: its lowest gap above the line."""
+    gap = s2_equation(f"{par.split(' = ')[1]} - ({m})x = 0")
+    vals = [s2_value(gap, Fraction(i, 2), 0) for i in range(-80, 81)]
+    low = min(vals)
+    assert vals.index(low) not in (0, len(vals) - 1), f"{par}: the lowest gap is off the grid"
+    return low
+
+
+def s2_linear3(src):
+    left, right = src.split(" = ")
+    at = lambda x, y, z: evaluate(left.replace("x", f"({x})").replace("y", f"({y})").replace("z", f"({z})"))
+    base = at(0, 0, 0)
+    row = [at(1, 0, 0) - base, at(0, 1, 0) - base, at(0, 0, 1) - base]
+    assert at(2, -3, 5) == base + 2 * row[0] - 3 * row[1] + 5 * row[2], f"{src} is not linear"
+    return row, evaluate(right) - base
+
+
+def s2_cramer(text):
+    rows = [s2_linear3(e) for e in text.split("; ")]
+    M, b = [r for r, _ in rows], [d for _, d in rows]
+    D = s2_det(M)
+    assert D != 0, f"{text} has no one solution"
+    sol = []
+    for k in range(3):
+        Mk = [[b[i] if j == k else M[i][j] for j in range(3)] for i in range(3)]
+        sol.append(s2_det(Mk) / D)
+    return [tuple(sol)]
+
+
+def s2_rank(M):
+    A = [[Fraction(v) for v in row] for row in M]
+    rank, col = 0, 0
+    while rank < len(A) and col < len(A[0]):
+        p = next((r for r in range(rank, len(A)) if A[r][col] != 0), None)
+        if p is None:
+            col += 1
+            continue
+        A[rank], A[p] = A[p], A[rank]
+        for r in range(len(A)):
+            if r != rank and A[r][col] != 0:
+                f = A[r][col] / A[rank][col]
+                A[r] = [x - f * y for x, y in zip(A[r], A[rank])]
+        rank, col = rank + 1, col + 1
+    return rank
+
+
+def s2_how_many3(text):
+    rows = [s2_linear3(e) for e in text.split("; ")]
+    M = [r for r, _ in rows]
+    aug = [r + [d] for r, d in rows]
+    rm, ra = s2_rank(M), s2_rank(aug)
+    return "none" if ra > rm else "one" if rm == 3 else "infinite"
+
+
+def s2_tickets(pa, ps, pc, n, cash, times):
+    pa, ps, pc, n, cash, times = map(int, (pa, ps, pc, n, cash, times))
+    found = [(a, s, c) for c in range(n + 1) for s in [times * c] for a in [n - s - c]
+             if a >= 0 and pa * a + ps * s + pc * c == cash]
+    assert len(found) == 1, f"tickets: {found}"
+    return found
+
+
+def s2_coins(n, cents, more):
+    n, cents, more = int(n), int(cents), int(more)
+    found = [(k, k + more, n - 2 * k - more) for k in range(n + 1)
+             if n - 2 * k - more >= 0 and 5 * k + 10 * (k + more) + 25 * (n - 2 * k - more) == cents]
+    assert len(found) == 1, f"coins: {found}"
+    return found
+
+
+def s2_snacks(orders):
+    rows = [o.split(" for ") for o in orders.split("; ")]
+    M = [[int(v) for v in left.split()] for left, _ in rows]
+    b = [Fraction(int(total), 100) for _, total in rows]
+    sol = s2_solve(M, b)
+    assert sol is not None, f"snacks: {orders} has no one price list"
+    return [tuple(sol)]
+
+
+def s2_numbers(total, more, times):
+    total, more, times = int(total), int(more), int(times)
+    found = [(a, a + more, times * a) for a in range(-200, 201) if a + (a + more) + times * a == total]
+    assert len(found) == 1, f"numbers: {found}"
+    return found
+
+
+def s2_pairs(orders):
+    """Three items priced two at a time: each row two of them, solved as a system."""
+    rows = [o.split(" for ") for o in orders.split("; ")]
+    M = [[int(v) for v in left.split()] for left, _ in rows]
+    assert all(sorted(r) == [0, 1, 1] for r in M) and len({tuple(r) for r in M}) == 3, f"pairs: {orders} is not three different pairs"
+    sol = s2_solve(M, [Fraction(int(total), 100) for _, total in rows])
+    assert sol is not None and all(v > 0 for v in sol), f"pairs: {orders} has no one price list"
+    return [tuple(sol)]
+
+
+def s2_batches(text):
+    """Whole batches of three kinds from what was used, every count tried."""
+    rows = {}
+    for part in text.split("; "):
+        m = re.match(r"^(flour|sugar|eggs) (\d+) (\d+) (\d+) for (\d+)$", part)
+        assert m, f"batches: cannot read {part}"
+        rows[m[1]] = ([int(m[2]), int(m[3]), int(m[4])], int(m[5]))
+    assert set(rows) == {"flour", "sugar", "eggs"}, f"batches: {text}"
+    eqs = list(rows.values())
+    flour, used = rows["flour"]
+    assert all(flour), f"batches: every batch takes flour, {text}"
+    found = []
+    for a in range(used // flour[0] + 1):
+        for b in range((used - flour[0] * a) // flour[1] + 1):
+            rest = used - flour[0] * a - flour[1] * b
+            if rest % flour[2]:
+                continue
+            c = rest // flour[2]
+            if all(r[0] * a + r[1] * b + r[2] * c == t for r, t in eqs):
+                found.append((a, b, c))
+    assert len(found) == 1, f"batches: {text} has {found}"
+    return found
+
+
+# Each rule with the number of coordinates its points have, which an answer
+# of none must carry too.
+POINT_RULES = (
+    (re.compile(r"^meet: (.+; .+)$"), s2_meet, 2),
+    (re.compile(r"^system3: (.+; .+; .+)$"), s2_cramer, 3),
+    (re.compile(r"^tickets: prices (\d+) (\d+) (\d+); (\d+) sold; (\d+) taken; students (\d+) times children$"), s2_tickets, 3),
+    (re.compile(r"^coins: (\d+) coins; (\d+) cents; dimes (\d+) more than nickels$"), s2_coins, 3),
+    (re.compile(r"^snacks: (.+)$"), s2_snacks, 3),
+    (re.compile(r"^numbers: sum (-?\d+); second (\d+) more than first; third (\d+) times first$"), s2_numbers, 3),
+    (re.compile(r"^pairs: (.+)$"), s2_pairs, 3),
+    (re.compile(r"^batches: (.+)$"), s2_batches, 3),
+)
+
+BY_RULE += (
+    (re.compile(r"^tangent k: (y = .+); y = (-?\d+)x \+ k$"), s2_tangent),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^how many(?: circle| flat)?: (.+; .+)$"), s2_count),
+    (re.compile(r"^how many3: (.+; .+; .+)$"), s2_how_many3),
+)
+
+
+def s2_off_curve(poly, x, y):
+    """How far (x, y) is from the curve poly = 0, to first order: |F| over the gradient's length."""
+    f = sum(float(c) * x ** i * y ** j for (i, j), c in poly.items())
+    fx = sum(float(c) * i * x ** (i - 1) * y ** j for (i, j), c in poly.items() if i)
+    fy = sum(float(c) * j * x ** i * y ** (j - 1) for (i, j), c in poly.items() if j)
+    g = math.hypot(fx, fy)
+    return abs(f) / g if g > 1e-9 else (0.0 if abs(f) < 1e-9 else math.inf)
+
+
+def s2_picture(text, visual, value):
+    """What is wrong with a meeting picture, or None: it must draw both curves of
+    the text, each stretch on one of them and inside the window, ended on the
+    window's edge unless it closes on itself, and mark exactly the answer's
+    points -- all of it withheld until answered."""
+    if visual.get("marks"):
+        return "draws something while the question is open"
+    polys = [s2_equation(e) for e in text[len("meet: "):].split("; ")]
+    (x0, x1), (y0, y1) = visual["xRange"], visual["yRange"]
+    if not (x0 <= 0 <= x1 and y0 <= 0 <= y1):
+        return "has a window without the origin"
+    drawn = [False, False]
+    for mk in visual["answer"]:
+        if mk["kind"] != "path":
+            continue
+        pts = mk["points"]
+        if any(not (x0 - 0.051 <= x <= x1 + 0.051 and y0 - 0.051 <= y <= y1 + 0.051) for x, y in pts):
+            return f"runs a curve outside the window at {pts[0]}"
+        on = [k for k, p in enumerate(polys) if all(s2_off_curve(p, x, y) <= 0.08 for x, y in pts)]
+        if not on:
+            worst = max(pts, key=lambda q: min(s2_off_curve(p, *q) for p in polys))
+            return f"draws a curve off both equations, at {worst}"
+        for k in on:
+            drawn[k] = True
+        # requiem: catalogue/visuals/curves-split-at-window
+        edge = lambda q: min(abs(q[0] - x0), abs(q[0] - x1), abs(q[1] - y0), abs(q[1] - y1)) <= 0.051
+        closed = math.dist(pts[0], pts[-1]) <= 0.11
+        if not closed and not (edge(pts[0]) and edge(pts[-1])):
+            return f"ends a curve inside the window, at {pts[0]} or {pts[-1]}"
+        if any(math.dist(p, q) > 1.5 for p, q in zip(pts, pts[1:])):
+            return "joins two stretches of a curve with a straight line"
+    if not all(drawn):
+        return "leaves one of the two curves out"
+    marked = sorted((round(mk["at"][0], 1), round(mk["at"][1], 1)) for mk in visual["answer"] if mk["kind"] == "point")
+    want = sorted((round(float(as_fraction(c[0])), 1), round(float(as_fraction(c[1])), 1)) for c in value["pts"])
+    if marked != want:
+        return f"marks {marked}, not the meeting points {want}"
+    for mk in visual["answer"]:
+        if mk["kind"] == "point" and "label" in mk:
+            x, y = (Fraction(str(v)) for v in mk["at"])
+            if mk["label"] != f"({x}, {y})".replace("-", "−"):
+                return f"labels {mk['at']} as {mk['label']}"
+    return None
+
+
+# requiem: catalogue/visuals/meeting-picture-on-reveal
+# requiem: catalogue/content/prices-answered-in-dollars
+# Every picture of where two curves meet draws the two curves the text
+# names and marks the points the answer gives, and nothing before the answer.
+# A price answer is held as dollars and written as dollars: a question that
+# asks for dollars has a money answer, and only one that asks does.
+for path in sorted(LIB.glob("systems-2-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        where = f"systems-2 L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        if p.get("visual"):
+            if not p["text"].startswith("meet: "):
+                problems.append(f"{where}: a picture on a row that is not where two curves meet")
+            else:
+                wrong = s2_picture(p["text"], p["visual"], p["answer"]["value"])
+                if wrong:
+                    problems.append(f"{where}: the picture {wrong}")
+        elif p["text"].startswith("meet: "):
+            problems.append(f"{where}: where two curves meet, drawn nowhere")
+        prompt = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+        if p["answer"]["type"] == "points":
+            money = bool(p["answer"]["value"].get("money"))
+            if money != ("in dollars" in prompt):
+                problems.append(f"{where}: asks {'for' if 'in dollars' in prompt else 'for no'} dollars but its answer is {'money' if money else 'not money'}")
+            if money and not re.fullmatch(r"\((?:\$\d+\.\d\d, ){2}\$\d+\.\d\d\)", p["answer"]["accept"][0]):
+                problems.append(f"{where}: a price answer written {p['answer']['accept'][0]}")
+            # Every total in a store's story is in its prompt, as a price.
+            if p["text"].startswith(("snacks: ", "pairs: ")):
+                for cents in re.findall(r" for (\d+)", p["text"]):
+                    if f"${int(cents) // 100}.{int(cents) % 100:02d}" not in prompt:
+                        problems.append(f"{where}: the total {cents}¢ is not in the question")
+            if p["text"].startswith("batches: "):
+                for part in p["text"][len("batches: "):].split("; "):
+                    kind, *_, total = part.split()
+                    said = {"flour": "cups of flour", "sugar": "cups of sugar", "eggs": "eggs"}[kind]
+                    if f"used {total} {said}" not in prompt and f", {total} {said}" not in prompt and f"and {total} {said}" not in prompt \
+                            and not (total == "1" and f"1 {said[:-1] if kind == 'eggs' else said.replace('cups', 'cup')}" in prompt):
+                        problems.append(f"{where}: {total} {said} used is not in the question")
+
+
+# --- Inverses: Log Functions -----------------------------------------------------
+# A point of bˣ or of log_b x is confirmed on its own curve, by raising the
+# base, and swapped; a log's domain is sampled, every x kept where what it
+# takes the log of is positive; its asymptote is where that is 0, found from
+# two values of it; and the inverse is the option that composes with f to
+# give x back, both ways, at several x, in floating point.
+
+def il_inside(src):
+    """What a log_b(...) takes the log of, and the base."""
+    m = re.match(r"^log_(\d+)\((.+?)\)(?: [-+] \d+)?$", src)
+    assert m, f"no log in {src}"
+    return int(m[1]), m[2]
+
+
+def il_reflect(x, y, base, onto):
+    x, y, b = Fraction(x), Fraction(y), int(base)
+    if onto == "log":
+        assert Fraction(b) ** int(x) == y and x.denominator == 1, f"({x}, {y}) is not on {b}^x"
+    else:
+        assert Fraction(b) ** int(y) == x and y.denominator == 1, f"({x}, {y}) is not on log_{b} x"
+    return (y, x)
+
+
+def il_domain(src):
+    _, inner = il_inside(src)
+    return on_grid({x for x in DR_X if evaluate(inner, "x", x) > 0}, DR_X)
+
+
+def il_asymptote(src):
+    _, inner = il_inside(src)
+    at0, at1 = evaluate(inner, "x", 0), evaluate(inner, "x", 1)
+    assert evaluate(inner, "x", 5) == at0 + 5 * (at1 - at0), f"{inner} is not a line"
+    return -at0 / (at1 - at0)
+
+
+def il_float(src):
+    """An ASCII rule in x as a Python function of floats: log_2(x), 3*2^x, 2^(x - 1)."""
+    py = re.sub(r"log_(\d+)\(", r"_log(\1, ", src)
+    py = re.sub(r"(\d)(x)", r"\1*\2", py).replace("^", "**")
+    return lambda x: eval(py, {"_log": lambda b, v: math.log(v, b) if v > 0 else float("nan")}, {"x": x})
+
+
+def il_inverse(f, listing):
+    fn = il_float(f.split(" = ", 1)[1])
+    good = []
+    for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
+        g = il_float(label)
+        ok = True
+        # Only x in f's domain: log_2(x - 5) takes no x below 5. At least
+        # four are always left, and every y = f(x) is in f's range.
+        xs = [x for x in (0.5, 1.5, 2.0, 3.25, 7.0, 11.0, 15.5, 23.0) if fn(x) == fn(x)]
+        assert len(xs) >= 4, f"{f}: too few x in its domain"
+        for x in xs:
+            try:
+                back = g(fn(x))                        # f⁻¹(f(x)) = x, for every x
+                ok &= back == back and abs(back - x) < 1e-9
+            except (ValueError, ZeroDivisionError, OverflowError):
+                ok = False
+        for y in (fn(x) for x in xs):                  # f(f⁻¹(y)) = y, for y in f's range
+            try:
+                there = fn(g(y))
+                ok &= there == there and abs(there - y) < 1e-9 * max(1, abs(y))
+            except (ValueError, ZeroDivisionError, OverflowError):
+                ok = False
+        if ok:
+            good.append(oid)
+    assert len(good) == 1, f"{f}: {good} undo it"
+    return good[0]
+
+
+def il_reflect_shifted(x, y, base, k):
+    x, y = Fraction(x), Fraction(y)
+    assert x.denominator == 1 and Fraction(int(base)) ** int(x) + int(k) == y, f"({x}, {y}) is not on {base}^x + {k}"
+    return (y, x)
+
+
+PAIR_RULES += (
+    (re.compile(r"^reflect shifted: \((\S+), (\S+)\) on base (\d+) plus (-?\d+)$"), il_reflect_shifted),
+    (re.compile(r"^reflect onto log: \((\S+), (\S+)\) on base (\d+)$"), lambda x, y, b: il_reflect(x, y, b, "log")),
+    (re.compile(r"^reflect onto power: \((\S+), (\S+)\) on base (\d+)$"), lambda x, y, b: il_reflect(x, y, b, "power")),
+)
+
+SET_RULES += (
+    (re.compile(r"^log domain: (.+)$"), il_domain),
+)
+
+BY_RULE += (
+    (re.compile(r"^log asymptote: (.+)$"), il_asymptote),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^log inverse: (f\(x\) = .+?); options (.+)$"), il_inverse),
+)
+
+
+# requiem: catalogue/content/conic-graphs-drawn-from-their-equation
+# requiem: catalogue/content/conic-points-exact
+# --- Conic Sections --------------------------------------------------------------
+# Every equation is read back as a polynomial in x and y off a grid (as for
+# systems-2), never from the center and squares it was built from, and the
+# conic is worked out from its coefficients: the squared terms say which it
+# is, completing the square on each letter gives the center or vertex and
+# the two denominators, and from those the foci, vertices, directrix and
+# asymptotes follow by c² = a² − b² for an ellipse and c² = a² + b² for a
+# hyperbola. A choice of equations is the option whose features are the ones
+# the question gives; a graph is the option every drawn point lies on.
+
+CN_READ = {}
+
+
+def cn_read(src):
+    """The conic an equation is, from its coefficients alone (read once per equation)."""
+    if src not in CN_READ:
+        CN_READ[src] = cn_conic(src)
+    return CN_READ[src]
+
+
+def cn_conic(src):
+    poly = s2_equation(src)
+    assert set(poly) <= {(2, 0), (0, 2), (1, 0), (0, 1), (0, 0)}, f"{src}: not a conic without an xy term"
+    A, C = poly.get((2, 0), Fraction(0)), poly.get((0, 2), Fraction(0))
+    D, E, F = poly.get((1, 0), Fraction(0)), poly.get((0, 1), Fraction(0)), poly.get((0, 0), Fraction(0))
+    if A and C:
+        h, k = -D / (2 * A), -E / (2 * C)
+        R = A * h * h + C * k * k - F
+        assert R != 0, f"{src}: degenerate"
+        X, Y = R / A, R / C
+        assert X > 0 or Y > 0, f"{src}: no real points"
+        kind = "hyperbola" if X * Y < 0 else "circle" if X == Y else "ellipse"
+        return {"kind": kind, "h": h, "k": k, "X": X, "Y": Y}
+    assert A or C, f"{src}: nothing squared"
+    if A:
+        assert E != 0, f"{src}: two lines, not a parabola"
+        h, p4 = -D / (2 * A), -E / A
+        return {"kind": "parabola", "axis": "v", "h": h, "k": (F / A - h * h) / p4, "p4": p4}
+    assert D != 0, f"{src}: two lines, not a parabola"
+    k, p4 = -E / (2 * C), -D / C
+    return {"kind": "parabola", "axis": "h", "h": (F / C - k * k) / p4, "k": k, "p4": p4}
+
+
+def cn_axes(c):
+    """a², b² and the letter the vertices lie along, for an ellipse or hyperbola."""
+    if c["kind"] == "hyperbola":
+        return (c["X"], -c["Y"], "x") if c["X"] > 0 else (c["Y"], -c["X"], "y")
+    return (c["X"], c["Y"], "x") if c["X"] > c["Y"] else (c["Y"], c["X"], "y")
+
+
+def cn_along(c, r, way):
+    h, k = c["h"], c["k"]
+    return [(h - r, k), (h + r, k)] if way == "x" else [(h, k - r), (h, k + r)]
+
+
+def cn_root(v):
+    """The rational square root of v, or None when it has none."""
+    try:
+        return fraction_root(v, 2)
+    except AssertionError:
+        return None
+
+
+def cn_features(c):
+    """Every point and line a conic question can ask about: those with rational coordinates."""
+    if c["kind"] == "parabola":
+        p = c["p4"] / 4
+        if c["axis"] == "v":
+            return {"vertex": [(c["h"], c["k"])], "focus": [(c["h"], c["k"] + p)], "directrix": ("y", c["k"] - p)}
+        return {"vertex": [(c["h"], c["k"])], "focus": [(c["h"] + p, c["k"])], "directrix": ("x", c["h"] - p)}
+    a2, b2, way = cn_axes(c)
+    out = {"center": [(c["h"], c["k"])], "way": way}
+    a, b, f = cn_root(a2), cn_root(b2), cn_root(a2 + b2 if c["kind"] == "hyperbola" else a2 - b2)
+    if a is not None:
+        out["a"], out["vertices"] = a, cn_along(c, a, way)
+    if b is not None:
+        out["b"] = b
+        if c["kind"] == "ellipse":
+            out["co-vertices"] = cn_along(c, b, "y" if way == "x" else "x")
+    if f is not None:
+        out["foci"] = cn_along(c, f, way)
+    if c["kind"] == "hyperbola" and a is not None and b is not None:
+        out["slope"] = b / a if way == "x" else a / b
+    return out
+
+
+def cn_kind(src, kind):
+    c = cn_read(src)
+    assert c["kind"] == kind, f"{src} is a {c['kind']}, not a {kind}"
+    return cn_features(c)
+
+
+def cn_value(c, x, y):
+    """The conic's equation, as left − right, at (x, y), with its gradient."""
+    h, k = c["h"], c["k"]
+    if c["kind"] == "parabola":
+        if c["axis"] == "v":
+            return (x - h) ** 2 - c["p4"] * (y - k), (2 * (x - h), -c["p4"])
+        return (y - k) ** 2 - c["p4"] * (x - h), (-c["p4"], 2 * (y - k))
+    X, Y = c["X"], c["Y"]
+    return (x - h) ** 2 / X + (y - k) ** 2 / Y - 1, (2 * (x - h) / X, 2 * (y - k) / Y)
+
+
+def cn_on(c, x, y, tol=0.01):
+    """Within tol of the curve, by the value over the slope of the equation there."""
+    v, (gx, gy) = cn_value(c, Fraction(x), Fraction(y))
+    g = math.hypot(float(gx), float(gy))
+    return abs(float(v)) <= tol * max(g, 1e-9)
+
+
+def cn_same(c, d):
+    if c["kind"] != d["kind"]:
+        return False
+    keys = ("axis", "h", "k", "p4") if c["kind"] == "parabola" else ("h", "k", "X", "Y")
+    return all(c[key] == d[key] for key in keys)
+
+
+def cn_point(s):
+    x, y = s.strip("()").split(", ")
+    return Fraction(x), Fraction(y)
+
+
+def cn_from_focus(focus, letter, d, listing):
+    """The parabola whose vertex is halfway from focus to directrix, opening toward the focus."""
+    fx, fy = cn_point(focus)
+    d = Fraction(d)
+    if letter == "y":
+        want = {"kind": "parabola", "axis": "v", "h": fx, "k": (fy + d) / 2, "p4": 2 * (fy - d)}
+    else:
+        want = {"kind": "parabola", "axis": "h", "h": (fx + d) / 2, "k": fy, "p4": 2 * (fx - d)}
+    return rf_pick(listing, lambda body: cn_same(cn_read(body), want))
+
+
+def cn_from_points(kind, given, listing):
+    """The ellipse or hyperbola with the center, vertex and focus a question gives."""
+    parts = dict(p.split(" ", 1) for p in given.split("; "))
+    # requiem: catalogue/content/conic-from-its-locus
+    # From the definition: the foci, and the sum (an ellipse) or difference
+    # (a hyperbola) of the distances to them, which is 2a. The center is
+    # halfway between the foci, and a vertex is a along from it toward one.
+    if "sum" in parts or "difference" in parts:
+        assert ("sum" in parts) == (kind == "ellipse"), f"{given}: a {kind} is not a constant {'difference' if kind == 'ellipse' else 'sum'}"
+        f1, f2 = (cn_point(s) for s in parts["foci"].split(" and "))
+        center = ((f1[0] + f2[0]) / 2, (f1[1] + f2[1]) / 2)
+        a = Fraction(parts.get("sum") or parts["difference"]) / 2
+        c = (abs(f2[0] - f1[0]) + abs(f2[1] - f1[1])) / 2
+        assert (f1[0] == f2[0]) != (f1[1] == f2[1]), f"{given}: foci not on one axis"
+        assert (a > c) == (kind == "ellipse"), f"{given}: no {kind} has a = {a} and c = {c}"
+        step = ((f2[0] - f1[0]) / (2 * c), (f2[1] - f1[1]) / (2 * c))
+        focus, vertex = f2, (center[0] + a * step[0], center[1] + a * step[1])
+    elif "center" in parts:
+        center, vertex, focus = (cn_point(parts[w]) for w in ("center", "vertex", "focus"))
+    else:
+        v1, v2 = (cn_point(s) for s in parts["vertices"].split(" and "))
+        f1, f2 = (cn_point(s) for s in parts["foci"].split(" and "))
+        center = ((v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2)
+        assert center == ((f1[0] + f2[0]) / 2, (f1[1] + f2[1]) / 2), f"{given}: foci and vertices not centered alike"
+        vertex, focus = v2, f2
+    way = "x" if vertex[1] == center[1] else "y"
+    assert (focus[1] == center[1]) == (way == "x") and vertex != center, f"{given}: not on one axis"
+    a = abs(vertex[0] - center[0]) + abs(vertex[1] - center[1])
+    c = abs(focus[0] - center[0]) + abs(focus[1] - center[1])
+    a2, c2 = a * a, c * c
+    b2 = a2 - c2 if kind == "ellipse" else c2 - a2
+    assert b2 > 0, f"{given}: no {kind} has these"
+    if kind == "ellipse":
+        X, Y = (a2, b2) if way == "x" else (b2, a2)
+    else:
+        X, Y = (a2, -b2) if way == "x" else (-b2, a2)
+    want = {"kind": kind, "h": center[0], "k": center[1], "X": X, "Y": Y}
+    return rf_pick(listing, lambda body: cn_same(cn_read(body), want))
+
+
+# A graph's key is the option every drawn point of the curve lies on, found
+# from the picture before the main pass reads the row.
+def cn_graph_keys() -> dict:
+    """The option every drawn point lies on, by text, for each Match the Graph row."""
+    keys = {}
+    for path in sorted(LIB.glob("conics-*.json")):
+        for p in json.loads(path.read_text())["problems"]:
+            m = re.match(r"^conic graph: (\w+); (.+?); options (.+)$", p["text"])
+            if not m:
+                continue
+            drawn = [pt for mk in p["visual"]["marks"] if mk["kind"] == "path" for pt in mk["points"]]
+            read = {oid: cn_read(body) for oid, body in te_options(m[3]).items()}
+            fits = [oid for oid, c in read.items()
+                    if c["kind"] == m[1] and len(drawn) >= 40 and all(cn_on(c, x, y) for x, y in drawn)]
+            if len(fits) != 1:
+                keys[p["text"]] = f"{len(fits)} options fit the drawing"
+                continue
+            # The points the text says are drawn are that option's own vertex,
+            # focus, center or vertices, so the text and the drawing agree.
+            feats = cn_features(read[fits[0]])
+            own = {pt for key in ("vertex", "focus", "center", "vertices", "co-vertices") for pt in feats.get(key, [])}
+            said = {tuple(Fraction(v) for v in s.split(", ")) for s in re.findall(r"\((-?\d+(?:/\d+)?, -?\d+(?:/\d+)?)\)", m[2])}
+            keys[p["text"]] = fits[0] if said <= own else "the text names points the drawing does not have"
+    return keys
+
+
+CN_GRAPH_KEY = cn_graph_keys()
+
+CHOICE_RULES += (
+    (re.compile(r"^which conic: (.+ = .+)$"), lambda src: cn_read(src)["kind"]),
+    (re.compile(r"^parabola equation: focus (\(\S+, \S+\)); directrix (x|y) = (\S+); options (.+)$"), cn_from_focus),
+    (re.compile(r"^conic equation: (ellipse|hyperbola); (.+); options (.+)$"), cn_from_points),
+    (re.compile(r"^(conic graph: .+)$"), lambda text: CN_GRAPH_KEY[text]),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^parabola focus: (.+)$"), lambda src: cn_kind(src, "parabola")["focus"][0]),
+    (re.compile(r"^vertex of parabola: (.+)$"), lambda src: cn_kind(src, "parabola")["vertex"][0]),
+    (re.compile(r"^center of (ellipse|hyperbola): (.+)$"), lambda kind, src: cn_kind(src, kind)["center"][0]),
+)
+
+POINT_RULES += (
+    (re.compile(r"^(ellipse|hyperbola) (foci|vertices|co-vertices): (.+)$"), lambda kind, what, src: cn_kind(src, kind)[what], 2),
+)
+
+BY_RULE += (
+    (re.compile(r"^parabola directrix: (.+)$"), lambda src: cn_kind(src, "parabola")["directrix"][1]),
+    (re.compile(r"^ellipse (major|minor) axis: (.+)$"), lambda which, src: 2 * cn_kind(src, "ellipse")["a" if which == "major" else "b"]),
+    (re.compile(r"^hyperbola asymptote slope: (.+)$"), lambda src: cn_kind(src, "hyperbola")["slope"]),
+)
+
+# A drawn conic is the student's copy of the equation: every point of its
+# curve lies on the equation in the row's text, enough of it is drawn to read
+# (each vertex, and the vertex of a parabola, is on the drawing), and once
+# answered every dot is one of its foci, vertices or centers and every dashed
+# line a directrix or an asymptote of it.
+for path in sorted(LIB.glob("conics-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        if not p.get("visual"):
+            continue
+        where = f"conics L{lib['level'] + 1} row {i}"
+        m = re.match(r"^(?:parabola (?:focus|directrix)|ellipse foci|hyperbola (?:foci|asymptote slope)): (.+)$", p["text"])
+        if m:
+            c = cn_read(m[1])
+        elif p["text"] in CN_GRAPH_KEY and len(CN_GRAPH_KEY[p["text"]]) == 1:
+            c = cn_read(te_options(p["text"].split("; options ", 1)[1])[CN_GRAPH_KEY[p["text"]]])
+        else:
+            problems.append(f"{where}: a drawing no rule holds to its equation")
+            continue
+        vis = p["visual"]
+        drawn = [pt for mk in vis["marks"] if mk["kind"] == "path" for pt in mk["points"]]
+        off = [pt for pt in drawn if not cn_on(c, *pt)]
+        if len(drawn) < 40 or off:
+            problems.append(f"{where}: {len(off)} of {len(drawn)} drawn points are off {p['text']}")
+        feats = cn_features(c)
+        tips = feats.get("vertices", feats.get("vertex", []))
+        for vx, vy in tips:
+            if min((math.hypot(float(vx) - x, float(vy) - y) for x, y in drawn), default=9) > 0.05:
+                problems.append(f"{where}: the vertex ({vx}, {vy}) is not on the drawing")
+        shown = vis.get("answer", [])
+        if not shown:
+            problems.append(f"{where}: nothing is revealed once answered")
+        for mk in shown:
+            if mk["kind"] == "point":
+                # A dot is where its label says, and is what its label names:
+                # a focus, a vertex or the center; a bare point label is a
+                # focus or vertex, and an unlabelled dot a vertex.
+                dot_at = (Fraction(mk["at"][0]).limit_denominator(1000), Fraction(mk["at"][1]).limit_denominator(1000))
+                lm = re.fullmatch(r"(?:(focus|vertex|center) )?\((\S+), (\S+)\)", (mk.get("label") or "").replace("−", "-"))
+                if mk.get("label") and not lm:
+                    problems.append(f"{where}: the revealed dot's label {mk['label']!r} is not a point")
+                    continue
+                pool = (feats.get("vertices", []) + feats.get("co-vertices", []) if not lm
+                        else feats.get(lm[1], []) + (feats.get("vertices", []) if lm[1] == "vertex" else []) if lm[1]
+                        else feats.get("foci", []) + feats.get("vertices", []))
+                if lm and (Fraction(lm[2]), Fraction(lm[3])) != dot_at:
+                    problems.append(f"{where}: the dot labelled {mk['label']!r} is drawn at {mk['at']}")
+                if dot_at not in pool:
+                    problems.append(f"{where}: the revealed dot at {mk['at']} is not the {lm[1] if lm and lm[1] else 'focus or vertex'} it should be")
+            if mk["kind"] == "segment":
+                (x0, y0), (x1, y1) = mk["from"], mk["to"]
+                if "directrix" in feats:
+                    letter, d = feats["directrix"]
+                    ok = all(abs(Fraction(v) - d) < Fraction(1, 1000) for v in ((x0, x1) if letter == "x" else (y0, y1)))
+                else:
+                    s = float(feats["slope"])
+                    ok = all(abs(abs((y - float(c["k"])) ) - s * abs(x - float(c["h"]))) < 0.01 for x, y in ((x0, y0), (x1, y1)))
+                if not ok:
+                    problems.append(f"{where}: the revealed line {mk['from']}–{mk['to']} is not a directrix or asymptote")
+
+
+# ── Vectors ─────────────────────────────────────────────────────────────
+# A vector is read back from the text, <3, -4>, and every answer is worked
+# again here: a vector component by component in exact fractions, a point
+# by adding the components back, a length as the sum of the squares under a
+# root, a unit vector by dividing by that length, which must come out
+# whole. An angle or a rounded component goes by the calculator twice, once
+# exactly and once from its trig values copied to 4 places, and the two must
+# round alike.
+VC_NUM = r"-?\d+(?:/\d+)?"
+VC_VEC = rf"<({VC_NUM}), ({VC_NUM})>"
+VC_PT = rf"\(({VC_NUM}), ({VC_NUM})\)"
+
+
+def vc_q(*parts):
+    return tuple(Fraction(p) for p in parts)
+
+
+def vc_unit_length(a, b) -> int:
+    """|<a, b>|, which a unit-vector row only asks of a vector whose length is whole."""
+    n = Fraction(a) ** 2 + Fraction(b) ** 2
+    assert n.denominator == 1, f"<{a}, {b}> has a fractional square length"
+    return whole_root(int(n))
+
+
+def vc_unit(a, b):
+    L = vc_unit_length(a, b)
+    return vc_q(a, b)[0] / L, vc_q(a, b)[1] / L
+
+
+def vc_along(L, way, a, b):
+    s = 1 if way == "along" else -1
+    ux, uy = vc_unit(a, b)
+    return s * int(L) * ux, s * int(L) * uy
+
+
+def vc_scale(k, a, b):
+    k = Fraction(k)
+    return k * Fraction(a), k * Fraction(b)
+
+
+def vc_combo(p, a, b, q, c, d):
+    p, q = int(p), int(q)
+    return p * Fraction(a) + q * Fraction(c), p * Fraction(b) + q * Fraction(d)
+
+
+def vc_find_k(wa, wb, a, b) -> Fraction:
+    k1, k2 = Fraction(wa) / Fraction(a), Fraction(wb) / Fraction(b)
+    assert k1 == k2, f"<{wa}, {wb}> is not a multiple of <{a}, {b}>"
+    return k1
+
+
+def vc_placed(x: float, y: float, ref: float) -> float:
+    """The direction from its reference angle, by the quadrant (x, y) points into."""
+    if x > 0 and y >= 0:
+        return ref
+    if x < 0 and y >= 0:
+        return 180 - ref
+    if x < 0:
+        return 180 + ref
+    return 360 - ref
+
+
+def vc_direction(a, b, places) -> Fraction:
+    a, b = float(Fraction(a)), float(Fraction(b))
+    exact = math.degrees(math.atan2(b, a)) % 360
+    ref = math.degrees(math.atan(abs(b / a)))
+    return trig_agree(exact, vc_placed(a, b, round(ref, 4)), int(places))
+
+
+def vc_component(which, r, theta, places) -> Fraction:
+    fn = math.cos if which == "x" else math.sin
+    v = fn(math.radians(int(theta)))
+    return trig_agree(int(r) * v, int(r) * round(v, 4), int(places))
+
+
+def vc_resultant(want, listing, places) -> Fraction:
+    forces = [(int(r), int(t)) for r, t in re.findall(r"(\d+) at (\d+)", listing)]
+    assert len(forces) == 2, listing
+    x = sum(r * math.cos(math.radians(t)) for r, t in forces)
+    y = sum(r * math.sin(math.radians(t)) for r, t in forces)
+    x4 = sum(r * round(math.cos(math.radians(t)), 4) for r, t in forces)
+    y4 = sum(r * round(math.sin(math.radians(t)), 4) for r, t in forces)
+    if want == "magnitude":
+        return trig_agree(math.hypot(x, y), math.hypot(x4, y4), int(places))
+    return trig_agree(math.degrees(math.atan2(y, x)) % 360, math.degrees(math.atan2(y4, x4)) % 360, int(places))
+
+
+VECTOR_RULES = (
+    (re.compile(rf"^vector (?:drawn )?from {VC_PT} to {VC_PT}$"),
+     lambda x1, y1, x2, y2: (Fraction(x2) - Fraction(x1), Fraction(y2) - Fraction(y1))),
+    (re.compile(rf"^(?:add|drawn sum): {VC_VEC} \+ {VC_VEC}$"),
+     lambda a, b, c, d: (Fraction(a) + Fraction(c), Fraction(b) + Fraction(d))),
+    (re.compile(rf"^subtract: {VC_VEC} - {VC_VEC}$"),
+     lambda a, b, c, d: (Fraction(a) - Fraction(c), Fraction(b) - Fraction(d))),
+    (re.compile(rf"^scale: ({VC_NUM}) times {VC_VEC}$"), vc_scale),
+    (re.compile(rf"^combo: (-?\d+){VC_VEC} \+ (-?\d+){VC_VEC}$"), vc_combo),
+    (re.compile(rf"^unit: {VC_VEC}$"), vc_unit),
+    (re.compile(rf"^length (\d+) (along|against) {VC_VEC}$"), vc_along),
+)
+
+PAIR_RULES += (
+    (re.compile(rf"^end of {VC_VEC} from {VC_PT}$"),
+     lambda a, b, x, y: (Fraction(x) + Fraction(a), Fraction(y) + Fraction(b))),
+    (re.compile(rf"^start of {VC_VEC} to {VC_PT}$"),
+     lambda a, b, x, y: (Fraction(x) - Fraction(a), Fraction(y) - Fraction(b))),
+)
+
+RADICAL_RULES += (
+    (re.compile(rf"^magnitude: {VC_VEC}$"), lambda a, b: int(Fraction(a) ** 2 + Fraction(b) ** 2)),
+    (re.compile(rf"^magnitude from {VC_PT} to {VC_PT}$"),
+     lambda x1, y1, x2, y2: int((Fraction(x2) - Fraction(x1)) ** 2 + (Fraction(y2) - Fraction(y1)) ** 2)),
+)
+
+BY_RULE += (
+    (re.compile(rf"^direction: {VC_VEC} to (\d) dp$"), vc_direction),
+    (re.compile(r"^component: (x|y) of (\d+) at (\d+) degrees to (\d) dp$"), vc_component),
+    (re.compile(r"^resultant (magnitude|direction): (.+) to (\d) dp$"), vc_resultant),
+    (re.compile(rf"^find k: {VC_VEC} = k{VC_VEC}$"), vc_find_k),
+)
+
+
+# requiem: catalogue/content/dot-product-level
+# The dot product as the sum of the products of components; the angle
+# between two vectors by the calculator from the cosine u . v / (|u||v|),
+# once exactly and once from that cosine copied to 4 places; orthogonal,
+# parallel or neither from the dot product and the cross product a·d − b·c,
+# which is 0 exactly when one is a multiple of the other; and k from the
+# dot product set to 0, solved as the linear equation it is.
+def vc_dot(a, b, c, d) -> Fraction:
+    return Fraction(a) * Fraction(c) + Fraction(b) * Fraction(d)
+
+
+def vc_angle_between(a, b, c, d, places) -> Fraction:
+    u, v = vc_q(a, b), vc_q(c, d)
+    cos = float(vc_dot(*u, *v)) / math.sqrt(float(vc_dot(*u, *u) * vc_dot(*v, *v)))
+    assert abs(abs(cos) - 1) > 1e-9, "the vectors are parallel"
+    return trig_agree(math.degrees(math.acos(cos)), math.degrees(math.acos(round(cos, 4))), int(places))
+
+
+def vc_orthogonal_or_parallel(a, b, c, d) -> str:
+    u, v = vc_q(a, b), vc_q(c, d)
+    if vc_dot(*u, *v) == 0:
+        return "orthogonal"
+    return "parallel" if u[0] * v[1] - u[1] * v[0] == 0 else "neither"
+
+
+def vc_orthogonal_k(p, q, c, d) -> Fraction:
+    """k in <p, q> . <c, d> = 0, where one of p and q is k."""
+    # The dot product is linear in k: its value at k = 0 and its slope.
+    at = lambda k: (Fraction(k) if p == "k" else Fraction(p)) * Fraction(c) + (Fraction(k) if q == "k" else Fraction(q)) * Fraction(d)
+    slope = at(1) - at(0)
+    assert slope != 0, "no k makes these orthogonal"
+    k = -at(0) / slope
+    assert at(k) == 0
+    return k
+
+
+# requiem: catalogue/content/resultants-on-bearings
+# A bearing b, clockwise from north, is east r sin b and north r cos b; the
+# resultant's bearing is the angle of its east and north parts measured the
+# same way, by atan2(east, north), worked exactly and from 4-place values.
+def vc_bearing_resultant(want, listing, places) -> Fraction:
+    legs = [(int(r), int(b)) for r, b in re.findall(r"(\d+) on bearing (\d+)", listing)]
+    assert len(legs) == 2, listing
+    e = sum(r * math.sin(math.radians(b)) for r, b in legs)
+    n = sum(r * math.cos(math.radians(b)) for r, b in legs)
+    e4 = sum(r * round(math.sin(math.radians(b)), 4) for r, b in legs)
+    n4 = sum(r * round(math.cos(math.radians(b)), 4) for r, b in legs)
+    if want == "distance":
+        return trig_agree(math.hypot(e, n), math.hypot(e4, n4), int(places))
+    exact = math.degrees(math.atan2(e, n)) % 360
+    assert 0.1 <= exact <= 359.9, "a bearing near north rounds to 0 or to 360"
+    return trig_agree(exact, math.degrees(math.atan2(e4, n4)) % 360, int(places))
+
+
+BY_RULE += (
+    (re.compile(rf"^dot: {VC_VEC} \. {VC_VEC}$"), vc_dot),
+    (re.compile(rf"^angle between: {VC_VEC} and {VC_VEC} to (\d) dp$"), vc_angle_between),
+    (re.compile(rf"^orthogonal k: <(k|-?\d+), (k|-?\d+)> and {VC_VEC}$"), vc_orthogonal_k),
+    (re.compile(r"^resultant (distance|bearing): (.+) to (\d) dp$"), vc_bearing_resultant),
+)
+
+CHOICE_RULES += (
+    (re.compile(rf"^orthogonal or parallel: {VC_VEC} and {VC_VEC}$"), vc_orthogonal_or_parallel),
+)
+
+
+# requiem: catalogue/content/unit-vectors-asked-exactly
+# requiem: play/answers/roots-preview-names-the-asked-letter
+# A vector whose components end in no decimal is asked "exactly", since the
+# box refuses a decimal for it; and an exact length is keyed with the
+# letter its preview draws, |v| for a magnitude, so the box never shows x.
+def vc_check_wording() -> None:
+    def ends(q):
+        d = q.denominator
+        for f in (2, 5):
+            while d % f == 0:
+                d //= f
+        return d == 1
+    for path in sorted(LIB.glob("vectors-*.json")):
+        lib = json.loads(path.read_text())
+        for i, p in enumerate(lib["problems"]):
+            where = f"vectors L{lib['level'] + 1} row {i}"
+            words = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+            ans = p["answer"]
+            if ans["type"] == "vector":
+                v = ans["value"]
+                if not all(ends(Fraction(c["n"], c["d"])) for c in (v["x"], v["y"])) and "exactly" not in words:
+                    problems.append(f"{where}: {ans['accept'][0]} has a component with no ending decimal, and the question does not say exactly")
+            if ans["type"] == "roots" and "magnitude" in words and ans["value"].get("letter") != "|v|":
+                problems.append(f"{where}: a magnitude keyed with the letter {ans['value'].get('letter')!r}, not |v|")
+
+
+vc_check_wording()
+
+
+def vc_arrow(marks, tail, tip) -> bool:
+    """A shaft from tail to tip and a head whose point is the tip."""
+    tail, tip = [float(c) for c in tail], [float(c) for c in tip]
+    shaft = any(mk["kind"] == "segment" and mk["from"] == tail and mk["to"] == tip for mk in marks)
+    head = any(mk["kind"] == "path" and len(mk["points"]) == 3 and mk["points"][1] == tip for mk in marks)
+    return shaft and head
+
+
+# A drawn vector is the one the text names: the arrow runs from its tail to
+# its tip with the head at the tip, and once answered the legs are labelled
+# with its components, the sum is drawn from the tail of u to the tip of v,
+# and a direction is labelled with the answer.
+def vc_check_drawings() -> None:
+    for path in sorted(LIB.glob("vectors-*.json")):
+        lib = json.loads(path.read_text())
+        for i, p in enumerate(lib["problems"]):
+            vis = p.get("visual")
+            if not vis:
+                continue
+            where = f"vectors L{lib['level'] + 1} row {i}"
+            text, marks, shown = p["text"], vis["marks"], vis.get("answer", [])
+            if m := re.match(rf"^vector drawn from {VC_PT} to {VC_PT}$", text):
+                P, R = vc_q(m[1], m[2]), vc_q(m[3], m[4])
+                if not vc_arrow(marks, P, R):
+                    problems.append(f"{where}: no arrow from {P} to {R}")
+                # The legs go across from the tail and then up to the tip,
+                # each labelled with its component.
+                corner = [float(R[0]), float(P[1])]
+                legs = sorted((mk["from"], mk["to"], mk.get("label", "").replace("−", "-")) for mk in shown if mk["kind"] == "segment")
+                want = sorted([([float(c) for c in P], corner, str(R[0] - P[0])), (corner, [float(c) for c in R], str(R[1] - P[1]))])
+                if legs != want:
+                    problems.append(f"{where}: the legs are {legs}, not {want}")
+            elif m := re.match(rf"^drawn sum: {VC_VEC} \+ {VC_VEC}$", text):
+                u, v = vc_q(m[1], m[2]), vc_q(m[3], m[4])
+                tip = (u[0] + v[0], u[1] + v[1])
+                if not (vc_arrow(marks, (0, 0), u) and vc_arrow(marks, u, tip)):
+                    problems.append(f"{where}: u and v are not drawn tip to tail")
+                if not vc_arrow(shown, (0, 0), tip):
+                    problems.append(f"{where}: the revealed sum does not run to {tip}")
+            elif m := re.match(rf"^direction: {VC_VEC} to (\d) dp$", text):
+                if not vc_arrow(marks, (0, 0), vc_q(m[1], m[2])):
+                    problems.append(f"{where}: no arrow from the origin to <{m[1]}, {m[2]}>")
+                axis = [mk for mk in shown if mk["kind"] == "segment"]
+                if len(axis) != 1 or axis[0]["from"] != [0, 0] or axis[0]["to"][1] != 0 or axis[0]["to"][0] <= 0:
+                    problems.append(f"{where}: the angle is not measured from the positive x-axis")
+                said = [mk["label"] for mk in shown if mk["kind"] == "text"]
+                if said != [f"θ ≈ {p['answer']['accept'][0]}°"]:
+                    problems.append(f"{where}: θ is labelled {said}")
+            else:
+                problems.append(f"{where}: a drawing no rule holds to its text")
+
+
+vc_check_drawings()
+
+
+# ── Parametric & Polar ──────────────────────────────────────────────────
+# A parametric point is found by putting t into both equations, exactly; a
+# value of t by solving x(t) and checking y; an eliminated equation by
+# putting points of the curve into every option -- at values of t, or for a
+# cosine and a sine at angles whose cosine and sine are rational -- where
+# exactly one must hold everywhere. A thrown ball, a polar point and a
+# polar angle go by the calculator, twice where a trig value is copied to 4
+# places. A conversion is tested the same way, points of one equation put
+# into the other; and a polar curve is sampled for its petals, its farthest
+# point and its shape, never read from the form it is written in.
+PP_NUM = r"-?\d+(?:/\d+)?"
+# (cos t, sin t) pairs that are rational, all round the circle.
+PP_ANGLES = [(Fraction(1), Fraction(0)), (Fraction(0), Fraction(1)), (Fraction(-1), Fraction(0)), (Fraction(0), Fraction(-1)),
+             (Fraction(3, 5), Fraction(4, 5)), (Fraction(-5, 13), Fraction(12, 13)), (Fraction(-8, 17), Fraction(-15, 17)), (Fraction(24, 25), Fraction(-7, 25))]
+
+
+def pp_at(src: str, t) -> Fraction:
+    """A polynomial in t, or a cos(t)/sin(t) expression at a (cos, sin) pair, exactly."""
+    if isinstance(t, tuple):
+        c, s = t
+        return evaluate(src.replace("cos(t)", f"({c})").replace("sin(t)", f"({s})"))
+    return evaluate(src, "t", t)
+
+
+def pp_trig_at(src: str, degrees: int) -> Fraction:
+    c, s = round(math.cos(math.radians(degrees))), round(math.sin(math.radians(degrees)))
+    return pp_at(src, (Fraction(c), Fraction(s)))
+
+
+def pp_point(xs, ys, t, degrees=None):
+    if degrees:
+        return pp_trig_at(xs, int(t)), pp_trig_at(ys, int(t))
+    return pp_at(xs, Fraction(t)), pp_at(ys, Fraction(t))
+
+
+def pp_solve_x(xs: str, x) -> Fraction:
+    """t where the linear x(t) is x."""
+    b = pp_at(xs, Fraction(0))
+    a = pp_at(xs, Fraction(1)) - b
+    assert a != 0 and pp_at(xs, Fraction(2)) == b + 2 * a, f"{xs} is not linear in t"
+    return (Fraction(x) - b) / a
+
+
+def pp_when(xs, ys, x, y) -> Fraction:
+    t = pp_solve_x(xs, x)
+    assert pp_at(ys, t) == Fraction(y), f"({x}, {y}) is not on the curve"
+    return t
+
+
+def pp_y_axis(xs, ys):
+    t = pp_solve_x(xs, 0)
+    return Fraction(0), pp_at(ys, t)
+
+
+def pp_line(xs, ys):
+    """y = mx + b through two points of the curve, checked at a third."""
+    pts = [(pp_at(xs, Fraction(t)), pp_at(ys, Fraction(t))) for t in (0, 1, 5)]
+    (x0, y0), (x1, y1), (x2, y2) = pts
+    m = (y1 - y0) / (x1 - x0)
+    assert y2 - y0 == m * (x2 - x0), f"x = {xs}, y = {ys} is not a line"
+    return m, y0 - m * x0
+
+
+def pp_holds(equation: str, x, y) -> bool:
+    left, right = equation.split(" = ")
+    sub = lambda s: s.replace("x", f"({x})").replace("y", f"({y})")
+    return evaluate(sub(left)) == evaluate(sub(right))
+
+
+def pp_eliminated(xs, ys, listing):
+    samples = PP_ANGLES if "cos" in xs else [Fraction(t) for t in range(-3, 4)]
+    fits = [oid for oid, opt in te_options(listing).items()
+            if all(pp_holds(opt, pp_at(xs, t), pp_at(ys, t)) for t in samples)]
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# requiem: catalogue/content/motion-asked-in-the-air
+# Every time a row asks about comes before the landing, worked again here as
+# the positive root of h + (v sin θ)t − 16t² = 0: a height or a distance
+# after the ball is on the ground answers nothing. The range is the distance
+# at that landing time and the peak the height at t = v sin θ / 32.
+def pp_flight(v, s, h) -> float:
+    b = v * s
+    return (b + math.sqrt(b * b + 64 * h)) / 32
+
+
+def pp_motion(want, v, th, h, t, places) -> Fraction:
+    v, th, h = int(v), int(th), int(h)
+    s, c = math.sin(math.radians(th)), math.cos(math.radians(th))
+    s4, c4 = round(s, 4), round(c, 4)
+    t = float(t) if t else None
+    if t is not None:
+        assert 0 < t < pp_flight(v, s, h), f"the ball has landed by {t} s"
+
+    def value(s, c):
+        if want == "height":
+            return h + v * s * t - 16 * t * t
+        if want == "distance":
+            return v * c * t
+        if want == "top":
+            return v * s / 32
+        if want == "landing":
+            return pp_flight(v, s, h)
+        if want == "range":
+            return v * c * pp_flight(v, s, h)
+        return h + v * s * (v * s / 32) - 16 * (v * s / 32) ** 2
+    assert value(s, c) > 0, "the ball is not in the air"
+    return trig_agree(value(s, c), value(s4, c4), int(places))
+
+
+# requiem: catalogue/content/motion-model-not-always-given
+# Which equations model a throw: each option is read back as functions of t
+# and compared at three times with the physics -- across at v cos θ, up at
+# v sin θ from the height, and down ½ × 32t² -- where exactly one may fit.
+PP_MODEL = re.compile(r"^x = \((\d+)(cos|sin)\((\d+)°\)\)t, y = (?:(\d+) \+ )?\((\d+)(cos|sin)\((\d+)°\)\)t - (\d+)t\^2$")
+
+
+def pp_model(v, th, h, listing):
+    v, th, h = int(v), math.radians(int(th)), int(h)
+    trig = {"cos": math.cos, "sin": math.sin}
+    truth = lambda t: (v * math.cos(th) * t, h + v * math.sin(th) * t - 32 / 2 * t * t)
+    fits = []
+    for oid, body in te_options(listing).items():
+        m = PP_MODEL.match(body)
+        assert m, f"unread model {body}"
+        xv, xf, xd, y0, yv, yf, yd, g = m.groups()
+        said = lambda t: (int(xv) * trig[xf](math.radians(int(xd))) * t,
+                          int(y0 or 0) + int(yv) * trig[yf](math.radians(int(yd))) * t - int(g) * t * t)
+        if all(math.isclose(a, b, abs_tol=1e-9) for t in (0.5, 1, 2) for a, b in zip(said(t), truth(t))):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# requiem: catalogue/content/parametric-orientation-asked
+# Which way a curve runs: its points at t = 0°, 90°, 180° and 270°, in that
+# order, enclose a positive area (the shoelace sum) when they go round
+# counterclockwise.
+def pp_orientation(xs, ys) -> str:
+    pts = [(pp_trig_at(xs, d), pp_trig_at(ys, d)) for d in (0, 90, 180, 270)]
+    area = sum(pts[i][0] * pts[(i + 1) % 4][1] - pts[(i + 1) % 4][0] * pts[i][1] for i in range(4))
+    assert area != 0, "the curve encloses nothing"
+    return "ccw" if area > 0 else "cw"
+
+
+def pp_polar_xy(want, r, deg, radians):
+    theta = math.radians(int(deg))
+    return int(r) * (math.cos(theta) if want == "x" else math.sin(theta))
+
+
+def pp_polar_angle(x, y, places) -> Fraction:
+    x, y = int(x), int(y)
+    exact = math.degrees(math.atan2(y, x)) % 360
+    ref = round(math.degrees(math.atan(abs(y / x))), 4)
+    four_place = ref if x > 0 and y >= 0 else 180 - ref if x < 0 and y >= 0 else 180 + ref if x < 0 else 360 - ref
+    return trig_agree(exact, four_place, int(places))
+
+
+def pp_r_of(src: str):
+    """r(θ in radians) for r = a, r = a fn(nθ), r = a/fn(θ), r = a ± b fn(θ)."""
+    body = src.replace(" ", "").removeprefix("r=")
+    fns = {"cos": math.cos, "sin": math.sin}
+    if m := re.fullmatch(r"(-?\d*)(cos|sin)\((\d*)θ\)", body):
+        a = -1 if m[1] == "-" else int(m[1] or 1)
+        n = int(m[3] or 1)
+        return lambda t: a * fns[m[2]](n * t)
+    if m := re.fullmatch(r"\d+", body):
+        return lambda t: int(body)
+    if m := re.fullmatch(r"(-?\d+)/(cos|sin)\(θ\)", body):
+        return lambda t: int(m[1]) / fns[m[2]](t)
+    if m := re.fullmatch(r"(\d+)([+-])(\d*)(cos|sin)\(θ\)", body):
+        a, b = int(m[1]), int(m[3] or 1) * (1 if m[2] == "+" else -1)
+        return lambda t: a + b * fns[m[4]](t)
+    raise ValueError(f"unread polar equation {src}")
+
+
+def pp_rect_holds(equation: str, x: float, y: float) -> bool:
+    left, right = equation.replace(" ", "").split("=")
+    val = lambda s: eval(re.sub(r"(\d)([xy])", r"\1*\2", s).replace("^", "**"), {"x": x, "y": y})
+    scale = 1 + abs(val(left)) + abs(val(right))
+    return abs(val(left) - val(right)) < 1e-9 * scale
+
+
+# Angles that miss every axis, so no sample divides by a zero cos or sin.
+PP_THETAS = [math.radians(d) for d in (10, 35, 70, 100, 125, 160, 200, 250, 290, 340)]
+
+
+def pp_to_rect(src, listing):
+    f = pp_r_of(src)
+    pts = [(f(t) * math.cos(t), f(t) * math.sin(t)) for t in PP_THETAS]
+    fits = [oid for oid, opt in te_options(listing).items() if all(pp_rect_holds(opt, x, y) for x, y in pts)]
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+def pp_to_polar(src, listing):
+    fits = []
+    for oid, opt in te_options(listing).items():
+        f = pp_r_of(opt)
+        if all(pp_rect_holds(src, f(t) * math.cos(t), f(t) * math.sin(t)) for t in PP_THETAS):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+def pp_samples(src, n=7200):
+    f = pp_r_of(src)
+    return [(2 * math.pi * i / n, f(2 * math.pi * i / n)) for i in range(n)]
+
+
+def pp_petals(src) -> int:
+    """The loops the curve makes: each stretch of θ where r keeps one sign is
+    a loop pointing where its farthest point is (a half-turn on where r is
+    negative), and loops pointing the same way are traced twice, counted once."""
+    pts = pp_samples(src)
+    sign = lambda r: (r > 1e-12) - (r < -1e-12)
+    # Start the walk where r changes sign, so no loop is split at θ = 0.
+    start = next((i for i in range(len(pts)) if sign(pts[i][1]) != sign(pts[i - 1][1])), 0)
+    walk = pts[start:] + pts[:start]
+    loops, run = [], []
+    for t, r in walk:
+        if run and sign(r) != sign(run[-1][1]):
+            loops.append(run)
+            run = []
+        if sign(r):
+            run.append((t, r))
+    loops.append(run)
+    tips = []
+    for run in filter(None, loops):
+        t, r = max(run, key=lambda tr: abs(tr[1]))
+        d = math.degrees(t if r > 0 else t + math.pi) % 360
+        if not any(min(abs(d - e), 360 - abs(d - e)) < 1 for e in tips):
+            tips.append(d)
+    return len(tips)
+
+
+def pp_max(src) -> Fraction:
+    return Fraction(max(abs(r) for _, r in pp_samples(src))).limit_denominator(100)
+
+
+def pp_kind(src) -> str:
+    pts = [(r * math.cos(t), r * math.sin(t)) for t, r in pp_samples(src, 720)]
+    # A circle through the origin: x² + y² = Dx + Ey for one D and E.
+    (x1, y1), (x2, y2) = pts[37], pts[101]
+    det = x1 * y2 - x2 * y1
+    if max(abs(r) for _, r in pp_samples(src, 720)) - min(abs(r) for _, r in pp_samples(src, 720)) < 1e-9:
+        return "circle"
+    if abs(det) > 1e-6:
+        D = ((x1 * x1 + y1 * y1) * y2 - (x2 * x2 + y2 * y2) * y1) / det
+        E = (x1 * (x2 * x2 + y2 * y2) - x2 * (x1 * x1 + y1 * y1)) / det
+        if all(abs(x * x + y * y - D * x - E * y) < 1e-6 for x, y in pts):
+            return "circle"
+    if pp_petals(src) >= 3:
+        return "rose"
+    # A cardioid comes in to the origin and no further; a limaçon either
+    # stays clear of it or loops through it, r turning negative.
+    least = min(r for _, r in pp_samples(src))
+    return "cardioid" if abs(least) < 1e-9 else "limacon"
+
+
+def pp_off(f, x, y) -> float:
+    """About how far (x, y) is from r = f(θ): the miss in r, scaled by how steeply r turns there."""
+    rho, phi = math.hypot(x, y), math.atan2(y, x)
+    if rho < 0.02:
+        # At the origin the angle means nothing: it is on the curve if the
+        # curve comes in to it.
+        return min(abs(f(math.radians(d / 10))) for d in range(3600))
+    best = math.inf
+    for theta, sign in ((phi, 1), (phi + math.pi, -1)):
+        miss = f(theta) - sign * rho
+        slope = (f(theta + 1e-6) - f(theta - 1e-6)) / 2e-6
+        best = min(best, abs(miss) * rho / math.hypot(rho, slope))
+    return best
+
+
+def pp_graph_keys() -> dict:
+    """For each drawn polar graph, the option the text's points and the drawing both fit."""
+    keys = {}
+    for path in sorted(LIB.glob("parametric-polar-*.json")):
+        for p in json.loads(path.read_text())["problems"]:
+            m = re.match(r"^polar graph: through (.+); options (.+)$", p["text"])
+            if not m:
+                continue
+            said = [(float(r), int(d)) for r, d in re.findall(r"\((-?[\d.]+), (\d+)\)", m[1])]
+            opts = {oid: pp_r_of(o) for oid, o in te_options(m[2]).items()}
+            fits = [oid for oid, f in opts.items() if all(abs(f(math.radians(d)) - r) < 0.0006 for r, d in said)]
+            if len(fits) != 1:
+                keys[p["text"]] = f"{len(fits)} options fit the points"
+                continue
+            f = opts[fits[0]]
+            drawn = [pt for mk in p["visual"]["marks"] if mk["kind"] == "path" for pt in mk["points"]]
+            # Every drawn point is on the curve, at r or at −r a half-turn on,
+            # and the curve is all drawn: each of its points is near one drawn.
+            on = lambda x, y: pp_off(f, x, y) < 0.005
+            near = lambda t: min((f(t) * math.cos(t) - x) ** 2 + (f(t) * math.sin(t) - y) ** 2 for x, y in drawn) < 0.05 ** 2
+            if len(drawn) < 200 or not all(on(x, y) for x, y in drawn) or not all(near(math.radians(d)) for d in range(0, 360, 7)):
+                keys[p["text"]] = "the drawing is not the curve its points name"
+                continue
+            keys[p["text"]] = fits[0]
+    return keys
+
+
+PP_GRAPH_KEY = pp_graph_keys()
+
+
+# requiem: catalogue/content/polar-points-plotted-on-a-polar-grid
+# A plotted polar point: (r cos θ, r sin θ) worked again from the text, and
+# the key is the one lettered point there. All four sit on the ring at |r|
+# -- each a misreading of θ or of r's sign, never a point at another
+# distance -- and the drawing is those four letters at those places on a
+# polar grid, with the point revealed once answered.
+def pp_plot(r, d, listing):
+    r, t = int(r), math.radians(int(d))
+    want = (r * math.cos(t), r * math.sin(t))
+    pts = {oid: tuple(float(c) for c in body.strip("()").split(", ")) for oid, body in te_options(listing).items()}
+    assert sorted(pts) == ["A", "B", "C", "D"], f"the letters are {sorted(pts)}"
+    assert all(abs(math.hypot(*q) - abs(r)) < 0.002 for q in pts.values()), "a point off the ring at |r|"
+    assert len({(round(x, 2), round(y, 2)) for x, y in pts.values()}) == 4, "two letters at one point"
+    fits = [oid for oid, q in pts.items() if math.hypot(q[0] - want[0], q[1] - want[1]) < 0.002]
+    return fits[0] if len(fits) == 1 else f"{len(fits)} points are (r, θ)"
+
+
+for path in sorted(LIB.glob("parametric-polar-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        m = re.match(r"^polar plot: r = (-?\d+) at (\d+) degrees(?: as radians)?; options (.+)$", p["text"])
+        if not m:
+            continue
+        where = f"parametric-polar L{lib['level'] + 1} row {i}"
+        vis = p.get("visual") or {}
+        said = {oid: [float(c) for c in body.strip("()").split(", ")] for oid, body in te_options(m[3]).items()}
+        drawn = {mk.get("label"): mk["at"] for mk in vis.get("marks", []) if mk["kind"] == "point"}
+        if drawn != said:
+            problems.append(f"{where}: the letters drawn are not where the text puts them")
+        if not vis.get("polar") or vis.get("grid") != 0:
+            problems.append(f"{where}: a polar point not plotted on a polar grid")
+        r, t = int(m[1]), math.radians(int(m[2]))
+        shown = [mk["at"] for mk in vis.get("answer", []) if mk["kind"] == "point"]
+        if len(shown) != 1 or math.hypot(shown[0][0] - r * math.cos(t), shown[0][1] - r * math.sin(t)) > 0.002:
+            problems.append(f"{where}: the revealed point is not (r, θ)")
+
+
+def pp_exact(s: str) -> float:
+    """-2sqrt(3), 4, 3sqrt(3)/2, 3√2 as a float."""
+    m = re.fullmatch(r"(-?)(\d*)(?:sqrt\((\d+)\)|√(\d+))?(?:/(\d+))?", s.replace("−", "-"))
+    assert m and (m[2] or m[3] or m[4]), f"unread number {s}"
+    whole = int(m[2] or 1) if (m[3] or m[4]) else int(m[2])
+    root = math.sqrt(int(m[3] or m[4] or 1))
+    return (-1 if m[1] else 1) * whole * root / int(m[5] or 1)
+
+
+def pp_angle(s: str, unit: str) -> float:
+    """120°, 3π/4, π, −π/4 in radians, read in the unit the row says."""
+    s = s.replace("−", "-")
+    if unit == "degrees":
+        m = re.fullmatch(r"(-?\d+)°", s)
+        assert m, f"{s} is not in degrees"
+        return math.radians(int(m[1]))
+    if s == "0":
+        return 0.0
+    m = re.fullmatch(r"(-?)(\d*)π(?:/(\d+))?", s)
+    assert m, f"{s} is not in radians"
+    return (-1 if m[1] else 1) * int(m[2] or 1) * math.pi / int(m[3] or 1)
+
+
+# requiem: catalogue/content/exact-polar-form-at-special-angles
+# The point's own coordinates, and every option read as r and θ in the unit
+# asked: the key is the one with r > 0, θ from 0 up to a full turn, and
+# (r cos θ, r sin θ) at the point.
+def pp_polar_form(x, y, unit, listing):
+    x, y = pp_exact(x), pp_exact(y)
+    fits = []
+    for oid, body in te_options(listing).items():
+        r_s, t_s = body.strip("()").split(", ")
+        r, t = pp_exact(r_s), pp_angle(t_s, unit)
+        if r > 0 and 0 <= t < 2 * math.pi - 1e-12 and math.isclose(r * math.cos(t), x, abs_tol=1e-9) and math.isclose(r * math.sin(t), y, abs_tol=1e-9):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# requiem: catalogue/content/polar-points-have-many-names
+# Another name for one point: the option whose (r cos θ, r sin θ) is the
+# given point's, and it must be a different pair from the one given.
+def pp_same_point(r, d, unit, listing):
+    r, t = int(r), math.radians(int(d))
+    x, y = r * math.cos(t), r * math.sin(t)
+    fits = []
+    for oid, body in te_options(listing).items():
+        rr, dd = (int(v) for v in body.strip("()").split(", "))
+        assert (rr, dd) != (r, int(d)), "an option is the pair given"
+        tt = math.radians(dd)
+        if math.isclose(rr * math.cos(tt), x, abs_tol=1e-9) and math.isclose(rr * math.sin(tt), y, abs_tol=1e-9):
+            fits.append(oid)
+    return fits[0] if len(fits) == 1 else f"{len(fits)} options fit"
+
+
+# Each option the student reads is the pair the text holds, in the unit
+# the question asks in.
+for path in sorted(LIB.glob("parametric-polar-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        m = re.match(r"^polar same point: \((\d+), (\d+)\) (degrees|radians); options (.+)$", p["text"])
+        if not m:
+            continue
+        shown = {o["id"]: o["label"] for o in p["answer"]["options"]}
+        for oid, body in te_options(m[4]).items():
+            rr, dd = (int(v) for v in body.strip("()").split(", "))
+            r_s, t_s = shown[oid].strip("()").split(", ")
+            if int(r_s.replace("−", "-")) != rr or not math.isclose(pp_angle(t_s, m[3]), math.radians(dd), abs_tol=1e-12):
+                problems.append(f"parametric-polar L{lib['level'] + 1} row {i}: option {oid} reads {shown[oid]}, not ({rr}, {dd}°)")
+
+
+# requiem: play/answers/roots-preview-names-the-asked-letter
+# requiem: catalogue/content/motion-model-not-always-given
+# An exact answer is keyed with the letter asked for, so the box previews
+# r = 2√5 for an r and y = −3 for a y; and a thrown ball's path is printed
+# exactly when its text says so, written as the physics has it.
+for path in sorted(LIB.glob("parametric-polar-*.json")):
+    lib = json.loads(path.read_text())
+    for i, p in enumerate(lib["problems"]):
+        where = f"parametric-polar L{lib['level'] + 1} row {i}"
+        words = " ".join(t.get("v", "") for t in p["prompt"] if t.get("t") == "prose")
+        if m := re.match(r"^polar (x|y|r):", p["text"]):
+            if p["answer"]["value"].get("letter") != m[1]:
+                problems.append(f"{where}: {m[1]} keyed with the letter {p['answer']['value'].get('letter')!r}")
+        if m := re.match(r"^motion (?!model)\w+: v (\d+) at (\d+) degrees from (\d+) ft.*?( with its path)?$", p["text"]):
+            v, th, h = m[1], m[2], int(m[3])
+            path_said = f"Its path is x = ({v} cos {th}°)t and y = {f'{h} + ' if h else ''}({v} sin {th}°)t − 16t²"
+            if bool(m[4]) != (path_said in words) or (not m[4] and "Its path is" in words):
+                problems.append(f"{where}: the path is {'not ' if m[4] else ''}printed as its text says")
+IDS_ABCD = ("a", "b", "c", "d")
+
+CHOICE_RULES += (
+    (re.compile(r"^eliminate: x = (.+); y = (.+); options (.+)$"), pp_eliminated),
+    (re.compile(r"^to rectangular: (r = .+); options (.+)$"), pp_to_rect),
+    (re.compile(r"^to polar: (.+ = .+); options (.+)$"), pp_to_polar),
+    (re.compile(r"^polar curve: (r = .+)$"), pp_kind),
+    (re.compile(r"^(polar graph: .+)$"), lambda text: PP_GRAPH_KEY[text]),
+    (re.compile(r"^polar plot: r = (-?\d+) at (\d+) degrees(?: as radians)?; options (.+)$"), pp_plot),
+    (re.compile(r"^polar form: \((\S+), (\S+)\) (degrees|radians); options (.+)$"), pp_polar_form),
+    (re.compile(r"^polar same point: \((\d+), (\d+)\) (degrees|radians); options (.+)$"), pp_same_point),
+    (re.compile(r"^param orientation: x = (.+); y = (.+)$"), pp_orientation),
+    (re.compile(r"^motion model: v (\d+) at (\d+) degrees from (\d+) ft; options (.+)$"), pp_model),
+)
+
+PAIR_RULES += (
+    (re.compile(r"^param point: x = (.+); y = (.+) at t = (-?\d+)( degrees)?$"), pp_point),
+    (re.compile(r"^param y-axis: x = (.+); y = (.+)$"), pp_y_axis),
+)
+
+LINE_RULES += (
+    (re.compile(r"^eliminate line: x = (.+); y = (.+)$"), pp_line),
+)
+
+RADICAL_RULES += (
+    (re.compile(rf"^polar r: \(({PP_NUM}), ({PP_NUM})\)$"), lambda x, y: int(x) ** 2 + int(y) ** 2),
+)
+
+EXACT_RULES += (
+    (re.compile(r"^polar (x|y): r = (-?\d+) at (\d+) degrees( as radians)?$"), pp_polar_xy),
+)
+
+BY_RULE += (
+    (re.compile(rf"^param when: x = (.+); y = (.+) at \(({PP_NUM}), ({PP_NUM})\)$"), pp_when),
+    (re.compile(r"^motion (height|distance|landing|top|range|peak): v (\d+) at (\d+) degrees from (\d+) ft(?: after ([\d.]+) s)? to (\d) dp(?: with its path)?$"), pp_motion),
+    (re.compile(r"^polar angle: \((-?\d+), (-?\d+)\) to (\d) dp$"), pp_polar_angle),
+    (re.compile(r"^polar petals: (r = .+)$"), pp_petals),
+    (re.compile(r"^polar max r: (r = .+)$"), pp_max),
+)
+
+
+def pp_check_drawings() -> None:
+    """A parametric drawing is its own curve, and its revealed dot the point asked."""
+    for path in sorted(LIB.glob("parametric-polar-*.json")):
+        lib = json.loads(path.read_text())
+        for i, p in enumerate(lib["problems"]):
+            vis = p.get("visual")
+            if not vis:
+                continue
+            where = f"parametric-polar L{lib['level'] + 1} row {i}"
+            text = p["text"]
+            if text.startswith("polar plot: "):
+                continue
+            # requiem: play/visuals/polar-grid-on-the-plane
+            if text in PP_GRAPH_KEY and (not vis.get("polar") or vis.get("grid") != 0):
+                problems.append(f"{where}: a polar graph not drawn on a polar grid")
+            if text in PP_GRAPH_KEY:
+                # Once answered: a dot at the farthest point of the curve, and
+                # the equation written as the key's label.
+                key = PP_GRAPH_KEY[text]
+                if key not in IDS_ABCD:
+                    continue
+                f = pp_r_of(te_options(text.split("; options ", 1)[1])[key])
+                far = max(abs(f(math.radians(d / 10))) for d in range(3600))
+                dots = [mk["at"] for mk in vis.get("answer", []) if mk["kind"] == "point"]
+                if len(dots) != 1 or abs(math.hypot(*dots[0]) - far) > 0.002 or pp_off(f, *dots[0]) > 0.005:
+                    problems.append(f"{where}: the revealed dot {dots} is not the curve's farthest point")
+                label = next(o["label"] for o in p["answer"]["options"] if o["id"] == key)
+                if [mk["label"] for mk in vis.get("answer", []) if mk["kind"] == "text"] != [label]:
+                    problems.append(f"{where}: the revealed equation is not {label}")
+                continue
+            m = re.match(r"^param point: x = (.+); y = (.+) at t = (-?\d+)( degrees)?$", text)
+            if not m:
+                problems.append(f"{where}: a drawing no rule holds to its text")
+                continue
+            xs, ys = m[1], m[2]
+            drawn = [pt for mk in vis["marks"] if mk["kind"] == "path" and len(mk["points"]) > 3 for pt in mk["points"]]
+            # Each drawn point is the curve's at some t: x fixes t when x is
+            # linear; a cosine and sine pair is on its ellipse.
+            if m[4]:
+                A = float(pp_trig_at(xs, 0) - pp_trig_at(xs, 180)) / 2
+                h = float(pp_trig_at(xs, 0)) - A
+                B = float(pp_trig_at(ys, 90) - pp_trig_at(ys, 270)) / 2
+                k = float(pp_trig_at(ys, 90)) - B
+                off = [q for q in drawn if abs(((q[0] - h) / A) ** 2 + ((q[1] - k) / B) ** 2 - 1) > 0.01]
+            else:
+                off = []
+                for x, y in drawn:
+                    t = pp_solve_x(xs, Fraction(x).limit_denominator(1000))
+                    if abs(float(pp_at(ys, t)) - y) > 0.01:
+                        off.append((x, y))
+            if len(drawn) < 40 or off:
+                problems.append(f"{where}: {len(off)} of {len(drawn)} drawn points are off the curve")
+            want = [float(c) for c in pp_point(xs, ys, m[3], m[4])]
+            dots = [mk["at"] for mk in vis.get("answer", []) if mk["kind"] == "point"]
+            if dots != [want]:
+                problems.append(f"{where}: the revealed dot is {dots}, not {want}")
+
+
+pp_check_drawings()
+
+
+# --- Logarithms: Log Functions -------------------------------------------------
+# requiem: catalogue/content/log-functions-in-logarithms
+# Each function is read from its ASCII text and evaluated -- exactly in
+# fractions where it can be, so 3 - 2^(-100) stays below 3 -- and every answer
+# is found from the values alone: a crossing by bisection where the function
+# passes the height, a range from the values near each edge of the domain and
+# far out, a direction from the values in order, a reflection by mapping the
+# points of one graph and testing them on the other, a stretch from the ratio
+# of two logs, and a drawn graph from the equation every point of it fits.
+
+def lf_log(b, v):
+    if not v > 0:
+        return float("nan")
+    if isinstance(v, Fraction):
+        return (math.log(v.numerator) - math.log(v.denominator)) / math.log(b)
+    return math.log(v) / math.log(b)
+
+
+def lf_pow(a, e):
+    if isinstance(e, Fraction) and e.denominator == 1 and abs(e) <= 2000:
+        return Fraction(a) ** e
+    try:
+        v = float(a) ** float(e)
+    except OverflowError:
+        return float("nan")
+    # A float too small to survive being added to a whole number (10^(-40.5)
+    # + 3 is 3.0) would put the edge of a range in it: left out, as unknown.
+    return float("nan") if abs(v) < 1e-12 or math.isinf(v) else v
+
+
+def lf_float(src):
+    """log_3(x - 2) + 1, -2^(x - 1) + 3, 3*log_(1/2)(-x) as a function of x."""
+    py = re.sub(r"log_\((\d+)/(\d+)\)\(", r"_log(\1/\2, ", src)
+    py = re.sub(r"log_(\d+)\(", r"_log(\1, ", py)
+    py = re.sub(r"(\d)(x)", r"\1*\2", py)
+    py = re.sub(r"(\d+|\([^()]*\))\^(x|\([^()]*\))", r"_pow(\1, \2)", py)
+    assert "^" not in py, f"unread power in {src}"
+    code = compile(py, "<log function>", "eval")
+
+    def f(x):
+        try:
+            v = eval(code, {"__builtins__": {}, "_log": lf_log, "_pow": lf_pow}, {"x": x})  # noqa: S307
+        except (OverflowError, ZeroDivisionError, ValueError):
+            return float("nan")
+        return v if v == v else float("nan")
+    return f
+
+
+LF_GRID = [Fraction(k, 16) for k in range(-40 * 16, 40 * 16 + 1)]
+LF_TOL = Fraction(1, 10 ** 12)
+
+
+def lf_ok(v):
+    return isinstance(v, (int, Fraction)) or (isinstance(v, float) and math.isfinite(v))
+
+
+def lf_cross(f, height):
+    """The one x where f passes the height, found by bisection on a fine grid."""
+    xs = [Fraction(k, 256) for k in range(-20 * 256, 20 * 256)] + [Fraction(20 + j) for j in range(2000)]
+    roots, prev = [], None
+    for x in xs:
+        v = f(x)
+        if not lf_ok(v):
+            prev = None
+            continue
+        d = v - height
+        if d == 0:
+            roots.append(Fraction(x))
+        elif prev is not None and prev[1] != 0 and (prev[1] < 0) != (d < 0):
+            lo, hi = prev[0], x
+            for _ in range(80):
+                mid = (lo + hi) / 2
+                if (f(mid) - height < 0) == (prev[1] < 0):
+                    lo = mid
+                else:
+                    hi = mid
+            roots.append(Fraction(float(lo)).limit_denominator(1000))
+        prev = (x, d)
+    roots = sorted(set(roots))
+    assert len(roots) == 1, f"passes {height} at {roots}"
+    q = roots[0]
+    assert abs(f(q) - height) < 1e-9, f"{q} is not where it passes {height}"
+    return q
+
+
+def lf_x_intercept(src):
+    return lf_cross(lf_float(src), 0)
+
+
+def lf_height(src, y):
+    return (lf_cross(lf_float(src), Fraction(y)), Fraction(y))
+
+
+def lf_range(src):
+    """Every height f reaches: its values on a grid, near each edge of its
+    domain (approached by halving, in fractions), and far out, joined where
+    the value between two samples lies between theirs."""
+    f = lf_float(src)
+    xs = set(LF_GRID)
+    for a, b in zip(LF_GRID, LF_GRID[1:]):
+        if lf_ok(f(a)) != lf_ok(f(b)):
+            inside, outside = (a, b) if lf_ok(f(a)) else (b, a)
+            for i in range(300):
+                mid = (inside + outside) / 2
+                if lf_ok(f(mid)):
+                    inside = mid
+                else:
+                    outside = mid
+                if i % 10 == 9:
+                    xs.add(inside)
+    xs.update(s * Fraction(2) ** j for j in range(1, 11) for s in (1, -1))
+    xs.update(s * Fraction(10) ** j for j in range(3, 61) for s in (1, -1))
+    pts = [(x, f(x)) for x in sorted(xs)]
+    spans = []
+    for (x0, v0), (x1, v1) in zip(pts, pts[1:]):
+        if lf_ok(v0) and lf_ok(v1):
+            m = f((x0 + x1) / 2)
+            lo, hi = sorted((v0, v1))
+            if lf_ok(m) and lo - LF_TOL <= m <= hi + LF_TOL:
+                spans.append((lo, hi))
+    return on_grid({y for y in DR_Y if any(lo <= y <= hi for lo, hi in spans)}, DR_Y)
+
+
+def lf_direction(src, listing):
+    f = lf_float(src)
+    vals = [v for v in (f(x) for x in LF_GRID) if lf_ok(v)]
+    steps = [b - a for a, b in zip(vals, vals[1:])]
+    assert len(vals) > 20 and (all(s > 0 for s in steps) or all(s < 0 for s in steps)), f"{src} does not run one way"
+    want = "rises" if steps[0] > 0 else "falls"
+    ids = {label.strip(): oid for oid, label in re.findall(r"(\w): ([^|]+)", listing)}
+    return ids[want]
+
+
+LF_MIRRORS = {"x-axis": lambda x, y: (x, -y), "y-axis": lambda x, y: (-x, y),
+              "y = x": lambda x, y: (y, x), "origin": lambda x, y: (-x, -y)}
+
+
+def lf_reflected(g_src, f_src, listing):
+    f, g = lf_float(f_src), lf_float(g_src)
+    pts = [(x, f(x)) for x in LF_GRID[::8]]
+    pts = [(x, y) for x, y in pts if lf_ok(y) and 1e-6 < abs(y) < 40]
+    assert len(pts) > 10, f"too few points of {f_src}"
+    fits = []
+    for oid, name in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing):
+        ok = True
+        for x, y in pts:
+            X, Y = LF_MIRRORS[name](x, y)
+            there = g(X)
+            ok &= lf_ok(there) and abs(there - Y) < 1e-9 * max(1, abs(Y))
+        if ok:
+            fits.append(oid)
+    assert len(fits) == 1, f"{g_src} from {f_src}: {fits}"
+    return fits[0]
+
+
+def lf_stretch(to, frm):
+    r = [lf_log(int(to), x) / lf_log(int(frm), x) for x in (7.0, 13.0, 0.3)]
+    q = Fraction(r[0]).limit_denominator(20)
+    assert all(abs(v - float(q)) < 1e-12 for v in r), f"log_{to}/log_{frm} is not one number: {r}"
+    return q
+
+
+def lf_same(a_src, b_src):
+    a, b = lf_float(a_src), lf_float(b_src)
+    xs = [x for x in LF_GRID[::5] if lf_ok(a(x)) or lf_ok(b(x))]
+    return bool(xs) and all(lf_ok(a(x)) and lf_ok(b(x)) and abs(a(x) - b(x)) < 1e-9 for x in xs)
+
+
+def lf_which(drawn, listing):
+    good = [oid for oid, label in re.findall(r"(\w): ([^|]+?)(?: \||$)", listing) if lf_same(drawn, label)]
+    assert len(good) == 1, f"{drawn}: {good} are it"
+    return good[0]
+
+
+PAIR_RULES += (
+    (re.compile(r"^log point at height: (.+); y = (-?\d+)$"), lf_height),
+)
+
+BY_RULE += (
+    (re.compile(r"^log x-intercept: (.+)$"), lf_x_intercept),
+    (re.compile(r"^stretch factor: log_(\d+)\(x\) from log_(\d+)\(x\)$"), lf_stretch),
+    (re.compile(r"^stretched log meets: (\d+\*log_\d+\(x\)) = (-?\d+)$"), lambda src, y: lf_cross(lf_float(src), Fraction(y))),
+)
+
+SET_RULES += (
+    (re.compile(r"^log range: (.+)$"), lf_range),
+    (re.compile(r"^power range: (.+)$"), lf_range),
+    # The domain of f⁻¹ is the range of f: f⁻¹ takes exactly what f gives out.
+    (re.compile(r"^inverse domain: f\(x\) = (.+)$"), lf_range),
+)
+
+CHOICE_RULES += (
+    (re.compile(r"^rises or falls: (.+); options (a: rises \| b: falls)$"), lf_direction),
+    (re.compile(r"^reflected: (.+) from (.+); options (.+)$"), lf_reflected),
+    (re.compile(r"^which graph: drawn (.+?); options (.+)$"), lf_which),
+)
+
+
+def lf_drawn_functions(text):
+    """The functions a row's picture draws, read from its text."""
+    m = re.match(r"^reflect shifted: \(\S+, \S+\) on base (\d+) plus (-?\d+)$", text)
+    if m:
+        b, k = m[1], int(m[2])
+        return [f"{b}^x + {k}" if k >= 0 else f"{b}^x - {-k}", f"log_{b}(x - {k})" if k >= 0 else f"log_{b}(x + {-k})"]
+    m = re.match(r"^reflect onto (?:log|power): \(\S+, \S+\) on base (\d+)$", text)
+    if m:
+        return [f"{m[1]}^x", f"log_{m[1]}(x)"]
+    m = re.match(r"^reflected: (.+) from (.+); options", text)
+    if m:
+        return [m[1], m[2]]
+    m = re.match(r"^(?:log x-intercept|log point at height|log range|power range|inverse domain: f\(x\) =|log domain|log asymptote"
+                 r"|rises or falls|which graph: drawn):? (.+?)(?:; .*)?$", text)
+    if m:
+        return [m[1]]
+    return None
+
+
+def lf_on(f, x, y):
+    """(x, y) is within 1/1000 of the graph of f, across or up: next to an
+    asymptote the curve is so steep that x rounded to four places moves its
+    height a long way, so the heights f takes over x ± 1/1000, nearer x
+    ever more closely, must reach y."""
+    steps = [Fraction(j, 20000) for j in range(-20, 21)] + [s * Fraction(1, 10 ** k) for k in range(5, 13) for s in (1, -1)]
+    near = [v for v in (f(x + d) for d in steps) if lf_ok(v)]
+    return bool(near) and min(near) - 1e-3 <= y <= max(near) + 1e-3
+
+
+# Every curve drawn is one the text names, and the graph a student reads to
+# choose its equation, drawn while asking, is the key's.
+for path in sorted(LIB.glob("logarithms-*.json")):
+    for i, p in enumerate(json.loads(path.read_text())["problems"]):
+        v = p.get("visual")
+        if not v or v.get("kind") != "plane":
+            continue
+        where = f"logarithms L{int(path.stem.rsplit('-', 1)[1]) + 1} row {i}"
+        srcs = lf_drawn_functions(p["text"])
+        if srcs is None:
+            problems.append(f"{where}: a graph no rule reads: {p['text']}")
+            continue
+        fns = [lf_float(s) for s in srcs]
+        on = lambda f, mk: all(lf_on(f, Fraction(x).limit_denominator(10 ** 6), y) for x, y in mk["points"])
+        curves = [mk for mk in v["marks"] + v["answer"] if mk["kind"] == "path"]
+        if not curves:
+            problems.append(f"{where}: a plane with no curve")
+        for mk in curves:
+            if not any(on(f, mk) for f in fns):
+                problems.append(f"{where}: a curve drawn is none of {srcs}")
+        if p["text"].startswith("which graph:"):
+            shown = [mk for mk in v["marks"] if mk["kind"] == "path"]
+            if not shown or not all(on(fns[0], mk) for mk in shown):
+                problems.append(f"{where}: the graph shown while asking is not {srcs[0]}")
+
 # requiem: catalogue/library/every-level-checked
 # A problem no rule reads would pass by saying nothing: a prefix spelled one
 # way in the generator and another here does that, and so does one new shape
@@ -8210,6 +10594,42 @@ for path in sorted(LIB.glob("*.json")):
                 v = answer["value"]
                 if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
                     problems.append(f"{where}: {text} is {want}, not {v}")
+            continue
+
+        # requiem: play/answers/points-judged-as-set
+        # Points: found again from the equations or the story, and compared
+        # as a set of exact points, none as the empty set of the question's size.
+        if answer["type"] == "points":
+            rule = next((r for r in POINT_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = sorted(tuple(Fraction(c) for c in pt) for pt in rule[1](*rule[0].match(text).groups()))
+                v = answer["value"]
+                got = sorted(tuple(as_fraction(c) for c in pt) for pt in v["pts"])
+                if got != want:
+                    problems.append(f"{where}: {text} meets at {want}, not {got}")
+                if v.get("dim") != rule[2]:
+                    problems.append(f"{where}: {text} has {rule[2]} coordinates, not {v.get('dim')}")
+                for pt in v["pts"]:
+                    for c in pt:
+                        if c["d"] <= 0 or math.gcd(c["n"], c["d"]) != 1:
+                            problems.append(f"{where}: coordinate {c} is not in lowest terms")
+            continue
+
+        # requiem: play/answers/vector-typed-in-angle-brackets
+        # A vector: worked out again component by component and compared
+        # exactly, each component stored in lowest terms.
+        if answer["type"] == "vector":
+            rule = next((r for r in VECTOR_RULES if r[0].match(text)), None)
+            if rule:
+                checked += 1
+                want = tuple(Fraction(c) for c in rule[1](*rule[0].match(text).groups()))
+                v = answer["value"]
+                if (as_fraction(v["x"]), as_fraction(v["y"])) != want:
+                    problems.append(f"{where}: {text} is {want}, not {v}")
+                for c in (v["x"], v["y"]):
+                    if c["d"] <= 0 or math.gcd(c["n"], c["d"]) != 1:
+                        problems.append(f"{where}: component {c} is not in lowest terms")
             continue
 
         # requiem: catalogue/content/complex-judged-exactly
