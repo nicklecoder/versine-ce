@@ -11,7 +11,7 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
-## Unreleased
+## 1.3.0 — 2026-10-29
 
 **Vectors, parametric & polar, and conics, reviewed.** Parametric
 Motion asked how far a ball had gone after it had landed (79 of 245
