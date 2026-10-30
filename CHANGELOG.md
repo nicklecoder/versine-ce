@@ -11,7 +11,7 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
-## Unreleased
+## 1.4.0 — 2026-10-30
 
 **Switch, and a socket for the console's Practise.** A student's way off
 the map now says Switch rather than Sign out, with the same tap-again
