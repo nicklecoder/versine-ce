@@ -7,7 +7,7 @@ import { el, mount } from './dom.js';
 import { ICONS, ACCENTS } from './icons.js';
 import { state, go } from './router.js';
 import { extensionLinks } from './map.js';
-import { hasCustomSignIn } from '../engine/extensions.js';
+import { hasCustomSignIn, teacherPractise } from '../engine/extensions.js';
 
 const pct = (n) => `${Math.round(n * 100)}%`;
 const skillName = (id) => SKILLS.find((s) => s.id === id)?.name ?? id;
@@ -49,11 +49,19 @@ function header() {
       el('div.eyebrow', {}, 'Teacher console'),
       el('div.row__title', {}, state.me.name)),
     el('div.row-flex', {},
-      el('button.btn.btn--sm.btn--ghost', { onclick: () => go({ name: 'map' }) }, 'Practise'),
+      practiseButton(),
       ...extensionLinks(),
       el('button.btn.btn--sm.btn--ghost', {
         onclick: async () => { await api.logout(); location.reload(); },
       }, 'Sign out')));
+}
+
+/** Practise on the map, unless an extension says otherwise (server/extensions/teacher-practise). */
+function practiseButton() {
+  const action = teacherPractise();
+  return action
+    ? el('button.btn.btn--sm.btn--ghost', { onclick: () => action.run() }, action.label)
+    : el('button.btn.btn--sm.btn--ghost', { onclick: () => go({ name: 'map' }) }, 'Practise');
 }
 
 /** Everyone at a glance. */

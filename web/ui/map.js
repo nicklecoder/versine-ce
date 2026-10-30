@@ -54,6 +54,9 @@ export function topbar({ wide = false } = {}) {
  * Signing out is immediate and loses an unsaved run, and on a phone the
  * button sits right under the sound toggle. So the first tap asks, and a
  * second within a few seconds does it.
+ *
+ * requiem: play/ui/switch-not-sign-out -- it ends only this person's session
+ * and returns to the profile picker, so it says Switch.
  */
 function signOutButton() {
   let armed = null;
@@ -61,14 +64,14 @@ function signOutButton() {
     onclick: async () => {
       if (!armed) {
         btn.textContent = 'Sure? Tap again';
-        armed = setTimeout(() => { armed = null; btn.textContent = 'Sign out'; }, 3000);
+        armed = setTimeout(() => { armed = null; btn.textContent = 'Switch'; }, 3000);
         return;
       }
       clearTimeout(armed);
       await api.logout();
       location.reload();
     },
-  }, 'Sign out');
+  }, 'Switch');
   return btn;
 }
 

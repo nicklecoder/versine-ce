@@ -11,6 +11,16 @@ API contract (`contract/`), since that is what any other server depends on:
 Home installs keep following `main` through `scripts/update.sh`; a release is for
 anyone who wants a known version, and these notes say what changed either way.
 
+## Unreleased
+
+**Switch, and a socket for the console's Practise.** A student's way off
+the map now says Switch rather than Sign out, with the same tap-again
+confirmation: it ends only that person's session and returns to the
+profile picker for the next one, and "Sign out" read as leaving the
+device altogether. A new extension point, `setTeacherPractise({ label,
+run })`, lets an edition relabel the teacher console's Practise button
+and change what it does; with no extension it opens the map as before.
+
 ## 1.3.0 — 2026-10-29
 
 **Vectors, parametric & polar, and conics, reviewed.** Parametric

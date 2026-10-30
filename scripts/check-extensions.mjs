@@ -39,6 +39,7 @@ check(ext.hasCustomSignIn() === false, 'with no extension, the PIN-account scree
 check(ext.screenFor('billing') === undefined, 'with no extension, no extra screens');
 check(ext.linksFor('teacher').length === 0, 'with no extension, no extra links');
 check(SKILLS.every((s) => ext.lockNoteFor(s.id, ['x']) === null), 'with no extension, locks read as the gate says');
+check(ext.teacherPractise() === null, 'with no extension, the console\'s Practise opens the map');
 
 // A missing or unreadable list is no list.
 await ext.loadExtensions({}, async () => ({ ok: false }));
@@ -78,6 +79,13 @@ check(ext.blockersFor(SKILLS[0].id, progress).length === 1, 'a policy can close 
 ext.extensions.setLockNote(({ skillId }) => (skillId === locked.id ? 'Opens in the full version.' : null));
 check(ext.lockNoteFor(locked.id, ['x']) === 'Opens in the full version.', 'a lock note replaces the wording');
 check(ext.lockNoteFor(first.id, ['x']) === null, 'a note returning null keeps the app\'s own wording');
+
+// requiem: server/extensions/teacher-practise
+let ran = 0;
+ext.extensions.setTeacherPractise({ label: 'Hand over', run: () => { ran += 1; } });
+const practise = ext.teacherPractise();
+practise.run();
+check(practise.label === 'Hand over' && ran === 1, 'setTeacherPractise relabels Practise and runs its action');
 
 if (fail.length) {
   console.log(`${fail.length} extension check(s) failed:`);
